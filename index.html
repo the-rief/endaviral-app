@@ -1136,7 +1136,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="admin-tab" onclick="adminTab('services-mgmt',this)">Services</div>
           <div class="admin-tab" onclick="adminTab('providers',this)">⚡ Providers</div>
           <div class="admin-tab" onclick="adminTab('stats',this)">Stats</div>
-          <div class="admin-tab" onclick="adminTab('support',this);loadAdminSupport()">💬 Support</div>
+          <div class="admin-tab" onclick="adminTab('support',this)">💬 Support</div>
         </div>
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
@@ -1406,13 +1406,11 @@ async function api(path, opts = {}) {
   }
   // ── Session-expiry guard ─────────────────────────────────────────────────
   // Tokens are now signed JWTs with a 24-hour expiry. If the server returns
-  // 401 it means the token has expired or been invalidated.
-  // Pass { silent401: true } for background pollers so they never force a logout.
+  // 401 it means the token has expired or been invalidated. Log the user out
+  // immediately so they can re-authenticate rather than seeing a generic error.
   if (r.status === 401) {
-    if (!opts.silent401) {
-      doLogout();
-      toast('Your session has expired. Please sign in again.', 'error');
-    }
+    doLogout();
+    toast('Your session has expired. Please sign in again.', 'error');
     throw new Error('Session expired — please sign in again.');
   }
   // ─────────────────────────────────────────────────────────────────────────
@@ -1757,6 +1755,7 @@ function navTo(page) {
   if (page === 'admin') {
     loadAdminUsers();
     loadAdminStats().catch(()=>{});
+    loadAdminSupport().catch(()=>{});
     // Auto-refresh balance every 30s while admin panel is open
     if (window._adminStatsTimer) clearInterval(window._adminStatsTimer);
     window._adminStatsTimer = setInterval(() => {
@@ -2243,6 +2242,7 @@ function adminTab(tab, el) {
   if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); }
   if (tab === 'stats') loadAdminStats();
   if (tab === 'providers') loadAdminProviders();
+  if (tab === 'support') loadAdminSupport();
 }
 
 async function loadAdminUsers() {
@@ -2396,8 +2396,8 @@ async function loadAdminStats() {
   try {
     // Fetch both in parallel
     const [statsData, breakdownData] = await Promise.all([
-      api('/admin/stats', {silent401:true}),
-      api('/admin/stats/filter-breakdown', {silent401:true}),
+      api('/admin/stats'),
+      api('/admin/stats/filter-breakdown'),
     ]);
 
     const s = statsData.stats || statsData;
@@ -2813,7 +2813,7 @@ else { document.getElementById('authWrap').style.display = 'block'; document.get
 let activeSupportThreadId = null;
 
 async function loadAdminSupport() {
-  if (!currentUser?.is_admin || !token) return;
+  if (!currentUser?.is_admin) return;
   const status = document.getElementById('supportFilterStatus')?.value || '';
   const type   = document.getElementById('supportFilterType')?.value || '';
   const list   = document.getElementById('supportThreadList');
