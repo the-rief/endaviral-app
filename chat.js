@@ -103,8 +103,6 @@
 
   const state = { order:{step:0}, delay:{step:0}, unread:0, open:false, activeTab:'order' };
 
-
-
   // Boot greeting — fires once when widget loads
   setTimeout(() => {
     evAdminMsg('order',
@@ -292,6 +290,16 @@
   function evNotifyAdmin(type, user, message) { /* handled by evPostMessage */ }
 
   // ── Message helpers ───────────────────────────────────────────────────────
+
+  // Public-facing wrappers (called from evSend, boot greeting, and flow handlers)
+  function evAdminMsg(tab, text) {
+    evAdminMsgLocal(tab, text);
+  }
+
+  function evUserMsg(tab, text, initial) {
+    evUserMsgLocal(tab, text, initial);
+  }
+
   function evAdminMsgLocal(tab, text) {
     const time = evNow();
     const formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
