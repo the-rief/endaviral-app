@@ -1145,8 +1145,9 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-allorders">
           <div class="sec-hd"><div><div class="sec-title">ALL ORDERS</div><div class="sec-sub">Every order across all users</div></div><button class="btn-secondary" onclick="loadAdminOrders()">↻ Refresh</button></div>
           <div style="padding:0 0 14px 0;">
-            <div style="display:flex;gap:10px;align-items:center;">
-              <input class="search-inp" id="adminOrderSearch" placeholder="🔍  Search by customer email…" style="max-width:340px;" oninput="loadAdminOrders()"/>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <input class="search-inp" id="adminOrderSearch" placeholder="🔍  Search by customer email…" style="max-width:300px;" oninput="loadAdminOrders()"/>
+              <input class="search-inp" id="adminOrderIdSearch" placeholder="🔍  Search by Order ID…" style="max-width:300px;" oninput="loadAdminOrders()"/>
             </div>
           </div>
           <div class="tbl-wrap" id="adminOrdersTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
@@ -2101,16 +2102,22 @@ function renderOrders() {
   if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
   el.innerHTML = `<table>
     <thead><tr><th>#ID</th><th>Service</th><th class="hide-mobile">Link</th><th>Qty</th><th>Cost</th><th>Status</th><th>Date</th></tr></thead>
-    <tbody>${list.map(o => `
-      <tr>
-        <td style="color:var(--muted);font-size:12px;">#${o.id||o._id||'—'}</td>
+    <tbody>${list.map(o => {
+      const fullId  = o.id || o._id || '';
+      const shortId = fullId.slice(0,8) || '—';
+      return `<tr>
+        <td style="font-size:11px;white-space:nowrap;">
+          <span style="color:var(--muted);">#${shortId}</span>
+          <button onclick="navigator.clipboard.writeText('${fullId}').then(()=>toast('Order ID copied!','success'))" title="Copy Order ID" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:2px 4px;margin-left:2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button>
+        </td>
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${o.service_name||o.serviceName||o.service||'—'}</td>
         <td class="hide-mobile" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--muted);">${o.link||'—'}</td>
         <td>${parseInt(o.quantity||o.qty||0).toLocaleString()}</td>
         <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost||o.amount)}</td>
         <td>${statusPill(o.status)}</td>
         <td style="font-size:12px;color:var(--muted);">${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
-      </tr>`).join('')}
+      </tr>`;
+    }).join('')}
     </tbody>
   </table>`;
 }
@@ -2264,27 +2271,45 @@ async function loadAdminOrders() {
   const el = document.getElementById('adminOrdersTable');
   el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
   const emailFilter = (document.getElementById('adminOrderSearch')?.value || '').trim();
+  const orderIdFilter = (document.getElementById('adminOrderIdSearch')?.value || '').trim().replace(/^#/, '');
   try {
     const qs = emailFilter ? `?email=${encodeURIComponent(emailFilter)}` : '';
     const data = await api('/admin/orders' + qs);
-    const orders = data.orders || data.data || data || [];
+    let orders = data.orders || data.data || data || [];
+
+    // Client-side Order ID filter (partial match on UUID)
+    if (orderIdFilter) {
+      orders = orders.filter(o => (o.id || '').toLowerCase().includes(orderIdFilter.toLowerCase()));
+    }
+
     if (!orders.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
     el.innerHTML = `<table>
-      <thead><tr><th>#ID</th><th>Customer</th><th>Service</th><th>Qty</th><th>Cost</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
-      <tbody>${orders.map(o => `
-        <tr>
-          <td style="color:var(--muted);font-size:12px;">#${o.id||o._id||'—'}</td>
+      <thead><tr><th>#ID</th><th>Customer</th><th>Service</th><th>Link</th><th>Qty</th><th>Cost</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+      <tbody>${orders.map(o => {
+        const shortId = (o.id||'').slice(0,8);
+        const fullId  = o.id || '';
+        const provId  = o.provider_order_id ? `<div style="font-size:10px;color:var(--muted);margin-top:2px;">Provider: #${o.provider_order_id}</div>` : '';
+        const link    = o.link || '—';
+        const linkDisplay = link !== '—' ? `<a href="${link}" target="_blank" rel="noopener" style="color:var(--green);font-size:11px;word-break:break-all;max-width:160px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${link}">${link}</a>` : '<span style="color:var(--muted);font-size:11px;">—</span>';
+        return `<tr>
+          <td style="font-size:11px;">
+            <span style="color:var(--muted);">#${shortId}</span>
+            <button onclick="navigator.clipboard.writeText('${fullId}').then(()=>toast('Order ID copied!','success'))" title="Copy full Order ID" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:2px 4px;margin-left:2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button>
+            ${provId}
+          </td>
           <td style="font-size:13px;">
             <div style="font-weight:600;color:var(--white);">${o.user_email||'—'}</div>
             ${o.user_name && o.user_name !== '—' ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${o.user_name}</div>` : ''}
           </td>
-          <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${o.service_name||o.service||'—'}</td>
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${o.service_name||o.service||'—'}</td>
+          <td style="max-width:160px;">${linkDisplay}</td>
           <td>${parseInt(o.quantity||0).toLocaleString()}</td>
-          <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost)}</td>
+          <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:15px;">${fmtKES(o.charge||o.cost)}</td>
           <td>${statusPill(o.status)}</td>
           <td style="font-size:12px;color:var(--muted);">${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
           <td><button class="action-btn" onclick="adminMessageCustomer('${o.user_id||''}','${o.user_email||''}')" title="Open support thread with customer">💬 Message</button></td>
-        </tr>`).join('')}
+        </tr>`;
+      }).join('')}
       </tbody>
     </table>`;
   } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`; }
@@ -2840,15 +2865,21 @@ async function openSupportThread(threadId) {
     const typeLabel   = { wrong_order:'📦 Wrong Order', delay:'⏳ Delay' };
 
     // Build recent orders HTML
-    const ordersHtml = (t.recent_orders || []).map(o =>
-      `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between;align-items:center;font-size:12px;">
-        <span style="color:var(--muted);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${o.service_name || 'Unknown service'}</span>
-        <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
-          <span style="color:var(--white);">KES ${parseFloat(o.charge).toFixed(0)}</span>
-          <span class="status-pill ${o.status}">${o.status}</span>
+    const ordersHtml = (t.recent_orders || []).map(o => {
+      const link = o.link ? `<a href="${o.link}" target="_blank" rel="noopener" style="color:var(--green);font-size:10px;word-break:break-all;display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;" title="${o.link}">${o.link}</a>` : '';
+      const provId = o.provider_order_id ? `<div style="font-size:10px;color:var(--muted);">Provider #${o.provider_order_id}</div>` : '';
+      return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <span style="color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.service_name || 'Unknown service'}</span>
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+            <span style="color:var(--white);">KES ${parseFloat(o.charge).toFixed(0)}</span>
+            <span class="status-pill ${o.status}" style="font-size:9px;">${o.status}</span>
+          </div>
         </div>
-      </div>`
-    ).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px 0;">No recent orders</div>';
+        <div style="color:var(--muted);font-size:10px;margin-top:2px;">Qty: ${o.quantity?.toLocaleString?.() || o.quantity}</div>
+        ${link}${provId}
+      </div>`;
+    }).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px 0;">No recent orders</div>';
 
     // Build messages HTML
     function msgBubble(m) {
@@ -2911,7 +2942,9 @@ async function openSupportThread(threadId) {
             <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;">
               <div style="color:var(--white);font-weight:700;margin-bottom:4px;">${t.linked_order.service_name||'—'}</div>
               <div style="color:var(--muted);">Qty: ${t.linked_order.quantity} · KES ${parseFloat(t.linked_order.charge).toFixed(0)}</div>
-              <div style="color:var(--muted);margin-top:4px;word-break:break-all;">${t.linked_order.link||''}</div>
+              ${t.linked_order.provider_order_id ? `<div style="color:var(--muted);margin-top:2px;font-size:11px;">Provider ID: #${t.linked_order.provider_order_id}</div>` : ''}
+              ${t.linked_order.start_count != null ? `<div style="color:var(--muted);margin-top:2px;font-size:11px;">Start: ${t.linked_order.start_count} · Remains: ${t.linked_order.remains ?? '—'}</div>` : ''}
+              ${t.linked_order.link ? `<a href="${t.linked_order.link}" target="_blank" rel="noopener" style="color:var(--green);font-size:11px;word-break:break-all;display:block;margin-top:6px;">${t.linked_order.link}</a>` : ''}
               <span class="status-pill ${t.linked_order.status}" style="margin-top:8px;display:inline-block;">${t.linked_order.status}</span>
             </div>` : '<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">No linked order</div>'}
 
