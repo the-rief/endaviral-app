@@ -3707,12 +3707,20 @@ function renderTickets(tickets) {
       <div class="ticket-icon">${typeIcon[t.type] || '🎫'}</div>
       <div class="ticket-body">
         <div class="ticket-title">${t.type === 'wrong_order' ? 'Wrong Order' : 'Delayed Service'} <span style="color:var(--muted);font-weight:400;font-size:12px;">#${t.id.slice(0,8)}</span></div>
-        <div class="ticket-preview">${_ticketPreview(t.last_message || t.first_message || '')}</div>
+        <div class="ticket-preview">${_ticketPreview(_ticketBodyText(t.last_message || t.first_message))}</div>
         <div class="ticket-meta">${new Date(t.created_at).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'})} · ${(t.messages||[]).length || t.message_count || 0} messages</div>
       </div>
       <span class="ticket-status ts-${t.status}">${statusLabel[t.status] || t.status}</span>
     </div>
   `).join('');
+}
+
+function _ticketBodyText(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  // API returned a message object — pull the body field
+  if (typeof val === 'object') return val.body || val.message || val.text || JSON.stringify(val);
+  return String(val);
 }
 
 function _ticketPreview(body) {
