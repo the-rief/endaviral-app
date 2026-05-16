@@ -2813,6 +2813,16 @@ else { document.getElementById('authWrap').style.display = 'block'; document.get
 let activeSupportThreadId = null;
 
 async function loadAdminSupport() {
+  // currentUser may not be populated yet when called at page-load time.
+  // Poll up to 3 s (30 × 100 ms) before giving up.
+  if (!currentUser) {
+    await new Promise(resolve => {
+      let attempts = 0;
+      const poll = setInterval(() => {
+        if (currentUser || ++attempts > 30) { clearInterval(poll); resolve(); }
+      }, 100);
+    });
+  }
   if (!currentUser?.is_admin) return;
   const status = document.getElementById('supportFilterStatus')?.value || '';
   const type   = document.getElementById('supportFilterType')?.value || '';
