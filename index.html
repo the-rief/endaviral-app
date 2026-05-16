@@ -1358,130 +1358,8 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
           <div class="tbl-wrap" id="adminOrdersTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
         </div>
-
-        <!-- ADMIN: CREATE ORDER PANEL (patch: admincreateorderpatch.html) -->
-        <div class="admin-panel" id="ap-create-order">
-  <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
-    <div>
-      <div class="sec-title">CREATE ORDER FOR CUSTOMER</div>
-      <div class="sec-sub">Place an M-Pesa order on behalf of a registered user</div>
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:minmax(360px,480px) 1fr;gap:24px;align-items:start;"
-       class="wallet-main-grid">
-
-    <!-- ── Left: Form ── -->
-    <div style="background:var(--card);border:1px solid var(--border);
-                border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;">
-
-      <!-- Step 1: Customer lookup -->
-      <div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;
-                    text-transform:uppercase;color:var(--muted);margin-bottom:10px;">
-          STEP 1 · Customer
-        </div>
-        <div style="display:flex;gap:8px;">
-          <input type="email" id="acoEmail" placeholder="customer@email.com"
-            style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);
-                   border-radius:10px;padding:11px 14px;color:var(--white);
-                   font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"
-            onkeydown="if(event.key==='Enter')lookupCustomer()"/>
-          <button class="btn-secondary" id="acoLookupBtn"
-                  onclick="lookupCustomer()" style="padding:11px 16px;white-space:nowrap;">
-            Look Up
-          </button>
-        </div>
-        <div id="acoCustomerInfo" style="margin-top:10px;"></div>
-      </div>
-
-      <!-- Step 2: Service -->
-      <div id="acoStep2" style="display:none;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;
-                    text-transform:uppercase;color:var(--muted);margin-bottom:10px;">
-          STEP 2 · Service
-        </div>
-        <input class="search-inp" id="acoSvcSearch" placeholder="🔍 Search services…"
-          oninput="filterAcoServices()" style="margin-bottom:10px;width:100%;"/>
-        <div id="acoSvcList"
-          style="max-height:220px;overflow-y:auto;border:1px solid var(--border);
-                 border-radius:10px;background:rgba(255,255,255,.02);">
-          <div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>
-        </div>
-        <div id="acoSelectedSvc" style="margin-top:10px;display:none;
-          padding:10px 14px;border-radius:10px;background:rgba(61,212,74,.07);
-          border:1px solid rgba(61,212,74,.2);font-size:13px;color:var(--white);">
-        </div>
-      </div>
-
-      <!-- Step 3: Order details -->
-      <div id="acoStep3" style="display:none;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;
-                    text-transform:uppercase;color:var(--muted);margin-bottom:10px;">
-          STEP 3 · Order Details
-        </div>
-        <div class="modal-field">
-          <label>Link / URL</label>
-          <input type="url" id="acoLink" placeholder="https://instagram.com/…"
-            oninput="calcAcoCost()"
-            style="background:rgba(255,255,255,.05);border:1px solid var(--border);
-                   border-radius:10px;padding:11px 14px;width:100%;color:var(--white);
-                   font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/>
-        </div>
-        <div class="modal-field">
-          <label>Quantity</label>
-          <input type="number" id="acoQty" placeholder="1000" oninput="calcAcoCost()"
-            style="background:rgba(255,255,255,.05);border:1px solid var(--border);
-                   border-radius:10px;padding:11px 14px;width:100%;color:var(--white);
-                   font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/>
-        </div>
-        <div class="cost-preview">
-          <span class="cost-lbl">Total Cost</span>
-          <span class="cost-val" id="acoCost">KES 0</span>
-        </div>
-      </div>
-
-      <!-- Step 4: Phone + send -->
-      <div id="acoStep4" style="display:none;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;
-                    text-transform:uppercase;color:var(--muted);margin-bottom:10px;">
-          STEP 4 · M-Pesa Payment
-        </div>
-        <div class="modal-field">
-          <label>Customer's Safaricom Number</label>
-          <div class="phone-flag">
-            <span class="flag">🇰🇪</span>
-            <input type="tel" id="acoPhone" placeholder="07XX XXX XXX"
-              style="background:rgba(255,255,255,.05);border:none;flex:1;
-                     padding:11px 14px;color:var(--white);
-                     font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/>
-          </div>
-        </div>
-        <button class="btn-primary" id="acoPlaceBtn" onclick="adminPlaceOrder()"
-                style="width:100%;margin-top:4px;">
-          📱 SEND STK PUSH TO CUSTOMER
-        </button>
-      </div>
-
-    </div>
-
-    <!-- ── Right: Status / receipt ── -->
-    <div style="background:var(--card);border:1px solid var(--border);
-                border-radius:16px;padding:24px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;
-                  text-transform:uppercase;color:var(--muted);margin-bottom:16px;">
-        ORDER STATUS
-      </div>
-      <div id="acoStatusPanel">
-        <div style="text-align:center;padding:40px 20px;color:var(--muted);">
-          <div style="font-size:36px;margin-bottom:12px;">📋</div>
-          <div style="font-size:13px;">Fill in the form to create an order</div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
+        <!-- ══ SERVICES MANAGEMENT ══ -->
+        <div class="admin-panel" id="ap-services-mgmt">
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
             <div><div class="sec-title">SERVICES MANAGEMENT</div><div class="sec-sub">Change markup &amp; toggle/delete services</div></div>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -1513,6 +1391,72 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
           <div class="tbl-wrap" id="adminSvcTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
         </div>
+
+        <!-- ══ CREATE ORDER FOR CUSTOMER ══ -->
+        <div class="admin-panel" id="ap-create-order">
+          <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
+            <div>
+              <div class="sec-title">CREATE ORDER FOR CUSTOMER</div>
+              <div class="sec-sub">Place an M-Pesa order on behalf of a registered user</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(360px,480px) 1fr;gap:24px;align-items:start;" class="wallet-main-grid">
+            <!-- ── Left: Form ── -->
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">STEP 1 · Customer</div>
+                <div style="display:flex;gap:8px;">
+                  <input type="email" id="acoEmail" placeholder="customer@email.com"
+                    style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"
+                    onkeydown="if(event.key==='Enter')lookupCustomer()"/>
+                  <button class="btn-secondary" id="acoLookupBtn" onclick="lookupCustomer()" style="padding:11px 16px;white-space:nowrap;">Look Up</button>
+                </div>
+                <div id="acoCustomerInfo" style="margin-top:10px;"></div>
+              </div>
+              <div id="acoStep2" style="display:none;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">STEP 2 · Service</div>
+                <input class="search-inp" id="acoSvcSearch" placeholder="🔍 Search services…" oninput="filterAcoServices()" style="margin-bottom:10px;width:100%;"/>
+                <div id="acoSvcList" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.02);">
+                  <div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>
+                </div>
+                <div id="acoSelectedSvc" style="margin-top:10px;display:none;padding:10px 14px;border-radius:10px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.2);font-size:13px;color:var(--white);"></div>
+              </div>
+              <div id="acoStep3" style="display:none;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">STEP 3 · Order Details</div>
+                <div class="modal-field"><label>Link / URL</label>
+                  <input type="url" id="acoLink" placeholder="https://instagram.com/…" oninput="calcAcoCost()"
+                    style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/>
+                </div>
+                <div class="modal-field"><label>Quantity</label>
+                  <input type="number" id="acoQty" placeholder="1000" oninput="calcAcoCost()"
+                    style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/>
+                </div>
+                <div class="cost-preview"><span class="cost-lbl">Total Cost</span><span class="cost-val" id="acoCost">KES 0</span></div>
+              </div>
+              <div id="acoStep4" style="display:none;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">STEP 4 · M-Pesa Payment</div>
+                <div class="modal-field"><label>Customer's Safaricom Number</label>
+                  <div class="phone-flag"><span class="flag">🇰🇪</span>
+                    <input type="tel" id="acoPhone" placeholder="07XX XXX XXX"
+                      style="background:rgba(255,255,255,.05);border:none;flex:1;padding:11px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/>
+                  </div>
+                </div>
+                <button class="btn-primary" id="acoPlaceBtn" onclick="adminPlaceOrder()" style="width:100%;margin-top:4px;">📱 SEND STK PUSH TO CUSTOMER</button>
+              </div>
+            </div>
+            <!-- ── Right: Status ── -->
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;">ORDER STATUS</div>
+              <div id="acoStatusPanel">
+                <div style="text-align:center;padding:40px 20px;color:var(--muted);">
+                  <div style="font-size:36px;margin-bottom:12px;">📋</div>
+                  <div style="font-size:13px;">Fill in the form to create an order</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="admin-panel" id="ap-stats">
           <div class="sec-hd" style="margin-bottom:20px;">
             <div><div class="sec-title">PLATFORM STATS</div><div class="sec-sub">Live overview of your EndaViral platform</div></div>
@@ -3740,6 +3684,7 @@ async function openTicketThread(threadId) {
   _activeTicketId = threadId;
   const modal = document.getElementById('ticketThreadModal');
   modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('show'));
   document.body.style.overflow = 'hidden';
   document.getElementById('ttMessages').innerHTML =
     '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
@@ -3829,12 +3774,16 @@ async function sendTicketReply() {
 }
 
 function openNewTicketModal() {
-  document.getElementById('newTicketModal').style.display = 'flex';
+  const m = document.getElementById('newTicketModal');
+  m.style.display = 'flex';
+  requestAnimationFrame(() => m.classList.add('show'));
   document.body.style.overflow = 'hidden';
   document.getElementById('ntMessage').value = '';
 }
 function closeNewTicketModal() {
-  document.getElementById('newTicketModal').style.display = 'none';
+  const m = document.getElementById('newTicketModal');
+  m.classList.remove('show');
+  setTimeout(() => { m.style.display = 'none'; }, 300);
   document.body.style.overflow = '';
 }
 
@@ -3863,7 +3812,9 @@ async function submitNewTicket() {
 function closeTicketThread() {
   _stopTicketPoll();
   _activeTicketId = null;
-  document.getElementById('ticketThreadModal').style.display = 'none';
+  const modal = document.getElementById('ticketThreadModal');
+  modal.classList.remove('show');
+  setTimeout(() => { modal.style.display = 'none'; }, 300);
   document.body.style.overflow = '';
   loadTickets();
 }
