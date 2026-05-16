@@ -2966,7 +2966,7 @@ async function adminUpdateThreadStatus(status) {
 
 // ── Admin: open/find a support thread for a specific customer ─────────────
 async function adminMessageCustomer(userId, userEmail) {
-  if (!userId) { toast('No user ID for this order', 'error'); return; }
+  if (!userId && !userEmail) { toast('No user info for this order', 'error'); return; }
 
   // Switch to Support tab
   const supportTabBtn = document.querySelector('.admin-tab[onclick*="support"]');
@@ -2977,10 +2977,11 @@ async function adminMessageCustomer(userId, userEmail) {
   if (list) list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Looking up customer…</span></div>';
 
   try {
-    // Fetch all threads for this customer by filtering on the admin endpoint
-    // (no direct user filter exists, so fetch all and filter client-side)
+    // Fetch all threads and filter by user_id (now returned by API) or email
     const data = await api(`/support/admin/threads?limit=200`);
-    const threads = (data.threads || []).filter(t => t.user_email === userEmail || t.user_id === userId);
+    const threads = (data.threads || []).filter(t =>
+      (userId && t.user_id === userId) || (userEmail && t.user_email === userEmail)
+    );
 
     if (threads.length) {
       // Open the most recent open/pending thread, or just the most recent
@@ -2989,22 +2990,44 @@ async function adminMessageCustomer(userId, userEmail) {
       await openSupportThread(best.id);
       toast(`Opened thread for ${userEmail}`, 'success');
     } else {
-      // No existing thread — show a prompt to create one via backend
+      // No existing thread — show prompt for admin to initiate one
       await loadAdminSupport();
       const pane = document.getElementById('supportChatPane');
       if (pane) {
         pane.innerHTML = `
           <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;">
             <div style="font-size:36px;">💬</div>
-            <div style="font-size:14px;font-weight:700;color:var(--white);">No existing thread for ${userEmail}</div>
-            <div style="font-size:13px;color:var(--muted);">To contact this customer, ask them to open a support chat from their dashboard, then reply here.</div>
+            <div style="font-size:14px;font-weight:700;color:var(--white);">No existing thread for<br><span style="color:var(--green);">${userEmail}</span></div>
+            <div style="font-size:13px;color:var(--muted);max-width:340px;">Send this customer a message to start a support conversation. They'll see it in their chat widget.</div>
+            <select id="adminInitiateType" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;outline:none;cursor:pointer;margin-top:4px;">
+              <option value="wrong_order">📦 Wrong Order</option>
+              <option value="delay">⏳ Delay / Late Delivery</option>
+            </select>
+            <textarea id="adminInitiateMsg" placeholder="Type your opening message to the customer…" style="width:100%;max-width:400px;min-height:80px;background:var(--card);border:1px solid rgba(61,212,74,.2);border-radius:10px;padding:10px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;outline:none;resize:vertical;"></textarea>
+            <button onclick="adminDoInitiateThread('${userEmail}')" style="padding:10px 28px;background:linear-gradient(135deg,#3dd44a,#28a035);border:none;border-radius:10px;color:#fff;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Send Message</button>
           </div>`;
       }
-      toast(`No open thread found for ${userEmail}`, 'info');
     }
   } catch(e) {
     toast(e.message || 'Failed to look up customer threads', 'error');
     loadAdminSupport();
+  }
+}
+
+async function adminDoInitiateThread(userEmail) {
+  const type = document.getElementById('adminInitiateType')?.value || 'wrong_order';
+  const body = document.getElementById('adminInitiateMsg')?.value?.trim();
+  if (!body) { toast('Please type a message first', 'error'); return; }
+  try {
+    const thread = await api('/support/admin/threads/initiate', {
+      method: 'POST',
+      body: JSON.stringify({ user_email: userEmail, type, body })
+    });
+    toast(`Message sent to ${userEmail} ✓`, 'success');
+    await loadAdminSupport();
+    await openSupportThread(thread.id);
+  } catch(e) {
+    toast(e.message || 'Failed to send message', 'error');
   }
 }
 </script>

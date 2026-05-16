@@ -106,7 +106,7 @@
   // Boot greeting — fires once when widget loads
   setTimeout(() => {
     evAdminMsg('order',
-      "👋 Hi there! I'm the EndaViral support team.\n\nIf you placed a **wrong order** (wrong link, wrong quantity, wrong service), I can help fix it! Just tell me what happened."
+      "👋 Hi there! I'm the EndaViral support team.\n\nIf you placed a **wrong order** (wrong link, wrong quantity, wrong service), I can help fix it!\n\nJust tell me what happened and I'll walk you through it step by step."
     );
     evAdminMsg('delay',
       "⏳ Hi! Experiencing a service delay?\n\nShare your **Order ID** (found in My Orders) and I'll check on it right away. Delays are usually resolved within a few hours."
@@ -202,55 +202,81 @@
   // ── Order correction flow ─────────────────────────────────────────────────
   function evHandleOrderFlow(text, user) {
     const s = state.order;
-    const lower = text.toLowerCase();
     const helper = document.getElementById('ev-link-helper');
 
     // Detect if user pasted a link
     const isLink = /https?:\/\/[^\s]+/.test(text);
 
-    if (isLink && s.awaitingLink) {
-      // Got the correct link — confirm and escalate
-      s.awaitingLink = false;
-      helper.style.display = 'none';
-      evTypingThen('order', 1600, () => {
-        evAdminMsg('order',
-          `✅ Got it! I've noted your correct link:\n\n**${text}**\n\nI'll now place the corrected order on your behalf. You'll receive a confirmation shortly. Please don't place another order for the same service in the meantime.`
-        );
-        evNotifyAdmin('order', user, `Correct link: ${text}`);
-      });
-    } else if (s.step === 0) {
+    if (s.step === 0) {
+      // First message received — ask for Order ID
       s.step = 1;
       evTypingThen('order', 1400, () => {
         evAdminMsg('order',
-          `I understand — let me help fix this! 🔧\n\nCould you tell me:\n1️⃣ Your **Order ID** (from My Orders page)\n2️⃣ What was wrong — link, quantity, or service type?`
+          `Got it! I'll help fix your order right away. 🔧\n\nFirst, please share your **Order ID** — you can find it in the **My Orders** section.`
         );
       });
-    } else if (s.step === 1 && (lower.includes('link') || lower.includes('url') || lower.includes('wrong'))) {
-      s.step = 2;
-      s.awaitingLink = true;
-      helper.style.display = 'block';
-      evTypingThen('order', 1200, () => {
-        evAdminMsg('order',
-          `No worries! Please paste the **correct link** below and I'll sort it out right away. 👇`
-        );
-      });
+
     } else if (s.step === 1) {
+      // Received Order ID — ask which service was wrong
       s.step = 2;
-      evTypingThen('order', 1400, () => {
-        evAdminMsg('order',
-          `Thanks for the details! I've flagged this for our team and we'll review your order manually.\n\nExpect an update within **15–30 minutes**. If urgent, please include your correct link below.`
-        );
-        evNotifyAdmin('order', user, text);
-      });
-      s.awaitingLink = true;
-      helper.style.display = 'block';
-    } else {
-      // Follow-up messages
+      s.orderId = text;
       evTypingThen('order', 1200, () => {
         evAdminMsg('order',
-          `Got that! Our team has been notified. If you have the correct link ready, go ahead and paste it — that speeds things up significantly. 🚀`
+          `Thanks! Now, which **service** did you intend to order?\n\nFor example: *"Instagram Followers"*, *"YouTube Views"*, *"TikTok Likes"*, etc.\n\nJust type the service name.`
         );
-        evNotifyAdmin('order', user, text);
+      });
+
+    } else if (s.step === 2) {
+      // Received service name — ask for correct quantity
+      s.step = 3;
+      s.serviceName = text;
+      evTypingThen('order', 1100, () => {
+        evAdminMsg('order',
+          `Got it — **${text}**. 👍\n\nWhat **quantity** did you want? (e.g. *1000*, *5000*, *10000*)` 
+        );
+      });
+
+    } else if (s.step === 3) {
+      // Received quantity — ask for the correct link
+      s.step = 4;
+      s.quantity = text;
+      if (helper) helper.style.display = 'block';
+      evTypingThen('order', 1200, () => {
+        evAdminMsg('order',
+          `Perfect — **${text}** units. Almost done!\n\nFinally, paste the **correct link** for this order (your profile URL, post URL, etc.) 👇`
+        );
+      });
+
+    } else if (s.step === 4) {
+      // Received link (or any text at this step)
+      s.step = 5;
+      s.correctLink = text;
+      if (helper) helper.style.display = 'none';
+
+      // Build a clean summary for admin
+      const summary = [
+        `🔁 Wrong Order Correction Request`,
+        `📋 Order ID: ${s.orderId || 'not provided'}`,
+        `📦 Intended Service: ${s.serviceName || 'not provided'}`,
+        `🔢 Quantity: ${s.quantity || 'not provided'}`,
+        `🔗 Correct Link: ${s.correctLink || text}`,
+        `👤 User: ${user.name || user.email || 'unknown'}`,
+      ].join('\n');
+
+      evPostMessage('order', summary);
+
+      evTypingThen('order', 1600, () => {
+        evAdminMsg('order',
+          `✅ Perfect! Here's what I've captured:\n\n📋 **Order ID:** ${s.orderId||'—'}\n📦 **Service:** ${s.serviceName||'—'}\n🔢 **Quantity:** ${s.quantity||'—'}\n🔗 **Link:** ${s.correctLink||text}\n\nOur team has been notified and will process your correction within **15–30 minutes**. We'll update you here!`
+        );
+      });
+
+    } else {
+      // Follow-up messages after full collection
+      evTypingThen('order', 1000, () => {
+        evAdminMsg('order',
+          `Your correction request has already been submitted! Our team is working on it. If you haven't heard back within 30 minutes, please let us know here. 🙏`
+        );
       });
     }
   }
