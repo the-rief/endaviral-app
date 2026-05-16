@@ -2838,7 +2838,7 @@ async function loadAdminSupport() {
       const lastMsg = t.last_message;
       const preview = lastMsg ? lastMsg.body.slice(0,60) + (lastMsg.body.length > 60 ? '…' : '') : 'No messages';
       const sColor  = statusColor[t.status] || '#7a8fad';
-      return `<div class="support-thread-item" onclick="openSupportThread('${t.id}')" style="padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(61,212,74,.04)'" onmouseout="this.style.background=''" >
+      return `<div class="support-thread-item" data-thread-id="${t.id}" onclick="openSupportThread('${t.id}')" style="padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(61,212,74,.04)'" onmouseout="this.style.background=''" >
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
           <div style="font-size:12px;font-weight:700;color:var(--white);">${t.user_name || t.user_email || '—'}</div>
           <span style="font-size:10px;font-weight:700;color:${sColor};white-space:nowrap;">${statusEmoji[t.status]} ${t.status.toUpperCase()}</span>
@@ -3016,15 +3016,21 @@ async function adminMessageCustomer(userId, userEmail) {
       (userId && t.user_id === userId) || (userEmail && t.user_email === userEmail)
     );
 
+    // Render the thread list (single call — avoids double spinner flash)
+    await loadAdminSupport();
+
     if (threads.length) {
       // Open the most recent open/pending thread, or just the most recent
       const best = threads.find(t => ['open','pending'].includes(t.status)) || threads[0];
-      await loadAdminSupport();
       await openSupportThread(best.id);
+      // Highlight the active thread row in the list
+      document.querySelectorAll('#supportThreadList .support-thread-item').forEach(el => {
+        el.style.background = el.dataset.threadId === best.id ? 'rgba(61,212,74,.08)' : '';
+        el.onmouseout = el.dataset.threadId === best.id ? null : () => { el.style.background = ''; };
+      });
       toast(`Opened thread for ${userEmail}`, 'success');
     } else {
       // No existing thread — show prompt for admin to initiate one
-      await loadAdminSupport();
       const pane = document.getElementById('supportChatPane');
       if (pane) {
         pane.innerHTML = `
