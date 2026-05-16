@@ -2793,7 +2793,7 @@ async function loadAdminSupport() {
   if (!list) return;
   list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
 
-  let url = `/api/v1/support/admin/threads?limit=60`;
+  let url = `/support/admin/threads?limit=60`;
   if (status) url += `&status=${status}`;
   if (type)   url += `&type=${type}`;
 
@@ -2835,7 +2835,7 @@ async function openSupportThread(threadId) {
   pane.innerHTML = '<div class="loading-spinner" style="flex:1;"><div class="spinner"></div><span>Loading thread…</span></div>';
 
   try {
-    const t = await api(`/api/v1/support/admin/threads/${threadId}`);
+    const t = await api(`/support/admin/threads/${threadId}`);
     const statusColor = { open:'#e53935', pending:'#ff7043', resolved:'#3dd44a', closed:'#7a8fad' };
     const typeLabel   = { wrong_order:'📦 Wrong Order', delay:'⏳ Delay' };
 
@@ -2937,7 +2937,7 @@ async function adminSendReply() {
   input.value = '';
   input.style.height = '42px';
   try {
-    await api(`/api/v1/support/admin/threads/${activeSupportThreadId}/reply`, {
+    await api(`/support/admin/threads/${activeSupportThreadId}/reply`, {
       method: 'POST',
       body: JSON.stringify({ body })
     });
@@ -2952,7 +2952,7 @@ async function adminSendReply() {
 async function adminUpdateThreadStatus(status) {
   if (!activeSupportThreadId) return;
   try {
-    await api(`/api/v1/support/admin/threads/${activeSupportThreadId}/status`, {
+    await api(`/support/admin/threads/${activeSupportThreadId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status })
     });
@@ -2979,7 +2979,7 @@ async function adminMessageCustomer(userId, userEmail) {
   try {
     // Fetch all threads for this customer by filtering on the admin endpoint
     // (no direct user filter exists, so fetch all and filter client-side)
-    const data = await api(`/api/v1/support/admin/threads?limit=200`);
+    const data = await api(`/support/admin/threads?limit=200`);
     const threads = (data.threads || []).filter(t => t.user_email === userEmail || t.user_id === userId);
 
     if (threads.length) {
