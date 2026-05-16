@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EndaViral — Hosting & Deployment Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --black:  #0d1117;
+      --navy:   #131b27;
+      --card:   #1a2435;
+      --border: #243048;
+      --green:  #3dd44a;
+      --green2: #28a035;
+      --red:    #e53935;
+      --white:  #f0f4ff;
+      --muted:  #7a8fad;
+      --yellow: #f5c842;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'Outfit', sans-serif;
+      line-height: 1.7;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 90% 10%, rgba(61,212,74,.06) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 5% 90%, rgba(229,57,53,.04) 0%, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+    /* ── Header ── */
+    header {
+      position: sticky; top: 0; z-index: 10;
+      padding: 18px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13,17,23,.85);
+      backdrop-filter: blur(12px);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 4px 10px;
+      font-family: 'Bebas Neue', sans-serif; font-size: 20px;
+      color: var(--green); letter-spacing: 1px;
+    }
+    .logo-name {
+      font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px;
+    }
+    .logo-name span { color: var(--green); }
+    .back-link {
+      font-size: 13px; color: var(--muted); text-decoration: none;
+      display: flex; align-items: center; gap: 6px;
+      transition: color .2s;
+    }
+    .back-link:hover { color: var(--green); }
+    /* ── Layout ── */
+    .container {
+      position: relative; z-index: 1;
+      max-width: 860px; margin: 0 auto;
+      padding: 56px 24px 80px;
+    }
+    /* ── Page title ── */
+    .page-title {
+      margin-bottom: 48px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 32px;
+    }
+    .eyebrow {
+      font-size: 11px; font-weight: 600; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--green); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .eyebrow::before {
+      content: ''; width: 24px; height: 2px; background: var(--green);
+    }
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(36px, 6vw, 56px);
+      line-height: 1; letter-spacing: 2px; margin-bottom: 14px;
+    }
+    h1 em { font-style: normal; color: var(--green); }
+    .subtitle { color: var(--muted); font-size: 15px; max-width: 560px; }
+    /* ── TOC ── */
+    .toc {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px 28px; margin-bottom: 48px;
+    }
+    .toc-title {
+      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
+    }
+    .toc ol { padding-left: 18px; }
+    .toc li { margin-bottom: 8px; }
+    .toc a { color: var(--green); text-decoration: none; font-size: 14px; font-weight: 500; }
+    .toc a:hover { text-decoration: underline; }
+    /* ── Section ── */
+    .section { margin-bottom: 52px; }
+    .section-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 24px;
+    }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--green), var(--green2));
+      color: var(--black); font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px; display: flex; align-items: center; justify-content: center;
+    }
+    h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px; letter-spacing: 1.5px; color: var(--white);
+    }
+    h3 {
+      font-size: 15px; font-weight: 600; color: var(--white);
+      margin: 20px 0 10px;
+    }
+    p { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+    /* ── Cards ── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px; margin-bottom: 16px;
+      position: relative; overflow: hidden;
+    }
+    .card-accent {
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    }
+    .card-accent.green { background: linear-gradient(90deg, var(--green), var(--green2)); }
+    .card-accent.blue  { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+    .card-accent.red   { background: linear-gradient(90deg, var(--red), #f97316); }
+    .card-accent.yellow{ background: linear-gradient(90deg, var(--yellow), #f97316); }
+    .card h3 { margin-top: 0; }
+    /* ── Code block ── */
+    pre {
+      background: #0a0f18; border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 18px; overflow-x: auto;
+      margin: 12px 0;
+    }
+    code {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      color: var(--green); line-height: 1.6;
+    }
+    .inline-code {
+      background: rgba(61,212,74,.1); border: 1px solid rgba(61,212,74,.2);
+      border-radius: 4px; padding: 2px 7px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--green);
+    }
+    /* ── Steps list ── */
+    .steps-list { counter-reset: steps; list-style: none; padding: 0; }
+    .steps-list li {
+      counter-increment: steps;
+      display: flex; gap: 14px; margin-bottom: 16px; align-items: flex-start;
+    }
+    .steps-list li::before {
+      content: counter(steps);
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(61,212,74,.12); border: 1px solid rgba(61,212,74,.3);
+      color: var(--green); font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .steps-list li p { margin: 0; }
+    /* ── 2-col grid ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+    /* ── Alert boxes ── */
+    .alert {
+      border-radius: 10px; padding: 14px 18px; margin: 16px 0;
+      display: flex; gap: 12px; align-items: flex-start; font-size: 14px;
+    }
+    .alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .alert.warning {
+      background: rgba(245,200,66,.07); border: 1px solid rgba(245,200,66,.25);
+      color: #d4a800;
+    }
+    .alert.info {
+      background: rgba(61,212,74,.06); border: 1px solid rgba(61,212,74,.2);
+      color: var(--green);
+    }
+    .alert.danger {
+      background: rgba(229,57,53,.07); border: 1px solid rgba(229,57,53,.25);
+      color: #ef9a9a;
+    }
+    /* ── Env table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 14px 0; }
+    th {
+      text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600;
+      letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid rgba(36,48,72,.5); vertical-align: top; }
+    td:first-child { font-family: 'JetBrains Mono', monospace; color: var(--green); font-size: 12px; }
+    td:last-child { color: var(--muted); }
+    /* ── Architecture diagram ── */
+    .arch {
+      background: var(--navy); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px; text-align: center;
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      color: var(--muted); line-height: 2.2;
+    }
+    .arch .highlight { color: var(--green); font-weight: 600; }
+    .arch .arrow { color: var(--border); }
+    /* ── Tag ── */
+    .tag {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; letter-spacing: .5px;
+    }
+    .tag.free { background: rgba(61,212,74,.12); color: var(--green); border: 1px solid rgba(61,212,74,.3); }
+    .tag.paid { background: rgba(245,200,66,.1); color: var(--yellow); border: 1px solid rgba(245,200,66,.25); }
+    /* ── Checklist ── */
+    .checklist { list-style: none; padding: 0; }
+    .checklist li {
+      padding: 8px 0; border-bottom: 1px solid rgba(36,48,72,.5);
+      display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted);
+    }
+    .checklist li:last-child { border: none; }
+    .checklist .check { color: var(--green); font-size: 16px; flex-shrink: 0; }
+    .checklist .warn  { color: var(--yellow); font-size: 16px; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-box">EV</div>
+    <span class="logo-name">Enda<span>Viral</span></span>
+  </a>
+  <a class="back-link" href="index.html">← Back to payment page</a>
+</header>
+
+<div class="container">
+
+  <!-- Title -->
+  <div class="page-title">
+    <div class="eyebrow">Developer Guide</div>
+    <h1>Hosting &amp; <em>Deployment</em></h1>
+    <p class="subtitle">Step-by-step instructions to go live with EndaViral's payment system — frontend on Netlify, backend on Render, database on Supabase.</p>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#architecture">System Architecture</a></li>
+      <li><a href="#prerequisites">Prerequisites &amp; Accounts</a></li>
+      <li><a href="#database">Step 1 — Database (Supabase)</a></li>
+      <li><a href="#backend">Step 2 — Backend API (Render)</a></li>
+      <li><a href="#frontend">Step 3 — Frontend (Netlify)</a></li>
+      <li><a href="#daraja">Step 4 — Daraja M-Pesa Setup</a></li>
+      <li><a href="#env">Step 5 — Environment Variables</a></li>
+      <li><a href="#testing">Step 6 — Testing Payments</a></li>
+      <li><a href="#domain">Step 7 — Custom Domain</a></li>
+      <li><a href="#checklist">Go-Live Checklist</a></li>
+    </ol>
+  </div>
+
+  <!-- Architecture -->
+  <div class="section" id="architecture">
+    <div class="section-header">
+      <div class="step-num">→</div>
+      <h2>System Architecture</h2>
+    </div>
+    <div class="arch">
+      <div><span class="highlight">pay.endaviral.co.ke</span> &nbsp;<span class="tag free">Netlify Free</span></div>
+      <div class="arrow">↓ user enters phone + amount</div>
+      <div><span class="highlight">api.endaviral.co.ke</span> &nbsp;<span class="tag free">Render Free</span></div>
+      <div class="arrow">↓ POST /api/v1/payments/initiate</div>
+      <div><span class="highlight">Safaricom Daraja API</span></div>
+      <div class="arrow">↓ STK Push → user's phone</div>
+      <div><span class="highlight">User enters M-Pesa PIN</span></div>
+      <div class="arrow">↓ Safaricom POSTs callback</div>
+      <div><span class="highlight">api.endaviral.co.ke/api/v1/webhooks/mpesa-callback</span></div>
+      <div class="arrow">↓ credits wallet in DB</div>
+      <div><span class="highlight">db.supabase.co</span> &nbsp;<span class="tag free">Supabase Free</span></div>
+      <div class="arrow">↓ optionally</div>
+      <div><span class="highlight">SMMFollows API</span> — auto top-up panel</div>
+    </div>
+    <p style="margin-top:16px">Total monthly cost at launch: <strong style="color:var(--green)">KES 0</strong></p>
+  </div>
+
+  <!-- Prerequisites -->
+  <div class="section" id="prerequisites">
+    <div class="section-header">
+      <div class="step-num">0</div>
+      <h2>Prerequisites &amp; Accounts</h2>
+    </div>
+    <p>Create free accounts on all four platforms before starting:</p>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-accent green"></div>
+        <h3>🔗 Required accounts</h3>
+        <ul class="checklist">
+          <li><span class="check">◆</span> <a href="https://github.com" style="color:var(--green)">GitHub</a> — to host your code</li>
+          <li><span class="check">◆</span> <a href="https://supabase.com" style="color:var(--green)">Supabase</a> — free PostgreSQL DB</li>
+          <li><span class="check">◆</span> <a href="https://render.com" style="color:var(--green)">Render</a> — free Python API hosting</li>
+          <li><span class="check">◆</span> <a href="https://netlify.com" style="color:var(--green)">Netlify</a> — free frontend hosting</li>
+          <li><span class="check">◆</span> <a href="https://developer.safaricom.co.ke" style="color:var(--green)">Safaricom Daraja</a> — M-Pesa API</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-accent blue"></div>
+        <h3>💻 Local tools needed</h3>
+        <ul class="checklist">
+          <li><span class="check">◆</span> Python 3.11+</li>
+          <li><span class="check">◆</span> Git</li>
+          <li><span class="check">◆</span> pip</li>
+          <li><span class="warn">◆</span> A Safaricom Paybill or Till number</li>
+          <li><span class="warn">◆</span> Business registration certificate</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1: Database -->
+  <div class="section" id="database">
+    <div class="section-header">
+      <div class="step-num">1</div>
+      <h2>Database — Supabase</h2>
+    </div>
+    <div class="card">
+      <div class="card-accent green"></div>
+      <ol class="steps-list">
+        <li><p>Go to <strong>supabase.com</strong> → <strong>New project</strong> → name it <span class="inline-code">endaviral</span></p></li>
+        <li><p>Choose a strong database password and save it — you'll need it.</p></li>
+        <li><p>Once created, go to <strong>Settings → Database</strong> and copy the <strong>Connection string (URI)</strong></p></li>
+        <li><p>It looks like: <span class="inline-code">postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres</span></p></li>
+        <li><p>Change the prefix from <span class="inline-code">postgresql://</span> to <span class="inline-code">postgresql+asyncpg://</span> for FastAPI's async driver.</p></li>
+      </ol>
+      <div class="alert info">
+        <span class="alert-icon">ℹ️</span>
+        <span>Keep this connection string — it becomes your <span class="inline-code">DATABASE_URL</span> environment variable.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Backend -->
+  <div class="section" id="backend">
+    <div class="section-header">
+      <div class="step-num">2</div>
+      <h2>Backend API — Render</h2>
+    </div>
+    <div class="card">
+      <div class="card-accent blue"></div>
+      <h3>2a. Push code to GitHub</h3>
+      <pre><code>cd endaviral-backend
+git init
+git add .
+git commit -m "initial commit"
+git branch -M main
+git remote add origin https://github.com/YOURUSERNAME/endaviral-backend.git
+git push -u origin main</code></pre>
+
+      <h3>2b. Create Web Service on Render</h3>
+      <ol class="steps-list">
+        <li><p>Go to <strong>render.com</strong> → <strong>New → Web Service</strong></p></li>
+        <li><p>Connect your GitHub repo <span class="inline-code">endaviral-backend</span></p></li>
+        <li><p>Render auto-detects <span class="inline-code">render.yaml</span> — confirm the settings:</p></li>
+      </ol>
+      <pre><code>Build Command:  pip install -r requirements.txt
+Start Command:  alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+Region:         Frankfurt (closest to Kenya)</code></pre>
+      <ol class="steps-list" start="4">
+        <li><p>Click <strong>Create Web Service</strong> → Render builds and deploys automatically.</p></li>
+        <li><p>Your API URL will be: <span class="inline-code">https://endaviral-backend.onrender.com</span></p></li>
+      </ol>
+
+      <div class="alert warning">
+        <span class="alert-icon">⚠️</span>
+        <span>Free Render services sleep after 15 minutes of inactivity. Use <a href="https://uptimerobot.com" style="color:var(--yellow)">UptimeRobot</a> (free) to ping <span class="inline-code">/health</span> every 5 minutes to prevent this.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Frontend -->
+  <div class="section" id="frontend">
+    <div class="section-header">
+      <div class="step-num">3</div>
+      <h2>Frontend — Netlify</h2>
+    </div>
+    <div class="card">
+      <div class="card-accent green"></div>
+      <h3>Option A — Drag &amp; Drop (fastest, no GitHub needed)</h3>
+      <ol class="steps-list">
+        <li><p>Go to <strong>netlify.com</strong> → log in</p></li>
+        <li><p>On the dashboard, drag the entire <span class="inline-code">endaviral-pay/</span> folder into the dotted drop zone</p></li>
+        <li><p>Netlify deploys instantly — you get a URL like <span class="inline-code">https://random-name.netlify.app</span></p></li>
+        <li><p>That's it. Done in 30 seconds.</p></li>
+      </ol>
+
+      <h3>Option B — GitHub (recommended for updates)</h3>
+      <ol class="steps-list">
+        <li><p>Push the <span class="inline-code">endaviral-pay/</span> folder to a GitHub repo</p></li>
+        <li><p><strong>Netlify → New site → Import from Git</strong> → pick your repo</p></li>
+        <li><p>Build settings: leave blank (it's plain HTML, no build step needed)</p></li>
+        <li><p>Every future <span class="inline-code">git push</span> auto-deploys</p></li>
+      </ol>
+
+      <div class="alert info">
+        <span class="alert-icon">✅</span>
+        <span>Before deploying, edit line 1 of the <span class="inline-code">&lt;script&gt;</span> in <span class="inline-code">index.html</span>:<br>
+        <span class="inline-code">const API_BASE = 'https://YOUR-RENDER-URL.onrender.com/api/v1';</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4: Daraja -->
+  <div class="section" id="daraja">
+    <div class="section-header">
+      <div class="step-num">4</div>
+      <h2>Daraja M-Pesa Setup</h2>
+    </div>
+    <div class="card">
+      <div class="card-accent red"></div>
+      <h3>4a. Sandbox (for testing)</h3>
+      <ol class="steps-list">
+        <li><p>Register at <a href="https://developer.safaricom.co.ke" style="color:var(--green)">developer.safaricom.co.ke</a></p></li>
+        <li><p>Go to <strong>My Apps → Create App</strong> — select <strong>Lipa Na M-Pesa Sandbox</strong></p></li>
+        <li><p>Copy your <strong>Consumer Key</strong> and <strong>Consumer Secret</strong></p></li>
+        <li><p>Sandbox shortcode: <span class="inline-code">174379</span>, Passkey is provided in the portal</p></li>
+        <li><p>Use the <a href="https://developer.safaricom.co.ke/APIs/MpesaExpressSimulate" style="color:var(--green)">Daraja Simulator</a> to test STK pushes without a real phone</p></li>
+      </ol>
+
+      <h3>4b. Production (go-live)</h3>
+      <ol class="steps-list">
+        <li><p>Apply for a <strong>Paybill number</strong> at <a href="https://www.safaricom.co.ke" style="color:var(--green)">safaricom.co.ke</a> → M-Pesa for Business</p></li>
+        <li><p>In the Daraja portal, go to <strong>Go Live</strong> and submit your app for review</p></li>
+        <li><p>Required documents: Business registration cert, KRA PIN, ID, M-Pesa Paybill details</p></li>
+        <li><p>Once approved, get your production Consumer Key/Secret and Passkey</p></li>
+      </ol>
+
+      <div class="alert danger">
+        <span class="alert-icon">🚨</span>
+        <span><strong>Compliance:</strong> When applying, describe EndaViral as a <em>"digital marketing and online promotion platform"</em> — NOT as a followers/engagement service. This matters heavily during Safaricom's business review.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5: Env vars -->
+  <div class="section" id="env">
+    <div class="section-header">
+      <div class="step-num">5</div>
+      <h2>Environment Variables</h2>
+    </div>
+    <p>Set these in Render → your service → <strong>Environment</strong> tab:</p>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <table>
+        <thead>
+          <tr>
+            <th>Variable</th>
+            <th>Value / Where to find it</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>DATABASE_URL</td><td>Supabase connection string (postgresql+asyncpg://...)</td></tr>
+          <tr><td>DARAJA_ENV</td><td><span class="inline-code">sandbox</span> for testing, <span class="inline-code">production</span> for live</td></tr>
+          <tr><td>DARAJA_CONSUMER_KEY</td><td>From Safaricom Daraja portal → My Apps</td></tr>
+          <tr><td>DARAJA_CONSUMER_SECRET</td><td>From Safaricom Daraja portal → My Apps</td></tr>
+          <tr><td>DARAJA_SHORTCODE</td><td>Your Paybill number (sandbox: 174379)</td></tr>
+          <tr><td>DARAJA_PASSKEY</td><td>LipaNaMpesa passkey from Daraja portal</td></tr>
+          <tr><td>DARAJA_CALLBACK_URL</td><td><span class="inline-code">https://YOUR-RENDER-URL.onrender.com/api/v1/webhooks/mpesa-callback</span></td></tr>
+          <tr><td>SMMFOLLOWS_API_KEY</td><td>From your SMMFollows account → API settings</td></tr>
+          <tr><td>SECRET_KEY</td><td>Any long random string (use Render's "Generate" button)</td></tr>
+          <tr><td>ADMIN_SECRET</td><td>Your own secret for the manual credit endpoint</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Step 6: Testing -->
+  <div class="section" id="testing">
+    <div class="section-header">
+      <div class="step-num">6</div>
+      <h2>Testing Payments</h2>
+    </div>
+    <div class="card">
+      <div class="card-accent yellow"></div>
+      <h3>Test the backend directly (API docs)</h3>
+      <p>Visit your Render URL + <span class="inline-code">/docs</span> for the interactive Swagger UI:</p>
+      <pre><code>https://endaviral-backend.onrender.com/docs</code></pre>
+
+      <h3>Test STK push via curl</h3>
+      <pre><code>curl -X POST https://endaviral-backend.onrender.com/api/v1/payments/initiate \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "0712345678", "amount": 1}'</code></pre>
+
+      <h3>Simulate a Daraja callback (sandbox testing)</h3>
+      <pre><code>curl -X POST https://endaviral-backend.onrender.com/api/v1/webhooks/mpesa-callback \
+  -H "Content-Type: application/json" \
+  -d '{
+    "Body": {
+      "stkCallback": {
+        "MerchantRequestID": "test-123",
+        "CheckoutRequestID": "ws_CO_test",
+        "ResultCode": 0,
+        "ResultDesc": "The service request is processed successfully.",
+        "CallbackMetadata": {
+          "Item": [
+            {"Name": "Amount", "Value": 100},
+            {"Name": "MpesaReceiptNumber", "Value": "NLJ7RT61SV"},
+            {"Name": "PhoneNumber", "Value": 254712345678}
+          ]
+        }
+      }
+    }
+  }'</code></pre>
+
+      <h3>Check wallet balance</h3>
+      <pre><code>curl https://endaviral-backend.onrender.com/api/v1/wallet/balance/254712345678</code></pre>
+    </div>
+  </div>
+
+  <!-- Step 7: Domain -->
+  <div class="section" id="domain">
+    <div class="section-header">
+      <div class="step-num">7</div>
+      <h2>Custom Domain Setup</h2>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-accent green"></div>
+        <h3>Frontend — pay.endaviral.co.ke</h3>
+        <ol class="steps-list">
+          <li><p>Netlify → your site → <strong>Domain settings → Add custom domain</strong></p></li>
+          <li><p>Type <span class="inline-code">pay.endaviral.co.ke</span></p></li>
+          <li><p>Netlify gives you a CNAME record, e.g.:<br><span class="inline-code">pay → random.netlify.app</span></p></li>
+          <li><p>Add this CNAME in your domain registrar's DNS</p></li>
+          <li><p>Netlify auto-provisions SSL (free Let's Encrypt)</p></li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="card-accent blue"></div>
+        <h3>Backend — api.endaviral.co.ke</h3>
+        <ol class="steps-list">
+          <li><p>Render → your service → <strong>Settings → Custom Domains</strong></p></li>
+          <li><p>Add <span class="inline-code">api.endaviral.co.ke</span></p></li>
+          <li><p>Render gives you a CNAME record to add in DNS</p></li>
+          <li><p>Update <span class="inline-code">DARAJA_CALLBACK_URL</span> env var to the new domain</p></li>
+          <li><p>Also update <span class="inline-code">API_BASE</span> in <span class="inline-code">index.html</span> and redeploy</p></li>
+        </ol>
+      </div>
+    </div>
+    <div class="alert warning">
+      <span class="alert-icon">⚠️</span>
+      <span>Daraja callbacks <strong>require HTTPS</strong>. Both Netlify and Render provide free SSL automatically. Never use HTTP callback URLs in production.</span>
+    </div>
+  </div>
+
+  <!-- Checklist -->
+  <div class="section" id="checklist">
+    <div class="section-header">
+      <div class="step-num">✓</div>
+      <h2>Go-Live Checklist</h2>
+    </div>
+    <div class="card">
+      <div class="card-accent green"></div>
+      <ul class="checklist">
+        <li><span class="check">☐</span> Supabase project created, DATABASE_URL copied</li>
+        <li><span class="check">☐</span> Backend code pushed to GitHub</li>
+        <li><span class="check">☐</span> Render service created, all env vars set</li>
+        <li><span class="check">☐</span> <span class="inline-code">alembic upgrade head</span> ran successfully (check Render logs)</li>
+        <li><span class="check">☐</span> <span class="inline-code">/health</span> endpoint returns 200</li>
+        <li><span class="check">☐</span> Daraja sandbox test STK push works</li>
+        <li><span class="check">☐</span> Callback URL set in Daraja portal</li>
+        <li><span class="check">☐</span> Frontend <span class="inline-code">API_BASE</span> points to Render URL</li>
+        <li><span class="check">☐</span> Frontend deployed to Netlify</li>
+        <li><span class="check">☐</span> End-to-end test: enter phone → see STK prompt → confirm payment → balance credited</li>
+        <li><span class="warn">☐</span> UptimeRobot pinging <span class="inline-code">/health</span> every 5 min (prevents sleep)</li>
+        <li><span class="warn">☐</span> Custom domains configured (optional but professional)</li>
+        <li><span class="warn">☐</span> Switch <span class="inline-code">DARAJA_ENV=production</span> when going live</li>
+      </ul>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</body>
+</html>
