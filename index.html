@@ -1406,11 +1406,13 @@ async function api(path, opts = {}) {
   }
   // ── Session-expiry guard ─────────────────────────────────────────────────
   // Tokens are now signed JWTs with a 24-hour expiry. If the server returns
-  // 401 it means the token has expired or been invalidated. Log the user out
-  // immediately so they can re-authenticate rather than seeing a generic error.
+  // 401 it means the token has expired or been invalidated.
+  // Pass { silent401: true } for background pollers so they never force a logout.
   if (r.status === 401) {
-    doLogout();
-    toast('Your session has expired. Please sign in again.', 'error');
+    if (!opts.silent401) {
+      doLogout();
+      toast('Your session has expired. Please sign in again.', 'error');
+    }
     throw new Error('Session expired — please sign in again.');
   }
   // ─────────────────────────────────────────────────────────────────────────
@@ -2394,8 +2396,8 @@ async function loadAdminStats() {
   try {
     // Fetch both in parallel
     const [statsData, breakdownData] = await Promise.all([
-      api('/admin/stats'),
-      api('/admin/stats/filter-breakdown'),
+      api('/admin/stats', {silent401:true}),
+      api('/admin/stats/filter-breakdown', {silent401:true}),
     ]);
 
     const s = statsData.stats || statsData;
@@ -2811,7 +2813,7 @@ else { document.getElementById('authWrap').style.display = 'block'; document.get
 let activeSupportThreadId = null;
 
 async function loadAdminSupport() {
-  if (!currentUser?.is_admin) return;
+  if (!currentUser?.is_admin || !token) return;
   const status = document.getElementById('supportFilterStatus')?.value || '';
   const type   = document.getElementById('supportFilterType')?.value || '';
   const list   = document.getElementById('supportThreadList');
