@@ -2270,7 +2270,7 @@ async function loadAdminOrders() {
     const orders = data.orders || data.data || data || [];
     if (!orders.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
     el.innerHTML = `<table>
-      <thead><tr><th>#ID</th><th>Customer</th><th>Service</th><th>Qty</th><th>Cost</th><th>Status</th><th>Date</th></tr></thead>
+      <thead><tr><th>#ID</th><th>Customer</th><th>Service</th><th>Qty</th><th>Cost</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
       <tbody>${orders.map(o => `
         <tr>
           <td style="color:var(--muted);font-size:12px;">#${o.id||o._id||'—'}</td>
@@ -2283,6 +2283,7 @@ async function loadAdminOrders() {
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost)}</td>
           <td>${statusPill(o.status)}</td>
           <td style="font-size:12px;color:var(--muted);">${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
+          <td><button class="action-btn" onclick="adminMessageCustomer('${o.user_id||''}','${o.user_email||''}')" title="Open support thread with customer">💬 Message</button></td>
         </tr>`).join('')}
       </tbody>
     </table>`;
@@ -2785,14 +2786,14 @@ else { document.getElementById('authWrap').style.display = 'block'; document.get
 let activeSupportThreadId = null;
 
 async function loadAdminSupport() {
-  if (!currentUser?.role === 'admin') return;
+  if (!currentUser?.is_admin) return;
   const status = document.getElementById('supportFilterStatus')?.value || '';
   const type   = document.getElementById('supportFilterType')?.value || '';
   const list   = document.getElementById('supportThreadList');
   if (!list) return;
   list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
 
-  let url = `${API}/support/admin/threads?limit=60`;
+  let url = `/api/v1/support/admin/threads?limit=60`;
   if (status) url += `&status=${status}`;
   if (type)   url += `&type=${type}`;
 
@@ -2834,7 +2835,7 @@ async function openSupportThread(threadId) {
   pane.innerHTML = '<div class="loading-spinner" style="flex:1;"><div class="spinner"></div><span>Loading thread…</span></div>';
 
   try {
-    const t = await api(`${API}/support/admin/threads/${threadId}`);
+    const t = await api(`/api/v1/support/admin/threads/${threadId}`);
     const statusColor = { open:'#e53935', pending:'#ff7043', resolved:'#3dd44a', closed:'#7a8fad' };
     const typeLabel   = { wrong_order:'📦 Wrong Order', delay:'⏳ Delay' };
 
@@ -2936,7 +2937,7 @@ async function adminSendReply() {
   input.value = '';
   input.style.height = '42px';
   try {
-    await api(`${API}/support/admin/threads/${activeSupportThreadId}/reply`, {
+    await api(`/api/v1/support/admin/threads/${activeSupportThreadId}/reply`, {
       method: 'POST',
       body: JSON.stringify({ body })
     });
@@ -2951,7 +2952,7 @@ async function adminSendReply() {
 async function adminUpdateThreadStatus(status) {
   if (!activeSupportThreadId) return;
   try {
-    await api(`${API}/support/admin/threads/${activeSupportThreadId}/status`, {
+    await api(`/api/v1/support/admin/threads/${activeSupportThreadId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status })
     });
@@ -2962,6 +2963,50 @@ async function adminUpdateThreadStatus(status) {
   }
 }
 /* ══════════════════════════════════════════════════════════════ */
+
+// ── Admin: open/find a support thread for a specific customer ─────────────
+async function adminMessageCustomer(userId, userEmail) {
+  if (!userId) { toast('No user ID for this order', 'error'); return; }
+
+  // Switch to Support tab
+  const supportTabBtn = document.querySelector('.admin-tab[onclick*="support"]');
+  if (supportTabBtn) supportTabBtn.click();
+
+  // Show loading state in thread list
+  const list = document.getElementById('supportThreadList');
+  if (list) list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Looking up customer…</span></div>';
+
+  try {
+    // Fetch all threads for this customer by filtering on the admin endpoint
+    // (no direct user filter exists, so fetch all and filter client-side)
+    const data = await api(`/api/v1/support/admin/threads?limit=200`);
+    const threads = (data.threads || []).filter(t => t.user_email === userEmail || t.user_id === userId);
+
+    if (threads.length) {
+      // Open the most recent open/pending thread, or just the most recent
+      const best = threads.find(t => ['open','pending'].includes(t.status)) || threads[0];
+      await loadAdminSupport();
+      await openSupportThread(best.id);
+      toast(`Opened thread for ${userEmail}`, 'success');
+    } else {
+      // No existing thread — show a prompt to create one via backend
+      await loadAdminSupport();
+      const pane = document.getElementById('supportChatPane');
+      if (pane) {
+        pane.innerHTML = `
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;">
+            <div style="font-size:36px;">💬</div>
+            <div style="font-size:14px;font-weight:700;color:var(--white);">No existing thread for ${userEmail}</div>
+            <div style="font-size:13px;color:var(--muted);">To contact this customer, ask them to open a support chat from their dashboard, then reply here.</div>
+          </div>`;
+      }
+      toast(`No open thread found for ${userEmail}`, 'info');
+    }
+  } catch(e) {
+    toast(e.message || 'Failed to look up customer threads', 'error');
+    loadAdminSupport();
+  }
+}
 </script>
 
 <!-- ═══════════════════ CHAT WIDGET ═══════════════════ -->
