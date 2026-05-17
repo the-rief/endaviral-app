@@ -185,10 +185,150 @@
             const badge = document.getElementById('ev-chat-badge');
             badge.textContent = state.unread;
             badge.classList.add('show');
+
+            // Show dashboard popup so customers on the home page see the reply
+            const lastAdminMsg = newMsgs.filter(m => m.sender === 'admin' && !m.is_bot).pop();
+            if (lastAdminMsg) {
+              const body = lastAdminMsg.body || '';
+              const preview = body.replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n/g,' ').slice(0, 80) + (body.length > 80 ? '…' : '');
+              evShowDashboardPopup('EndaViral Support', preview, () => {
+                // Open the chat widget to the right tab
+                if (!state.open) window.evChatToggle();
+                const orderTab = document.getElementById('ev-tab-order');
+                const delayTab = document.getElementById('ev-tab-delay');
+                if (tabKey === 'order' && orderTab) orderTab.click();
+                if (tabKey === 'delay' && delayTab) delayTab.click();
+              });
+            }
           }
         }
       } catch (_) {}
     }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     DASHBOARD MESSAGE POPUP
+     Shows a floating banner on the dashboard when admin sends a
+     message and the customer is not looking at the chat/tickets.
+  ═══════════════════════════════════════════════════════════════ */
+  function _isDashboardActive() {
+    const sec = document.getElementById('sec-dashboard');
+    return sec && (sec.classList.contains('active') || sec.style.display !== 'none');
+  }
+
+  function _isChatOpen() {
+    return state.open;
+  }
+
+  function _isTicketsActive() {
+    const sec = document.getElementById('sec-tickets');
+    return sec && (sec.classList.contains('active') || sec.style.display !== 'none');
+  }
+
+  let _dashPopupHandle = null;
+
+  function evShowDashboardPopup(senderName, preview, onViewClick) {
+    // Only show when customer is on dashboard and chat/tickets aren't open
+    if (!_isDashboardActive()) return;
+    if (_isChatOpen() || _isTicketsActive()) return;
+
+    // Remove any existing popup
+    const existing = document.getElementById('ev-dash-popup');
+    if (existing) existing.remove();
+    if (_dashPopupHandle) { clearTimeout(_dashPopupHandle); _dashPopupHandle = null; }
+
+    const popup = document.createElement('div');
+    popup.id = 'ev-dash-popup';
+    popup.innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#28a035,#1a6b23);
+                    display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+                    box-shadow:0 0 0 3px rgba(61,212,74,.3);">👤</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:#3dd44a;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px;">
+            ${senderName} sent you a message
+          </div>
+          <div style="font-size:13px;color:#d0e8e0;line-height:1.45;
+                      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;">
+            ${preview}
+          </div>
+        </div>
+        <button id="ev-dash-popup-close"
+                style="background:none;border:none;color:#7a8fad;cursor:pointer;font-size:18px;
+                       line-height:1;padding:0 2px;flex-shrink:0;transition:color .2s;"
+                title="Dismiss">×</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button id="ev-dash-popup-view"
+                style="flex:1;background:linear-gradient(135deg,#3dd44a,#28a035);
+                       border:none;border-radius:8px;padding:9px 14px;color:#000;
+                       font-family:'Montserrat',sans-serif;font-size:12px;font-weight:800;
+                       cursor:pointer;letter-spacing:.3px;transition:opacity .2s;">
+          💬 View Message
+        </button>
+        <button id="ev-dash-popup-dismiss"
+                style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+                       border-radius:8px;padding:9px 14px;color:#7a8fad;
+                       font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;
+                       cursor:pointer;transition:all .2s;">
+          Dismiss
+        </button>
+      </div>
+    `;
+
+    // Styles injected once
+    if (!document.getElementById('ev-dash-popup-styles')) {
+      const s = document.createElement('style');
+      s.id = 'ev-dash-popup-styles';
+      s.textContent = `
+        #ev-dash-popup {
+          position: fixed;
+          bottom: 100px;
+          right: 24px;
+          z-index: 9999;
+          width: 340px;
+          background: #152b1e;
+          border: 1px solid rgba(61,212,74,.45);
+          border-radius: 16px;
+          padding: 16px 18px;
+          box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(61,212,74,.1);
+          font-family: 'Montserrat', sans-serif;
+          animation: ev-popup-in .35s cubic-bezier(.22,1,.36,1) both;
+        }
+        @keyframes ev-popup-in {
+          from { opacity:0; transform: translateY(20px) scale(.96); }
+          to   { opacity:1; transform: translateY(0)    scale(1);   }
+        }
+        #ev-dash-popup.ev-popup-out {
+          animation: ev-popup-out .25s ease forwards;
+        }
+        @keyframes ev-popup-out {
+          to { opacity:0; transform: translateY(12px) scale(.95); }
+        }
+        #ev-dash-popup-view:hover  { opacity: .85; }
+        #ev-dash-popup-dismiss:hover { color: #d0dff0; border-color: rgba(255,255,255,.25); }
+        #ev-dash-popup-close:hover { color: #d0dff0; }
+      `;
+      document.head.appendChild(s);
+    }
+
+    document.body.appendChild(popup);
+
+    function _dismiss() {
+      popup.classList.add('ev-popup-out');
+      setTimeout(() => popup.remove(), 260);
+      if (_dashPopupHandle) { clearTimeout(_dashPopupHandle); _dashPopupHandle = null; }
+    }
+
+    document.getElementById('ev-dash-popup-close').onclick   = _dismiss;
+    document.getElementById('ev-dash-popup-dismiss').onclick  = _dismiss;
+    document.getElementById('ev-dash-popup-view').onclick     = () => {
+      _dismiss();
+      if (typeof onViewClick === 'function') onViewClick();
+    };
+
+    // Auto-dismiss after 12 seconds
+    _dashPopupHandle = setTimeout(_dismiss, 12000);
   }
 
   /* ═══════════════════════════════════════════════════════════════
