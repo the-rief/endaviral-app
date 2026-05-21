@@ -1130,7 +1130,6 @@ function _showTicketDashPopup(preview, threadId) {
   };
   setTimeout(dismiss, 12000);
 }
-</script>
 
 /* ══════════════════ ADMIN CREATE ORDER ══════════════════ */
 let _acoUser       = null;
