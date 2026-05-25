@@ -366,28 +366,61 @@
     let banner = document.getElementById(bannerId);
 
     if (['resolved','closed'].includes(status)) {
+      const label = status === 'resolved'
+        ? '✅ This ticket has been resolved'
+        : '🔒 This ticket is closed';
+
       if (!banner) {
         const container = document.getElementById('ev-msgs-' + tabKey);
-        const div = document.createElement('div');
-        div.id = bannerId;
-        div.style.cssText = `
-          margin:8px 0;padding:9px 13px;border-radius:10px;font-size:11.5px;
+        const wrap = document.createElement('div');
+        wrap.id = bannerId;
+        wrap.style.cssText = `
+          margin:8px 0;padding:10px 13px 12px;border-radius:10px;font-size:11.5px;
           font-weight:700;text-align:center;letter-spacing:.3px;flex-shrink:0;
           background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.2);
           color:#3dd44a;`;
-        div.textContent = status === 'resolved'
-          ? '✅ This ticket has been resolved'
-          : '🔒 This ticket is closed';
-        container.parentNode.insertBefore(div, container.nextSibling);
+        wrap.innerHTML = `
+          <div class="ev-banner-label">${label}</div>
+          <button class="ev-new-ticket-btn" onclick="evOpenNewTicket('${tabKey}')">
+            ＋ Open New Ticket
+          </button>`;
+        container.parentNode.insertBefore(wrap, container.nextSibling);
       } else {
-        banner.textContent = status === 'resolved'
-          ? '✅ This ticket has been resolved'
-          : '🔒 This ticket is closed';
+        const labelEl = banner.querySelector('.ev-banner-label');
+        if (labelEl) labelEl.textContent = label;
       }
     } else {
       if (banner) banner.remove();
     }
   }
+
+  /* ── Open a fresh ticket on the same tab ── */
+  window.evOpenNewTicket = function(tabKey) {
+    // Wipe thread state for this tab
+    threadMeta[tabKey] = null;
+    lastSeenCount[tabKey] = 0;
+    state[tabKey].step = 0;
+
+    // Clear message area
+    const container = document.getElementById('ev-msgs-' + tabKey);
+    if (container) container.innerHTML = '';
+
+    // Remove status banner
+    const banner = document.getElementById('ev-thread-banner-' + tabKey);
+    if (banner) banner.remove();
+
+    // Re-enable input
+    _syncInputState(tabKey, 'open');
+
+    // Show fresh bot greeting
+    const greetings = {
+      order: "👋 Starting a new ticket! I'm here to help fix your order.\n\nJust tell me what happened and I'll walk you through it step by step.",
+      delay: "⏳ Starting a new ticket! Share your **Order ID** and I'll look into the delay for you right away."
+    };
+    evTypingThen(tabKey, 800, () => {
+      evBotMsgLocal(tabKey, greetings[tabKey]);
+    });
+  };
 
   /* Lock / unlock input based on thread status */
   function _syncInputState(tabKey, status) {
@@ -836,6 +869,30 @@
       .ev-chat-input:disabled {
         cursor: not-allowed;
         background: #111820 !important;
+      }
+
+      /* New Ticket button inside closed/resolved banner */
+      .ev-new-ticket-btn {
+        display: inline-block;
+        margin-top: 9px;
+        padding: 7px 18px;
+        background: linear-gradient(135deg, #3dd44a, #28a035);
+        border: none;
+        border-radius: 8px;
+        color: #000;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 11.5px;
+        font-weight: 800;
+        letter-spacing: .4px;
+        cursor: pointer;
+        transition: opacity .2s, transform .15s;
+      }
+      .ev-new-ticket-btn:hover {
+        opacity: .85;
+        transform: translateY(-1px);
+      }
+      .ev-new-ticket-btn:active {
+        transform: translateY(0);
       }
     `;
     document.head.appendChild(style);
