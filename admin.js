@@ -4,6 +4,16 @@
  *             currentUser, allServices (globals in index.html)
  * ════════════════════════════════════════════════════════ */
 
+// XSS-safe HTML escaping — use for ALL user/server data injected into innerHTML
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
 /* ══════════════════ ADMIN TABS & USERS ══════════════════ */
 function adminTab(tab, el) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
@@ -28,16 +38,25 @@ async function loadAdminUsers() {
     if (!users.length) { el.innerHTML = '<div class="empty-state"><div class="icon">👥</div><p>No users found.</p></div>'; return; }
     el.innerHTML = `<table>
       <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Balance</th><th>Orders</th><th>Joined</th><th>Actions</th></tr></thead>
-      <tbody>${users.map(u => `
+      <tbody>${users.map(u => {
+        const uid  = esc(u.id||u._id);
+        const name = esc(u.name||u.username||'—');
+        const email= esc(u.email||'—');
+        const role = esc(u.role||'user');
+        const roleBg = u.role==='admin' ? 'rgba(61,212,74,.12)' : 'var(--navy)';
+        const roleColor = u.role==='admin' ? 'var(--green)' : 'var(--muted)';
+        const joined = u.created_at ? new Date(u.created_at).toLocaleDateString() : '—';
+        return `
         <tr>
-          <td><strong>${u.name||u.username||'—'}</strong></td>
-          <td style="color:var(--muted);font-size:13px;">${u.email||'—'}</td>
-          <td><span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${u.role==='admin'?'rgba(61,212,74,.12)':'var(--navy)'};color:${u.role==='admin'?'var(--green)':'var(--muted)'};">${u.role||'user'}</span></td>
+          <td><strong>${name}</strong></td>
+          <td style="color:var(--muted);font-size:13px;">${email}</td>
+          <td><span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${roleBg};color:${roleColor};">${role}</span></td>
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(u.balance||u.wallet_balance)}</td>
-          <td>${u.total_orders||u.orders_count||0}</td>
-          <td style="font-size:12px;color:var(--muted);">${u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</td>
-          <td><div style="display:flex;gap:6px;"><button class="action-btn" onclick="adminCreditUser('${u.id||u._id}','${u.name||u.email}')">+ Credit</button><button class="action-btn danger" onclick="adminBanUser('${u.id||u._id}')">Ban</button></div></td>
-        </tr>`).join('')}
+          <td>${parseInt(u.total_orders||u.orders_count||0)}</td>
+          <td style="font-size:12px;color:var(--muted);">${joined}</td>
+          <td><div style="display:flex;gap:6px;"><button class="action-btn" onclick="adminCreditUser('${uid}','${name}')">+ Credit</button><button class="action-btn danger" onclick="adminBanUser('${uid}')">Ban</button></div></td>
+        </tr>`;
+      }).join('')}
       </tbody>
     </table>`;
   } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`; }
@@ -62,11 +81,20 @@ async function loadAdminOrders() {
     el.innerHTML = `<table>
       <thead><tr><th>#ID</th><th>Customer</th><th>Service</th><th>Link</th><th>Qty</th><th>Cost</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
       <tbody>${orders.map(o => {
-        const shortId = (o.id||'').slice(0,8);
-        const fullId  = o.id || '';
-        const provId  = o.provider_order_id ? `<div style="font-size:10px;color:var(--muted);margin-top:2px;">Provider: #${o.provider_order_id}</div>` : '';
-        const link    = o.link || '—';
-        const linkDisplay = link !== '—' ? `<a href="${link}" target="_blank" rel="noopener" style="color:var(--green);font-size:11px;word-break:break-all;max-width:160px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${link}">${link}</a>` : '<span style="color:var(--muted);font-size:11px;">—</span>';
+        const shortId   = esc((o.id||'').slice(0,8));
+        const fullId    = esc(o.id||'');
+        const provNum   = esc(o.provider_order_id||'');
+        const provId    = provNum ? `<div style="font-size:10px;color:var(--muted);margin-top:2px;">Provider: #${provNum}</div>` : '';
+        const rawLink   = o.link || '';
+        const safeLink  = esc(rawLink);
+        const linkDisplay = rawLink
+          ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:var(--green);font-size:11px;word-break:break-all;max-width:160px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${safeLink}">${safeLink}</a>`
+          : '<span style="color:var(--muted);font-size:11px;">—</span>';
+        const userEmail  = esc(o.user_email||'—');
+        const userName   = esc(o.user_name||'');
+        const svcName    = esc(o.service_name||o.service||'—');
+        const userId     = esc(o.user_id||'');
+        const date       = o.created_at ? new Date(o.created_at).toLocaleDateString() : '—';
         return `<tr>
           <td style="font-size:11px;">
             <span style="color:var(--muted);">#${shortId}</span>
@@ -74,16 +102,16 @@ async function loadAdminOrders() {
             ${provId}
           </td>
           <td style="font-size:13px;">
-            <div style="font-weight:600;color:var(--white);">${o.user_email||'—'}</div>
-            ${o.user_name && o.user_name !== '—' ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${o.user_name}</div>` : ''}
+            <div style="font-weight:600;color:var(--white);">${userEmail}</div>
+            ${userName && userName !== '—' ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${userName}</div>` : ''}
           </td>
-          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${o.service_name||o.service||'—'}</td>
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${svcName}</td>
           <td style="max-width:160px;">${linkDisplay}</td>
           <td>${parseInt(o.quantity||0).toLocaleString()}</td>
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:15px;">${fmtKES(o.charge||o.cost)}</td>
           <td>${statusPill(o.status)}</td>
-          <td style="font-size:12px;color:var(--muted);">${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
-          <td><button class="action-btn" onclick="adminMessageCustomer('${o.user_id||''}','${o.user_email||''}')" title="Open support thread with customer">💬 Message</button></td>
+          <td style="font-size:12px;color:var(--muted);">${date}</td>
+          <td><button class="action-btn" onclick="adminMessageCustomer('${userId}','${userEmail}')" title="Open support thread with customer">💬 Message</button></td>
         </tr>`;
       }).join('')}
       </tbody>
@@ -135,15 +163,15 @@ function renderAdminServices() {
     <table>
       <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Rate / 1000</th><th>Min</th><th>Max</th><th>Active</th><th>Actions</th></tr></thead>
       <tbody>${shown.map(s => {
-        const svcId = s.service || s.id || s._id || '';
+        const svcId = esc(s.service || s.id || s._id || '');
         const isActive = s.is_active !== false;
         const rate = parseFloat(s.rate || s.price || 0);
         const rateColor = rate < minRateKes || rate > maxRateKes ? 'var(--blue)' : 'var(--green)';
         return `
         <tr style="${!isActive ? 'opacity:0.5;' : ''}">
           <td style="color:var(--muted);font-size:12px;">${svcId}</td>
-          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${s.name||'—'}</td>
-          <td style="font-size:12px;">${s.category||'—'}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${esc(s.name||'—')}</td>
+          <td style="font-size:12px;">${esc(s.category||'—')}</td>
           <td style="color:${rateColor};font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(rate)}</td>
           <td style="${parseInt(s.min||0) > minQtyLimit ? 'color:var(--orange);font-weight:700;' : ''}">${parseInt(s.min||0).toLocaleString()}</td>
           <td>${parseInt(s.max||0).toLocaleString()}</td>
@@ -420,7 +448,7 @@ async function loadAdminProviders() {
       return `
         <div style="background:var(--card);border:2px solid ${isActive ? 'var(--green)' : 'var(--border)'};border-radius:14px;padding:20px;position:relative;transition:border-color .2s;">
           ${isActive ? `<div style="position:absolute;top:12px;right:12px;background:rgba(61,212,74,.15);color:var(--green);font-size:10px;font-weight:700;letter-spacing:1px;padding:4px 10px;border-radius:20px;border:1px solid rgba(61,212,74,.3);">● ACTIVE</div>` : ''}
-          <div style="font-size:17px;font-weight:800;color:var(--white);margin-bottom:4px;">${p.name}</div>
+          <div style="font-size:17px;font-weight:800;color:var(--white);margin-bottom:4px;">${esc(p.name)}</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
             <a href="${p.website||'#'}" target="_blank" style="color:var(--blue);text-decoration:none;">${p.website||'—'}</a>
           </div>
@@ -431,7 +459,7 @@ async function loadAdminProviders() {
             </span>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            ${!isActive && configured ? `<button class="btn-primary" style="padding:9px 18px;margin:0;width:auto;font-size:13px;" onclick="switchProvider('${p.slug}','${p.name}')">Switch to ${p.name}</button>` : ''}
+            ${!isActive && configured ? `<button class="btn-primary" style="padding:9px 18px;margin:0;width:auto;font-size:13px;" onclick="switchProvider('${esc(p.slug)}','${esc(p.name)}')">Switch to ${esc(p.name)}</button>` : ''}
             ${isActive ? `<button class="btn-secondary" style="padding:9px 18px;font-size:13px;" disabled>✓ Currently Active</button>` : ''}
             <button class="btn-secondary" style="padding:9px 14px;font-size:13px;" onclick="testProvider('${p.slug}', this)">🔌 Test</button>
             ${!configured ? `<span style="font-size:11px;color:var(--muted);align-self:center;font-style:italic;">Set ${p.key_env} in Render</span>` : ''}
@@ -524,14 +552,18 @@ async function loadAdminSupport() {
 
     list.innerHTML = threads.map(t => {
       const lastMsg = t.last_message;
-      const preview = lastMsg ? lastMsg.body.slice(0,60) + (lastMsg.body.length > 60 ? '…' : '') : 'No messages';
+      const preview = esc(lastMsg ? lastMsg.body.slice(0,60) + (lastMsg.body.length > 60 ? '…' : '') : 'No messages');
       const sColor  = statusColor[t.status] || '#7a8fad';
-      return `<div class="support-thread-item" data-thread-id="${t.id}" onclick="openSupportThread('${t.id}')" style="padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(61,212,74,.04)'" onmouseout="this.style.background=''" >
+      const tid     = esc(t.id);
+      const userName = esc(t.user_name || t.user_email || '—');
+      const tStatus  = esc(t.status);
+      const tType    = esc(t.type);
+      return `<div class="support-thread-item" data-thread-id="${tid}" onclick="openSupportThread('${tid}')" style="padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(61,212,74,.04)'" onmouseout="this.style.background=''" >
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
-          <div style="font-size:12px;font-weight:700;color:var(--white);">${t.user_name || t.user_email || '—'}</div>
-          <span style="font-size:10px;font-weight:700;color:${sColor};white-space:nowrap;">${statusEmoji[t.status]} ${t.status.toUpperCase()}</span>
+          <div style="font-size:12px;font-weight:700;color:var(--white);">${userName}</div>
+          <span style="font-size:10px;font-weight:700;color:${sColor};white-space:nowrap;">${statusEmoji[t.status] || ''} ${tStatus.toUpperCase()}</span>
         </div>
-        <div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:4px;">${typeLabel[t.type] || t.type}</div>
+        <div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:4px;">${typeLabel[t.type] || tType}</div>
         <div style="font-size:11.5px;color:var(--muted);line-height:1.4;">${preview}</div>
         <div style="font-size:10px;color:#3a5570;margin-top:6px;">${t.message_count || 0} messages · ${t.created_at ? new Date(t.created_at).toLocaleDateString('en-KE') : ''}</div>
       </div>`;
@@ -554,17 +586,20 @@ async function openSupportThread(threadId) {
 
     // Build recent orders HTML
     const ordersHtml = (t.recent_orders || []).map(o => {
-      const link = o.link ? `<a href="${o.link}" target="_blank" rel="noopener" style="color:var(--green);font-size:10px;word-break:break-all;display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;" title="${o.link}">${o.link}</a>` : '';
-      const provId = o.provider_order_id ? `<div style="font-size:10px;color:var(--muted);">Provider #${o.provider_order_id}</div>` : '';
+      const rawLink   = o.link || '';
+      const safeLink  = esc(rawLink);
+      const link = rawLink ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:var(--green);font-size:10px;word-break:break-all;display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;" title="${safeLink}">${safeLink}</a>` : '';
+      const provId = o.provider_order_id ? `<div style="font-size:10px;color:var(--muted);">Provider #${esc(o.provider_order_id)}</div>` : '';
+      const oStatus = esc(o.status||'');
       return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <span style="color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.service_name || 'Unknown service'}</span>
+          <span style="color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.service_name || 'Unknown service')}</span>
           <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
             <span style="color:var(--white);">KES ${parseFloat(o.charge).toFixed(0)}</span>
-            <span class="status-pill ${o.status}" style="font-size:9px;">${o.status}</span>
+            <span class="status-pill ${oStatus}" style="font-size:9px;">${oStatus}</span>
           </div>
         </div>
-        <div style="color:var(--muted);font-size:10px;margin-top:2px;">Qty: ${o.quantity?.toLocaleString?.() || o.quantity}</div>
+        <div style="color:var(--muted);font-size:10px;margin-top:2px;">Qty: ${parseInt(o.quantity||0).toLocaleString()}</div>
         ${link}${provId}
       </div>`;
     }).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px 0;">No recent orders</div>';
@@ -572,7 +607,8 @@ async function openSupportThread(threadId) {
     // Build messages HTML
     function msgBubble(m) {
       const isAdmin = m.sender === 'admin';
-      const formatted = m.body.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+      const safeBody = (m.body||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const formatted = safeBody.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
       const time = m.created_at ? new Date(m.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'}) : '';
       if (isAdmin) {
         return `<div class="ev-msg from-admin" style="max-width:85%;">
@@ -580,21 +616,46 @@ async function openSupportThread(threadId) {
           <div><div class="ev-msg-bubble">${formatted}</div><div class="ev-msg-time">${m.is_bot?'Bot':'Admin'} · ${time}</div></div>
         </div>`;
       }
-      const initial = (t.user?.name || t.user?.email || 'U').charAt(0).toUpperCase();
+      const initial = esc((t.user?.name || t.user?.email || 'U').charAt(0).toUpperCase());
       return `<div class="ev-msg from-user" style="max-width:85%;">
         <div class="ev-msg-avatar" style="background:linear-gradient(135deg,#243048,#1a2435);color:var(--green);font-weight:800;font-size:14px;">${initial}</div>
         <div><div class="ev-msg-bubble">${formatted}</div><div class="ev-msg-time">${time}</div></div>
       </div>`;
     }
 
+    const userName  = esc(t.user?.name || t.user?.email || '—');
+    const userEmail = esc(t.user?.email || '');
+    const tType     = esc(t.type||'');
+    const tStatus   = esc(t.status||'');
+    const tStatusColor = statusColor[t.status] || '#7a8fad';
+    const tTypeLabel = typeLabel[t.type] || tType;
+
+    // linked order fields
+    const lo = t.linked_order;
+    const loHtml = lo ? (() => {
+      const loSvc     = esc(lo.service_name||'—');
+      const loStatus  = esc(lo.status||'');
+      const loProvId  = lo.provider_order_id ? `<div style="color:var(--muted);margin-top:2px;font-size:11px;">Provider ID: #${esc(lo.provider_order_id)}</div>` : '';
+      const loStart   = lo.start_count != null ? `<div style="color:var(--muted);margin-top:2px;font-size:11px;">Start: ${parseInt(lo.start_count)} · Remains: ${lo.remains != null ? parseInt(lo.remains) : '—'}</div>` : '';
+      const rawLoLink = lo.link || '';
+      const safeLoLink= esc(rawLoLink);
+      const loLink    = rawLoLink ? `<a href="${safeLoLink}" target="_blank" rel="noopener noreferrer" style="color:var(--green);font-size:11px;word-break:break-all;display:block;margin-top:6px;">${safeLoLink}</a>` : '';
+      return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;">
+              <div style="color:var(--white);font-weight:700;margin-bottom:4px;">${loSvc}</div>
+              <div style="color:var(--muted);">Qty: ${parseInt(lo.quantity||0).toLocaleString()} · KES ${parseFloat(lo.charge||0).toFixed(0)}</div>
+              ${loProvId}${loStart}${loLink}
+              <span class="status-pill ${loStatus}" style="margin-top:8px;display:inline-block;">${loStatus}</span>
+            </div>`;
+    })() : '<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">No linked order</div>';
+
     pane.innerHTML = `
       <!-- Thread header -->
       <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0;background:rgba(61,212,74,.03);">
         <div>
-          <div style="font-size:13px;font-weight:800;color:var(--white);">${t.user?.name || t.user?.email || '—'}
-            <span style="font-size:11px;color:var(--muted);font-weight:500;margin-left:8px;">${t.user?.email || ''}</span>
+          <div style="font-size:13px;font-weight:800;color:var(--white);">${userName}
+            <span style="font-size:11px;color:var(--muted);font-weight:500;margin-left:8px;">${userEmail}</span>
           </div>
-          <div style="font-size:11px;color:var(--green);font-weight:600;margin-top:2px;">${typeLabel[t.type]||t.type} · <span style="color:${statusColor[t.status]}">${t.status.toUpperCase()}</span></div>
+          <div style="font-size:11px;color:var(--green);font-weight:600;margin-top:2px;">${tTypeLabel} · <span style="color:${tStatusColor}">${tStatus.toUpperCase()}</span></div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px;">Wallet: KES ${(t.user?.wallet_balance||0).toFixed(0)} · Member since ${t.user?.member_since ? new Date(t.user.member_since).toLocaleDateString('en-KE') : '—'}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -626,16 +687,7 @@ async function openSupportThread(threadId) {
         <!-- User sidebar: linked order + recent orders -->
         <div style="overflow-y:auto;padding:14px;background:rgba(0,0,0,.2);">
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">LINKED ORDER</div>
-          ${t.linked_order ? `
-            <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;">
-              <div style="color:var(--white);font-weight:700;margin-bottom:4px;">${t.linked_order.service_name||'—'}</div>
-              <div style="color:var(--muted);">Qty: ${t.linked_order.quantity} · KES ${parseFloat(t.linked_order.charge).toFixed(0)}</div>
-              ${t.linked_order.provider_order_id ? `<div style="color:var(--muted);margin-top:2px;font-size:11px;">Provider ID: #${t.linked_order.provider_order_id}</div>` : ''}
-              ${t.linked_order.start_count != null ? `<div style="color:var(--muted);margin-top:2px;font-size:11px;">Start: ${t.linked_order.start_count} · Remains: ${t.linked_order.remains ?? '—'}</div>` : ''}
-              ${t.linked_order.link ? `<a href="${t.linked_order.link}" target="_blank" rel="noopener" style="color:var(--green);font-size:11px;word-break:break-all;display:block;margin-top:6px;">${t.linked_order.link}</a>` : ''}
-              <span class="status-pill ${t.linked_order.status}" style="margin-top:8px;display:inline-block;">${t.linked_order.status}</span>
-            </div>` : '<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">No linked order</div>'}
-
+          ${loHtml}
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">RECENT ORDERS</div>
           <div>${ordersHtml}</div>
         </div>
@@ -794,17 +846,21 @@ function renderTickets(tickets) {
   }
   const typeIcon = { wrong_order: '📦', delay: '⏳' };
   const statusLabel = { open:'🔴 Open', pending:'🟡 Replied', resolved:'🟢 Resolved', closed:'⬛ Closed' };
-  el.innerHTML = tickets.map(t => `
-    <div class="ticket-card" onclick="openTicketThread('${t.id}')">
+  el.innerHTML = tickets.map(t => {
+    const tid     = esc(t.id);
+    const tStatus = esc(t.status||'');
+    const stLabel = statusLabel[t.status] || tStatus;
+    return `
+    <div class="ticket-card" onclick="openTicketThread('${tid}')">
       <div class="ticket-icon">${typeIcon[t.type] || '🎫'}</div>
       <div class="ticket-body">
-        <div class="ticket-title">${t.type === 'wrong_order' ? 'Wrong Order' : 'Delayed Service'} <span style="color:var(--muted);font-weight:400;font-size:12px;">#${t.id.slice(0,8)}</span></div>
+        <div class="ticket-title">${t.type === 'wrong_order' ? 'Wrong Order' : 'Delayed Service'} <span style="color:var(--muted);font-weight:400;font-size:12px;">#${tid.slice(0,8)}</span></div>
         <div class="ticket-preview">${_ticketPreview(_ticketBodyText(t.last_message || t.first_message))}</div>
         <div class="ticket-meta">${new Date(t.created_at).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'})} · ${(t.messages||[]).length || t.message_count || 0} messages</div>
       </div>
-      <span class="ticket-status ts-${t.status}">${statusLabel[t.status] || t.status}</span>
+      <span class="ticket-status ts-${tStatus}">${stLabel}</span>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function _ticketBodyText(val) {
@@ -816,7 +872,8 @@ function _ticketBodyText(val) {
 }
 
 function _ticketPreview(body) {
-  return (body || '').replace(/\*\*(.*?)\*\*/g, '$1').replace(/\n/g, ' ').slice(0, 90) + ((body||'').length > 90 ? '…' : '');
+  const clean = (body || '').replace(/\*\*(.*?)\*\*/g, '$1').replace(/\n/g, ' ').slice(0, 90) + ((body||'').length > 90 ? '…' : '');
+  return clean.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function _updateTicketsBadge() {
@@ -848,9 +905,9 @@ async function _loadTicketThread(threadId) {
     document.getElementById('ttMeta').textContent  =
       `Opened ${new Date(t.created_at).toLocaleDateString('en-KE',
         {day:'numeric',month:'short',year:'numeric'})} · ${(t.messages||[]).length} messages`;
-    const stLabel = { open:'🔴 Open', pending:'🟡 Replied', resolved:'🟢 Resolved', closed:'⬛ Closed' }[t.status] || t.status;
+    const stLabel = { open:'🔴 Open', pending:'🟡 Replied', resolved:'🟢 Resolved', closed:'⬛ Closed' }[t.status] || esc(t.status);
     document.getElementById('ttStatusBadge').innerHTML =
-      `<span class="ticket-status ts-${t.status}" style="font-size:12px;">${stLabel}</span>`;
+      `<span class="ticket-status ts-${esc(t.status)}" style="font-size:12px;">${stLabel}</span>`;
     const user    = _getTicketUser();
     const initial = (user.name || 'U').charAt(0).toUpperCase();
     const msgs    = t.messages || [];
@@ -1072,7 +1129,7 @@ function _showTicketDashPopup(preview, threadId) {
         </div>
         <div style="font-size:13px;color:#d0e8e0;line-height:1.45;
                     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;">
-          ${preview}
+          ${esc(preview)}
         </div>
       </div>
       <button id="ev-dash-popup-close"
@@ -1172,8 +1229,8 @@ async function lookupCustomer() {
     document.getElementById('acoCustomerInfo').innerHTML = `
       <div style="padding:10px 14px;border-radius:10px;background:rgba(61,212,74,.07);
                   border:1px solid rgba(61,212,74,.2);font-size:13px;">
-        ✅ <strong style="color:var(--white);">${user.name || user.email}</strong>
-        <span style="color:var(--muted);"> · ID: ${(user.id||'').slice(0,8)}</span>
+        ✅ <strong style="color:var(--white);">${esc(user.name || user.email)}</strong>
+        <span style="color:var(--muted);"> · ID: ${esc((user.id||'').slice(0,8))}</span>
         <span style="color:var(--green);"> · KES ${parseFloat(user.balance||0).toFixed(2)} bal</span>
       </div>`;
     document.getElementById('acoStep2').style.display = 'block';
@@ -1195,7 +1252,7 @@ function renderAcoServices(filter = '') {
   el.innerHTML = svcs.map(s => `
     <div class="aco-svc-row${_acoSvc && _acoSvc.id === s.id ? ' selected' : ''}"
          onclick="selectAcoService(${JSON.stringify(s).replace(/"/g,'&quot;')})">
-      <span class="aco-svc-name">${s.name}</span>
+      <span class="aco-svc-name">${esc(s.name)}</span>
       <span class="aco-svc-rate">KES ${parseFloat(s.rate_kes||0).toFixed(0)}/1k</span>
     </div>`).join('');
 }

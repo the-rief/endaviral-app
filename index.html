@@ -251,6 +251,11 @@ body:has(#authWrap[style*="block"])::after{display:none;}
 .field input::placeholder{color:#4a6070;}
 .field-forgot{position:absolute;right:0;top:-27px;font-size:12px;color:#3dd44a;text-decoration:none;font-weight:600;}
 .field-forgot:hover{text-decoration:underline;}
+.pass-wrap{position:relative;}
+.pass-wrap input{padding-right:44px!important;}
+.pass-eye{position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;color:#5a7a96;display:flex;align-items:center;justify-content:center;transition:color .2s;}
+.pass-eye:hover{color:#3dd44a;}
+.pass-eye svg{width:18px;height:18px;pointer-events:none;}
 .btn-primary{width:100%;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;padding:15px;border:none;border-radius:12px;cursor:pointer;transition:all .2s;letter-spacing:.3px;margin-top:8px;box-shadow:0 6px 20px rgba(61,212,74,.3);}
 .btn-primary:hover{background:linear-gradient(135deg,#28a035,#1a6b23);transform:translateY(-1px);box-shadow:0 10px 28px rgba(61,212,74,.4);}
 .btn-primary:active{transform:translateY(0);}
@@ -774,7 +779,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
           <div class="auth-err" id="loginErr"></div>
           <div class="field"><label>Your Email</label><input type="email" id="loginEmail" placeholder="you@example.com"/></div>
-          <div class="field"><label>Password</label><div class="field-row"><a href="#" class="field-forgot" onclick="showForgot();return false;">Forgot password?</a><input type="password" id="loginPass" placeholder="••••••••••••"/></div></div>
+          <div class="field"><label>Password</label><div class="field-row"><a href="#" class="field-forgot" onclick="showForgot();return false;">Forgot password?</a><div class="pass-wrap"><input type="password" id="loginPass" placeholder="••••••••••••"/><button type="button" class="pass-eye" onclick="togglePass('loginPass',this)" tabindex="-1" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div></div>
           <button class="btn-primary" onclick="doLogin()">Log In →</button>
           <div class="auth-switch">Don't have an account? <a href="#" onclick="showReg();return false;">Sign Up Free</a></div>
         </div>
@@ -789,7 +794,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="auth-err" id="regErr"></div>
           <div class="field"><label>Username</label><input type="text" id="regName" placeholder="John Doe"/></div>
           <div class="field"><label>Email</label><input type="email" id="regEmail" placeholder="you@example.com"/></div>
-          <div class="field"><label>Password</label><input type="password" id="regPass" placeholder="Min 8 characters"/></div>
+          <div class="field"><label>Password</label><div class="pass-wrap"><input type="password" id="regPass" placeholder="Min 8 characters"/><button type="button" class="pass-eye" onclick="togglePass('regPass',this)" tabindex="-1" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
           <div class="tnc-row">
             <input type="checkbox" class="tnc-check" id="tncCheck"/>
             <label class="tnc-label" for="tncCheck">I have read and agree to the <a href="#" onclick="openTnc();return false;">Terms &amp; Conditions</a>. By registering I confirm that I understand all terms of service.</label>
@@ -1316,15 +1321,15 @@ tbody td{padding:13px 16px;font-size:14px;}
             <div class="auth-err" id="chpassOk" style="background:rgba(61,212,74,.1);border-color:rgba(61,212,74,.3);color:var(--green);margin-bottom:12px;display:none;"></div>
             <div style="margin-bottom:14px;">
               <label style="display:block;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Current Password</label>
-              <input type="password" id="cpOldPass" placeholder="Your current password" style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/>
+              <div class="pass-wrap"><input type="password" id="cpOldPass" placeholder="Your current password" style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:12px 44px 12px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/><button type="button" class="pass-eye" onclick="togglePass('cpOldPass',this)" tabindex="-1" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             </div>
             <div style="margin-bottom:14px;">
               <label style="display:block;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">New Password</label>
-              <input type="password" id="cpNewPass" placeholder="Min 8 characters" style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/>
+              <div class="pass-wrap"><input type="password" id="cpNewPass" placeholder="Min 8 characters" style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:12px 44px 12px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/><button type="button" class="pass-eye" onclick="togglePass('cpNewPass',this)" tabindex="-1" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             </div>
             <div style="margin-bottom:20px;">
               <label style="display:block;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Confirm New Password</label>
-              <input type="password" id="cpConfPass" placeholder="Repeat new password" style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/>
+              <div class="pass-wrap"><input type="password" id="cpConfPass" placeholder="Repeat new password" style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:12px 44px 12px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/><button type="button" class="pass-eye" onclick="togglePass('cpConfPass',this)" tabindex="-1" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             </div>
             <button class="btn-primary" style="padding:11px;font-size:14px;" onclick="doChangePassword()">Update Password</button>
             <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);text-align:center;">
@@ -1768,6 +1773,18 @@ function platformTag(svc) {
 function toggleFaq(el) {
   el.classList.toggle('open');
   el.querySelector('.lp-faq-icon').textContent = el.classList.contains('open') ? '−' : '+';
+}
+
+// Password show/hide toggle
+const _eyeOpen   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const _eyeClosed = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+function togglePass(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.innerHTML = show ? _eyeClosed : _eyeOpen;
+  btn.style.color = show ? '#3dd44a' : '';
 }
 
 const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT' };

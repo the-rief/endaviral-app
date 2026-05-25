@@ -237,6 +237,8 @@
     if (existing) existing.remove();
     if (_dashPopupHandle) { clearTimeout(_dashPopupHandle); _dashPopupHandle = null; }
 
+    const safeSender  = String(senderName||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const safePreview = String(preview||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const popup = document.createElement('div');
     popup.id = 'ev-dash-popup';
     popup.innerHTML = `
@@ -246,11 +248,11 @@
                     box-shadow:0 0 0 3px rgba(61,212,74,.3);">👤</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:12px;font-weight:700;color:#3dd44a;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px;">
-            ${senderName} sent you a message
+            ${safeSender} sent you a message
           </div>
           <div style="font-size:13px;color:#d0e8e0;line-height:1.45;
                       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;">
-            ${preview}
+            ${safePreview}
           </div>
         </div>
         <button id="ev-dash-popup-close"
@@ -740,7 +742,12 @@
 
   /* ── Utilities ── */
   function _fmt(text) {
-    return text
+    // Escape first, then apply safe markdown-like substitutions
+    const safe = String(text||'')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    return safe
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/\n/g, '<br>');
