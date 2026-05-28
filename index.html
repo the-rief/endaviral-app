@@ -998,6 +998,28 @@ tbody td{padding:13px 16px;font-size:14px;}
 
       <!-- DASHBOARD -->
       <div class="page-section active" id="sec-dashboard">
+
+        <!-- ── Quick-start guide (hidden once user has orders) ── -->
+        <div id="howToGuide" style="background:rgba(61,212,74,.05);border:1px solid rgba(61,212,74,.15);border-radius:14px;padding:16px 18px;margin-bottom:20px;">
+          <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px;letter-spacing:.3px;">🚀 HOW TO PLACE AN ORDER</div>
+          <button onclick="navTo('services')" style="width:100%;margin-bottom:14px;background:linear-gradient(135deg,#3dd44a,#28a035);color:#000;border:none;border-radius:10px;padding:13px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">👆 Tap here to start your first order →</button>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:rgba(61,212,74,.15);color:var(--green);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">1</div>
+              <div style="font-size:13px;color:var(--muted);line-height:1.5;">Pick your platform (Instagram, TikTok, YouTube…) then choose a service card</div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:rgba(61,212,74,.15);color:var(--green);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">2</div>
+              <div style="font-size:13px;color:var(--muted);line-height:1.5;">Paste your <span style="color:var(--white);font-weight:600;">exact profile or post link</span> and set your quantity</div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:rgba(61,212,74,.15);color:var(--green);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">3</div>
+              <div style="font-size:13px;color:var(--muted);line-height:1.5;">Enter your M-Pesa number → tap <span style="color:var(--white);font-weight:600;">PAY &amp; ORDER</span> → enter PIN on prompt. Done! 🎉</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:11px;color:#ffa726;background:rgba(255,152,0,.08);border-radius:8px;padding:7px 10px;">⚠️ Keep your account <strong>Public</strong> · Double-check your link — wrong links cannot be refunded</div>
+        </div>
+
         <div class="stats-grid">
           <div class="stat-card blue"><div class="stat-icon">📦</div><div class="stat-label">Total Orders</div><div class="stat-val" id="dash-orders">0</div><div class="stat-sub">All time</div></div>
           <div class="stat-card orange"><div class="stat-icon">⏳</div><div class="stat-label">Active Orders</div><div class="stat-val" id="dash-active">0</div><div class="stat-sub">In progress</div></div>
@@ -1852,6 +1874,8 @@ async function loadDashboard() {
 }
 
 function renderDashOrders(orders) {
+  const guide = document.getElementById('howToGuide');
+  if (guide) guide.style.display = orders.length ? 'none' : '';
   if (!orders.length) {
     document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders yet. <a href="#" onclick="navTo(\'services\')" style="color:var(--green);">Place your first order →</a></p></div>';
     return;
