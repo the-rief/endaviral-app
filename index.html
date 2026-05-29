@@ -723,10 +723,81 @@ tbody td{padding:13px 16px;font-size:14px;}
   .sort-badge{font-size:11px;padding:7px 10px;}
 }
 
-/* ── My Orders table: hide Link column on mobile (too long) ── */
+/* ── hide-mobile utility (used by JS-rendered tables) ── */
+@media(max-width:768px){ .hide-mobile{ display:none !important; } }
+
+/* ── My Orders table: hide Link(3), Date(7) columns on mobile ── */
 @media(max-width:768px){
   #ordersTable thead th:nth-child(3),
-  #ordersTable tbody td:nth-child(3){display:none;}
+  #ordersTable tbody td:nth-child(3),
+  #ordersTable thead th:nth-child(7),
+  #ordersTable tbody td:nth-child(7){ display:none; }
+}
+/* ── Dashboard orders table: hide Qty(3) on very small phones ── */
+@media(max-width:420px){
+  #dashOrdersTable thead th:nth-child(3),
+  #dashOrdersTable tbody td:nth-child(3){ display:none; }
+}
+
+/* ── Page content padding: reduce on tablet/phone ── */
+@media(max-width:768px){
+  .page-content{ padding:16px; }
+  .topbar{ padding:13px 16px; }
+  .sec-title{ font-size:17px; }
+}
+
+/* ── Section header: stack on tight screens ── */
+@media(max-width:480px){
+  .sec-hd{ flex-wrap:wrap; gap:8px; }
+  .sec-hd > div:last-child{ display:flex; gap:8px; flex-wrap:wrap; }
+}
+
+/* ── Platform tile grid: 4-col on tablet, 3-col default, auto on tiny ── */
+@media(min-width:600px) and (max-width:900px){
+  .platform-grid{ grid-template-columns:repeat(4,1fr); }
+  .subcat-grid{   grid-template-columns:repeat(4,1fr); }
+}
+@media(max-width:360px){
+  .platform-grid{ grid-template-columns:repeat(2,1fr); gap:7px; }
+  .subcat-grid{   grid-template-columns:repeat(2,1fr); gap:6px; }
+  .platform-tile{ padding:10px 4px; font-size:10px; }
+  .platform-tile .pt-icon{ font-size:20px; }
+  .subcat-tile{ padding:8px 4px; }
+}
+
+/* ── Service cards: ensure single column on narrow phones ── */
+@media(max-width:400px){
+  .services-grid{ grid-template-columns:1fr; }
+  .svc-card{ padding:14px; }
+  .svc-name{ font-size:13px; }
+  .svc-price{ font-size:17px; }
+  .order-btn{ font-size:11px; padding:6px 10px; }
+}
+
+/* ── Catalog toolbar: stack search + sort on mobile ── */
+@media(max-width:500px){
+  .catalog-toolbar{ flex-direction:column; gap:8px; }
+  .search-inp{ width:100%; }
+  .sort-badge{ align-self:flex-start; }
+}
+
+/* ── Stat card values: smaller on mobile ── */
+@media(max-width:480px){
+  .stat-val{ font-size:24px; }
+  .stat-label{ font-size:10px; letter-spacing:1px; }
+}
+
+/* ── Transaction history items: tighter on mobile ── */
+@media(max-width:480px){
+  .tx-item{ padding:11px 12px; gap:10px; }
+  .tx-amt{ font-size:15px; }
+  .tx-name{ font-size:13px; }
+}
+
+/* ── Chat FAB: smaller right offset on mobile so it doesn't cover content ── */
+@media(max-width:600px){
+  #ev-chat-widget{ bottom:16px; right:16px; }
+  #ev-chat-fab{ width:52px; height:52px; }
 }
 
 /* ── Toast: full width on mobile ── */
@@ -2105,12 +2176,12 @@ function renderDashOrders(orders) {
   }
   document.getElementById('dashOrdersTable').innerHTML = `
     <table>
-      <thead><tr><th>#ID</th><th>Service</th><th>Qty</th><th>Cost</th><th>Status</th></tr></thead>
+      <thead><tr><th>#ID</th><th>Service</th><th class="hide-mobile">Qty</th><th>Cost</th><th>Status</th></tr></thead>
       <tbody>${orders.map(o => `
         <tr>
           <td style="color:var(--muted);font-size:12px;">#${o.id||o._id||'—'}</td>
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.service_name||o.serviceName||o.service||'—'}</td>
-          <td>${(o.quantity||o.qty||'—').toLocaleString?.()|| o.quantity||'—'}</td>
+          <td class="hide-mobile">${(o.quantity||o.qty||'—').toLocaleString?.()|| o.quantity||'—'}</td>
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost||o.amount)}</td>
           <td>${statusPill(o.status)}</td>
         </tr>`).join('')}
@@ -2473,7 +2544,7 @@ function renderOrders() {
   const el = document.getElementById('ordersTable');
   if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
   el.innerHTML = `<table>
-    <thead><tr><th>#ID</th><th>Service</th><th class="hide-mobile">Link</th><th>Qty</th><th>Cost</th><th>Status</th><th>Date</th></tr></thead>
+    <thead><tr><th>#ID</th><th>Service</th><th class="hide-mobile">Link</th><th>Qty</th><th>Cost</th><th>Status</th><th class="hide-mobile">Date</th></tr></thead>
     <tbody>${list.map(o => {
       const fullId  = o.id || o._id || '';
       const shortId = fullId.slice(0,8) || '—';
@@ -2487,7 +2558,7 @@ function renderOrders() {
         <td>${parseInt(o.quantity||o.qty||0).toLocaleString()}</td>
         <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost||o.amount)}</td>
         <td>${statusPill(o.status)}</td>
-        <td style="font-size:12px;color:var(--muted);">${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
+        <td class="hide-mobile" style="font-size:12px;color:var(--muted);">${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
       </tr>`;
     }).join('')}
     </tbody>
