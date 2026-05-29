@@ -2086,6 +2086,36 @@ function calcOrderCost() {
   document.getElementById('omCost').textContent = fmtKES((qty / 1000) * rate);
 }
 
+
+// ── Auto-raise support ticket on payment failure ──────────────────────────────
+async function _autoRaisePaymentTicket({ phone, link, qty, orderId, checkoutId, reason }) {
+  if (!token) return; // not logged in, skip silently
+  try {
+    const parts = [];
+    parts.push('🚨 Automatic payment failure report');
+    if (reason)     parts.push('Reason: ' + reason);
+    if (orderId)    parts.push('Order ID: ' + orderId);
+    if (checkoutId) parts.push('Checkout ID: ' + checkoutId);
+    if (phone)      parts.push('Phone: ' + phone);
+    if (link)       parts.push('Link: ' + link);
+    if (qty)        parts.push('Qty: ' + qty);
+    parts.push('Time: ' + new Date().toISOString());
+    const firstMessage = parts.join('\n');
+
+    const API_BASE = (typeof API !== 'undefined' ? API : '/api/v1');
+    const res = await fetch(API_BASE + '/support/threads', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'wrong_order', first_message: firstMessage })
+    });
+    if (res.ok) {
+      console.log('[EndaViral] Auto support ticket raised for payment failure');
+    }
+  } catch (err) {
+    console.warn('[EndaViral] Could not auto-raise support ticket:', err);
+  }
+}
+
 async function placeOrder() {
   const link = document.getElementById('omLink').value.trim();
   const qty = parseInt(document.getElementById('omQty').value);
@@ -2108,7 +2138,14 @@ async function placeOrder() {
     showOrderStep(2);
     startPaymentPoll();
   } catch(e) {
-    toast(e.message, 'error');
+    const msg = e.message || '';
+    const isGatewayErr = msg.includes('502') || msg.toLowerCase().includes('payment request failed') || msg.toLowerCase().includes('bad gateway');
+    if (isGatewayErr) {
+      toast('M-Pesa is currently unreachable. A support ticket has been raised — please wait for admin to contact you.', 'error');
+      _autoRaisePaymentTicket({ phone, link, qty, reason: 'STK push 502 — Nexus unreachable on order placement' });
+    } else {
+      toast((msg || 'Payment failed. Please try again or contact admin via support.'), 'error');
+    }
   } finally {
     btn.textContent = '📱 PAY & ORDER';
     btn.classList.remove('loading');
@@ -2120,7 +2157,12 @@ function startPaymentPoll() {
   let attempts = 0;
   paymentPollTimer = setInterval(async () => {
     attempts++;
-    if (attempts > 24) { stopPaymentPoll(); showOrderResult(false, 'Payment timed out. If you paid, your order will be processed shortly.'); return; }
+    if (attempts > 24) {
+      stopPaymentPoll();
+      showOrderResult(false, 'Payment timed out. If you entered your M-Pesa PIN and were charged, please raise this to admin for manual processing.');
+      _autoRaisePaymentTicket({ orderId: pendingOrderId, checkoutId: pendingCheckoutId, reason: 'Payment polling timed out after 24 attempts — possible silent charge' });
+      return;
+    }
     try {
       const status = await api(`/payments/status/${pendingCheckoutId}`);
       if (status.status === 'success' || status.status === 'completed') {
@@ -2134,7 +2176,13 @@ function startPaymentPoll() {
         loadDashboard();
       } else if (status.status === 'failed' || status.status === 'cancelled') {
         stopPaymentPoll();
-        showOrderResult(false, 'Payment was ' + status.status + '. Please try again.');
+        const failMsg = 'Payment was ' + status.status + '. If you entered your PIN and were charged, please raise this to admin.';
+        showOrderResult(false, failMsg);
+        _autoRaisePaymentTicket({
+          orderId: pendingOrderId,
+          checkoutId: pendingCheckoutId,
+          reason: 'Payment ' + status.status + ' after STK push — customer may have been charged'
+        });
       }
     } catch(_) {}
   }, 5000);
@@ -2152,6 +2200,27 @@ function showOrderResult(success, msg) {
   document.getElementById('omResultDesc').textContent = msg;
   document.getElementById('omResultBtn').onclick = () => { closeOrderModal(); if (success) navTo('orders'); };
   document.getElementById('omResultBtn').textContent = success ? 'View My Orders' : 'Close';
+
+  // Show/hide "Raise to Admin" button on failure
+  let raiseBtn = document.getElementById('omRaiseAdminBtn');
+  if (!raiseBtn) {
+    raiseBtn = document.createElement('button');
+    raiseBtn.id = 'omRaiseAdminBtn';
+    raiseBtn.className = 'btn-secondary';
+    raiseBtn.style.cssText = 'margin-top:10px;width:100%;background:var(--card2);color:var(--white);border:1px solid var(--border);';
+    document.getElementById('omResultBtn').insertAdjacentElement('afterend', raiseBtn);
+  }
+  if (!success) {
+    raiseBtn.style.display = '';
+    raiseBtn.textContent = '🎫 Raise Issue to Admin';
+    raiseBtn.onclick = () => {
+      closeOrderModal();
+      navTo('tickets');
+      toast('Go to Support to describe your issue — admin will respond shortly.', 'info');
+    };
+  } else {
+    raiseBtn.style.display = 'none';
+  }
   showOrderStep(3);
 }
 
