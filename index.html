@@ -2102,7 +2102,7 @@ async function _autoRaisePaymentTicket({ phone, link, qty, orderId, checkoutId, 
     parts.push('Time: ' + new Date().toISOString());
     const firstMessage = parts.join('\n');
 
-    const API_BASE = (typeof API !== 'undefined' ? API : '/api/v1');
+    const API_BASE = (typeof API !== 'undefined' ? API : 'https://api-endaviral.onrender.com/api/v1');
     const res = await fetch(API_BASE + '/support/threads', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -2387,10 +2387,10 @@ function acceptTnc() { document.getElementById('tncCheck').checked = true; docum
 
 </script>
 
-<script src="auth.js"></script>
-<script src="account.js"></script>
-<script src="chat.js"></script>
 <script src="admin.js"></script>
+<script src="chat.js"></script>
+<script src="account.js"></script>
+<script src="auth.js"></script>
 
 <!-- ═══════════════════ CHAT WIDGET ═══════════════════ -->
 <style>
