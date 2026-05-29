@@ -1719,7 +1719,9 @@ async function api(path, opts = {}) {
         msg = `Request failed (${r.status})`;
       }
     }
-    throw new Error(msg);
+    const err = new Error(msg);
+    err.status = r.status;  // attach HTTP status so callers can detect 502 etc.
+    throw err;
   }
   return data;
 }
@@ -2139,13 +2141,14 @@ async function placeOrder() {
     startPaymentPoll();
   } catch(e) {
     const msg = e.message || '';
-    const isGatewayErr = msg.includes('502') || msg.toLowerCase().includes('payment request failed') || msg.toLowerCase().includes('bad gateway');
+    const isGatewayErr = e.status === 502 || e.status === 503 || msg.includes('502') || msg.toLowerCase().includes('payment request failed') || msg.toLowerCase().includes('bad gateway') || msg.toLowerCase().includes('unreachable');
     if (isGatewayErr) {
-      toast('M-Pesa is currently unreachable. A support ticket has been raised — please wait for admin to contact you.', 'error');
-      _autoRaisePaymentTicket({ phone, link, qty, reason: 'STK push 502 — Nexus unreachable on order placement' });
+      toast('M-Pesa is currently unreachable. A support ticket has been raised — admin will contact you shortly.', 'error');
     } else {
       toast((msg || 'Payment failed. Please try again or contact admin via support.'), 'error');
     }
+    // Always auto-raise a ticket on any order placement failure
+    _autoRaisePaymentTicket({ phone, link, qty, reason: (isGatewayErr ? 'STK push 502 — Nexus unreachable' : 'Order placement failed') + ' | HTTP ' + (e.status || '?') + ' | ' + msg });
   } finally {
     btn.textContent = '📱 PAY & ORDER';
     btn.classList.remove('loading');
