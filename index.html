@@ -740,6 +740,178 @@ tbody td{padding:13px 16px;font-size:14px;}
 .overlay-bg.show{display:block;}
 .filter-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
 .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--red);border:2px solid var(--black);}
+
+/* ══════════════════════════════════════════════════════════
+   LANDING PAGE — MOBILE NAV
+══════════════════════════════════════════════════════════ */
+.lp-hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;align-items:center;justify-content:center;}
+.lp-mobile-drawer{display:none;flex-direction:column;background:#fff;border-top:1px solid #e8edf3;box-shadow:0 8px 32px rgba(0,0,0,.08);}
+.lp-mobile-drawer.open{display:flex;}
+.lp-mobile-link{padding:14px 20px;font-size:15px;font-weight:600;color:#131b27;text-decoration:none;border-bottom:1px solid #f0f4f8;transition:color .2s;}
+.lp-mobile-link:last-of-type{border-bottom:none;}
+.lp-mobile-link:hover{color:#3dd44a;}
+
+@media(max-width:960px){
+  .lp-hamburger{display:flex;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   LANDING PAGE — HERO AUTH CARD LAYOUT FIX
+══════════════════════════════════════════════════════════ */
+@media(max-width:960px){
+  .lp-hero-text{display:flex;flex-direction:column;align-items:center;text-align:center;}
+  .lp-hero-h1{text-align:center;}
+  .lp-hero-sub{text-align:center;margin-left:auto;margin-right:auto;}
+  .lp-hero-buttons{justify-content:center;}
+  .lp-hero-social-proof{justify-content:center;}
+  .lp-auth-card{margin:0 auto;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   APP — STATS GRID: 2-col on mid phones, 1-col on small
+══════════════════════════════════════════════════════════ */
+@media(max-width:600px){
+  .stats-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:380px){
+  .stats-grid{grid-template-columns:1fr;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   ORDER MODAL — QUANTITY PRESET AMOUNTS (pay-per-order)
+   presets2 is inside the wallet top-up section.
+   On mobile collapse 4-col → 2-col
+══════════════════════════════════════════════════════════ */
+@media(max-width:600px){
+  .presets2{grid-template-columns:repeat(2,1fr);}
+  .preset2{padding:12px 6px;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   WALLET — TOP-UP & TRANSACTION HISTORY SECTION
+══════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  .wallet-top-grid,
+  .wallet-main-grid{grid-template-columns:1fr !important;}
+  .big-amt .val{font-size:20px;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   ACCOUNT PAGE — PROFILE & CHANGE PASSWORD CARDS
+══════════════════════════════════════════════════════════ */
+/* The account section reuses .wallet-top-grid so 1-col is inherited above.
+   Extra account-specific polish: */
+@media(max-width:768px){
+  #sec-account .sec-hd{flex-direction:column;gap:10px;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   ADMIN PAGE — FULL MOBILE TREATMENT
+══════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  /* Tabs already scroll horizontally — ensure panels have padding */
+  .admin-panel{padding-top:4px;}
+
+  /* Services management: stack the filter controls */
+  #sec-admin .sec-hd[style*="flex-wrap"]{flex-direction:column;align-items:flex-start;}
+  #sec-admin .sec-hd > div:last-child{flex-direction:column;gap:8px;width:100%;}
+  #sec-admin .sec-hd > div:last-child > div{width:100%;}
+
+  /* Create order for customer: force single column */
+  #ap-create-order .wallet-main-grid,
+  #ap-create-order [style*="grid-template-columns"]{
+    grid-template-columns:1fr !important;
+  }
+
+  /* Support inbox: stack thread list above chat pane */
+  #supportInboxWrap{
+    grid-template-columns:1fr !important;
+    min-height:auto;
+  }
+  #supportThreadList{
+    border-right:none !important;
+    border-bottom:1px solid var(--border);
+    max-height:260px;
+  }
+  #supportChatPane{min-height:300px;}
+
+  /* Admin search inputs: full width stacked */
+  #ap-allorders [style*="display:flex"]{flex-direction:column;}
+  #ap-allorders .search-inp{max-width:100% !important;width:100%;}
+
+  /* Admin stat grid: 2 cols on tablet */
+  #adminStatsGrid.stats-grid{grid-template-columns:1fr 1fr;}
+
+  /* Filter breakdown summary cards */
+  #filterSummaryCards{grid-template-columns:1fr 1fr !important;}
+
+  /* Providers grid: single column on small screens */
+  #providersGrid{grid-template-columns:1fr !important;}
+}
+
+@media(max-width:480px){
+  /* Admin stat grid: 1 col on small phones */
+  #adminStatsGrid.stats-grid{grid-template-columns:1fr;}
+  #filterSummaryCards{grid-template-columns:1fr !important;}
+
+  /* Admin tabs: smaller text */
+  .admin-tab{padding:9px 14px;font-size:13px;}
+
+  /* Support inbox filter row: stack selects */
+  #ap-support .sec-hd > div{flex-direction:column;gap:8px;width:100%;}
+  #ap-support .sec-hd > div select{width:100%;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   TICKETS — FILTER ROW: scrollable instead of wrapping
+══════════════════════════════════════════════════════════ */
+@media(max-width:600px){
+  #ticketsFilterRow{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none;}
+  #ticketsFilterRow::-webkit-scrollbar{display:none;}
+  #ticketsFilterRow .cat-btn{flex-shrink:0;}
+
+  /* Orders filter row same treatment */
+  #sec-orders .filter-row{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none;}
+  #sec-orders .filter-row::-webkit-scrollbar{display:none;}
+  #sec-orders .filter-row .cat-btn{flex-shrink:0;}
+
+  /* Ticket thread modal: near-full screen */
+  #ticketThreadModal .modal{height:92vh;max-height:92vh;border-radius:20px 20px 0 0;width:100%;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   CHAT WIDGET (ev-chat)
+══════════════════════════════════════════════════════════ */
+@media(max-width:600px){
+  .ev-chat-wrap{border-radius:16px 16px 0 0;bottom:0;right:0;left:0;width:100% !important;max-width:100% !important;}
+  .ev-chat-tabs{gap:0;}
+  .ev-chat-tab{flex:1;padding:10px 6px;font-size:11px;text-align:center;}
+  .ev-chat-input-row{padding:8px 10px;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   IDLE BADGE — avoid overlapping toast on mobile
+══════════════════════════════════════════════════════════ */
+@media(max-width:480px){
+  #idleBadge{bottom:80px;right:12px;left:auto;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   TICKET CARDS — better mobile padding
+══════════════════════════════════════════════════════════ */
+@media(max-width:480px){
+  .ticket-card{padding:12px 14px;gap:10px;}
+  .ticket-icon{width:34px;height:34px;font-size:15px;}
+  .ticket-title{font-size:13px;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   ORDER MODAL — trust row on very small screens
+══════════════════════════════════════════════════════════ */
+@media(max-width:380px){
+  .trust-row{flex-direction:column;gap:8px;}
+  .trust-item{font-size:11px;}
+}
 </style>
 </head>
 <body>
@@ -760,7 +932,21 @@ tbody td{padding:13px 16px;font-size:14px;}
       <a href="#" class="lp-nav-signin" onclick="document.getElementById('loginBox').scrollIntoView({behavior:'smooth'});return false;">Log In</a>
       <a href="#" class="lp-nav-cta" onclick="showReg();document.getElementById('regBox').scrollIntoView({behavior:'smooth'});return false;">Get Started Free</a>
     </div>
+    <!-- Mobile hamburger -->
+    <button class="lp-hamburger" id="lpHamburger" onclick="toggleLpMenu()" aria-label="Menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#131b27" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
   </nav>
+  <!-- Mobile nav drawer -->
+  <div class="lp-mobile-drawer" id="lpMobileDrawer">
+    <a href="#why"  class="lp-mobile-link" onclick="closeLpMenu()">Services</a>
+    <a href="#how"  class="lp-mobile-link" onclick="closeLpMenu()">How It Works</a>
+    <a href="#faq"  class="lp-mobile-link" onclick="closeLpMenu()">FAQ</a>
+    <div style="display:flex;flex-direction:column;gap:10px;padding:0 20px 20px;">
+      <a href="#" class="lp-mobile-link" style="border:1.5px solid #e2e8f0;border-radius:8px;text-align:center;" onclick="closeLpMenu();document.getElementById('loginBox').scrollIntoView({behavior:'smooth'});return false;">Log In</a>
+      <a href="#" onclick="closeLpMenu();showReg();document.getElementById('regBox').scrollIntoView({behavior:'smooth'});return false;" style="display:block;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;padding:12px;text-align:center;">Get Started Free</a>
+    </div>
+  </div>
 
   <section class="lp-hero" id="hero">
     <div class="lp-hero-mesh"></div>
@@ -1593,7 +1779,6 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div style="margin-top:10px;padding:12px;background:var(--navy);border:1px solid var(--border);border-radius:8px;font-size:12px;line-height:1.8;color:var(--muted);">
           <div style="margin-bottom:6px;">👉 Match your order size to your account's real activity. If you have 100 followers, don't buy 50K — it looks fake, drops fast, and can put your account at risk.</div>
           <div style="margin-bottom:6px;">👉 Place smaller amounts and let one order finish before starting another.</div>
-          <div style="margin-bottom:6px;">👉 Avoid using different providers at the same time on the same account.</div>
           <div style="color:var(--green);font-weight:600;">✅ Following these basics will help your results last longer and look more natural.</div>
         </div>
       </details>
@@ -1609,7 +1794,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
             <div style="margin-bottom:6px;">⏳ <strong style="color:var(--white);">"Instant"</strong> means the order starts instantly — not that it finishes immediately.</div>
             <div style="margin-bottom:6px;">📦 Large orders are delivered gradually. This is intentional, not a bug.</div>
-            <div>📉 Some drop after delivery is normal. Check the service description for refill guarantees.</div>
+            <div>📉 We have Cheap and Expensive Services available. The prices vary based on the service quality and delivery time.</div>
           </div>
         </div>
       </details>
@@ -1824,6 +2009,15 @@ function platformTag(svc) {
 function toggleFaq(el) {
   el.classList.toggle('open');
   el.querySelector('.lp-faq-icon').textContent = el.classList.contains('open') ? '−' : '+';
+}
+
+// Landing page mobile nav
+function toggleLpMenu() {
+  const drawer = document.getElementById('lpMobileDrawer');
+  drawer.classList.toggle('open');
+}
+function closeLpMenu() {
+  document.getElementById('lpMobileDrawer').classList.remove('open');
 }
 
 // Password show/hide toggle
