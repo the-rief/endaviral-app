@@ -636,9 +636,9 @@ tbody td{padding:13px 16px;font-size:14px;}
   .platform-tabs{gap:0;padding-bottom:2px;}
   .platform-tab{padding:9px 12px;font-size:12px;}
 
-  /* Tables: horizontal scroll */
+  /* Tables: horizontal scroll — min-width only on actual table descendants */
   .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .tbl-wrap table{min-width:520px;}
+  .tbl-wrap table{min-width:460px;}
 
   /* Wallet: single column */
   .wallet-top-grid,
@@ -653,157 +653,206 @@ tbody td{padding:13px 16px;font-size:14px;}
   .subcat-grid{grid-template-columns:repeat(2,1fr);gap:7px;}
 }
 
-/* ── ORDER MODAL: bottom sheet on mobile ── */
-@media(max-width:600px){
-  .modal-overlay{
-    padding:0;
-    align-items:flex-end;
-  }
-  .modal{
-    border-radius:24px 24px 0 0;
-    padding:24px 18px env(safe-area-inset-bottom, 28px);
-    max-width:100%;
-    max-height:92vh;
-    width:100%;
-    transform:translateY(100%);
-  }
-  .modal-overlay.show .modal{transform:translateY(0);}
-  .modal::before{border-radius:24px 24px 0 0;}
-  .modal-title{font-size:18px;}
-  .modal-sub{font-size:12px;margin-bottom:14px;}
+/* ── ORDER MODAL: handled in comprehensive block above ── 
 
-  /* Info rows: slightly smaller */
-  .info-row{font-size:13px;padding:9px 0;}
+/* ── Very small phones: handled in comprehensive block above ── 
 
-  /* Cost preview: stack */
-  .cost-preview{flex-direction:column;align-items:flex-start;gap:6px;padding:12px;}
-  .cost-lbl{font-size:12px;}
-  .cost-val{font-size:28px;}
+/* ════════════════════════════════════════════════════════════
+   COMPREHENSIVE MOBILE FIXES — ALL LOGGED-IN PAGES
+   Single source of truth. No conflicts.
+════════════════════════════════════════════════════════════ */
 
-  /* Trust row */
-  .trust-row{gap:10px;flex-wrap:wrap;}
-  .trust-item{font-size:11px;}
-
-  /* Action buttons: full width stacked */
-  .modal-actions{flex-direction:column-reverse;gap:8px;}
-  .modal-actions .btn-primary,
-  .modal-actions .btn-secondary{width:100%;margin-top:0;text-align:center;}
-
-  /* Phone input */
-  .phone-flag input{font-size:14px;padding:11px 12px;}
-
-  /* Modal fields */
-  .modal-field input,
-  .modal-field textarea{font-size:14px;padding:11px 12px;}
-}
-
-/* ── Very small phones (≤420px) ── */
-@media(max-width:420px){
-  .page-content{padding:10px;}
-  .topbar{padding:12px;}
-  .stats-grid{grid-template-columns:1fr;}
-
-  /* Service catalogue: extra compact */
-  .svc-card{padding:12px;}
-  .svc-card-top{gap:6px;}
-  .svc-name{font-size:13px;}
-  .svc-price{font-size:17px;}
-  .svc-meta{gap:8px;}
-  .svc-limits{font-size:10px;}
-  .order-btn{font-size:11px;padding:7px 12px;}
-
-  /* Platform tabs: even tighter */
-  .platform-tab{padding:8px 9px;font-size:11px;gap:4px;}
-  .platform-tab .pt-emoji{font-size:14px;}
-
-  /* Search bar */
-  .search-inp{font-size:13px;padding:10px 12px;}
-
-  /* Sort badge */
-  .sort-badge{font-size:11px;padding:7px 10px;}
-}
-
-/* ── hide-mobile utility (used by JS-rendered tables) ── */
+/* ── Utility: hide on mobile (used by JS-rendered tables) ── */
 @media(max-width:768px){ .hide-mobile{ display:none !important; } }
 
-/* ── My Orders table: hide Link(3), Date(7) columns on mobile ── */
+/* ════ ≤768px — TABLET / LARGE PHONE ════ */
 @media(max-width:768px){
+
+  /* Page shell */
+  .page-content{ padding:14px; }
+  .topbar{ padding:13px 16px; }
+  .sec-title{ font-size:17px; }
+
+  /* Section header: allow wrapping so buttons don't squish */
+  .sec-hd{ flex-wrap:wrap; gap:10px; align-items:flex-start; }
+  .sec-hd > div:last-child{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+
+  /* ── MY ORDERS table: hide Link(col3) + Date(col7) ── */
   #ordersTable thead th:nth-child(3),
   #ordersTable tbody td:nth-child(3),
   #ordersTable thead th:nth-child(7),
   #ordersTable tbody td:nth-child(7){ display:none; }
+
+  /* ── Platform tile grid: 2-col on mobile ── */
+  .platform-grid{ grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:14px; }
+  .platform-tile{ padding:12px 6px; font-size:11px; }
+  .platform-tile .pt-icon{ font-size:22px; }
+  .subcat-grid{ grid-template-columns:repeat(2,1fr); gap:7px; }
+
+  /* ── Wallet / Account grids: single column ── */
+  .wallet-top-grid,
+  .wallet-main-grid{ grid-template-columns:1fr !important; }
+  .big-amt .val{ font-size:20px; }
+
+  /* ── Account page header ── */
+  #sec-account .sec-hd{ flex-direction:column; gap:10px; }
+
+  /* ── ADMIN ── */
+  .admin-panel{ padding-top:4px; }
+  #supportInboxWrap{ grid-template-columns:1fr !important; min-height:auto; }
+  #supportThreadList{ border-right:none !important; border-bottom:1px solid var(--border); max-height:260px; }
+  #supportChatPane{ min-height:300px; }
+  #adminStatsGrid.stats-grid{ grid-template-columns:1fr 1fr; }
+  #filterSummaryCards{ grid-template-columns:1fr 1fr !important; }
+  #providersGrid{ grid-template-columns:1fr !important; }
+
+  /* ── TICKETS: filter row scrolls horizontally, no wrapping ── */
+  #ticketsFilterRow{
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:6px;
+    scrollbar-width:none;
+    gap:6px;
+  }
+  #ticketsFilterRow::-webkit-scrollbar{ display:none; }
+  #ticketsFilterRow .cat-btn{ flex-shrink:0; white-space:nowrap; }
+
+  /* ── ORDERS: filter row same treatment ── */
+  #sec-orders .filter-row{
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:6px;
+    scrollbar-width:none;
+  }
+  #sec-orders .filter-row::-webkit-scrollbar{ display:none; }
+  #sec-orders .filter-row .cat-btn{ flex-shrink:0; white-space:nowrap; }
+
+  /* ── TICKET CARDS: prevent overflow, allow text to wrap ── */
+  .ticket-card{ padding:12px 14px; gap:10px; overflow:hidden; }
+  .ticket-body{ min-width:0; overflow:hidden; }
+  .ticket-preview{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .ticket-title{ font-size:13px; word-break:break-word; }
+  .ticket-status{ font-size:9px; padding:3px 7px; flex-shrink:0; }
+
+  /* ── TICKET THREAD MODAL: full-height bottom sheet ── */
+  #ticketThreadModal .modal{
+    height:92vh !important;
+    max-height:92vh !important;
+    border-radius:20px 20px 0 0 !important;
+    width:100% !important;
+    max-width:100% !important;
+  }
+
+  /* ── NEW TICKET MODAL: full width ── */
+  #newTicketModal .modal{ max-width:100% !important; }
 }
-/* ── Dashboard orders table: hide Qty(3) on very small phones ── */
+
+/* ════ ≤600px — STANDARD PHONE ════ */
+@media(max-width:600px){
+
+  /* Order modal: bottom sheet */
+  .modal-overlay{ padding:0; align-items:flex-end; }
+  .modal{
+    border-radius:24px 24px 0 0;
+    padding:24px 16px env(safe-area-inset-bottom,24px);
+    max-width:100%; max-height:92vh; width:100%;
+    transform:translateY(100%);
+  }
+  .modal-overlay.show .modal{ transform:translateY(0); }
+  .modal::before{ border-radius:24px 24px 0 0; }
+  .modal-title{ font-size:18px; }
+  .modal-sub{ font-size:12px; margin-bottom:14px; }
+  .info-row{ font-size:13px; padding:9px 0; }
+  .cost-preview{ flex-direction:column; align-items:flex-start; gap:6px; padding:12px; }
+  .cost-lbl{ font-size:12px; }
+  .cost-val{ font-size:28px; }
+  .trust-row{ gap:10px; flex-wrap:wrap; }
+  .trust-item{ font-size:11px; }
+  .modal-actions{ flex-direction:column-reverse; gap:8px; }
+  .modal-actions .btn-primary,
+  .modal-actions .btn-secondary{ width:100%; margin-top:0; text-align:center; }
+  .phone-flag input{ font-size:14px; padding:11px 12px; }
+  .modal-field input,
+  .modal-field textarea{ font-size:14px; padding:11px 12px; }
+
+  /* Stats grid: 2 columns */
+  .stats-grid{ grid-template-columns:1fr 1fr; }
+
+  /* Presets: 2 columns */
+  .presets2{ grid-template-columns:repeat(2,1fr); }
+  .preset2{ padding:12px 6px; }
+
+  /* Catalog toolbar: stack */
+  .catalog-toolbar{ flex-direction:column; gap:8px; }
+  .search-inp{ width:100%; }
+  .sort-badge{ align-self:flex-start; }
+
+  /* Chat FAB */
+  #ev-chat-widget{ bottom:16px; right:16px; }
+  #ev-chat-fab{ width:52px; height:52px; }
+}
+
+/* ════ ≤480px — SMALL PHONE ════ */
+@media(max-width:480px){
+
+  .stat-val{ font-size:24px; }
+  .stat-label{ font-size:10px; letter-spacing:1px; }
+
+  .tx-item{ padding:11px 12px; gap:10px; }
+  .tx-amt{ font-size:15px; }
+  .tx-name{ font-size:13px; }
+
+  /* Admin */
+  #adminStatsGrid.stats-grid{ grid-template-columns:1fr; }
+  #filterSummaryCards{ grid-template-columns:1fr !important; }
+  .admin-tab{ padding:9px 14px; font-size:13px; }
+  #ap-support .sec-hd > div{ flex-direction:column; gap:8px; width:100%; }
+  #ap-support .sec-hd > div select{ width:100%; }
+
+  /* Idle badge: above FAB */
+  #idleBadge{ bottom:80px; right:12px; }
+
+  /* Toast */
+  #toastWrap{ left:12px; right:12px; bottom:16px; }
+  .toast{ min-width:unset; width:100%; }
+}
+
+/* ════ ≤420px — VERY SMALL PHONE ════ */
 @media(max-width:420px){
+  .page-content{ padding:10px; }
+  .topbar{ padding:12px; }
+  .stats-grid{ grid-template-columns:1fr; }
+
+  /* Dashboard table: hide Qty col */
   #dashOrdersTable thead th:nth-child(3),
   #dashOrdersTable tbody td:nth-child(3){ display:none; }
+
+  /* Service catalogue */
+  .svc-card{ padding:12px; }
+  .svc-card-top{ gap:6px; }
+  .svc-name{ font-size:13px; }
+  .svc-price{ font-size:17px; }
+  .svc-meta{ gap:8px; }
+  .svc-limits{ font-size:10px; }
+  .order-btn{ font-size:11px; padding:7px 12px; }
+  .search-inp{ font-size:13px; padding:10px 12px; }
+  .sort-badge{ font-size:11px; padding:7px 10px; }
+
+  /* Trust row: stack */
+  .trust-row{ flex-direction:column; gap:8px; }
 }
 
-/* ── Page content padding: reduce on tablet/phone ── */
-@media(max-width:768px){
-  .page-content{ padding:16px; }
-  .topbar{ padding:13px 16px; }
-  .sec-title{ font-size:17px; }
-}
-
-/* ── Section header: stack on tight screens ── */
-@media(max-width:480px){
-  .sec-hd{ flex-wrap:wrap; gap:8px; }
-  .sec-hd > div:last-child{ display:flex; gap:8px; flex-wrap:wrap; }
-}
-
-/* ── Platform tile grid: 4-col on tablet, 3-col default, auto on tiny ── */
-@media(min-width:600px) and (max-width:900px){
-  .platform-grid{ grid-template-columns:repeat(4,1fr); }
-  .subcat-grid{   grid-template-columns:repeat(4,1fr); }
-}
-@media(max-width:360px){
+/* ════ ≤380px — TINY PHONE ════ */
+@media(max-width:380px){
+  .stats-grid{ grid-template-columns:1fr; }
   .platform-grid{ grid-template-columns:repeat(2,1fr); gap:7px; }
   .subcat-grid{   grid-template-columns:repeat(2,1fr); gap:6px; }
   .platform-tile{ padding:10px 4px; font-size:10px; }
   .platform-tile .pt-icon{ font-size:20px; }
   .subcat-tile{ padding:8px 4px; }
-}
-
-/* ── Service cards: ensure single column on narrow phones ── */
-@media(max-width:400px){
   .services-grid{ grid-template-columns:1fr; }
-  .svc-card{ padding:14px; }
-  .svc-name{ font-size:13px; }
-  .svc-price{ font-size:17px; }
-  .order-btn{ font-size:11px; padding:6px 10px; }
-}
-
-/* ── Catalog toolbar: stack search + sort on mobile ── */
-@media(max-width:500px){
-  .catalog-toolbar{ flex-direction:column; gap:8px; }
-  .search-inp{ width:100%; }
-  .sort-badge{ align-self:flex-start; }
-}
-
-/* ── Stat card values: smaller on mobile ── */
-@media(max-width:480px){
-  .stat-val{ font-size:24px; }
-  .stat-label{ font-size:10px; letter-spacing:1px; }
-}
-
-/* ── Transaction history items: tighter on mobile ── */
-@media(max-width:480px){
-  .tx-item{ padding:11px 12px; gap:10px; }
-  .tx-amt{ font-size:15px; }
-  .tx-name{ font-size:13px; }
-}
-
-/* ── Chat FAB: smaller right offset on mobile so it doesn't cover content ── */
-@media(max-width:600px){
-  #ev-chat-widget{ bottom:16px; right:16px; }
-  #ev-chat-fab{ width:52px; height:52px; }
-}
-
-/* ── Toast: full width on mobile ── */
-@media(max-width:480px){
-  #toastWrap{left:12px;right:12px;bottom:16px;}
-  .toast{min-width:unset;width:100%;}
 }
 
 .hamburger{display:none;background:none;border:none;color:var(--white);cursor:pointer;padding:4px;}
@@ -838,151 +887,7 @@ tbody td{padding:13px 16px;font-size:14px;}
   .lp-auth-card{margin:0 auto;}
 }
 
-/* ══════════════════════════════════════════════════════════
-   APP — STATS GRID: 2-col on mid phones, 1-col on small
-══════════════════════════════════════════════════════════ */
-@media(max-width:600px){
-  .stats-grid{grid-template-columns:1fr 1fr;}
-}
-@media(max-width:380px){
-  .stats-grid{grid-template-columns:1fr;}
-}
-
-/* ══════════════════════════════════════════════════════════
-   ORDER MODAL — QUANTITY PRESET AMOUNTS (pay-per-order)
-   presets2 is inside the wallet top-up section.
-   On mobile collapse 4-col → 2-col
-══════════════════════════════════════════════════════════ */
-@media(max-width:600px){
-  .presets2{grid-template-columns:repeat(2,1fr);}
-  .preset2{padding:12px 6px;}
-}
-
-/* ══════════════════════════════════════════════════════════
-   WALLET — TOP-UP & TRANSACTION HISTORY SECTION
-══════════════════════════════════════════════════════════ */
-@media(max-width:768px){
-  .wallet-top-grid,
-  .wallet-main-grid{grid-template-columns:1fr !important;}
-  .big-amt .val{font-size:20px;}
-}
-
-/* ══════════════════════════════════════════════════════════
-   ACCOUNT PAGE — PROFILE & CHANGE PASSWORD CARDS
-══════════════════════════════════════════════════════════ */
-/* The account section reuses .wallet-top-grid so 1-col is inherited above.
-   Extra account-specific polish: */
-@media(max-width:768px){
-  #sec-account .sec-hd{flex-direction:column;gap:10px;}
-}
-
-/* ══════════════════════════════════════════════════════════
-   ADMIN PAGE — FULL MOBILE TREATMENT
-══════════════════════════════════════════════════════════ */
-@media(max-width:768px){
-  /* Tabs already scroll horizontally — ensure panels have padding */
-  .admin-panel{padding-top:4px;}
-
-  /* Services management: stack the filter controls */
-  #sec-admin .sec-hd[style*="flex-wrap"]{flex-direction:column;align-items:flex-start;}
-  #sec-admin .sec-hd > div:last-child{flex-direction:column;gap:8px;width:100%;}
-  #sec-admin .sec-hd > div:last-child > div{width:100%;}
-
-  /* Create order for customer: force single column */
-  #ap-create-order .wallet-main-grid,
-  #ap-create-order [style*="grid-template-columns"]{
-    grid-template-columns:1fr !important;
-  }
-
-  /* Support inbox: stack thread list above chat pane */
-  #supportInboxWrap{
-    grid-template-columns:1fr !important;
-    min-height:auto;
-  }
-  #supportThreadList{
-    border-right:none !important;
-    border-bottom:1px solid var(--border);
-    max-height:260px;
-  }
-  #supportChatPane{min-height:300px;}
-
-  /* Admin search inputs: full width stacked */
-  #ap-allorders [style*="display:flex"]{flex-direction:column;}
-  #ap-allorders .search-inp{max-width:100% !important;width:100%;}
-
-  /* Admin stat grid: 2 cols on tablet */
-  #adminStatsGrid.stats-grid{grid-template-columns:1fr 1fr;}
-
-  /* Filter breakdown summary cards */
-  #filterSummaryCards{grid-template-columns:1fr 1fr !important;}
-
-  /* Providers grid: single column on small screens */
-  #providersGrid{grid-template-columns:1fr !important;}
-}
-
-@media(max-width:480px){
-  /* Admin stat grid: 1 col on small phones */
-  #adminStatsGrid.stats-grid{grid-template-columns:1fr;}
-  #filterSummaryCards{grid-template-columns:1fr !important;}
-
-  /* Admin tabs: smaller text */
-  .admin-tab{padding:9px 14px;font-size:13px;}
-
-  /* Support inbox filter row: stack selects */
-  #ap-support .sec-hd > div{flex-direction:column;gap:8px;width:100%;}
-  #ap-support .sec-hd > div select{width:100%;}
-}
-
-/* ══════════════════════════════════════════════════════════
-   TICKETS — FILTER ROW: scrollable instead of wrapping
-══════════════════════════════════════════════════════════ */
-@media(max-width:600px){
-  #ticketsFilterRow{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none;}
-  #ticketsFilterRow::-webkit-scrollbar{display:none;}
-  #ticketsFilterRow .cat-btn{flex-shrink:0;}
-
-  /* Orders filter row same treatment */
-  #sec-orders .filter-row{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none;}
-  #sec-orders .filter-row::-webkit-scrollbar{display:none;}
-  #sec-orders .filter-row .cat-btn{flex-shrink:0;}
-
-  /* Ticket thread modal: near-full screen */
-  #ticketThreadModal .modal{height:92vh;max-height:92vh;border-radius:20px 20px 0 0;width:100%;}
-}
-
-/* ══════════════════════════════════════════════════════════
-   CHAT WIDGET (ev-chat)
-══════════════════════════════════════════════════════════ */
-@media(max-width:600px){
-  .ev-chat-wrap{border-radius:16px 16px 0 0;bottom:0;right:0;left:0;width:100% !important;max-width:100% !important;}
-  .ev-chat-tabs{gap:0;}
-  .ev-chat-tab{flex:1;padding:10px 6px;font-size:11px;text-align:center;}
-  .ev-chat-input-row{padding:8px 10px;}
-}
-
-/* ══════════════════════════════════════════════════════════
-   IDLE BADGE — avoid overlapping toast on mobile
-══════════════════════════════════════════════════════════ */
-@media(max-width:480px){
-  #idleBadge{bottom:80px;right:12px;left:auto;}
-}
-
-/* ══════════════════════════════════════════════════════════
-   TICKET CARDS — better mobile padding
-══════════════════════════════════════════════════════════ */
-@media(max-width:480px){
-  .ticket-card{padding:12px 14px;gap:10px;}
-  .ticket-icon{width:34px;height:34px;font-size:15px;}
-  .ticket-title{font-size:13px;}
-}
-
-/* ══════════════════════════════════════════════════════════
-   ORDER MODAL — trust row on very small screens
-══════════════════════════════════════════════════════════ */
-@media(max-width:380px){
-  .trust-row{flex-direction:column;gap:8px;}
-  .trust-item{font-size:11px;}
-}
+/* ── Tickets, chat, idle, toast: handled in comprehensive block above ── 
 </style>
 </head>
 <body>
