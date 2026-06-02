@@ -1130,6 +1130,16 @@ tbody td{padding:13px 16px;font-size:14px;}
         Admin Panel
         <span class="nav-badge" id="adminBadge">!</span>
       </div>
+      <div class="nav-item" onclick="navTo('affiliate')" id="affiliateNavItem">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Refer &amp; Earn
+        <span class="nav-badge" id="affiliateBadge" style="display:none;background:var(--green);color:#000;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:auto;"></span>
+      </div>
     </nav>
     <div class="sb-user">
       <div class="av" id="sbAvatar">?</div>
@@ -1198,6 +1208,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="page-section" id="sec-services">
         <div class="sec-hd">
           <div><div class="sec-title">SERVICE CATALOG</div><div class="sec-sub">Browse by platform, filter by type — sorted cheapest first</div></div>
+          <button class="btn-secondary" onclick="loadServices(true)" title="Force-reload service catalog">&#8635; Refresh</button>
         </div>
 
         <!-- Platform grid -->
@@ -1451,6 +1462,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div class="modal-field"><label>Custom Amount (KES)</label><input type="number" id="depAmount" value="500" min="10" oninput="onDepAmtInput()"/></div>
               <div class="big-amt"><span class="lbl">You're depositing</span><span class="val" id="depBigAmt">KES 500</span></div>
               <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="depPhone" placeholder="07XX XXX XXX"/></div></div>
+              <div id="depProviderWarn" style="display:none;background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.35);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:#ff9800;margin-bottom:10px;line-height:1.5;"></div>
               <button class="btn-primary" id="depBtn" onclick="submitDeposit()">📱 SEND STK PUSH</button>
               <div class="trust-row">
                 <div class="trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Secured by Safaricom</div>
@@ -1523,6 +1535,9 @@ tbody td{padding:13px 16px;font-size:14px;}
         </div>
       </div>
 
+      <!-- AFFILIATE -->
+      <div class="page-section" id="sec-affiliate"></div>
+
       <!-- ADMIN -->
       <div class="page-section" id="sec-admin">
         <div class="admin-tabs">
@@ -1533,6 +1548,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="admin-tab" onclick="adminTab('stats',this)">Stats</div>
           <div class="admin-tab" onclick="adminTab('support',this)">💬 Support</div>
           <div class="admin-tab" onclick="adminTab('create-order',this)">➕ Create Order</div>
+          <div class="admin-tab" onclick="adminTab('affiliate-payouts',this)" id="affPayoutsTabBtn">💸 Payouts</div>
         </div>
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
@@ -1722,13 +1738,88 @@ tbody td{padding:13px 16px;font-size:14px;}
                 </div>
               </div>
             </div>
+
+        <div class="admin-panel" id="ap-affiliate-payouts">
+          <div class="sec-hd">
+            <div>
+              <div class="sec-title">💸 AFFILIATE PAYOUTS</div>
+              <div class="sec-sub">Record M-Pesa disbursements — balance updates automatically</div>
+            </div>
+            <button class="btn-secondary" onclick="adminLoadAffiliatePayouts('pending')">↻ Refresh</button>
           </div>
+          <div id="adminAffiliatePayouts"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
         </div>
 
       </div>
 
     </div>
   </div>
+
+<!-- AFFILIATE ADMIN DISBURSE MODAL -->
+<div id="affAdminDisburseModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:440px;margin:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div style="font-size:18px;font-weight:800;">💸 Record Disbursement</div>
+      <button onclick="affAdminCloseDisburse()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:22px;">After sending M-Pesa manually, enter the details below. The affiliate&#x27;s balance will reduce by the amount you enter.</div>
+
+    <!-- Summary row -->
+    <div style="background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:3px;">AFFILIATE</div>
+        <div style="font-size:13px;font-weight:700;" id="affDisburseAffiliateName">—</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:3px;">M-PESA NUMBER</div>
+        <div style="font-size:13px;font-weight:700;font-family:monospace;" id="affDisbursePhone">—</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:3px;">REQUESTED</div>
+        <div style="font-size:13px;font-weight:700;color:var(--green);" id="affDisburseRequested">—</div>
+      </div>
+    </div>
+
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:1px;">AMOUNT ACTUALLY SENT (KES) *</label>
+    <input id="affDisburseSentAmount" type="number" min="1" step="1" placeholder="Enter amount you sent"
+      style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:15px;color:var(--white);margin-bottom:14px;outline:none;">
+
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:1px;">M-PESA RECEIPT NUMBER (optional)</label>
+    <input id="affDisburseReceipt" type="text" placeholder="e.g. QGH3X2Y9WZ"
+      style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;color:var(--white);margin-bottom:14px;outline:none;font-family:monospace;">
+
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:1px;">NOTE (optional)</label>
+    <input id="affDisburseNote" type="text" placeholder="e.g. Partial payment, balance next week"
+      style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;color:var(--white);margin-bottom:14px;outline:none;">
+
+    <div id="affDisburseErr" style="display:none;background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:8px;padding:10px 12px;font-size:13px;color:#ff6b6b;margin-bottom:14px;"></div>
+
+    <div style="display:flex;gap:10px;">
+      <button onclick="affAdminCloseDisburse()" style="flex:1;background:var(--navy);color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">Cancel</button>
+      <button id="affDisburseSaveBtn" onclick="affAdminConfirmDisburse()" style="flex:2;background:var(--green);color:#000;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:900;cursor:pointer;">Confirm &amp; Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- AFFILIATE ADMIN REJECT MODAL -->
+<div id="affAdminRejectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:400px;margin:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:18px;font-weight:800;">✗ Reject Payout</div>
+      <button onclick="affAdminCloseReject()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">The affiliate&#x27;s balance will be fully restored. They will see your note.</div>
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:1px;">REASON FOR REJECTION *</label>
+    <textarea id="affAdminRejectReason" rows="3" placeholder="e.g. Invalid M-Pesa number provided"
+      style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;color:var(--white);resize:vertical;outline:none;margin-bottom:12px;font-family:'Montserrat',sans-serif;"></textarea>
+    <div id="affAdminRejectErr" style="display:none;background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:8px;padding:10px 12px;font-size:13px;color:#ff6b6b;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="affAdminCloseReject()" style="flex:1;background:var(--navy);color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">Cancel</button>
+      <button id="affAdminRejectBtn" onclick="affAdminConfirmReject()" style="flex:2;background:rgba(255,69,69,.15);color:#ff6b6b;border:1px solid rgba(255,69,69,.4);border-radius:10px;padding:12px;font-size:14px;font-weight:900;cursor:pointer;">Confirm Reject</button>
+    </div>
+  </div>
+</div>
+
 </div>
 
 <!-- ORDER MODAL -->
@@ -1776,7 +1867,10 @@ tbody td{padding:13px 16px;font-size:14px;}
       </details>
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closeOrderModal()">Cancel</button>
-        <button class="btn-primary" id="placeOrderBtn" onclick="placeOrder()" style="margin-top:0;">📱 PAY &amp; ORDER</button>
+        <div style="flex:1;">
+          <div id="omProviderWarn" style="display:none;background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.35);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:#ff9800;margin-bottom:8px;line-height:1.5;"></div>
+          <button class="btn-primary" id="placeOrderBtn" onclick="placeOrder()" style="margin-top:0;width:100%;">📱 PAY &amp; ORDER</button>
+        </div>
       </div>
     </div>
     <div id="omStep2" style="display:none;text-align:center;padding:10px 0;">
@@ -1858,10 +1952,63 @@ const SUBCATS = {
 
 let allServices = [];
 let allOrders = [];
+let _servicesCacheTs = 0;          // timestamp of last successful /services fetch
+const SERVICES_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 let currentSvc = null;
 let depCheckoutId = null;
 let depPollInterval = null;
 let depAmount2 = 500;
+
+// ── Provider capacity gate ────────────────────────────────────────────────────
+// Cached max KES the provider can currently handle (fetched lazily, 2-min TTL).
+let _providerMaxKes    = null;   // null = not yet fetched
+let _providerMaxKesTs  = 0;
+const PROVIDER_MAX_TTL = 2 * 60 * 1000;  // 2 minutes
+
+async function fetchProviderMaxKes() {
+  const now = Date.now();
+  if (_providerMaxKes !== null && (now - _providerMaxKesTs) < PROVIDER_MAX_TTL) {
+    return _providerMaxKes;
+  }
+  try {
+    const data = await api('/payments/provider-max-kes');
+    _providerMaxKes   = data.max_kes || 0;
+    _providerMaxKesTs = now;
+  } catch(_) {
+    // On failure keep the stale value (or 0 if we never succeeded)
+    if (_providerMaxKes === null) _providerMaxKes = 0;
+  }
+  return _providerMaxKes;
+}
+
+/**
+ * Validate a KES amount against the provider ceiling.
+ * If over limit: disable the button and show a warning message.
+ * Returns true when amount is within limit (button should be enabled).
+ */
+function _checkProviderLimit(amountKes, btnId, warningElId) {
+  const maxKes = _providerMaxKes;
+  const warnEl = document.getElementById(warningElId);
+  const btn    = document.getElementById(btnId);
+  if (!btn) return true;
+
+  if (maxKes !== null && maxKes > 0 && amountKes > maxKes) {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor  = 'not-allowed';
+    if (warnEl) {
+      warnEl.textContent = `⚠️ Max Order Accepted is ${fmtKES(maxKes)} — Please reduce your amount.`;
+      warnEl.style.display = 'block';
+    }
+    return false;
+  }
+  // Amount is fine — re-enable
+  btn.disabled = false;
+  btn.style.opacity = '';
+  btn.style.cursor  = '';
+  if (warnEl) warnEl.style.display = 'none';
+  return true;
+}
 let activePlatform = 'all';
 let activeSubcat = 'all';
 let paymentPollTimer = null;
@@ -2008,7 +2155,7 @@ function togglePass(inputId, btn) {
   btn.style.color = show ? '#3dd44a' : '';
 }
 
-const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT' };
+const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT', affiliate:'REFER & EARN' };
 
 function navTo(page) {
   // Guard: only admins can navigate to the admin panel
@@ -2025,6 +2172,7 @@ function navTo(page) {
   document.getElementById('pageTitle').textContent = pageTitles[page] || page.toUpperCase();
   closeSidebar();
   if (page === 'orders') loadOrders();
+  if (page === 'services') loadServices();
   if (page === 'tickets') loadTickets();
   if (page === 'wallet') loadWalletPage();
   if (page === 'admin') {
@@ -2044,6 +2192,7 @@ function navTo(page) {
     if (window._adminStatsTimer) { clearInterval(window._adminStatsTimer); window._adminStatsTimer = null; }
   }
   if (page === 'account') { initAccountPage(); }
+  if (page === 'affiliate') { if (typeof initAffiliatePage === 'function') initAffiliatePage(); }
 }
 
 function toggleSidebar() {
@@ -2094,12 +2243,20 @@ function renderDashOrders(orders) {
     </table>`;
 }
 
-async function loadServices() {
+async function loadServices(force = false) {
+  const now = Date.now();
+  // Skip network fetch if cache is still warm and we have data
+  if (!force && allServices.length > 0 && (now - _servicesCacheTs) < SERVICES_CACHE_TTL) {
+    buildPlatformTabs();
+    applyFilters();
+    return;
+  }
   try {
     const data = await api('/services');
     allServices = (data.services || data.data || data || [])
       .filter(s => !/^tiktok auto\b/i.test(s.name || s.service_name || ''))
       .map(s => ({ ...s, _platKey: getPlatformKey(s), _subcatKey: getSubcatKey(s) }));
+    _servicesCacheTs = Date.now();
     buildPlatformTabs();
     applyFilters();
   } catch(_) {
@@ -2258,6 +2415,8 @@ function openOrderModal(svc) {
   document.getElementById('omQty').value = svc.min || svc.min_quantity || 100;
   document.getElementById('omQty').min = svc.min || svc.min_quantity || 100;
   document.getElementById('omQty').max = svc.max || svc.max_quantity || 1000000;
+  // Fetch provider capacity (uses cache if warm), then re-evaluate cost limit
+  fetchProviderMaxKes().then(() => calcOrderCost());
   calcOrderCost();
   showOrderStep(1);
   document.getElementById('orderModal').classList.add('show');
@@ -2282,7 +2441,9 @@ function calcOrderCost() {
   if (!currentSvc) return;
   const qty = parseInt(document.getElementById('omQty').value) || 0;
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
-  document.getElementById('omCost').textContent = fmtKES((qty / 1000) * rate);
+  const costKes = (qty / 1000) * rate;
+  document.getElementById('omCost').textContent = fmtKES(costKes);
+  _checkProviderLimit(Math.ceil(costKes), 'placeOrderBtn', 'omProviderWarn');
 }
 
 
@@ -2322,6 +2483,10 @@ async function placeOrder() {
   if (!link) { toast('Please enter a link', 'error'); return; }
   if (!qty || qty < 1) { toast('Invalid quantity', 'error'); return; }
   if (!phone) { toast('Please enter your M-Pesa phone number', 'error'); return; }
+  // Provider capacity hard-gate (safety net if button was somehow not disabled)
+  const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
+  const costKes = Math.ceil((qty / 1000) * rate);
+  if (!_checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn')) return;
   const btn = document.getElementById('placeOrderBtn');
   btn.textContent = 'Sending STK Push…';
   btn.classList.add('loading');
@@ -2428,7 +2593,7 @@ let orderFilter = 'all';
 async function loadOrders() {
   document.getElementById('ordersTable').innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading orders…</span></div>';
   try {
-    const data = await api('/orders');
+    const data = await api('/orders?limit=50');
     allOrders = data.orders || data.data || data || [];
     renderOrders();
   } catch(e) {
@@ -2471,6 +2636,11 @@ function renderOrders() {
 }
 
 async function loadWalletPage() {
+  // Pre-fetch provider capacity so the deposit button gate is ready immediately
+  fetchProviderMaxKes().then(() => {
+    const v = parseInt(document.getElementById('depAmount').value) || 0;
+    _checkProviderLimit(v, 'depBtn', 'depProviderWarn');
+  });
   try {
     const data = await api('/wallet/transactions');
     const txs = data.transactions || data.data || data || [];
@@ -2504,12 +2674,14 @@ function selectPreset2(btn) {
   depAmount2 = parseInt(btn.dataset.val);
   document.getElementById('depAmount').value = depAmount2;
   document.getElementById('depBigAmt').textContent = fmtKES(depAmount2);
+  _checkProviderLimit(depAmount2, 'depBtn', 'depProviderWarn');
 }
 function onDepAmtInput() {
   const v = parseInt(document.getElementById('depAmount').value) || 0;
   document.querySelectorAll('.preset2').forEach(b => b.classList.remove('active'));
   depAmount2 = v;
   document.getElementById('depBigAmt').textContent = v > 0 ? fmtKES(v) : 'KES —';
+  _checkProviderLimit(v, 'depBtn', 'depProviderWarn');
 }
 
 async function submitDeposit() {
@@ -2518,6 +2690,8 @@ async function submitDeposit() {
   const phoneRe = /^(07|01)\d{8}$|^2547\d{8}$|^2541\d{8}$/;
   if (!phoneRe.test(phone)) { toast('Enter a valid M-Pesa number', 'error'); return; }
   if (amount < 10 || amount > 300000) { toast('Amount must be between KES 10 and 300,000', 'error'); return; }
+  // Provider capacity gate (hard-check as a safety net)
+  if (!_checkProviderLimit(amount, 'depBtn', 'depProviderWarn')) return;
   const btn = document.getElementById('depBtn');
   btn.textContent = 'Sending…'; btn.classList.add('loading');
   try {
@@ -2920,5 +3094,30 @@ function acceptTnc() { document.getElementById('tncCheck').checked = true; docum
 #idleBadge.show{opacity:1;}
 #idleCountdown.urgent{color:var(--red)!important;}
 </style>
+
+<!-- AFFILIATE PAYOUT MODAL -->
+<div id="affPayoutModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:420px;margin:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <div style="font-size:18px;font-weight:800;">&#x1F4B8; Request Payout</div>
+      <button onclick="affClosePayoutModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.15);border-radius:10px;padding:12px 14px;">
+      &#x2705; Payouts are processed within <strong style="color:var(--green);">24 hours</strong> via M-Pesa.<br>Minimum withdrawal: <strong style="color:var(--white);">KES 500</strong>.
+    </div>
+    <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">AMOUNT (KES)</label>
+    <input id="affPayoutAmount" type="number" min="500" step="1" placeholder="e.g. 1000"
+      style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--white);margin-bottom:16px;">
+    <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">M-PESA NUMBER</label>
+    <input id="affPayoutPhone" type="tel" placeholder="07XX XXX XXX or 01XX XXX XXX"
+      style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--white);margin-bottom:16px;">
+    <div id="affPayoutErr" style="display:none;background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:8px;padding:10px 12px;font-size:13px;color:#ff6b6b;margin-bottom:16px;"></div>
+    <button onclick="affSubmitPayout()" style="width:100%;background:var(--green);color:#000;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:900;cursor:pointer;">
+      Submit Payout Request
+    </button>
+  </div>
+</div>
+<script src="affiliate.js"></script>
+
 </body>
 </html>

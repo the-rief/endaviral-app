@@ -128,13 +128,22 @@
   ═══════════════════════════════════════════════════════════════ */
   function evStartPolling() {
     if (pollHandle) return;
-    pollHandle = setInterval(_pollAllTabs, 5000);
+    pollHandle = setInterval(_pollAllTabs, 15000); // 15s -- was 5s (egress)
   }
   function evStopPolling() {
     if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
   }
 
   async function _pollAllTabs() {
+    // Skip entirely if all known threads are resolved/closed (no new msgs possible)
+    const hasOpenThread = ['order','delay'].some(k => {
+      const m = threadMeta[k];
+      return m && !['resolved','closed'].includes(m.status);
+    });
+    if (!hasOpenThread && (threadMeta.order || threadMeta.delay)) {
+      evStopPolling(); // all threads closed -- stop until a new thread is opened
+      return;
+    }
     // Poll both tabs so background tab also picks up replies
     for (const tabKey of ['order', 'delay']) {
       const meta = threadMeta[tabKey];

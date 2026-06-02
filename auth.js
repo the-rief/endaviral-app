@@ -1,3 +1,17 @@
+// ── Referral code capture ─────────────────────────────────────────────────────
+// If the page was opened with ?ref=CODE, store it in sessionStorage so it
+// survives the registration form interaction without showing in the URL.
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('ref');
+  if (ref) {
+    sessionStorage.setItem('ev_ref_code', ref.trim());
+    // Clean the ref param from the URL bar without a page reload
+    const clean = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, '', clean);
+  }
+})();
+
 // ── JWT helpers ───────────────────────────────────────────────────────────────
 function isTokenExpired(t) {
   try {
@@ -103,11 +117,13 @@ async function doRegister() {
 
   // ── API call ──────────────────────────────────────────────────────────────
   try {
-    const data = await api('/auth/register', { method:'POST', body:JSON.stringify({name, email, password:pass}) });
+    const refCode = sessionStorage.getItem('ev_ref_code') || undefined;
+    const data = await api('/auth/register', { method:'POST', body:JSON.stringify({name, email, password:pass, ref_code: refCode}) });
     token = data.token || data.access_token;
     currentUser = data.user || data;
     localStorage.setItem('ev_token', token);
     localStorage.setItem('ev_user', JSON.stringify(currentUser));
+    sessionStorage.removeItem('ev_ref_code');  // clear after successful registration
     initApp();
     toast('Account created! Welcome to EndaViral 🚀', 'success');
   } catch(e) {
@@ -128,6 +144,10 @@ function doLogout() {
   showLogin();
 }
 
+// ---- Dashboard fetch rate-limit: skip if loaded within last 60s (same session) ----
+const DASH_CACHE_TTL = 60 * 1000; // 60 seconds
+let _dashLastFetched = 0;
+
 function initApp() {
   document.getElementById('authWrap').style.display = 'none';
   document.getElementById('appWrap').style.display = 'flex';
@@ -147,9 +167,12 @@ function initApp() {
     document.getElementById('sec-admin').style.display = 'none';
   }
   loadDashboard();
+  // loadServices is cache-aware (15-min TTL in index.html) -- will skip
+  // the network fetch if the catalog is already warm. Safe to call here.
   loadServices();
   idleStart();
   _startBgTicketWatch();
+  if (typeof _updateAffiliateBadge === 'function') _updateAffiliateBadge();
 }
 
 

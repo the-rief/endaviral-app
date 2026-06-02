@@ -27,13 +27,14 @@ function adminTab(tab, el) {
   if (tab === 'providers') loadAdminProviders();
   if (tab === 'support') loadAdminSupport();
   if (tab === 'create-order') initAdminCreateOrder();
+  if (tab === 'affiliate-payouts') adminLoadAffiliatePayouts('pending');
 }
 
 async function loadAdminUsers() {
   const el = document.getElementById('adminUsersTable');
   el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading users…</span></div>';
   try {
-    const data = await api('/admin/users');
+    const data = await api('/admin/users?limit=100');
     const users = data.users || data.data || data || [];
     if (!users.length) { el.innerHTML = '<div class="empty-state"><div class="icon">👥</div><p>No users found.</p></div>'; return; }
     el.innerHTML = `<table>
@@ -68,7 +69,7 @@ async function loadAdminOrders() {
   const emailFilter = (document.getElementById('adminOrderSearch')?.value || '').trim();
   const orderIdFilter = (document.getElementById('adminOrderIdSearch')?.value || '').trim().replace(/^#/, '');
   try {
-    const qs = emailFilter ? `?email=${encodeURIComponent(emailFilter)}` : '';
+    const qs = emailFilter ? `?email=${encodeURIComponent(emailFilter)}&limit=100` : '?limit=100';
     const data = await api('/admin/orders' + qs);
     let orders = data.orders || data.data || data || [];
 
@@ -192,7 +193,12 @@ function renderAdminServices() {
     </div>` : ''}`;
 }
 
-async function loadAdminStats() {
+let _adminStatsCacheTs = 0;
+const ADMIN_STATS_TTL  = 30 * 1000; // match the auto-refresh interval
+
+async function loadAdminStats(force = false) {
+  const now = Date.now();
+  if (!force && _adminStatsCacheTs > 0 && (now - _adminStatsCacheTs) < ADMIN_STATS_TTL) return;
   const el = document.getElementById('adminStatsGrid');
   const breakdownPanel = document.getElementById('filterBreakdownPanel');
   try {
@@ -201,6 +207,7 @@ async function loadAdminStats() {
       api('/admin/stats'),
       api('/admin/stats/filter-breakdown'),
     ]);
+    _adminStatsCacheTs = Date.now();
 
     const s = statsData.stats || statsData;
     const p = statsData.pricing || {};
@@ -1048,7 +1055,7 @@ const _bgTicketSeenCount = {}; // { threadId: msgCount }
 
 function _startBgTicketWatch() {
   if (_bgTicketWatchTimer) return;
-  _bgTicketWatchTimer = setInterval(_bgTicketWatchTick, 8000);
+  _bgTicketWatchTimer = setInterval(_bgTicketWatchTick, 30000); // 30s -- was 8s (egress)
 }
 function _stopBgTicketWatch() {
   if (_bgTicketWatchTimer) { clearInterval(_bgTicketWatchTimer); _bgTicketWatchTimer = null; }
@@ -1056,9 +1063,16 @@ function _stopBgTicketWatch() {
 
 async function _bgTicketWatchTick() {
   if (!token) return;
+  // Short-circuit: if we already know all tracked threads are closed/resolved,
+  // skip the network call entirely until next interval.
+  const knownIds = Object.keys(_bgTicketSeenCount);
+  if (knownIds.length > 0 && window._bgAllThreadsClosed) return;
   try {
     const data = await api('/support/threads');
     const threads = data.threads || data || [];
+    // Update closed-threads flag so we can skip future polls when all quiet
+    window._bgAllThreadsClosed = threads.length > 0 &&
+      threads.every(t => ['resolved','closed'].includes(t.status));
     for (const t of threads) {
       if (['resolved','closed'].includes(t.status)) continue;
       const threadId  = t.id;
@@ -1383,5 +1397,221 @@ function _setAcoStatus(state, data = {}) {
       <div style="font-size:13px;color:var(--muted);margin-bottom:24px;">No payment received in 2 minutes. If the customer paid, the order will process automatically once M-Pesa confirms.</div>
       <button class="btn-secondary" onclick="initAdminCreateOrder()" style="width:100%;">Start Over</button>
     </div>`;
+  }
+}/* ════════════════════════════════════════════════════════════════════
+ * ENDAVIRAL — ADMIN AFFILIATE PAYOUTS
+ * Appended to admin.js — manages manual M-Pesa disbursements.
+ * ════════════════════════════════════════════════════════════════════ */
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let _affPayoutDisburseId   = null;
+let _affPayoutDisburseData = null;
+
+// ─── Load & render payout queue ───────────────────────────────────────────────
+async function adminLoadAffiliatePayouts(statusFilter = 'pending') {
+  const container = document.getElementById('adminAffiliatePayouts');
+  if (!container) return;
+  container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading payouts…</span></div>`;
+
+  try {
+    const resp    = await api(`/affiliate/admin/payouts?status=${statusFilter}&limit=100`);
+    const payouts = resp.payouts || [];
+
+    const filterBtns = ['pending','paid','rejected','all'].map(s =>
+      `<button onclick="adminLoadAffiliatePayouts('${s}')"
+         style="font-size:12px;padding:7px 16px;border-radius:8px;border:1px solid var(--border);
+                background:${s === statusFilter ? 'var(--green)' : 'var(--navy)'};
+                color:${s === statusFilter ? '#000' : 'var(--muted)'};
+                font-weight:${s === statusFilter ? '800' : '500'};cursor:pointer;">
+        ${s.charAt(0).toUpperCase()+s.slice(1)}
+      </button>`
+    ).join('');
+
+    if (!payouts.length) {
+      container.innerHTML = `
+        <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">${filterBtns}</div>
+        <div style="padding:40px;text-align:center;color:var(--muted);">
+          <div style="font-size:36px;margin-bottom:10px;">✅</div>
+          <div style="font-size:14px;">No ${statusFilter} payout requests</div>
+        </div>`;
+      return;
+    }
+
+    const rows = payouts.map(p => {
+      const st  = p.status || 'pending';
+      const cls = st === 'paid' ? 'completed' : st === 'rejected' ? 'failed' : 'pending';
+      const sentInfo = p.amount_sent_kes != null
+        ? `<div style="font-size:10px;color:var(--green);margin-top:2px;">Sent: KES ${Number(p.amount_sent_kes).toLocaleString()}</div>`
+        : '';
+      const receiptInfo = p.mpesa_receipt
+        ? `<div style="font-size:10px;color:var(--muted);margin-top:2px;">Rcpt: ${esc(p.mpesa_receipt)}</div>` : '';
+      const noteInfo = p.admin_note
+        ? `<div style="font-size:10px;color:#ff9a3c;margin-top:2px;">${esc(p.admin_note)}</div>` : '';
+
+      return `<tr>
+        <td>
+          <div style="font-weight:700;">${esc(p.user_name || '—')}</div>
+          <div style="font-size:11px;color:var(--muted);">${esc(p.user_email || '—')}</div>
+        </td>
+        <td>
+          <div style="font-weight:800;color:var(--green);font-size:15px;">KES ${Number(p.amount_kes).toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--muted);">Requested</div>
+        </td>
+        <td style="font-family:monospace;font-size:13px;">${esc(p.mpesa_phone || '—')}</td>
+        <td style="font-size:12px;color:var(--muted);">${p.requested_at ? new Date(p.requested_at).toLocaleString('en-KE') : '—'}</td>
+        <td>
+          <span class="status-pill ${cls}">${st}</span>
+          ${sentInfo}${receiptInfo}${noteInfo}
+        </td>
+        <td>
+          ${st === 'pending'
+            ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button onclick="affAdminOpenDisburse('${esc(p.id)}','${esc(p.user_name||'')}','${esc(p.mpesa_phone||'')}',${p.amount_kes})"
+                  style="background:var(--green);color:#000;border:none;border-radius:8px;
+                         padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">
+                  💸 Disburse
+                </button>
+                <button onclick="affAdminReject('${esc(p.id)}')"
+                  style="background:rgba(255,69,69,.12);color:#ff6b6b;border:1px solid rgba(255,69,69,.3);
+                         border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;">
+                  ✗ Reject
+                </button>
+              </div>`
+            : `<span style="color:var(--muted);font-size:12px;">—</span>`
+          }
+        </td>
+      </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">${filterBtns}</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Affiliate</th>
+              <th>Amount</th>
+              <th>M-Pesa #</th>
+              <th>Requested</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+
+  } catch (e) {
+    container.innerHTML = `<div style="color:#ff6b6b;padding:20px;">${esc(e.message || 'Failed to load payouts')}</div>`;
+  }
+}
+
+// ─── Disburse modal ───────────────────────────────────────────────────────────
+function affAdminOpenDisburse(id, name, phone, requestedAmount) {
+  _affPayoutDisburseId   = id;
+  _affPayoutDisburseData = { name, phone, requestedAmount };
+
+  document.getElementById('affDisburseAffiliateName').textContent   = name  || '—';
+  document.getElementById('affDisbursePhone').textContent           = phone || '—';
+  document.getElementById('affDisburseRequested').textContent       = `KES ${Number(requestedAmount).toLocaleString()}`;
+  document.getElementById('affDisburseSentAmount').value            = requestedAmount; // pre-fill with requested
+  document.getElementById('affDisburseReceipt').value               = '';
+  document.getElementById('affDisburseNote').value                  = '';
+  document.getElementById('affDisburseErr').style.display           = 'none';
+
+  const modal = document.getElementById('affAdminDisburseModal');
+  modal.style.display = 'flex';
+}
+
+function affAdminCloseDisburse() {
+  document.getElementById('affAdminDisburseModal').style.display = 'none';
+  _affPayoutDisburseId   = null;
+  _affPayoutDisburseData = null;
+}
+
+async function affAdminConfirmDisburse() {
+  if (!_affPayoutDisburseId) return;
+
+  const amountSent = parseFloat(document.getElementById('affDisburseSentAmount').value);
+  const receipt    = document.getElementById('affDisburseReceipt').value.trim();
+  const note       = document.getElementById('affDisburseNote').value.trim();
+  const errEl      = document.getElementById('affDisburseErr');
+
+  errEl.style.display = 'none';
+
+  if (!amountSent || amountSent <= 0) {
+    errEl.textContent   = 'Enter the amount you actually sent.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('affDisburseSaveBtn');
+  btn.disabled    = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    await api(`/affiliate/admin/payouts/${_affPayoutDisburseId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({
+        amount_sent:   amountSent,
+        mpesa_receipt: receipt || null,
+        note:          note    || null,
+      }),
+    });
+
+    affAdminCloseDisburse();
+    toast(`Payout recorded — KES ${amountSent.toLocaleString()} sent ✅`, 'success');
+    adminLoadAffiliatePayouts('pending');
+
+  } catch (e) {
+    errEl.textContent   = e.message || 'Failed to save disbursement.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'Confirm & Save';
+  }
+}
+
+// ─── Reject flow ──────────────────────────────────────────────────────────────
+function affAdminReject(payoutId) {
+  // Reuse inline reject — open the mini reject modal
+  _affPayoutDisburseId = payoutId;
+  document.getElementById('affAdminRejectReason').value       = '';
+  document.getElementById('affAdminRejectErr').style.display  = 'none';
+  document.getElementById('affAdminRejectModal').style.display = 'flex';
+}
+
+function affAdminCloseReject() {
+  document.getElementById('affAdminRejectModal').style.display = 'none';
+  _affPayoutDisburseId = null;
+}
+
+async function affAdminConfirmReject() {
+  const reason = document.getElementById('affAdminRejectReason').value.trim();
+  const errEl  = document.getElementById('affAdminRejectErr');
+  errEl.style.display = 'none';
+
+  if (!reason || reason.length < 5) {
+    errEl.textContent   = 'Please enter a reason (at least 5 characters).';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('affAdminRejectBtn');
+  btn.disabled = true; btn.textContent = 'Rejecting…';
+
+  try {
+    await api(`/affiliate/admin/payouts/${_affPayoutDisburseId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    affAdminCloseReject();
+    toast('Payout request rejected.', 'success');
+    adminLoadAffiliatePayouts('pending');
+  } catch (e) {
+    errEl.textContent   = e.message || 'Rejection failed.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Confirm Reject';
   }
 }
