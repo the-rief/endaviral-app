@@ -39,10 +39,10 @@
       <button onclick="affClosePayoutModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;">×</button>
     </div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:20px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.15);border-radius:10px;padding:12px 14px;">
-      ✅ Payouts are processed within <strong style="color:var(--green);">24 hours</strong> via M-Pesa.<br>Minimum withdrawal: <strong style="color:var(--white);">KES 500</strong>.
+      ✅ Payouts are processed within <strong style="color:var(--green);">24 hours</strong> via M-Pesa.<br>Minimum withdrawal: <strong style="color:var(--white);">KES 100</strong>.
     </div>
     <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">AMOUNT (KES)</label>
-    <input id="affPayoutAmount" type="number" min="500" step="1" placeholder="e.g. 1000"
+    <input id="affPayoutAmount" type="number" min="100" step="1" placeholder="e.g. 1000"
       style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--white);margin-bottom:16px;">
     <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">M-PESA NUMBER</label>
     <input id="affPayoutPhone" type="tel" placeholder="07XX XXX XXX or 01XX XXX XXX"
@@ -57,7 +57,7 @@
 
 // ─── Commission config (mirrors backend) ──────────────────────────────────────
 const AFF_COMMISSION_RATE = 0.15;   // 15% of markup
-const AFF_MIN_PAYOUT      = 500;    // KES
+const AFF_MIN_PAYOUT      = 100;    // KES
 
 // ─── Tier thresholds (based on cumulative referral spend) ─────────────────────
 const TIER_THRESHOLDS = [
@@ -139,7 +139,7 @@ function _renderOptIn(sec) {
     <div style="font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:32px;max-width:420px;margin-left:auto;margin-right:auto;">
       Share your personal link. When friends sign up and order, you earn
       <strong style="color:var(--green);">15% of every order value</strong> straight to your M-Pesa.
-      No limits. No expiry. Withdraw anytime from KES 500.
+      No limits. No expiry. Withdraw anytime from KES 100.
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:36px;text-align:left;">

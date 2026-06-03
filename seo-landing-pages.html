@@ -38,6 +38,45 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 
+<!-- ══ STRUCTURED DATA — LocalBusiness ══ -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": ["Organization", "LocalBusiness"],
+  "name": "EndaViral",
+  "url": "https://endaviral.co.ke",
+  "logo": "https://endaviral.co.ke/EndaViral_logo_transparent.png",
+  "image": "https://endaviral.co.ke/og-image.jpg",
+  "description": "Kenya's #1 SMM panel. Buy TikTok, Instagram, YouTube and Telegram growth. Pay via M-Pesa.",
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "KE",
+    "addressLocality": "Nairobi"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": -1.286389,
+    "longitude": 36.817223
+  },
+  "areaServed": { "@type": "Country", "name": "Kenya" },
+  "priceRange": "KES 50 – KES 5,000",
+  "currenciesAccepted": "KES",
+  "paymentAccepted": "M-Pesa"
+}
+</script>
+
+<!-- ══ STRUCTURED DATA — Product + Offers (updated by JS per variant) ══ -->
+<script type="application/ld+json" id="schema-product">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "TikTok Views Kenya",
+  "description": "Buy real TikTok views in Kenya with M-Pesa payment.",
+  "brand": { "@type": "Brand", "name": "EndaViral" },
+  "offers": []
+}
+</script>
+
 <!-- ══ STRUCTURED DATA — WebPage + BreadcrumbList (updated by JS) ══ -->
 <script type="application/ld+json" id="schema-webpage">
 {
@@ -250,6 +289,11 @@ body{background:#fff;color:#0d1117;font-family:'Montserrat',sans-serif;}
   </div>
 </section>
 
+<!-- ══ BODY COPY ══ -->
+<section style="padding:60px 6%;background:#fff;max-width:860px;margin:0 auto;">
+  <div id="page-body-copy" style="font-size:15px;color:#374151;line-height:1.85;"></div>
+</section>
+
 <!-- ══ HOW TO ORDER ══ -->
 <section class="howto-section">
   <div class="sec-center" style="margin-bottom:52px;">
@@ -355,6 +399,9 @@ const PAGE_VARIANTS = {
     pricingLabel:'TikTok Views',
     pricingTitle:'TikTok Views Packages',
     faqTitle:    'TikTok Views — FAQ',
+    bodyCopy: `<p>TikTok's algorithm rewards videos that get strong early engagement — and views are the clearest signal of popularity. Whether you're a Kenyan content creator, a small business owner, or a brand looking to break into East Africa's fastest-growing social platform, buying TikTok views gives your content the initial push it needs to reach the For You Page.</p>
+<p style="margin-top:16px;">At EndaViral, we source views from real, active TikTok accounts through our network of global SMM providers. Delivery starts within minutes of your M-Pesa payment being confirmed — no waiting, no chasing support. Our packages range from 1,000 views for KES 50 all the way to 50,000 views for KES 1,200, making us the most affordable TikTok growth panel in Kenya.</p>
+<p style="margin-top:16px;">We never ask for your TikTok password. All you need is the link to your public video. Orders are processed automatically, 24 hours a day, 7 days a week — including weekends and public holidays.</p>`,
     packages: [
       { qty:'1,000',  price:'KES 50',   rate:'KES 50/1k views' },
       { qty:'5,000',  price:'KES 200',  rate:'KES 40/1k views', popular:true },
@@ -384,6 +431,9 @@ const PAGE_VARIANTS = {
     pricingLabel:'Instagram Followers',
     pricingTitle:'Instagram Followers Packages',
     faqTitle:    'Instagram Followers — FAQ',
+    bodyCopy: `<p>Instagram remains one of the most powerful platforms for Kenyan businesses, influencers, and creatives to build an audience. A higher follower count builds instant credibility — whether you're pitching to a brand, launching a product, or simply trying to grow your community. Buying Instagram followers in Kenya gives your profile the social proof it needs to attract real organic followers over time.</p>
+<p style="margin-top:16px;">EndaViral offers Instagram follower packages starting from KES 80 for 500 followers, with bulk options up to 10,000 followers for KES 950. All payments are made via M-Pesa — just enter your Safaricom number, approve the STK push, and your order is placed instantly. No credit card, no bank account needed.</p>
+<p style="margin-top:16px;">Premium packages include 30-day refill protection, meaning if your follower count drops within a month of delivery, we top it back up at no extra cost. Your Instagram profile must be set to public during the delivery window. We never require your Instagram password or login credentials.</p>`,
     packages: [
       { qty:'500',    price:'KES 80',  rate:'KES 160/1k followers' },
       { qty:'1,000',  price:'KES 130', rate:'KES 130/1k followers', popular:true },
@@ -413,6 +463,9 @@ const PAGE_VARIANTS = {
     pricingLabel:'YouTube Watch Hours',
     pricingTitle:'YouTube Watch Hours Packages',
     faqTitle:    'YouTube Watch Hours — FAQ',
+    bodyCopy: `<p>YouTube monetization requires 4,000 valid public watch hours in the last 12 months, plus 1,000 subscribers. For most Kenyan YouTubers, the watch hours threshold is the harder target to hit organically — especially on newer channels. Buying YouTube watch hours is the fastest, most reliable path to unlocking the YouTube Partner Programme and starting to earn from your content.</p>
+<p style="margin-top:16px;">EndaViral delivers watch hours through real human viewers, not bots. All hours count toward your 4,000-hour threshold. Packages start from KES 500 for 500 hours, up to KES 2,800 for the full 4,000 hours needed for monetization. Pay via M-Pesa STK push in under two minutes.</p>
+<p style="margin-top:16px;">Watch hours are delivered gradually over 10–30 days to maintain natural viewer patterns and protect your channel. Your videos must remain public throughout the delivery period. We serve hundreds of Kenyan YouTubers and have a zero channel-termination track record when our guidelines are followed.</p>`,
     packages: [
       { qty:'500 hrs',   price:'KES 500',  rate:'KES 1.00/hr' },
       { qty:'1,000 hrs', price:'KES 850',  rate:'KES 0.85/hr', popular:true },
@@ -442,6 +495,9 @@ const PAGE_VARIANTS = {
     pricingLabel:'Telegram Members',
     pricingTitle:'Telegram Members Packages',
     faqTitle:    'Telegram Members — FAQ',
+    bodyCopy: `<p>Telegram has become one of Kenya's most popular platforms for communities, news channels, business groups, and customer support. A channel or group with a strong member count signals credibility and attracts organic members who are more likely to join a community that already looks established. Whether you're building a business community, a media channel, or a fan group, buying Telegram members in Kenya is the fastest way to get momentum.</p>
+<p style="margin-top:16px;">EndaViral delivers Telegram members to both channels and groups, starting from KES 100 for 500 members. Payment is through M-Pesa — just your Safaricom number, one STK push, and your order is live. Your channel must have a public @username for delivery to work. No admin access or invite link sharing with third parties is required beyond your public channel link.</p>
+<p style="margin-top:16px;">Premium member packages include 30-day refill protection against drop-off. Standard packages may see minor attrition over time, which is normal across all SMM services globally. Orders typically start within 1–6 hours of payment confirmation.</p>`,
     packages: [
       { qty:'500',    price:'KES 100', rate:'KES 200/1k members' },
       { qty:'1,000',  price:'KES 180', rate:'KES 180/1k members', popular:true },
@@ -471,6 +527,9 @@ const PAGE_VARIANTS = {
     pricingLabel:'TikTok Followers',
     pricingTitle:'TikTok Followers Packages',
     faqTitle:    'TikTok Followers — FAQ',
+    bodyCopy: `<p>Reaching 1,000 TikTok followers is one of the most important milestones for any creator in Kenya. Once you hit that number, TikTok unlocks the ability to go LIVE, add a link to your bio, and be taken more seriously by brands looking for influencer partnerships. Buying TikTok followers is the fastest way to cross that threshold without waiting months for organic growth.</p>
+<p style="margin-top:16px;">EndaViral delivers TikTok followers to Kenyan creators safely and affordably. Our smallest package starts at just KES 100 for 500 followers, making it accessible whether you're just starting out or scaling an existing account. Payment is via M-Pesa STK push — no card, no bank transfer needed.</p>
+<p style="margin-top:16px;">We deliver followers gradually to mimic natural growth patterns, protecting your account from any flags. Your TikTok profile simply needs to be public at the time of ordering. No password is ever required from you.</p>`,
     packages: [
       { qty:'500',    price:'KES 100', rate:'KES 200/1k followers' },
       { qty:'1,000',  price:'KES 175', rate:'KES 175/1k followers', popular:true },
@@ -500,6 +559,9 @@ const PAGE_VARIANTS = {
     pricingLabel:'Facebook Page Likes',
     pricingTitle:'Facebook Page Likes Packages',
     faqTitle:    'Facebook Likes — FAQ',
+    bodyCopy: `<p>Facebook remains the largest social media platform in Kenya by active users, and page likes are still one of the strongest trust signals for businesses and public figures. When a potential customer visits your Facebook page and sees thousands of likes, they're far more likely to follow, engage, and ultimately buy. Buying Facebook page likes in Kenya is one of the most cost-effective ways to establish that credibility instantly.</p>
+<p style="margin-top:16px;">EndaViral offers Facebook page like packages starting from KES 120 for 500 likes, with bulk packages up to 10,000 likes for KES 1,500. All payments are made via M-Pesa — no card details, no bank transfer, just a single STK push on your Safaricom line. Orders are processed automatically around the clock.</p>
+<p style="margin-top:16px;">This service is for Facebook Pages only — business pages, creator pages, and community pages. Personal profiles are not supported. Your page must be public at the time of ordering. We only require your public page URL, never your Facebook login credentials.</p>`,
     packages: [
       { qty:'500',    price:'KES 120', rate:'KES 240/1k likes' },
       { qty:'1,000',  price:'KES 200', rate:'KES 200/1k likes', popular:true },
@@ -589,6 +651,31 @@ function renderPage() {
     wpSchema.breadcrumb.itemListElement[1].name          = v.breadcrumb;
     wpSchema.breadcrumb.itemListElement[1].item          = v.canonical;
     document.getElementById('schema-webpage').textContent = JSON.stringify(wpSchema);
+  } catch (_) {}
+
+  // ── Body copy ─────────────────────────────────────────────────────
+  const bodyEl = document.getElementById('page-body-copy');
+  if (bodyEl && v.bodyCopy) bodyEl.innerHTML = v.bodyCopy;
+
+  // ── Product + Offer schema — rebuilt per variant ──────────────────
+  try {
+    const productSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: v.breadcrumb,
+      description: v.description,
+      brand: { '@type': 'Brand', name: 'EndaViral' },
+      offers: v.packages.map(p => ({
+        '@type': 'Offer',
+        name: p.qty + ' ' + v.pricingLabel,
+        price: p.price.replace(/[^0-9.]/g, ''),
+        priceCurrency: 'KES',
+        availability: 'https://schema.org/InStock',
+        url: v.canonical,
+        seller: { '@type': 'Organization', name: 'EndaViral' },
+      })),
+    };
+    document.getElementById('schema-product').textContent = JSON.stringify(productSchema);
   } catch (_) {}
 
   // ── FAQPage schema — rebuilt per variant ─────────────────────────
