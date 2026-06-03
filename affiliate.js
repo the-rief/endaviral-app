@@ -60,13 +60,73 @@ const AFF_COMMISSION_RATE = 0.15;   // 15% of markup
 const AFF_MIN_PAYOUT      = 100;    // KES
 
 // ─── Tier thresholds (based on cumulative referral spend) ─────────────────────
+// Each tier has REAL, delivered benefits — not just a badge.
+//
+// BACKEND NOTE: When a user's referral_spend_kes crosses a threshold, your
+// backend should:
+//   Silver → credit AFF_SILVER_CREDITS_KES to their service wallet monthly
+//   Gold   → credit AFF_GOLD_CREDITS_KES + add homepage_featured flag
+//   Diamond→ credit AFF_DIAMOND_CREDITS_KES + send admin WhatsApp alert
+//
 const TIER_THRESHOLDS = [
-  { name: 'Starter',  min: 0,       badge: '🌱', color: '#7a8fad' },
-  { name: 'Bronze',   min: 5000,    badge: '🥉', color: '#cd7f32' },
-  { name: 'Silver',   min: 25000,   badge: '🥈', color: '#a8adb4' },
-  { name: 'Gold',     min: 100000,  badge: '🥇', color: '#ffd700' },
-  { name: 'Diamond',  min: 500000,  badge: '💎', color: '#3dd44a' },
+  {
+    name: 'Starter', min: 0, badge: '🌱', color: '#7a8fad',
+    benefits: [
+      '15% commission on every order',
+      'M-Pesa payouts from KES 100',
+      'Real-time earnings dashboard',
+    ],
+    credits_kes: 0,
+    featured: false,
+  },
+  {
+    name: 'Bronze', min: 5000, badge: '🥉', color: '#cd7f32',
+    benefits: [
+      'Everything in Starter',
+      'Priority payout processing (12h)',
+      'Monthly leaderboard eligibility',
+    ],
+    credits_kes: 0,
+    featured: false,
+  },
+  {
+    name: 'Silver', min: 25000, badge: '🥈', color: '#a8adb4',
+    benefits: [
+      'Everything in Bronze',
+      'KES 500 free service credits / month',
+      'Silver badge on your profile',
+    ],
+    credits_kes: 500,
+    featured: false,
+  },
+  {
+    name: 'Gold', min: 100000, badge: '🥇', color: '#ffd700',
+    benefits: [
+      'Everything in Silver',
+      'KES 2,000 free service credits / month',
+      'Featured on EndaViral homepage',
+      'Dedicated WhatsApp support line',
+    ],
+    credits_kes: 2000,
+    featured: true,
+  },
+  {
+    name: 'Diamond', min: 500000, badge: '💎', color: '#3dd44a',
+    benefits: [
+      'Everything in Gold',
+      'KES 5,000 free service credits / month',
+      'Co-promotion — we post about you',
+      'Monthly bonus for #1 leaderboard',
+      'Direct line to founder',
+    ],
+    credits_kes: 5000,
+    featured: true,
+  },
 ];
+
+const AFF_SILVER_CREDITS_KES  = 500;
+const AFF_GOLD_CREDITS_KES    = 2000;
+const AFF_DIAMOND_CREDITS_KES = 5000;
 
 function _affTier(spend) {
   let t = TIER_THRESHOLDS[0];
@@ -189,6 +249,8 @@ function _renderDashboard(sec, data) {
   const pending  = data.pending_kes || 0;
   const canPay   = pending >= AFF_MIN_PAYOUT;
   const hasPendingPayout = (data.pending_payout_count || 0) > 0;
+  const freeCredits      = data.free_credits_kes || 0;
+  const monthlyRank      = data.monthly_rank || null;
 
   sec.innerHTML = `
   <!-- ══ HEADER ══ -->
@@ -204,33 +266,85 @@ function _renderDashboard(sec, data) {
           ? `<button class="btn-primary" onclick="affRequestPayout()">💸 Withdraw ${fmtKES(pending)}</button>`
           : `<div style="font-size:12px;color:var(--muted);">Min. payout: ${fmtKES(AFF_MIN_PAYOUT)} (you have ${fmtKES(pending)})</div>`
       }
-      <button class="btn-secondary" onclick="initAffiliatePage()">↻</button>
+      <button class="btn-secondary" onclick="initAffiliatePage(true)">↻</button>
     </div>
   </div>
 
-  <!-- ══ TIER + STATS ROW ══ -->
-  <div style="display:grid;grid-template-columns:1fr auto;gap:16px;margin-bottom:20px;align-items:start;flex-wrap:wrap;">
-    <!-- Tier card -->
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
-      <div style="font-size:52px;line-height:1;">${tier.badge}</div>
-      <div style="flex:1;min-width:160px;">
-        <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">YOUR TIER</div>
-        <div style="font-size:22px;font-weight:900;color:${tier.color};">${tier.name}</div>
-        ${nextTier ? `
-        <div style="margin-top:10px;">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;">
-            <span>→ ${nextTier.badge} ${nextTier.name}</span><span>${progress}%</span>
-          </div>
-          <div style="background:var(--border);border-radius:4px;height:5px;overflow:hidden;">
-            <div style="height:100%;background:${tier.color};width:${progress}%;transition:width .6s;border-radius:4px;"></div>
-          </div>
-          <div style="font-size:10px;color:var(--muted);margin-top:4px;">${fmtKES(nextTier.min - spend)} more to unlock</div>
-        </div>` : `<div style="font-size:11px;color:var(--green);margin-top:6px;">🎉 Max tier!</div>`}
+  <!-- ══ TIER CARD ══ -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:20px;">
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+
+      <!-- Badge + name + progress -->
+      <div style="display:flex;gap:16px;align-items:center;flex:1;min-width:220px;">
+        <div style="font-size:52px;line-height:1;">${tier.badge}</div>
+        <div style="flex:1;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">YOUR TIER</div>
+          <div style="font-size:22px;font-weight:900;color:${tier.color};">${tier.name}</div>
+          ${nextTier ? `
+          <div style="margin-top:10px;max-width:240px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;">
+              <span>→ ${nextTier.badge} ${nextTier.name}</span><span>${progress}%</span>
+            </div>
+            <div style="background:var(--border);border-radius:4px;height:5px;overflow:hidden;">
+              <div style="height:100%;background:${tier.color};width:${progress}%;transition:width .6s;border-radius:4px;"></div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;">${fmtKES(nextTier.min - spend)} more referral spend to unlock</div>
+          </div>` : `<div style="font-size:11px;color:var(--green);margin-top:6px;">🎉 Max tier — you're elite!</div>`}
+        </div>
       </div>
-      <div style="text-align:right;">
-        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Rate</div>
-        <div style="font-size:30px;font-weight:900;color:var(--green);">${Math.round(AFF_COMMISSION_RATE * 100)}%</div>
-        <div style="font-size:10px;color:var(--muted);">per order</div>
+
+      <!-- Current benefits list -->
+      <div style="flex:1;min-width:200px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">YOUR BENEFITS NOW</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          ${tier.benefits.map(b => `
+            <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--white);">
+              <span style="color:var(--green);font-size:10px;">✓</span> ${b}
+            </div>`).join('')}
+          ${tier.credits_kes > 0
+            ? `<div style="margin-top:8px;background:rgba(61,212,74,.08);border:1px solid rgba(61,212,74,.2);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--green);">
+                🎁 <strong>${fmtKES(tier.credits_kes)}</strong> in free credits credited to your wallet this month
+               </div>`
+            : nextTier && nextTier.credits_kes > 0
+              ? `<div style="margin-top:8px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--muted);">
+                  🔒 Reach ${nextTier.badge} ${nextTier.name} to unlock ${fmtKES(nextTier.credits_kes)}/month in free credits
+                 </div>`
+              : ''}
+        </div>
+      </div>
+
+      <!-- Commission rate + monthly rank -->
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:flex-end;">
+        <div style="text-align:center;padding:14px 18px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.15);border-radius:12px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Rate</div>
+          <div style="font-size:32px;font-weight:900;color:var(--green);">${Math.round(AFF_COMMISSION_RATE * 100)}%</div>
+          <div style="font-size:10px;color:var(--muted);">per order</div>
+        </div>
+        ${monthlyRank ? `
+        <div style="text-align:center;padding:10px 18px;background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.2);border-radius:12px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">This Month</div>
+          <div style="font-size:28px;font-weight:900;color:#ffd700;">#${monthlyRank}</div>
+          <div style="font-size:10px;color:var(--muted);">Leaderboard</div>
+        </div>` : ''}
+      </div>
+    </div>
+
+    <!-- All tiers roadmap strip -->
+    <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">ALL TIERS</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${TIER_THRESHOLDS.map((t, i) => {
+          const isActive  = i === tierIdx;
+          const isPast    = i < tierIdx;
+          return `
+          <div style="flex:1;min-width:100px;background:${isActive ? `rgba(61,212,74,.08)` : 'rgba(255,255,255,.02)'};border:1px solid ${isActive ? `rgba(61,212,74,.3)` : 'var(--border)'};border-radius:10px;padding:10px 12px;opacity:${isPast || isActive ? '1' : '0.45'};">
+            <div style="font-size:18px;margin-bottom:4px;">${t.badge}</div>
+            <div style="font-size:11px;font-weight:700;color:${isActive ? 'var(--green)' : t.color};">${t.name} ${isActive ? '← you' : ''}</div>
+            <div style="font-size:10px;color:var(--muted);">${t.min === 0 ? 'Free to join' : fmtKES(t.min) + ' spend'}</div>
+            ${t.credits_kes > 0 ? `<div style="font-size:10px;color:var(--green);margin-top:3px;">🎁 ${fmtKES(t.credits_kes)}/mo</div>` : ''}
+            ${t.featured ? `<div style="font-size:10px;color:#ffd700;margin-top:2px;">⭐ Featured</div>` : ''}
+          </div>`;
+        }).join('')}
       </div>
     </div>
   </div>
@@ -255,11 +369,11 @@ function _renderDashboard(sec, data) {
       <div class="stat-val" style="font-size:20px;">${data.total_referrals || 0}</div>
       <div class="stat-sub">Via your link</div>
     </div>
-    <div class="stat-card red">
-      <div class="stat-icon">✅</div>
-      <div class="stat-label">Paid Out</div>
-      <div class="stat-val" style="font-size:20px;">${fmtKES(data.paid_kes || 0)}</div>
-      <div class="stat-sub">Sent to M-Pesa</div>
+    <div class="stat-card ${freeCredits > 0 ? 'green' : 'red'}">
+      <div class="stat-icon">${freeCredits > 0 ? '🎁' : '✅'}</div>
+      <div class="stat-label">${freeCredits > 0 ? 'Free Credits' : 'Paid Out'}</div>
+      <div class="stat-val" style="font-size:20px;">${freeCredits > 0 ? fmtKES(freeCredits) : fmtKES(data.paid_kes || 0)}</div>
+      <div class="stat-sub">${freeCredits > 0 ? 'This month' : 'Sent to M-Pesa'}</div>
     </div>
   </div>
 
@@ -290,6 +404,7 @@ function _renderDashboard(sec, data) {
       ['commissions', '💰 Commissions'],
       ['referrals',   '👥 Referrals'],
       ['payouts',     '💳 Payouts'],
+      ['leaderboard', '🏆 Leaderboard'],
     ].map(([tab, label]) =>
       `<button id="affTab-${tab}" class="btn-secondary${tab === 'commissions' ? ' active' : ''}"
         onclick="affSwitchTab('${tab}')" style="font-size:12px;padding:8px 16px;">${label}</button>`
@@ -298,7 +413,8 @@ function _renderDashboard(sec, data) {
 
   <div id="affPane-commissions">${_affCommissionsPane(data.commissions || [])}</div>
   <div id="affPane-referrals" style="display:none;">${_affReferralsPane(data.referrals || [])}</div>
-  <div id="affPane-payouts" style="display:none;" id="affPayoutsPane"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+  <div id="affPane-payouts" style="display:none;"><div class="loading-spinner"><div class="spinner"></div><span>Loading2026</span></div></div>
+  <div id="affPane-leaderboard" style="display:none;"><div class="loading-spinner"><div class="spinner"></div><span>Loading leaderboard2026</span></div></div>
   `;
 
   // Load payouts pane async on tab click
@@ -384,13 +500,14 @@ async function _loadPayoutsPane() {
 
 // ─── Tab switching ─────────────────────────────────────────────────────────────
 function affSwitchTab(tab) {
-  ['commissions', 'referrals', 'payouts'].forEach(t => {
+  ['commissions', 'referrals', 'payouts', 'leaderboard'].forEach(t => {
     const btn  = document.getElementById('affTab-' + t);
     const pane = document.getElementById('affPane-' + t);
     if (btn)  btn.classList.toggle('active', t === tab);
     if (pane) pane.style.display = t === tab ? '' : 'none';
   });
   if (tab === 'payouts') _loadPayoutsPane();
+  if (tab === 'leaderboard') _loadLeaderboardPane();
 }
 
 // ─── Copy / Share helpers ──────────────────────────────────────────────────────
@@ -509,4 +626,75 @@ function _affFallback() {
     commissions: [],
     referrals: [],
   };
+}
+// ─── Leaderboard pane ──────────────────────────────────────────────────────────
+// GET /affiliate/leaderboard → { leaderboard: [{rank, name, referrals, earned_kes, tier_name, tier_badge, is_me}], month_label, your_rank }
+async function _loadLeaderboardPane() {
+  const pane = document.getElementById('affPane-leaderboard');
+  if (!pane) return;
+  try {
+    const resp = await api('/affiliate/leaderboard');
+    const rows = resp.leaderboard || [];
+    const monthLabel = resp.month_label || '';
+
+    if (!rows.length) {
+      pane.innerHTML = `
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;text-align:center;color:var(--muted);">
+          <div style="font-size:40px;margin-bottom:12px;">🏆</div>
+          <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:6px;">Leaderboard coming soon</div>
+          <div style="font-size:13px;">Rankings reset on the 1st of each month. Be the first on the board!</div>
+        </div>`;
+      return;
+    }
+
+    const medal = ['🥇','🥈','🥉'];
+
+    pane.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+          🏆 TOP AFFILIATES ${monthLabel ? '— ' + monthLabel.toUpperCase() : 'THIS MONTH'}
+        </div>
+        ${resp.your_rank ? `<div style="font-size:12px;color:#ffd700;">Your rank this month: <strong>#${resp.your_rank}</strong></div>` : ''}
+      </div>
+
+      <!-- Top 3 podium -->
+      <div style="display:flex;gap:12px;margin-bottom:20px;justify-content:center;flex-wrap:wrap;">
+        ${rows.slice(0,3).map((r, i) => `
+          <div style="flex:1;min-width:110px;max-width:160px;background:${r.is_me ? 'rgba(61,212,74,.1)' : 'var(--card)'};border:1px solid ${r.is_me ? 'rgba(61,212,74,.35)' : 'var(--border)'};border-radius:14px;padding:18px 12px;text-align:center;${i === 0 ? 'transform:translateY(-6px);' : ''}">
+            <div style="font-size:28px;margin-bottom:4px;">${medal[i] || '#' + (i+1)}</div>
+            <div style="font-size:13px;font-weight:800;color:var(--white);margin-bottom:2px;">${esc(r.name || 'Anonymous')}</div>
+            <div style="font-size:11px;color:var(--muted);">${r.tier_badge || ''} ${esc(r.tier_name || '')}</div>
+            <div style="font-size:16px;font-weight:900;color:var(--green);margin-top:8px;">${fmtKES(r.earned_kes || 0)}</div>
+            <div style="font-size:10px;color:var(--muted);">${r.referrals || 0} referrals</div>
+            ${r.is_me ? `<div style="font-size:10px;color:var(--green);margin-top:4px;font-weight:700;">← you</div>` : ''}
+          </div>`).join('')}
+      </div>
+
+      <!-- Full table -->
+      ${rows.length > 3 ? `
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>#</th><th>Affiliate</th><th>Tier</th><th>Referrals</th><th>Earned (KES)</th></tr></thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr style="${r.is_me ? 'background:rgba(61,212,74,.06);' : ''}">
+              <td style="font-weight:800;color:${r.rank <= 3 ? '#ffd700' : 'var(--muted)'};">
+                ${r.rank <= 3 ? medal[r.rank-1] : '#' + r.rank}
+              </td>
+              <td>
+                ${esc(r.name || 'Anonymous')}
+                ${r.is_me ? `<span style="font-size:10px;color:var(--green);margin-left:6px;">you</span>` : ''}
+              </td>
+              <td style="font-size:12px;">${r.tier_badge || ''} ${esc(r.tier_name || '')}</td>
+              <td style="font-size:13px;">${r.referrals || 0}</td>
+              <td style="font-weight:700;color:var(--green);">${fmtKES(r.earned_kes || 0)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table></div>` : ''}
+
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:16px;padding:12px;background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.1);border-radius:10px;">
+        🏅 #1 this month gets a <strong style="color:#ffd700;">bonus payout</strong> from EndaViral. Rankings reset on the 1st.
+      </div>`;
+  } catch (e) {
+    pane.innerHTML = `<div style="color:var(--muted);padding:20px;text-align:center;">Could not load leaderboard.</div>`;
+  }
 }
