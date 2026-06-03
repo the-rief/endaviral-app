@@ -118,7 +118,9 @@ body{background:#fff;color:#0d1117;font-family:'Montserrat',sans-serif;}
 /* NAV */
 .pg-nav{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e8edf3;padding:0 6%;display:flex;align-items:center;justify-content:space-between;height:68px;box-shadow:0 2px 20px rgba(0,0,0,.04);}
 .pg-logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-size:20px;font-weight:900;color:#0d1117;letter-spacing:.5px;}
-.pg-logo span{color:#3dd44a;}
+.pg-logo img{height:38px;width:auto;object-fit:contain;display:block;}
+.pg-logo .pg-logo-text{font-size:20px;font-weight:900;color:#0d1117;letter-spacing:.5px;}
+.pg-logo .pg-logo-text span{color:#3dd44a;}
 .pg-nav-cta{padding:10px 24px;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;transition:all .2s;box-shadow:0 4px 14px rgba(61,212,74,.3);}
 .pg-nav-cta:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(61,212,74,.4);}
 
@@ -234,7 +236,10 @@ body{background:#fff;color:#0d1117;font-family:'Montserrat',sans-serif;}
 
 <!-- ══ NAV ══ -->
 <nav class="pg-nav">
-  <a class="pg-logo" href="https://endaviral.co.ke">Enda<span>Viral</span></a>
+  <a class="pg-logo" href="https://endaviral.co.ke">
+    <img src="/EndaViral_logo_transparent.png" alt="EndaViral" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
+    <span class="pg-logo-text" style="display:none;">Enda<span>Viral</span></span>
+  </a>
   <a class="pg-nav-cta" href="https://endaviral.co.ke#register">Get Started Free →</a>
 </nav>
 
@@ -360,10 +365,18 @@ body{background:#fff;color:#0d1117;font-family:'Montserrat',sans-serif;}
 
 <!-- ══ FOOTER ══ -->
 <footer class="pg-footer">
-  <p>© <span id="footer-year"></span> <a href="https://endaviral.co.ke">EndaViral</a> — Kenya's #1 SMM Panel |
-  <a href="https://endaviral.co.ke">Home</a> ·
-  <a href="https://endaviral.co.ke#pricing">Services</a> ·
-  <a href="/blog">Blog</a></p>
+  <p>© <span id="footer-year"></span> <a href="https://endaviral.co.ke/#">EndaViral</a> · Made for Kenya 🇰🇪</p>
+  <p style="margin-top:8px;">
+    <a href="https://endaviral.co.ke">Home</a> ·
+    <a href="https://endaviral.co.ke#pricing">Services</a> ·
+    <a href="/buy-tiktok-followers-kenya">TikTok Followers</a> ·
+    <a href="/buy-instagram-followers-kenya">Instagram Followers</a> ·
+    <a href="/buy-youtube-watch-hours-kenya">YouTube Watch Hours</a> ·
+    <a href="/buy-tiktok-views-kenya">TikTok Views</a> ·
+    <a href="/telegram-members-kenya">Telegram Members</a> ·
+    <a href="/buy-facebook-page-likes-kenya">Facebook Likes</a> ·
+    <a href="/blog">Blog</a>
+  </p>
 </footer>
 
 <script>
@@ -383,6 +396,11 @@ const ALL_PAGES = [
   { slug:'telegram-members-kenya',        icon:'✈️', label:'Buy Telegram Members Kenya',     tagline:'Grow your Telegram channel' },
   { slug:'buy-tiktok-followers-kenya',    icon:'👥', label:'Buy TikTok Followers Kenya',     tagline:'Reach 1,000 followers faster' },
   { slug:'buy-facebook-page-likes-kenya', icon:'👍', label:'Buy Facebook Likes Kenya',       tagline:'Boost your page credibility' },
+  // ── Blog articles ─────────────────────────────────────────────
+  { slug:'how-to-grow-on-instagram-in-kenya',  icon:'📈', label:'How to Grow on Instagram in Kenya',   tagline:'Organic growth tips for Kenyan creators', blog:true },
+  { slug:'youtube-watch-hours-kenya',          icon:'⏱️', label:'YouTube Watch Hours Kenya Guide',      tagline:'Everything about the 4,000-hr threshold', blog:true },
+  { slug:'best-time-to-post-on-instagram-kenya', icon:'🕐', label:'Best Time to Post on Instagram Kenya', tagline:'Maximise reach with perfect timing',    blog:true },
+  { slug:'how-to-get-verified-on-tiktok-kenya',  icon:'✅', label:'How to Get Verified on TikTok Kenya',  tagline:'Step-by-step verification guide',        blog:true },
 ];
 
 const PAGE_VARIANTS = {
@@ -585,11 +603,30 @@ const PAGE_VARIANTS = {
  * both LD+JSON schema blocks.
  * ══════════════════════════════════════════════════════════════════ */
 function renderPage() {
-  // Support ?page=slug for local preview; otherwise use pathname
-  const params  = new URLSearchParams(window.location.search);
-  const slug    = params.get('page')
-    || window.location.pathname.replace(/^\/|\/$/g, '')
-    || 'buy-tiktok-views-kenya';
+  // 1. Explicit ?page=slug param (local preview / direct links)
+  const params = new URLSearchParams(window.location.search);
+  let slug = params.get('page');
+
+  // 2. Clean pathname — works on Cloudflare/Netlify rewrites (pathname stays as original URL)
+  if (!slug) {
+    const raw = window.location.pathname.replace(/^\/|\/$/g, '');
+    // Ignore if opened directly as the html file itself
+    if (raw && raw !== 'seo-landing-pages.html' && raw !== 'seo-landing-pages') {
+      slug = raw;
+    }
+  }
+
+  // 3. Fallback: try to infer from document.referrer
+  if (!slug && document.referrer) {
+    try {
+      const ref = new URL(document.referrer);
+      const refSlug = ref.pathname.replace(/^\/|\/$/g, '');
+      if (PAGE_VARIANTS[refSlug]) slug = refSlug;
+    } catch(_) {}
+  }
+
+  // 4. Hard fallback
+  if (!slug) slug = 'buy-tiktok-views-kenya';
 
   const v = PAGE_VARIANTS[slug] || PAGE_VARIANTS['buy-tiktok-views-kenya'];
   const activeSlug = PAGE_VARIANTS[slug] ? slug : 'buy-tiktok-views-kenya';
@@ -636,7 +673,7 @@ function renderPage() {
       <a class="rel-card" href="/${p.slug}">
         <div class="rel-card-icon">${p.icon}</div>
         <h3>${p.label}</h3>
-        <p>${p.tagline}</p>
+        <p>${p.tagline}${p.blog ? ' <span style="font-size:10px;color:#3dd44a;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Guide</span>' : ''}</p>
       </a>`).join('');
 
   // ── Dynamic footer year ───────────────────────────────────────────
