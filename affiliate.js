@@ -319,6 +319,7 @@ function _renderDashboard(sec, data) {
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Rate</div>
           <div style="font-size:32px;font-weight:900;color:var(--green);">${Math.round(AFF_COMMISSION_RATE * 100)}%</div>
           <div style="font-size:10px;color:var(--muted);">per order</div>
+          <button onclick="affCopyLink()" style="margin-top:10px;width:100%;background:var(--green);color:#000;border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;">📋 Copy Link</button>
         </div>
         ${monthlyRank ? `
         <div style="text-align:center;padding:10px 18px;background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.2);border-radius:12px;">
