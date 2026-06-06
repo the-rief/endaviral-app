@@ -710,9 +710,9 @@ tbody td{padding:13px 16px;font-size:14px;}
 
   /* ── ADMIN ── */
   .admin-panel{ padding-top:4px; }
-  #supportInboxWrap{ grid-template-columns:1fr !important; min-height:auto; height:auto; max-height:none; }
+  #supportInboxWrap{ grid-template-columns:1fr !important; height:auto !important; }
   #supportThreadList{ border-right:none !important; border-bottom:1px solid var(--border); max-height:260px; }
-  #supportChatPane{ height:420px; min-height:300px; }
+  #supportChatPane{ height:420px !important; }
   #adminStatsGrid.stats-grid{ grid-template-columns:1fr 1fr; }
   #filterSummaryCards{ grid-template-columns:1fr 1fr !important; }
   #providersGrid{ grid-template-columns:1fr !important; }
@@ -1875,7 +1875,7 @@ tbody td{padding:13px 16px;font-size:14px;}
             </div>
           </div>
           <!-- Two-pane layout: thread list + active chat -->
-          <div id="supportInboxWrap" style="display:grid;grid-template-columns:320px 1fr;gap:0;border:1px solid var(--border);border-radius:14px;overflow:hidden;height:calc(100vh - 240px);min-height:520px;max-height:820px;">
+          <div id="supportInboxWrap" style="display:grid;grid-template-columns:320px 1fr;gap:0;border:1px solid var(--border);border-radius:14px;overflow:hidden;height:680px;">
             <!-- Left: Thread list -->
             <div id="supportThreadList" style="border-right:1px solid var(--border);overflow-y:auto;background:var(--navy);">
               <div class="loading-spinner"><div class="spinner"></div><span>Loading threads…</span></div>

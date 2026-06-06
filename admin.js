@@ -655,8 +655,11 @@ async function openSupportThread(threadId) {
             </div>`;
     })() : '<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">No linked order</div>';
 
+    // Ensure the pane itself is a proper bounded flex column
+    pane.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;min-height:0;height:100%;background:var(--black);';
+
     pane.innerHTML = `
-      <!-- Thread header -->
+      <!-- Thread header — fixed, never scrolls -->
       <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0;background:rgba(61,212,74,.03);">
         <div>
           <div style="font-size:13px;font-weight:800;color:var(--white);">${userName}
@@ -675,15 +678,16 @@ async function openSupportThread(threadId) {
         </div>
       </div>
 
-      <!-- Two-col: messages + user sidebar -->
-      <div style="flex:1;display:grid;grid-template-columns:1fr 220px;overflow:hidden;">
-        <!-- Messages -->
-        <div style="display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;">
-          <div id="adminMsgArea" style="flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;">
+      <!-- Two-col body: messages + user sidebar — takes remaining height -->
+      <div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 220px;overflow:hidden;">
+
+        <!-- Messages column: flex col, constrained, scrollable messages area -->
+        <div style="display:flex;flex-direction:column;min-height:0;overflow:hidden;border-right:1px solid var(--border);">
+          <div id="adminMsgArea" style="flex:1;min-height:0;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;">
             ${(t.messages||[]).map(m=>msgBubble(m)).join('')}
           </div>
-          <!-- Admin reply input -->
-          <div style="padding:12px 14px;border-top:1px solid rgba(61,212,74,.1);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;">
+          <!-- Reply input — pinned to bottom -->
+          <div style="padding:12px 14px;border-top:1px solid rgba(61,212,74,.1);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--black);">
             <textarea id="adminReplyInput" placeholder="Type your reply…" style="flex:1;background:#1a2435;border:1px solid rgba(61,212,74,.18);border-radius:10px;padding:10px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;outline:none;resize:none;height:42px;max-height:100px;transition:border-color .2s;line-height:1.4;" oninput="this.style.height='42px';this.style.height=Math.min(this.scrollHeight,100)+'px';" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();adminSendReply();}"></textarea>
             <button onclick="adminSendReply()" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,#3dd44a,#28a035);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -691,13 +695,14 @@ async function openSupportThread(threadId) {
           </div>
         </div>
 
-        <!-- User sidebar: linked order + recent orders -->
-        <div style="overflow-y:auto;padding:14px;background:rgba(0,0,0,.2);">
+        <!-- User sidebar — independently scrollable -->
+        <div style="overflow-y:auto;padding:14px;background:rgba(0,0,0,.2);min-height:0;">
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">LINKED ORDER</div>
           ${loHtml}
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">RECENT ORDERS</div>
           <div>${ordersHtml}</div>
         </div>
+
       </div>`;
 
     // Scroll messages to bottom — use rAF + fallback timeout for reliability
