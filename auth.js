@@ -33,11 +33,13 @@ if (token && isTokenExpired(token)) {
 function showLogin() {
   document.getElementById('loginBox').style.display = '';
   document.getElementById('regBox').style.display = 'none';
+  document.getElementById('forgotBox').style.display = 'none';
   document.getElementById('loginBox').scrollIntoView({behavior:'smooth',block:'center'});
 }
 function showReg() {
   document.getElementById('loginBox').style.display = 'none';
   document.getElementById('regBox').style.display = '';
+  document.getElementById('forgotBox').style.display = 'none';
   document.getElementById('regBox').scrollIntoView({behavior:'smooth',block:'center'});
 }
 
