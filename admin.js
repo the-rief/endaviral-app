@@ -700,9 +700,12 @@ async function openSupportThread(threadId) {
         </div>
       </div>`;
 
-    // Scroll messages to bottom
+    // Scroll messages to bottom — use rAF + fallback timeout for reliability
     const msgArea = document.getElementById('adminMsgArea');
-    if (msgArea) setTimeout(() => { msgArea.scrollTop = msgArea.scrollHeight; }, 50);
+    if (msgArea) {
+      const scrollToBottom = () => { msgArea.scrollTop = msgArea.scrollHeight; };
+      requestAnimationFrame(() => { scrollToBottom(); setTimeout(scrollToBottom, 120); });
+    }
 
   } catch(e) {
     pane.innerHTML = `<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:13px;">${e.message||'Failed to load thread'}</div>`;
