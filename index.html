@@ -981,14 +981,29 @@ tbody td{padding:13px 16px;font-size:14px;}
             <div class="lp-auth-card-logo"><img src="EndaViral_logo_transparent.png" alt="EndaViral" onerror="this.style.display='none'"/></div>
             <div class="lp-auth-header-text">
               <div class="auth-title">Reset Password</div>
-              <div class="auth-sub">We'll send a new temporary password to your email</div>
+              <div class="auth-sub" id="forgotSub">Enter your email to get a temporary password</div>
             </div>
           </div>
-          <div class="auth-err" id="forgotErr"></div>
-          <div class="auth-err" id="forgotOk" style="background:rgba(61,212,74,.1);border-color:rgba(61,212,74,.3);color:#3dd44a;display:none;"></div>
-          <div class="field"><label>Email Address</label><input type="email" id="forgotEmail" placeholder="you@example.com"/></div>
-          <button class="btn-primary" onclick="doForgotPassword()">Send Reset Email →</button>
-          <div class="auth-switch">Remembered it? <a href="#" onclick="showLogin();return false;">Back to Sign In</a></div>
+          <div class="auth-err" id="forgotErr" style="display:none;"></div>
+          <!-- Step 1: email form -->
+          <div id="forgotStep1">
+            <div class="field"><label>Email Address</label><input type="email" id="forgotEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doForgotPassword()"/></div>
+            <button class="btn-primary" onclick="doForgotPassword()" id="forgotBtn">Get Temporary Password →</button>
+            <div class="auth-switch">Remembered it? <a href="#" onclick="showLogin();return false;">Back to Sign In</a></div>
+          </div>
+          <!-- Step 2: temp password reveal (hidden until success) -->
+          <div id="forgotStep2" style="display:none;">
+            <div style="background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.25);border-radius:14px;padding:20px 18px;margin-bottom:18px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Your Temporary Password</div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                <span id="forgotTempPass" style="font-family:monospace;font-size:22px;font-weight:800;color:#3dd44a;letter-spacing:3px;"></span>
+                <button onclick="copyTempPassword()" title="Copy password" style="background:rgba(61,212,74,.15);border:1px solid rgba(61,212,74,.3);border-radius:8px;padding:6px 10px;cursor:pointer;color:#3dd44a;font-size:14px;transition:all .2s;" id="forgotCopyBtn">📋</button>
+              </div>
+              <div style="font-size:11.5px;color:var(--muted);margin-top:10px;">Use this to sign in, then change your password in <strong style="color:var(--white);">My Account</strong></div>
+            </div>
+            <button class="btn-primary" onclick="showLogin()">Sign In Now →</button>
+            <div class="auth-switch" style="margin-top:14px;"><a href="#" onclick="resetForgotForm();return false;">← Try a different email</a></div>
+          </div>
         </div>
         <div class="lp-hero-social-proof">
           <div class="lp-avatars"><span>JM</span><span>AW</span><span>NK</span><span>SO</span><span>+</span></div>

@@ -272,26 +272,78 @@ function showForgot() {
   document.getElementById('loginBox').style.display = 'none';
   document.getElementById('regBox').style.display = 'none';
   document.getElementById('forgotBox').style.display = 'block';
+  resetForgotForm();
+  document.getElementById('forgotBox').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function resetForgotForm() {
+  document.getElementById('forgotStep1').style.display = '';
+  document.getElementById('forgotStep2').style.display = 'none';
   document.getElementById('forgotErr').style.display = 'none';
-  document.getElementById('forgotOk').style.display = 'none';
+  document.getElementById('forgotErr').textContent = '';
+  document.getElementById('forgotEmail').value = '';
+  document.getElementById('forgotSub').textContent = 'Enter your email to get a temporary password';
+  const btn = document.getElementById('forgotBtn');
+  btn.disabled = false;
+  btn.textContent = 'Get Temporary Password →';
 }
 
 async function doForgotPassword() {
   const email = document.getElementById('forgotEmail').value.trim();
   const errEl = document.getElementById('forgotErr');
-  const okEl = document.getElementById('forgotOk');
-  errEl.style.display = 'none'; okEl.style.display = 'none';
-  if (!email) { errEl.textContent = 'Please enter your email address.'; errEl.style.display = 'block'; return; }
-  try {
-    await api('/auth/forgot-password', { method:'POST', body:JSON.stringify({email}) });
-    okEl.textContent = 'Check your email — a temporary password has been sent.';
-    okEl.style.display = 'block';
-    document.getElementById('forgotEmail').value = '';
-  } catch(e) {
-    // Show success anyway to avoid email enumeration
-    okEl.textContent = 'If that email is registered, you will receive a temporary password shortly.';
-    okEl.style.display = 'block';
+  errEl.style.display = 'none';
+  errEl.textContent = '';
+
+  if (!email) {
+    errEl.textContent = 'Please enter your email address.';
+    errEl.style.display = 'block';
+    document.getElementById('forgotEmail').focus();
+    return;
   }
+
+  const btn = document.getElementById('forgotBtn');
+  btn.disabled = true;
+  btn.textContent = 'Please wait…';
+
+  try {
+    const data = await api('/auth/forgot-password', { method:'POST', body:JSON.stringify({email}) });
+
+    if (data.found && data.temp_password) {
+      // Show the password on-screen
+      document.getElementById('forgotTempPass').textContent = data.temp_password;
+      document.getElementById('forgotStep1').style.display = 'none';
+      document.getElementById('forgotStep2').style.display = '';
+      document.getElementById('forgotSub').textContent = 'Copy your temporary password below';
+    } else {
+      // Email not registered — generic message, no enumeration leak
+      errEl.textContent = 'No account found with that email address.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Get Temporary Password →';
+    }
+  } catch(e) {
+    errEl.textContent = e.message || 'Something went wrong. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Get Temporary Password →';
+  }
+}
+
+function copyTempPassword() {
+  const pass = document.getElementById('forgotTempPass').textContent;
+  if (!pass) return;
+  navigator.clipboard.writeText(pass).then(() => {
+    const btn = document.getElementById('forgotCopyBtn');
+    btn.textContent = '✅';
+    setTimeout(() => { btn.textContent = '📋'; }, 2000);
+  }).catch(() => {
+    // Fallback for older browsers / http
+    const el = document.getElementById('forgotTempPass');
+    const range = document.createRange();
+    range.selectNode(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+  });
 }
 
 if (token && currentUser) { initApp(); }
