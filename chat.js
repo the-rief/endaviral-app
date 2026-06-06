@@ -485,15 +485,55 @@
 
   /* ── Boot greeting (local only, shown before DB loads) ── */
   let _greetingRendered = false;
+  let _greetingRendered = false;
   setTimeout(() => {
     if (_greetingRendered) return;
     _greetingRendered = true;
+    if (!token) {
+      // Not logged in — show login prompt in both tabs, no badge
+      evBotMsgLocal('order',
+        "🔒 Please **sign in** to access support.
+
+" +
+        "[**Log in to your account →**](#ev-login-scroll)",
+        true
+      );
+      evBotMsgLocal('delay',
+        "🔒 Please **sign in** to access support.
+
+" +
+        "[**Log in to your account →**](#ev-login-scroll)",
+        true
+      );
+      // Wire login links
+      setTimeout(() => {
+        document.querySelectorAll('a[href="#ev-login-scroll"]').forEach(link => {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const loginBox = document.getElementById('loginBox');
+            if (loginBox) {
+              loginBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              const emailInput = document.getElementById('loginEmail');
+              if (emailInput) emailInput.focus();
+            }
+            if (window.evChatToggle) window.evChatToggle();
+          });
+        });
+      }, 100);
+      return;
+    }
     evBotMsgLocal('order',
-      "👋 Hi there! I'm the EndaViral support bot.\n\nIf you placed a **wrong order** (wrong link, wrong quantity, wrong service), I can help fix it!\n\nJust tell me what happened and I'll walk you through it step by step.",
+      "👋 Hi there! I'm the EndaViral support bot.
+
+If you placed a **wrong order** (wrong link, wrong quantity, wrong service), I can help fix it!
+
+Just tell me what happened and I'll walk you through it step by step.",
       true
     );
     evBotMsgLocal('delay',
-      "⏳ Hi! Experiencing a service delay?\n\nShare your **Order ID** (found in My Orders) and I'll check on it right away. Delays are usually resolved within a few hours.",
+      "⏳ Hi! Experiencing a service delay?
+
+Share your **Order ID** (found in My Orders) and I'll check on it right away. Delays are usually resolved within a few hours.",
       true
     );
     if (!state.open) {
@@ -503,6 +543,7 @@
       badge.classList.add('show');
     }
   }, 1200);
+
 
   /* ── Toggle open/close ── */
   let _booted = false;
