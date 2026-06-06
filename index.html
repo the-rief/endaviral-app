@@ -3148,6 +3148,7 @@ function acceptTnc() { document.getElementById('tncCheck').checked = true; docum
         <button class="ev-chip" onclick="evChip('Wrong quantity ordered')">Wrong quantity</button>
         <button class="ev-chip" onclick="evChip('How to get the link')">How to get my link 🔗</button>
         <button class="ev-chip" onclick="evChip('How long does it take to start')">How long to start? ⏱️</button>
+        <button class="ev-chip ev-chip-human" onclick="evEscalateToHuman('order')" style="border-color:rgba(251,191,36,.4);color:#fbbf24;background:rgba(251,191,36,.08);">Talk to a human 🙋</button>
       </div>
       <div class="ev-chat-input-row">
         <textarea class="ev-chat-input" id="ev-input-order" placeholder="Describe your issue or paste the correct link…" oninput="evAutoResize(this)" onkeydown="evKeydown(event,'order')"></textarea>
@@ -3168,6 +3169,7 @@ function acceptTnc() { document.getElementById('tncCheck').checked = true; docum
         <button class="ev-chip" onclick="evChip('My order is stuck on Processing')">Stuck on Processing</button>
         <button class="ev-chip" onclick="evChip('No delivery after 24 hours')">No delivery 24h+</button>
         <button class="ev-chip" onclick="evChip('Partial delivery stopped')">Partial delivery</button>
+        <button class="ev-chip ev-chip-human" onclick="evEscalateToHuman('delay')" style="border-color:rgba(251,191,36,.4);color:#fbbf24;background:rgba(251,191,36,.08);">Talk to a human 🙋</button>
       </div>
       <div class="ev-chat-input-row">
         <textarea class="ev-chat-input" id="ev-input-delay" placeholder="Share your Order ID or describe the delay…" oninput="evAutoResize(this)" onkeydown="evKeydown(event,'delay')"></textarea>

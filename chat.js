@@ -685,6 +685,36 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
+     HUMAN ESCALATION — bypasses bot flow, sends directly to admin
+  ═══════════════════════════════════════════════════════════════ */
+  window.evEscalateToHuman = function(tab) {
+    // Pin the flow step to 99 so bot-guided steps are skipped from now on
+    state[tab].step = 99;
+
+    const user    = _getUser();
+    const initial = (user.name || 'U').charAt(0).toUpperCase();
+
+    // Show user's chip tap as a message
+    evUserMsgLocal(tab, 'Talk to a human 🙋', initial);
+    lastSeenCount[tab]++;
+
+    if (!threadMeta[tab]) {
+      // No thread yet — open one now with the escalation as first message
+      evOpenThread(tab, '[Human escalation requested] Customer wants to speak with support directly.');
+    } else {
+      evPostMessage(tab, '[Human escalation requested] Customer wants to speak with support directly.');
+    }
+
+    evTypingThen(tab, 900, () => {
+      evBotMsgLocal(tab,
+        `✅ Got it! I've flagged this conversation for our support team.\n\n` +
+        `A human agent will reply here within **12 hours** (usually much sooner). ` +
+        `Feel free to type any extra details below and we'll pick them up when we respond.`
+      );
+    });
+  };
+
+  /* ═══════════════════════════════════════════════════════════════
      INPUT VALIDATORS
   ═══════════════════════════════════════════════════════════════ */
   function _looksLikeOrderId(text) {
