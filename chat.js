@@ -485,7 +485,6 @@
 
   /* ── Boot greeting (local only, shown before DB loads) ── */
   let _greetingRendered = false;
-  let _greetingRendered = false;
   setTimeout(() => {
     if (_greetingRendered) return;
     _greetingRendered = true;

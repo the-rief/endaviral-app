@@ -65,6 +65,8 @@ body::after{content:'';position:fixed;inset:0;background-image:
 #authWrap{position:relative;z-index:1;min-height:100vh;display:block;background:#fff;}
 body:has(#authWrap[style*="block"])::before,
 body:has(#authWrap[style*="block"])::after{display:none;}
+/* Hide chat widget entirely for logged-out users */
+body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 
 .lp-topbar{background:linear-gradient(90deg,#0d3b1a,#1a5c2a,#0d3b1a);text-align:center;padding:10px 5%;font-size:12.5px;font-weight:600;color:#a8f0b4;letter-spacing:.5px;}
 .lp-topbar a{color:#3dd44a;text-decoration:underline;margin-left:8px;}
