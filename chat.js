@@ -80,8 +80,14 @@
   ═══════════════════════════════════════════════════════════════ */
   async function evOpenThread(tabKey, firstMessage) {
     if (!token) {
-      evUserMsgLocal(tabKey, firstMessage);
-      evBotMsgLocal(tabKey, '⚠️ Please log in to save your conversation and get a real response.', true);
+      evTypingThen(tabKey, 800, () => {
+        evBotMsgLocal(tabKey,
+          `🔒 You need to be **logged in** to submit a support ticket so we can track your issue.\n\n` +
+          `👉 [**Sign in or create a free account →**](#login)\n\n` +
+          `Once logged in, come back here and I'll pick up right where we left off!`,
+          true
+        );
+      });
       return;
     }
     const type = tabKey === 'order' ? 'wrong_order' : 'delay';
@@ -118,6 +124,22 @@
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ body })
+      });
+    } catch (_) {}
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     POST a bot message to the server so admin sees full conversation.
+     Only fires when a thread exists. Pre-thread greetings = local only.
+  ═══════════════════════════════════════════════════════════════ */
+  async function evPostBotMessage(tabKey, body) {
+    const meta = threadMeta[tabKey];
+    if (!token || !meta) return;
+    try {
+      await fetch(`${SUPPORT_API}/threads/${meta.id}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body, is_bot: true })
       });
     } catch (_) {}
   }
@@ -607,17 +629,13 @@
 
   function _checkFaq(tab, text) {
     const lower = text.toLowerCase().trim();
-    // Don't intercept during active data-collection steps (step 1–4 for order, step 1 for delay)
     const s = tab === 'order' ? state.order : state.delay;
     const collectingData = (tab === 'order' && s.step >= 1 && s.step <= 4) ||
                            (tab === 'delay' && s.step === 1);
     if (collectingData) return false;
-
     for (const faq of _faqs) {
       if (faq.match.test(lower)) {
-        evTypingThen(tab, 1000, () => {
-          evBotMsgLocal(tab, faq.answer);
-        });
+        evTypingThen(tab, 1000, () => { evBotMsgLocal(tab, faq.answer); });
         return true;
       }
     }
@@ -626,8 +644,6 @@
 
   /* ═══════════════════════════════════════════════════════════════
      FALLBACK — fires when the bot can't answer the question.
-     Posts the user's message to the thread (admin sees it) then
-     tells the customer their enquiry has been escalated.
   ═══════════════════════════════════════════════════════════════ */
   function _botFallback(tab) {
     evTypingThen(tab, 1100, () => {
@@ -639,15 +655,16 @@
       );
     });
   }
+
+  /* ═══════════════════════════════════════════════════════════════
+     INPUT VALIDATORS
+  ═══════════════════════════════════════════════════════════════ */
   function _looksLikeOrderId(text) {
-    // Order IDs are typically numeric or short alphanumeric codes
     return /^\d{3,}$/.test(text.trim()) || /^[a-z0-9_-]{3,20}$/i.test(text.trim());
   }
-
   function _looksLikeQuantity(text) {
     return /^\d+[kK]?$/.test(text.trim());
   }
-
   function _looksLikeUrl(text) {
     return /^https?:\/\/.{5,}|^www\..{4,}|(instagram|tiktok|youtube|youtu\.be|facebook|twitter|x\.com|fb\.com)\..{2,}/i.test(text.trim());
   }
@@ -659,7 +676,6 @@
     const s      = state.order;
     const helper = document.getElementById('ev-link-helper');
 
-    // Always check FAQs first when not mid-collection
     if (_checkFaq('order', text)) return;
 
     if (s.step === 0) {
@@ -671,17 +687,15 @@
       });
 
     } else if (s.step === 1) {
-      // Validate: must look like an order ID
       if (!_looksLikeOrderId(text)) {
         evTypingThen('order', 900, () => {
           evBotMsgLocal('order',
-            `🤔 That doesn't look like an Order ID.\n\nYour **Order ID** is a number (e.g. *12345*) found in the **My Orders** section of your account.\n\nPlease share the correct Order ID to continue.`
+            `🤔 That doesn't look like an Order ID.\n\nYour **Order ID** is a number (e.g. *12345*) found in the **My Orders** section.\n\nPlease share the correct Order ID to continue.`
           );
         });
-        return; // don't advance step
+        return;
       }
-      s.step    = 2;
-      s.orderId = text;
+      s.step = 2; s.orderId = text;
       evTypingThen('order', 1200, () => {
         evBotMsgLocal('order',
           `Thanks! Now, which **service** did you intend to order?\n\nFor example: *"Instagram Followers"*, *"YouTube Views"*, *"TikTok Likes"*, etc.\n\nJust type the service name.`
@@ -689,16 +703,12 @@
       });
 
     } else if (s.step === 2) {
-      s.step        = 3;
-      s.serviceName = text;
+      s.step = 3; s.serviceName = text;
       evTypingThen('order', 1100, () => {
-        evBotMsgLocal('order',
-          `Got it — **${text}**. 👍\n\nWhat **quantity** did you want? (e.g. *1000*, *5000*, *10000*)`
-        );
+        evBotMsgLocal('order', `Got it — **${text}**. 👍\n\nWhat **quantity** did you want? (e.g. *1000*, *5000*, *10000*)`);
       });
 
     } else if (s.step === 3) {
-      // Validate: must look like a number
       if (!_looksLikeQuantity(text)) {
         evTypingThen('order', 900, () => {
           evBotMsgLocal('order',
@@ -707,8 +717,7 @@
         });
         return;
       }
-      s.step    = 4;
-      s.quantity = text;
+      s.step = 4; s.quantity = text;
       if (helper) helper.style.display = 'block';
       evTypingThen('order', 1200, () => {
         evBotMsgLocal('order',
@@ -717,24 +726,22 @@
       });
 
     } else if (s.step === 4) {
-      // Validate: must look like a URL
       if (!_looksLikeUrl(text)) {
         evTypingThen('order', 900, () => {
           evBotMsgLocal('order',
-            `🔗 That doesn't look like a valid link.\n\nPlease paste the **full URL** of your profile or post.\n\nNeed help finding it? Tap **"How to get the link"** below or type *"how to get the link"* and I'll guide you.`
+            `🔗 That doesn't look like a valid link.\n\nPlease paste the **full URL** of your profile or post.\n\nNeed help finding it? Type *"how to get the link"* and I'll guide you.`
           );
         });
         return;
       }
-      s.step        = 5;
-      s.correctLink = text;
+      s.step = 5; s.correctLink = text;
       if (helper) helper.style.display = 'none';
 
       const summary = [
         `🔁 Wrong Order Correction Request`,
-        `📋 Order ID: ${s.orderId       || 'not provided'}`,
+        `📋 Order ID: ${s.orderId || 'not provided'}`,
         `📦 Intended Service: ${s.serviceName || 'not provided'}`,
-        `🔢 Quantity: ${s.quantity      || 'not provided'}`,
+        `🔢 Quantity: ${s.quantity || 'not provided'}`,
         `🔗 Correct Link: ${s.correctLink || text}`,
         `👤 User: ${user.name || user.email || 'unknown'}`,
       ].join('\n');
@@ -744,16 +751,15 @@
       evTypingThen('order', 1600, () => {
         evBotMsgLocal('order',
           `✅ Perfect! Here's what I've captured:\n\n` +
-          `📋 **Order ID:** ${s.orderId      ||'—'}\n` +
-          `📦 **Service:** ${s.serviceName   ||'—'}\n` +
-          `🔢 **Quantity:** ${s.quantity     ||'—'}\n` +
-          `🔗 **Link:** ${s.correctLink      ||text}\n\n` +
+          `📋 **Order ID:** ${s.orderId||'—'}\n` +
+          `📦 **Service:** ${s.serviceName||'—'}\n` +
+          `🔢 **Quantity:** ${s.quantity||'—'}\n` +
+          `🔗 **Link:** ${s.correctLink||text}\n\n` +
           `Our team has been notified and will process your correction within **15–30 minutes**. We'll update you here!`
         );
       });
 
     } else {
-      // Post-submission — check FAQs, fall back to escalation message
       if (!_checkFaq('order', text)) _botFallback('order');
     }
   }
@@ -765,7 +771,6 @@
     const s      = state.delay;
     const notice = document.getElementById('ev-delay-notice');
 
-    // Check FAQs first when not mid-collection
     if (_checkFaq('delay', text)) return;
 
     if (s.step === 0) {
@@ -777,7 +782,6 @@
       });
 
     } else if (s.step === 1) {
-      // Validate: must look like an order ID
       if (!_looksLikeOrderId(text)) {
         evTypingThen('delay', 900, () => {
           evBotMsgLocal('delay',
@@ -786,8 +790,7 @@
         });
         return;
       }
-      s.step    = 2;
-      s.orderId = text;
+      s.step = 2; s.orderId = text;
       if (notice) notice.style.display = 'flex';
       evTypingThen('delay', 1500, () => {
         evBotMsgLocal('delay',
@@ -796,10 +799,10 @@
       });
 
     } else {
-      // Post-submission — check FAQs, fall back to escalation message
       if (!_checkFaq('delay', text)) _botFallback('delay');
     }
   }
+
 
   /* ═══════════════════════════════════════════════════════════════
      MESSAGE RENDERERS
@@ -826,6 +829,9 @@
     evAppendMsg(tab, html);
     if (incrementCursor) lastSeenCount[tab]++;
     _maybeBadge();
+    // Persist bot message to DB so admin sees full conversation
+    // evPostBotMessage is a no-op if no thread exists yet (pre-thread greetings stay local)
+    if (!timeOverride) evPostBotMessage(tab, text);
   }
 
   /**

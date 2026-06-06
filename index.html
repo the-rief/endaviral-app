@@ -2898,7 +2898,6 @@ function acceptTnc() { document.getElementById('tncCheck').checked = true; docum
 </script>
 
 <script src="admin.js"></script>
-<script src="chat.js"></script>
 <script src="account.js"></script>
 <script src="auth.js"></script>
 
@@ -3160,6 +3159,8 @@ function acceptTnc() { document.getElementById('tncCheck').checked = true; docum
     </div>
   </div>
 </div>
+<!-- chat.js must load AFTER the widget HTML is in the DOM -->
+<script src="chat.js"></script>
 
 <!-- ══════════════════ TICKETS JS (patch: ticketssectionpatch.html) ══════════════════ -->
 
