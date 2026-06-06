@@ -173,6 +173,8 @@ function initApp() {
   idleStart();
   _startBgTicketWatch();
   if (typeof _updateAffiliateBadge === 'function') _updateAffiliateBadge();
+  // Boot chat widget now that token is available — loads existing support threads
+  if (typeof evBootWidget === 'function') evBootWidget();
 }
 
 
