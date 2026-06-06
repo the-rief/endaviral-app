@@ -571,23 +571,117 @@
   };
 
   /* ═══════════════════════════════════════════════════════════════
-     ORDER CORRECTION FLOW (bot-guided)
+     FAQ DETECTOR — answers common questions before they hit admin
+     Returns true if the message was handled as a FAQ.
+  ═══════════════════════════════════════════════════════════════ */
+  const _faqs = [
+    {
+      match: /how.long.*(start|begin|deliver|take)/i,
+      answer: `⏱️ **Delivery start times** vary by service:\n\n• **TikTok / Instagram / YouTube** — typically starts within **1–3 hours**\n• **Twitter / Facebook** — usually within **30 minutes to 2 hours**\n• **Slower growth packages** — may take up to **24 hours** to begin\n\nIf your order hasn't started after **24 hours**, open a Delayed Service ticket and we'll investigate.`
+    },
+    {
+      match: /how.*(place|make|create|submit).*(order)/i,
+      answer: `🛒 **How to place an order:**\n\n1. Click **New Order** in the left menu\n2. Browse or search for the service you want\n3. Paste your **profile or post link** in the link field\n4. Enter the **quantity** and click **Place Order**\n5. Complete payment via **M-Pesa STK push**\n\nMake sure your link is public and correct before submitting!`
+    },
+    {
+      match: /how.*(get|find|copy|share).*(link|url)/i,
+      answer: `🔗 **How to get your link:**\n\n• **TikTok profile:** Open TikTok → tap your profile → tap the share icon → *Copy link*\n• **TikTok video:** Open the video → tap Share → *Copy link*\n• **Instagram:** Go to your profile/post → tap ··· → *Copy link*\n• **YouTube:** Open your video → tap Share → *Copy link*\n• **Facebook/Twitter:** Open post → tap Share → *Copy link*\n\nPaste the copied link directly — make sure the account is set to **Public**!`
+    },
+    {
+      match: /refund|money back|cancel/i,
+      answer: `💰 **Refund & cancellation policy:**\n\nIf your order **hasn't started** and you'd like to cancel, reply with your **Order ID** and we'll process a wallet refund within **1–2 hours**.\n\nIf an order **partially delivered** and stalled, our team will either complete it or refund the undelivered portion.`
+    },
+    {
+      match: /payment.*(fail|not.work|error|declined)|m.?pesa.*(fail|not.work|error)/i,
+      answer: `📱 **M-Pesa payment not working?**\n\nTry these steps:\n1. Make sure you have **sufficient M-Pesa balance**\n2. Check that your **phone number** on your account is correct\n3. The STK push expires in **60 seconds** — don't close the prompt\n4. If it keeps failing, try again in **5 minutes**\n\nStill stuck? Reply with your **phone number** (last 4 digits only for safety) and we'll look into it.`
+    },
+    {
+      match: /what.*(service|offer|sell|available|provide)/i,
+      answer: `📦 **Our services include:**\n\n• 📸 Instagram — Followers, Likes, Views, Story Views\n• 🎵 TikTok — Followers, Likes, Views, Shares\n• ▶️ YouTube — Views, Likes, Subscribers, Watch Time\n• 🐦 Twitter/X — Followers, Likes, Retweets\n• 📘 Facebook — Likes, Followers, Views\n\nClick **New Order** to browse all available packages and pricing!`
+    },
+    {
+      match: /not.*(working|deliver|start|moving|progress)|stuck|no.*(change|update|result)/i,
+      answer: `⚠️ **Order not progressing?**\n\nA few things to check:\n\n• Has it been **less than 24 hours**? Some services have a slow start — this is normal.\n• Is your profile/page still **public**? Private accounts block delivery.\n• Did the link change after ordering? Link changes stop delivery.\n\nIf it's been **over 24 hours** with no progress, please switch to the **⏳ Delayed Service** tab and share your Order ID — we'll escalate it right away.`
+    },
+  ];
+
+  function _checkFaq(tab, text) {
+    const lower = text.toLowerCase().trim();
+    // Don't intercept during active data-collection steps (step 1–4 for order, step 1 for delay)
+    const s = tab === 'order' ? state.order : state.delay;
+    const collectingData = (tab === 'order' && s.step >= 1 && s.step <= 4) ||
+                           (tab === 'delay' && s.step === 1);
+    if (collectingData) return false;
+
+    for (const faq of _faqs) {
+      if (faq.match.test(lower)) {
+        evTypingThen(tab, 1000, () => {
+          evBotMsgLocal(tab, faq.answer);
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     FALLBACK — fires when the bot can't answer the question.
+     Posts the user's message to the thread (admin sees it) then
+     tells the customer their enquiry has been escalated.
+  ═══════════════════════════════════════════════════════════════ */
+  function _botFallback(tab) {
+    evTypingThen(tab, 1100, () => {
+      evBotMsgLocal(tab,
+        `🙋 I've passed your question to our support team — they'll get back to you within **12 hours**. We appreciate your patience!\n\n` +
+        `💸 While you wait, did you know you can **earn with EndaViral's Affiliate Program?**\n` +
+        `Share your referral link and earn a commission on every order your referrals place.\n\n` +
+        `👉 [**Check out the Affiliate Program →**](/refer-and-earn)`
+      );
+    });
+  }
+  function _looksLikeOrderId(text) {
+    // Order IDs are typically numeric or short alphanumeric codes
+    return /^\d{3,}$/.test(text.trim()) || /^[a-z0-9_-]{3,20}$/i.test(text.trim());
+  }
+
+  function _looksLikeQuantity(text) {
+    return /^\d+[kK]?$/.test(text.trim());
+  }
+
+  function _looksLikeUrl(text) {
+    return /^https?:\/\/.{5,}|^www\..{4,}|(instagram|tiktok|youtube|youtu\.be|facebook|twitter|x\.com|fb\.com)\..{2,}/i.test(text.trim());
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     ORDER CORRECTION FLOW (bot-guided, with validation + FAQ)
   ═══════════════════════════════════════════════════════════════ */
   function evHandleOrderFlow(text, user) {
     const s      = state.order;
     const helper = document.getElementById('ev-link-helper');
 
+    // Always check FAQs first when not mid-collection
+    if (_checkFaq('order', text)) return;
+
     if (s.step === 0) {
       s.step = 1;
       evTypingThen('order', 1400, () => {
         evBotMsgLocal('order',
-          `Got it! I'll help fix your order right away. 🔧\n\nFirst, please share your **Order ID** — you can find it in the **My Orders** section.`
+          `Got it! I'll help fix your order right away. 🔧\n\nFirst, please share your **Order ID** — you can find it in the **My Orders** section.\n\n*(It's a number like* ***12345****)*`
         );
       });
 
     } else if (s.step === 1) {
-      s.step     = 2;
-      s.orderId  = text;
+      // Validate: must look like an order ID
+      if (!_looksLikeOrderId(text)) {
+        evTypingThen('order', 900, () => {
+          evBotMsgLocal('order',
+            `🤔 That doesn't look like an Order ID.\n\nYour **Order ID** is a number (e.g. *12345*) found in the **My Orders** section of your account.\n\nPlease share the correct Order ID to continue.`
+          );
+        });
+        return; // don't advance step
+      }
+      s.step    = 2;
+      s.orderId = text;
       evTypingThen('order', 1200, () => {
         evBotMsgLocal('order',
           `Thanks! Now, which **service** did you intend to order?\n\nFor example: *"Instagram Followers"*, *"YouTube Views"*, *"TikTok Likes"*, etc.\n\nJust type the service name.`
@@ -604,21 +698,38 @@
       });
 
     } else if (s.step === 3) {
-      s.step     = 4;
+      // Validate: must look like a number
+      if (!_looksLikeQuantity(text)) {
+        evTypingThen('order', 900, () => {
+          evBotMsgLocal('order',
+            `🤔 Please enter just the **quantity as a number** (e.g. *1000*, *5000*).\n\nHow many ${s.serviceName || 'units'} did you want?`
+          );
+        });
+        return;
+      }
+      s.step    = 4;
       s.quantity = text;
       if (helper) helper.style.display = 'block';
       evTypingThen('order', 1200, () => {
         evBotMsgLocal('order',
-          `Perfect — **${text}** units. Almost done!\n\nFinally, paste the **correct link** for this order (your profile URL, post URL, etc.) 👇`
+          `Perfect — **${text}** units. Almost done!\n\nFinally, paste the **correct link** for this order.\n\n💡 It should look like: *https://tiktok.com/@yourname* or *https://instagram.com/yourname*`
         );
       });
 
     } else if (s.step === 4) {
+      // Validate: must look like a URL
+      if (!_looksLikeUrl(text)) {
+        evTypingThen('order', 900, () => {
+          evBotMsgLocal('order',
+            `🔗 That doesn't look like a valid link.\n\nPlease paste the **full URL** of your profile or post.\n\nNeed help finding it? Tap **"How to get the link"** below or type *"how to get the link"* and I'll guide you.`
+          );
+        });
+        return;
+      }
       s.step        = 5;
       s.correctLink = text;
       if (helper) helper.style.display = 'none';
 
-      // Send summary as an extra message so admin sees it cleanly
       const summary = [
         `🔁 Wrong Order Correction Request`,
         `📋 Order ID: ${s.orderId       || 'not provided'}`,
@@ -628,7 +739,7 @@
         `👤 User: ${user.name || user.email || 'unknown'}`,
       ].join('\n');
       evPostMessage('order', summary);
-      lastSeenCount['order']++; // account for the extra server message
+      lastSeenCount['order']++;
 
       evTypingThen('order', 1600, () => {
         evBotMsgLocal('order',
@@ -642,37 +753,51 @@
       });
 
     } else {
-      // Thread already submitted — any follow-up just waits for admin
-      // Don't add bot noise; let admin respond naturally
+      // Post-submission — check FAQs, fall back to escalation message
+      if (!_checkFaq('order', text)) _botFallback('order');
     }
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     DELAY REPORTING FLOW (bot-guided)
+     DELAY REPORTING FLOW (bot-guided, with FAQ)
   ═══════════════════════════════════════════════════════════════ */
   function evHandleDelayFlow(text, user) {
     const s      = state.delay;
     const notice = document.getElementById('ev-delay-notice');
 
+    // Check FAQs first when not mid-collection
+    if (_checkFaq('delay', text)) return;
+
     if (s.step === 0) {
       s.step = 1;
       evTypingThen('delay', 1300, () => {
         evBotMsgLocal('delay',
-          `I'm sorry to hear that! 😔 Service delays can happen due to high demand or provider issues.\n\nCould you share your **Order ID**? You can find it in the "My Orders" section.`
+          `I'm sorry to hear that! 😔 Service delays can happen due to high demand or provider issues.\n\nCould you share your **Order ID**? You can find it in the "My Orders" section.\n\n*(It's a number like* ***12345****)*`
         );
       });
 
     } else if (s.step === 1) {
-      s.step = 2;
+      // Validate: must look like an order ID
+      if (!_looksLikeOrderId(text)) {
+        evTypingThen('delay', 900, () => {
+          evBotMsgLocal('delay',
+            `🤔 That doesn't look like an Order ID.\n\nYour **Order ID** is a number (e.g. *12345*) found in the **My Orders** section.\n\nPlease share the correct Order ID.`
+          );
+        });
+        return;
+      }
+      s.step    = 2;
+      s.orderId = text;
       if (notice) notice.style.display = 'flex';
       evTypingThen('delay', 1500, () => {
         evBotMsgLocal('delay',
-          `Thanks! I've escalated this to our admin team. ✅\n\nMost delays are resolved within **2–6 hours**. If it's been over 24 hours, we'll issue a refund or re-queue your order.\n\nWe'll update you here shortly.`
+          `Thanks! I've escalated **Order #${text}** to our admin team. ✅\n\nMost delays are resolved within **2–6 hours**. If it's been over 24 hours, we'll issue a refund or re-queue your order.\n\nWe'll update you here shortly.`
         );
       });
 
     } else {
-      // Follow-ups handled by real admin via polling
+      // Post-submission — check FAQs, fall back to escalation message
+      if (!_checkFaq('delay', text)) _botFallback('delay');
     }
   }
 
@@ -792,6 +917,8 @@
     return safe
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+|\/[^)]*)\)/g,
+        '<a href="$2" target="_blank" rel="noopener" style="color:#4ade80;text-decoration:underline;">$1</a>')
       .replace(/\n/g, '<br>');
   }
 
