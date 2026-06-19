@@ -355,7 +355,7 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .sb-user .logout{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;border-radius:6px;transition:color .2s;}
 .sb-user .logout:hover{color:var(--red);}
 
-.main-content{margin-left:var(--sidebar);flex:1;min-height:100vh;display:flex;flex-direction:column;}
+.main-content{margin-left:var(--sidebar);flex:1;min-width:0;min-height:100vh;display:flex;flex-direction:column;}
 .topbar{padding:16px 28px;border-bottom:1px solid var(--border);background:rgba(13,17,23,.8);backdrop-filter:blur(8px);position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0;}
 .topbar-title{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .topbar-right{display:flex;align-items:center;gap:12px;flex-shrink:0;}
@@ -680,7 +680,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 @media(max-width:768px){
 
   /* Page shell */
-  .page-content{ padding:14px; }
+  .page-content{ padding:14px 14px 90px; }
   .topbar{ padding:13px 16px; }
   .sec-title{ font-size:17px; }
 
@@ -832,7 +832,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 
 /* ════ ≤420px — VERY SMALL PHONE ════ */
 @media(max-width:420px){
-  .page-content{ padding:10px; }
+  .page-content{ padding:10px 10px 90px; }
   .topbar{ padding:12px; }
   .stats-grid{ grid-template-columns:1fr; }
 
@@ -1894,12 +1894,35 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-affiliate-payouts">
           <div class="sec-hd">
             <div>
-              <div class="sec-title">💸 AFFILIATE PAYOUTS</div>
-              <div class="sec-sub">Record M-Pesa disbursements — balance updates automatically</div>
+              <div class="sec-title" id="affAdminPanelTitle">💸 AFFILIATE PAYOUTS</div>
+              <div class="sec-sub" id="affAdminPanelSub">Record M-Pesa disbursements — balance updates automatically</div>
             </div>
-            <button class="btn-secondary" onclick="adminLoadAffiliatePayouts('pending')">↻ Refresh</button>
+            <button class="btn-secondary" id="affAdminRefreshBtn" onclick="adminLoadAffiliatePayouts('pending')">↻ Refresh</button>
           </div>
-          <div id="adminAffiliatePayouts"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+
+          <!-- Sub-tabs: Payouts | Referrals -->
+          <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;scrollbar-width:none;">
+            <div id="affSubTab-payouts"
+              onclick="affAdminSubTab('payouts')"
+              style="padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--green);color:var(--green);white-space:nowrap;margin-bottom:-1px;transition:all .2s;">
+              💸 Payout Queue
+            </div>
+            <div id="affSubTab-referrals"
+              onclick="affAdminSubTab('referrals')"
+              style="padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap;margin-bottom:-1px;transition:all .2s;">
+              👥 Referrals
+            </div>
+          </div>
+
+          <!-- Payouts pane -->
+          <div id="affAdminPane-payouts">
+            <div id="adminAffiliatePayouts"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+          </div>
+
+          <!-- Referrals pane (hidden initially) -->
+          <div id="affAdminPane-referrals" style="display:none;">
+            <div id="adminAffiliateReferrals"><div class="loading-spinner"><div class="spinner"></div><span>Loading referrals…</span></div></div>
+          </div>
         </div>
 
       </div>
@@ -1972,6 +1995,61 @@ tbody td{padding:13px 16px;font-size:14px;}
   </div>
 </div>
 
+</div>
+
+<!-- AFFILIATE COMMISSION EDIT MODAL -->
+<div id="affCommissionModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:420px;margin:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div style="font-size:18px;font-weight:800;">✏️ Edit Commission Rate</div>
+      <button onclick="affCommissionClose()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Changes apply to <strong style="color:var(--white);">future orders only</strong> — existing commissions are not recalculated.</div>
+
+    <!-- Affiliate info summary -->
+    <div style="background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;">
+      <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:3px;">AFFILIATE</div>
+      <div style="font-size:14px;font-weight:800;color:var(--white);" id="affCommAffiliateName">—</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="affCommAffiliateEmail">—</div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+        <div>
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:2px;">CURRENT RATE</div>
+          <div style="font-size:20px;font-weight:900;color:var(--green);" id="affCommCurrentRate">—</div>
+        </div>
+        <div style="font-size:20px;color:var(--muted);">→</div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:2px;">NEW RATE</div>
+          <div style="font-size:20px;font-weight:900;color:#ffd700;" id="affCommNewRatePreview">—</div>
+        </div>
+      </div>
+    </div>
+
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:1px;">NEW COMMISSION % *</label>
+    <div style="display:flex;align-items:center;gap:0;margin-bottom:16px;">
+      <input id="affCommRateInput" type="number" min="1" max="50" step="0.5" placeholder="e.g. 20"
+        oninput="document.getElementById('affCommNewRatePreview').textContent=this.value?this.value+'%':'—'"
+        style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px 0 0 10px;
+               padding:11px 14px;font-size:18px;font-weight:800;color:var(--white);outline:none;text-align:center;">
+      <div style="background:rgba(61,212,74,.12);border:1px solid var(--border);border-left:none;border-radius:0 10px 10px 0;
+                  padding:11px 14px;font-size:16px;font-weight:800;color:var(--green);">%</div>
+    </div>
+
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:1px;">INTERNAL NOTE (optional)</label>
+    <input id="affCommNote" type="text" placeholder="e.g. VIP deal agreed 19 Jun 2026"
+      style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:10px;
+             padding:10px 14px;font-size:13px;color:var(--white);outline:none;margin-bottom:16px;">
+
+    <div id="affCommErr" style="display:none;background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);
+         border-radius:8px;padding:10px 12px;font-size:13px;color:#ff6b6b;margin-bottom:14px;"></div>
+
+    <div style="display:flex;gap:10px;">
+      <button onclick="affCommissionClose()" style="flex:1;background:var(--navy);color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">Cancel</button>
+      <button id="affCommSaveBtn" onclick="affCommissionSave()"
+        style="flex:2;background:var(--green);color:#000;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:900;cursor:pointer;">
+        Save Rate
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- ORDER MODAL -->
@@ -2052,17 +2130,8 @@ tbody td{padding:13px 16px;font-size:14px;}
 <div class="tnc-overlay" id="tncOverlay" onclick="if(event.target===this)closeTnc()">
   <div class="tnc-modal">
     <div class="tnc-modal-head"><h3>Terms &amp; Conditions</h3><p>Please read carefully before creating your account</p></div>
-    <div class="tnc-modal-body">
-      <p>By accessing, registering, depositing funds, or placing an order with EndaViral, you automatically agree to all the terms and conditions listed below. EndaViral reserves the right to modify these Terms at any time without prior notice.</p>
-      <h4>1. General Use</h4><p>You agree to use the website only in accordance with all applicable laws and these Terms. EndaViral is a digital marketing platform providing social media engagement services through third-party providers and automated infrastructure. We do not guarantee viral growth, monetization, or authentic engagement.</p>
-      <h4>2. Service Delivery</h4><p>Delivery times are estimates only. Some orders may start instantly while others may take longer. Delays, interruptions, or partial delivery may occur due to provider issues, API failures, or platform changes.</p>
-      <h4>3. Third-Party Providers</h4><p>EndaViral relies on external providers to deliver services. Service quality, speed, and retention may vary. EndaViral shall not be held liable for provider outages, delayed delivery, or interruptions caused by third-party systems.</p>
-      <h4>4. No Guarantees</h4><p>EndaViral does not guarantee permanent followers, likes, views, monetization eligibility, or organic reach improvements. Social media platforms regularly update their systems which may affect engagement visibility.</p>
-      <h4>5. Refund Policy</h4><p>All sales are final once an order has been submitted. Completed orders are non-refundable. Refunds are only considered if the order failed completely or a duplicate payment was confirmed.</p>
-      <h4>6. Account Responsibility</h4><p>Users are fully responsible for ensuring submitted usernames and links are correct, accounts remain public during delivery, and duplicate orders are not placed across multiple providers.</p>
-      <h4>7. Platform Risks</h4><p>Social media marketing services may carry risks including account warnings, reduced reach, or restrictions. EndaViral shall not be responsible for any actions taken by social media platforms against user accounts.</p>
-      <h4>8. Limitation of Liability</h4><p>EndaViral shall not be liable for financial losses, account bans, reputation damage, or platform-related consequences. All services are provided on an "as is" basis. Our maximum liability shall not exceed the amount paid for the specific disputed order.</p>
-      <h4>9. Governing Law</h4><p>These Terms shall be governed by the laws of Kenya. Disputes shall first be attempted to be resolved through negotiation or arbitration before court proceedings.</p>
+    <div class="tnc-modal-body" id="tncModalBody">
+      <!-- Content injected by tnc.js -->
     </div>
     <div class="tnc-modal-foot">
       <button class="btn-tnc-close" onclick="closeTnc()">Close</button>
@@ -2907,13 +2976,12 @@ function resetDeposit() {
 }
 
 
-function openTnc() { document.getElementById('tncOverlay').classList.add('show'); document.body.style.overflow = 'hidden'; }
-function closeTnc() { document.getElementById('tncOverlay').classList.remove('show'); document.body.style.overflow = ''; }
-function acceptTnc() { document.getElementById('tncCheck').checked = true; document.getElementById('tncErr').classList.remove('show'); closeTnc(); }
+// openTnc / closeTnc / acceptTnc are defined in tnc.js
 
 
 </script>
 
+<script src="tnc.js"></script>
 <script src="admin.js"></script>
 <script src="account.js"></script>
 <script src="auth.js"></script>
@@ -2926,6 +2994,13 @@ function acceptTnc() { document.getElementById('tncCheck').checked = true; docum
   position:fixed;bottom:24px;right:24px;z-index:9000;
   font-family:'Montserrat',sans-serif;
   display:block !important;
+}
+/* Hide the FAB while a modal/overlay is open so it can't sit on top of
+   modal buttons on small screens (modals are z-index 100/500/999, chat is 9000) */
+body:has(.modal-overlay.show) #ev-chat-widget,
+body:has(.idle-overlay.show) #ev-chat-widget,
+body:has(.tnc-overlay.show) #ev-chat-widget{
+  display:none!important;
 }
 
 /* ─── FAB Button ─── */

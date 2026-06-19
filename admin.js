@@ -27,7 +27,7 @@ function adminTab(tab, el) {
   if (tab === 'providers') loadAdminProviders();
   if (tab === 'support') loadAdminSupport();
   if (tab === 'create-order') initAdminCreateOrder();
-  if (tab === 'affiliate-payouts') adminLoadAffiliatePayouts('pending');
+  if (tab === 'affiliate-payouts') affAdminSubTab('payouts');
 }
 
 async function loadAdminUsers() {
@@ -1621,5 +1621,248 @@ async function affAdminConfirmReject() {
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false; btn.textContent = 'Confirm Reject';
+  }
+}
+
+// ─── Affiliate panel sub-tab switcher ────────────────────────────────────────
+let _affAdminCurrentSubTab = 'payouts';
+
+function affAdminSubTab(tab) {
+  _affAdminCurrentSubTab = tab;
+
+  // Style: active tab gets green underline
+  ['payouts', 'referrals'].forEach(t => {
+    const el = document.getElementById('affSubTab-' + t);
+    if (!el) return;
+    if (t === tab) {
+      el.style.borderBottomColor = 'var(--green)';
+      el.style.color = 'var(--green)';
+    } else {
+      el.style.borderBottomColor = 'transparent';
+      el.style.color = 'var(--muted)';
+    }
+  });
+
+  // Show/hide panes
+  const payoutsPane   = document.getElementById('affAdminPane-payouts');
+  const referralsPane = document.getElementById('affAdminPane-referrals');
+  const titleEl       = document.getElementById('affAdminPanelTitle');
+  const subEl         = document.getElementById('affAdminPanelSub');
+  const refreshBtn    = document.getElementById('affAdminRefreshBtn');
+
+  if (tab === 'payouts') {
+    if (payoutsPane)   payoutsPane.style.display   = '';
+    if (referralsPane) referralsPane.style.display  = 'none';
+    if (titleEl)       titleEl.textContent          = '💸 AFFILIATE PAYOUTS';
+    if (subEl)         subEl.textContent            = 'Record M-Pesa disbursements — balance updates automatically';
+    if (refreshBtn) {
+      refreshBtn.setAttribute('onclick', "adminLoadAffiliatePayouts('pending')");
+      refreshBtn.textContent = '↻ Refresh';
+    }
+    adminLoadAffiliatePayouts('pending');
+  } else {
+    if (payoutsPane)   payoutsPane.style.display   = 'none';
+    if (referralsPane) referralsPane.style.display  = '';
+    if (titleEl)       titleEl.textContent          = '👥 AFFILIATE REFERRALS';
+    if (subEl)         subEl.textContent            = 'Users who signed up via an affiliate link';
+    if (refreshBtn) {
+      refreshBtn.setAttribute('onclick', 'adminLoadAffiliateReferrals()');
+      refreshBtn.textContent = '↻ Refresh';
+    }
+    adminLoadAffiliateReferrals();
+  }
+}
+
+// ─── Load & render referred users ────────────────────────────────────────────
+// Expects GET /affiliate/admin/referrals → { referrals: [...] }
+// Each item: { referred_user_name, referred_user_email, referred_at,
+//              affiliate_name, affiliate_email, referral_code,
+//              total_spend_kes, commission_earned_kes, order_count }
+async function adminLoadAffiliateReferrals(search = '') {
+  const container = document.getElementById('adminAffiliateReferrals');
+  if (!container) return;
+  container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading referrals…</span></div>`;
+
+  try {
+    const qs  = search ? `?search=${encodeURIComponent(search)}&limit=200` : '?limit=200';
+    const resp = await api('/affiliate/admin/referrals' + qs);
+    const referrals = resp.referrals || [];
+
+    // ── Summary totals ────────────────────────────────────────────────────
+    const totalSpend      = referrals.reduce((s, r) => s + (r.total_spend_kes || 0), 0);
+    const totalCommission = referrals.reduce((s, r) => s + (r.commission_earned_kes || 0), 0);
+    const totalOrders     = referrals.reduce((s, r) => s + (r.order_count || 0), 0);
+
+    const summaryHtml = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);margin-bottom:4px;">TOTAL REFERRED</div>
+          <div style="font-size:26px;font-weight:900;color:var(--white);">${referrals.length}</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);margin-bottom:4px;">TOTAL SPEND</div>
+          <div style="font-size:22px;font-weight:900;color:var(--green);">${fmtKES(totalSpend)}</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);margin-bottom:4px;">COMMISSIONS EARNED</div>
+          <div style="font-size:22px;font-weight:900;color:#ffd700;">${fmtKES(totalCommission)}</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);margin-bottom:4px;">ORDERS PLACED</div>
+          <div style="font-size:26px;font-weight:900;color:var(--white);">${totalOrders.toLocaleString()}</div>
+        </div>
+      </div>`;
+
+    if (!referrals.length) {
+      container.innerHTML = summaryHtml + `
+        <div style="padding:40px;text-align:center;color:var(--muted);">
+          <div style="font-size:36px;margin-bottom:10px;">👥</div>
+          <div style="font-size:14px;">No referrals yet — share your link!</div>
+        </div>`;
+      return;
+    }
+
+    // ── Search bar ────────────────────────────────────────────────────────
+    const searchBar = `
+      <div style="margin-bottom:16px;display:flex;gap:10px;align-items:center;">
+        <input id="affReferralsSearch" type="text" placeholder="Search by name, email or affiliate code…"
+          value="${esc(search)}"
+          onkeydown="if(event.key==='Enter')adminLoadAffiliateReferrals(this.value.trim())"
+          style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;
+                 padding:9px 14px;font-size:13px;color:var(--white);outline:none;">
+        <button onclick="adminLoadAffiliateReferrals(document.getElementById('affReferralsSearch').value.trim())"
+          class="btn-secondary" style="font-size:12px;padding:9px 16px;">🔍 Search</button>
+        ${search ? `<button onclick="adminLoadAffiliateReferrals('')" class="btn-secondary" style="font-size:12px;padding:9px 14px;">✕ Clear</button>` : ''}
+      </div>`;
+
+    // ── Table rows ────────────────────────────────────────────────────────
+    const rows = referrals.map(r => {
+      const hasOrders = (r.order_count || 0) > 0;
+      const joinDate  = r.referred_at ? new Date(r.referred_at).toLocaleDateString('en-KE') : '—';
+      const ratePct   = r.commission_rate != null ? (r.commission_rate * 100).toFixed(1) + '%' : '15.0%';
+      const isCustom  = r.commission_rate != null && Math.abs(r.commission_rate - 0.15) > 0.0001;
+      return `<tr>
+        <td>
+          <div style="font-weight:700;color:var(--white);">${esc(r.referred_user_name || '—')}</div>
+          <div style="font-size:11px;color:var(--muted);">${esc(r.referred_user_email || '—')}</div>
+        </td>
+        <td style="font-size:12px;color:var(--muted);">${joinDate}</td>
+        <td>
+          <div style="font-weight:600;color:var(--white);font-size:13px;">${esc(r.affiliate_name || '—')}</div>
+          <div style="font-size:10px;color:var(--muted);">${esc(r.affiliate_email || '—')}</div>
+          <div style="font-size:10px;font-family:monospace;color:var(--green);margin-top:2px;">${esc(r.referral_code || '—')}</div>
+        </td>
+        <td style="font-size:13px;">${r.order_count || 0}</td>
+        <td style="font-weight:800;color:${hasOrders ? 'var(--green)' : 'var(--muted)'};">${fmtKES(r.total_spend_kes || 0)}</td>
+        <td style="font-weight:800;color:#ffd700;">${fmtKES(r.commission_earned_kes || 0)}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:13px;font-weight:800;color:${isCustom ? '#ff9a3c' : 'var(--muted)'};">${ratePct}</span>
+            ${isCustom ? `<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(255,154,60,.12);color:#ff9a3c;font-weight:700;letter-spacing:.5px;">CUSTOM</span>` : ''}
+          </div>
+        </td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            ${hasOrders
+              ? `<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(61,212,74,.12);color:var(--green);font-weight:700;">Active</span>`
+              : `<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:var(--navy);color:var(--muted);">No orders</span>`}
+            ${r.affiliate_profile_id ? `
+            <button onclick="affCommissionOpen('${esc(r.affiliate_profile_id)}','${esc(r.affiliate_name||'')}','${esc(r.affiliate_email||'')}',${r.commission_rate || 0.15})"
+              style="background:rgba(255,215,0,.1);color:#ffd700;border:1px solid rgba(255,215,0,.25);border-radius:7px;
+                     padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
+              ✏️ Edit %
+            </button>` : ''}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    container.innerHTML = summaryHtml + searchBar + `
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Referred User</th>
+              <th>Joined</th>
+              <th>Via Affiliate</th>
+              <th>Orders</th>
+              <th>Total Spend</th>
+              <th>Commission</th>
+              <th>Rate</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+
+  } catch (e) {
+    container.innerHTML = `<div style="color:#ff6b6b;padding:20px;">${esc(e.message || 'Failed to load referrals')}</div>`;
+  }
+}
+
+// ─── Commission rate edit modal ───────────────────────────────────────────────
+let _affCommProfileId = null;
+
+function affCommissionOpen(profileId, name, email, currentRate) {
+  _affCommProfileId = profileId;
+
+  document.getElementById('affCommAffiliateName').textContent  = name  || '—';
+  document.getElementById('affCommAffiliateEmail').textContent = email || '—';
+  document.getElementById('affCommCurrentRate').textContent    = (currentRate * 100).toFixed(1) + '%';
+  document.getElementById('affCommNewRatePreview').textContent = '—';
+  document.getElementById('affCommRateInput').value            = (currentRate * 100).toFixed(1);
+  document.getElementById('affCommNote').value                 = '';
+  document.getElementById('affCommErr').style.display          = 'none';
+
+  // Trigger the preview to reflect the pre-filled value
+  document.getElementById('affCommNewRatePreview').textContent = (currentRate * 100).toFixed(1) + '%';
+
+  document.getElementById('affCommissionModal').style.display = 'flex';
+}
+
+function affCommissionClose() {
+  document.getElementById('affCommissionModal').style.display = 'none';
+  _affCommProfileId = null;
+}
+
+async function affCommissionSave() {
+  if (!_affCommProfileId) return;
+
+  const pctInput = parseFloat(document.getElementById('affCommRateInput').value);
+  const note     = document.getElementById('affCommNote').value.trim();
+  const errEl    = document.getElementById('affCommErr');
+  errEl.style.display = 'none';
+
+  if (isNaN(pctInput) || pctInput <= 0 || pctInput > 50) {
+    errEl.textContent   = 'Enter a rate between 0.5% and 50%.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const rate = parseFloat((pctInput / 100).toFixed(4));
+
+  const btn = document.getElementById('affCommSaveBtn');
+  btn.disabled    = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const resp = await api(`/affiliate/admin/affiliates/${_affCommProfileId}/commission`, {
+      method: 'PATCH',
+      body: JSON.stringify({ commission_rate: rate, note: note || null }),
+    });
+
+    affCommissionClose();
+    toast(`Commission rate updated to ${pctInput.toFixed(1)}% ✅`, 'success');
+
+    // Reload the referrals table to show updated rate
+    adminLoadAffiliateReferrals();
+
+  } catch (e) {
+    errEl.textContent   = e.message || 'Failed to update commission rate.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'Save Rate';
   }
 }
