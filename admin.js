@@ -1415,103 +1415,316 @@ function _setAcoStatus(state, data = {}) {
 let _affPayoutDisburseId   = null;
 let _affPayoutDisburseData = null;
 
-// ─── Load & render payout queue ───────────────────────────────────────────────
-async function adminLoadAffiliatePayouts(statusFilter = 'pending') {
+// ─── Tier helper ──────────────────────────────────────────────────────────────
+const _ADMIN_AFF_TIERS = [
+  { name:'Starter', min:0,      badge:'🌱', color:'#7a8fad' },
+  { name:'Bronze',  min:5000,   badge:'🥉', color:'#cd7f32' },
+  { name:'Silver',  min:25000,  badge:'🥈', color:'#a8adb4' },
+  { name:'Gold',    min:100000, badge:'🥇', color:'#ffd700' },
+  { name:'Diamond', min:500000, badge:'💎', color:'#3dd44a' },
+];
+function _adminAffTier(spend) {
+  let t = _ADMIN_AFF_TIERS[0];
+  for (const tier of _ADMIN_AFF_TIERS) { if ((spend||0) >= tier.min) t = tier; }
+  return t;
+}
+
+// ─── Panel-level state ────────────────────────────────────────────────────────
+let _affAdminLeaderSort  = 'earned';
+let _affAdminLeaderDir   = -1;
+let _affAdminLeaderCache = [];
+let _affAdminPayoutCache = [];
+let _affAdminPayoutFilter = 'pending';
+
+// ─── Load & render: stats + leaderboard + payout queue ───────────────────────
+async function adminLoadAffiliatePayouts(statusFilter) {
+  if (statusFilter !== undefined) _affAdminPayoutFilter = statusFilter;
   const container = document.getElementById('adminAffiliatePayouts');
   if (!container) return;
-  container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading payouts…</span></div>`;
+  container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading affiliate data…</span></div>`;
 
   try {
-    const resp    = await api(`/affiliate/admin/payouts?status=${statusFilter}&limit=100`);
-    const payouts = resp.payouts || [];
+    const [affResp, payResp] = await Promise.all([
+      api('/affiliate/admin/affiliates?limit=200'),
+      api('/affiliate/admin/payouts?status=all&limit=500'),
+    ]);
 
-    const filterBtns = ['pending','paid','rejected','all'].map(s =>
-      `<button onclick="adminLoadAffiliatePayouts('${s}')"
-         style="font-size:12px;padding:7px 16px;border-radius:8px;border:1px solid var(--border);
-                background:${s === statusFilter ? 'var(--green)' : 'var(--navy)'};
-                color:${s === statusFilter ? '#000' : 'var(--muted)'};
-                font-weight:${s === statusFilter ? '800' : '500'};cursor:pointer;">
-        ${s.charAt(0).toUpperCase()+s.slice(1)}
-      </button>`
-    ).join('');
+    _affAdminLeaderCache = affResp.affiliates || [];
+    _affAdminPayoutCache = payResp.payouts    || [];
 
-    if (!payouts.length) {
-      container.innerHTML = `
-        <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">${filterBtns}</div>
-        <div style="padding:40px;text-align:center;color:var(--muted);">
-          <div style="font-size:36px;margin-bottom:10px;">✅</div>
-          <div style="font-size:14px;">No ${statusFilter} payout requests</div>
-        </div>`;
-      return;
-    }
-
-    const rows = payouts.map(p => {
-      const st  = p.status || 'pending';
-      const cls = st === 'paid' ? 'completed' : st === 'rejected' ? 'failed' : 'pending';
-      const sentInfo = p.amount_sent_kes != null
-        ? `<div style="font-size:10px;color:var(--green);margin-top:2px;">Sent: KES ${Number(p.amount_sent_kes).toLocaleString()}</div>`
-        : '';
-      const receiptInfo = p.mpesa_receipt
-        ? `<div style="font-size:10px;color:var(--muted);margin-top:2px;">Rcpt: ${esc(p.mpesa_receipt)}</div>` : '';
-      const noteInfo = p.admin_note
-        ? `<div style="font-size:10px;color:#ff9a3c;margin-top:2px;">${esc(p.admin_note)}</div>` : '';
-
-      return `<tr>
-        <td>
-          <div style="font-weight:700;">${esc(p.user_name || '—')}</div>
-          <div style="font-size:11px;color:var(--muted);">${esc(p.user_email || '—')}</div>
-        </td>
-        <td>
-          <div style="font-weight:800;color:var(--green);font-size:15px;">KES ${Number(p.amount_kes).toLocaleString()}</div>
-          <div style="font-size:11px;color:var(--muted);">Requested</div>
-        </td>
-        <td style="font-family:monospace;font-size:13px;">${esc(p.mpesa_phone || '—')}</td>
-        <td style="font-size:12px;color:var(--muted);">${p.requested_at ? new Date(p.requested_at).toLocaleString('en-KE') : '—'}</td>
-        <td>
-          <span class="status-pill ${cls}">${st}</span>
-          ${sentInfo}${receiptInfo}${noteInfo}
-        </td>
-        <td>
-          ${st === 'pending'
-            ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <button onclick="affAdminOpenDisburse('${esc(p.id)}','${esc(p.user_name||'')}','${esc(p.mpesa_phone||'')}',${p.amount_kes})"
-                  style="background:var(--green);color:#000;border:none;border-radius:8px;
-                         padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">
-                  💸 Disburse
-                </button>
-                <button onclick="affAdminReject('${esc(p.id)}')"
-                  style="background:rgba(255,69,69,.12);color:#ff6b6b;border:1px solid rgba(255,69,69,.3);
-                         border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;">
-                  ✗ Reject
-                </button>
-              </div>`
-            : `<span style="color:var(--muted);font-size:12px;">—</span>`
-          }
-        </td>
-      </tr>`;
-    }).join('');
-
-    container.innerHTML = `
-      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">${filterBtns}</div>
-      <div class="tbl-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Affiliate</th>
-              <th>Amount</th>
-              <th>M-Pesa #</th>
-              <th>Requested</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`;
-
+    container.innerHTML = '';
+    container.appendChild(_affAdminBuildStats());
+    container.appendChild(_affAdminBuildLeaderboard());
+    container.appendChild(_affAdminBuildQueue());
   } catch (e) {
-    container.innerHTML = `<div style="color:#ff6b6b;padding:20px;">${esc(e.message || 'Failed to load payouts')}</div>`;
+    container.innerHTML = `<div style="color:#ff6b6b;padding:20px;">${esc(e.message || 'Failed to load affiliate data')}</div>`;
   }
+}
+
+// ── Section 1: Summary stat cards ─────────────────────────────────────────────
+function _affAdminBuildStats() {
+  const af = _affAdminLeaderCache;
+  const py = _affAdminPayoutCache;
+
+  const totalAff      = af.length;
+  const activeAff     = af.filter(a => (a.total_referrals||0) > 0).length;
+  const totalRefs     = af.reduce((s,a) => s+(a.total_referrals||0), 0);
+  const totalEarned   = af.reduce((s,a) => s+(a.total_earned_kes||0), 0);
+  const totalPending  = af.reduce((s,a) => s+(a.pending_kes||0), 0);
+  const totalPaid     = af.reduce((s,a) => s+(a.paid_kes||0), 0);
+  const totalSpend    = af.reduce((s,a) => s+(a.referral_spend_kes||0), 0);
+  const pendingPay    = py.filter(p => p.status==='pending');
+  const pendingCount  = pendingPay.length;
+  const pendingKes    = pendingPay.reduce((s,p) => s+(p.amount_kes||0), 0);
+
+  const tierCounts = {};
+  for (const a of af) {
+    const t = _adminAffTier(a.referral_spend_kes||0);
+    tierCounts[t.name] = (tierCounts[t.name]||0) + 1;
+  }
+
+  const cards = [
+    { icon:'🤝', label:'Total Affiliates',  value: totalAff,            sub:`${activeAff} with referrals`,          color:'#3dd44a' },
+    { icon:'👥', label:'Total Referrals',   value: totalRefs,            sub:'signed up via affiliate links',        color:'#3dd44a' },
+    { icon:'🛒', label:'Referral Spend',    value: fmtKES(totalSpend),   sub:'spend by referred users',              color:'#ffd700' },
+    { icon:'💰', label:'Total Commissions', value: fmtKES(totalEarned),  sub:'15% of all referral spend',            color:'#ffd700' },
+    { icon:'⏳', label:'Pending Balance',   value: fmtKES(totalPending), sub:'awaiting withdrawal requests',         color:'#ff9a3c' },
+    { icon:'✅', label:'Total Paid Out',    value: fmtKES(totalPaid),    sub:'M-Pesa disbursements made',            color:'#3dd44a' },
+    { icon:'📬', label:'Pending Requests',  value: pendingCount,          sub:`${fmtKES(pendingKes)} to disburse`,   color: pendingCount > 0 ? '#ff6b6b' : '#3dd44a' },
+  ];
+
+  const tierHtml = _ADMIN_AFF_TIERS.map(t =>
+    `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+       <span style="font-size:13px;">${t.badge}</span>
+       <span style="font-size:11px;color:${t.color};font-weight:700;flex:1;">${t.name}</span>
+       <span style="font-size:13px;font-weight:800;color:var(--white);">${tierCounts[t.name]||0}</span>
+     </div>`
+  ).join('');
+
+  const el = document.createElement('div');
+  el.innerHTML = `
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">
+      📊 PROGRAMME OVERVIEW
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px;">
+      ${cards.map(c => `
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+          <div style="font-size:20px;margin-bottom:6px;">${c.icon}</div>
+          <div style="font-size:${typeof c.value==='number'?'24px':'18px'};font-weight:900;color:${c.color};line-height:1.1;">
+            ${typeof c.value==='number' ? c.value.toLocaleString() : c.value}
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--white);margin-top:5px;">${c.label}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">${c.sub}</div>
+        </div>`).join('')}
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+        <div style="font-size:20px;margin-bottom:8px;">🏅</div>
+        <div style="font-size:11px;font-weight:700;color:var(--white);margin-bottom:8px;letter-spacing:.5px;">TIER BREAKDOWN</div>
+        ${tierHtml}
+      </div>
+    </div>`;
+  return el;
+}
+
+// ── Section 2: Affiliate leaderboard ──────────────────────────────────────────
+function _affAdminBuildLeaderboard() {
+  const el = document.createElement('div');
+  el.id = '_affAdminLeaderWrap';
+  el.style.marginBottom = '28px';
+  _affAdminRenderLeaderboard(el);
+  return el;
+}
+
+function _affAdminRenderLeaderboard(wrap) {
+  const key = _affAdminLeaderSort;
+  const dir = _affAdminLeaderDir;
+
+  const sorted = [..._affAdminLeaderCache].sort((a, b) => {
+    const vals = {
+      earned:    [a.total_earned_kes,   b.total_earned_kes],
+      referrals: [a.total_referrals,    b.total_referrals],
+      spend:     [a.referral_spend_kes, b.referral_spend_kes],
+      pending:   [a.pending_kes,        b.pending_kes],
+    };
+    const [av, bv] = vals[key] || [0,0];
+    return dir * ((bv||0) - (av||0));
+  });
+
+  const sBtn = (k, label) => {
+    const active = key === k;
+    return `<button onclick="_affAdminSortLeader('${k}')"
+      style="background:${active?'rgba(61,212,74,.15)':'var(--card2)'};
+             border:1px solid ${active?'rgba(61,212,74,.4)':'var(--border)'};
+             color:${active?'var(--green)':'var(--muted)'};
+             border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;
+             cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;">
+      ${label}${active?(dir===-1?' ↓':' ↑'):''}
+    </button>`;
+  };
+
+  const medal = i => i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`;
+
+  wrap.innerHTML = `
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">
+      🏆 ALL AFFILIATES (${sorted.length})
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+      <span style="font-size:11px;color:var(--muted);">Sort:</span>
+      ${sBtn('earned','💰 Earned')} ${sBtn('referrals','👥 Referrals')} ${sBtn('spend','🛒 Spend')} ${sBtn('pending','⏳ Pending')}
+    </div>
+    ${!sorted.length
+      ? `<div style="padding:32px;text-align:center;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:14px;">No affiliates yet.</div>`
+      : `<div class="tbl-wrap"><table>
+          <thead><tr>
+            <th>#</th><th>Affiliate</th><th>Tier</th><th>Code</th>
+            <th>Referrals</th><th>Ref. Spend</th><th>Total Earned</th>
+            <th>Pending</th><th>Paid Out</th><th>Rate</th><th>Joined</th>
+          </tr></thead>
+          <tbody>
+            ${sorted.map((a,i) => {
+              const tier   = _adminAffTier(a.referral_spend_kes||0);
+              const pend   = a.pending_kes||0;
+              const joined = a.created_at ? new Date(a.created_at).toLocaleDateString('en-KE') : '—';
+              return `<tr>
+                <td style="font-weight:800;color:${i<3?'#ffd700':'var(--muted)'};">${medal(i)}</td>
+                <td>
+                  <div style="font-weight:700;">${esc(a.user_name||'—')}</div>
+                  <div style="font-size:10px;color:var(--muted);">${esc(a.user_email||'—')}</div>
+                </td>
+                <td>
+                  <span style="font-size:13px;">${tier.badge}</span>
+                  <span style="font-size:11px;color:${tier.color};font-weight:700;margin-left:4px;">${tier.name}</span>
+                </td>
+                <td style="font-family:monospace;font-size:11px;color:var(--muted);">${esc(a.referral_code||'—')}</td>
+                <td style="font-weight:700;text-align:center;">${(a.total_referrals||0).toLocaleString()}</td>
+                <td style="color:var(--muted);font-size:13px;">${fmtKES(a.referral_spend_kes||0)}</td>
+                <td style="font-weight:800;color:var(--green);">${fmtKES(a.total_earned_kes||0)}</td>
+                <td style="font-weight:700;color:${pend>0?'#ff9a3c':'var(--muted)'};">${fmtKES(pend)}</td>
+                <td style="color:var(--muted);font-size:13px;">${fmtKES(a.paid_kes||0)}</td>
+                <td style="font-size:12px;color:var(--muted);">${((a.commission_rate||0.15)*100).toFixed(0)}%</td>
+                <td style="font-size:11px;color:var(--muted);">${joined}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table></div>`
+    }`;
+}
+
+function _affAdminSortLeader(key) {
+  if (_affAdminLeaderSort === key) { _affAdminLeaderDir *= -1; }
+  else { _affAdminLeaderSort = key; _affAdminLeaderDir = -1; }
+  const wrap = document.getElementById('_affAdminLeaderWrap');
+  if (wrap) _affAdminRenderLeaderboard(wrap);
+}
+
+// ── Section 3: Payout queue ────────────────────────────────────────────────────
+function _affAdminBuildQueue() {
+  const el = document.createElement('div');
+  el.id = '_affAdminQueueWrap';
+  _affAdminRenderQueue(el);
+  return el;
+}
+
+function _affAdminRenderQueue(wrap) {
+  const filter  = _affAdminPayoutFilter;
+  const all     = _affAdminPayoutCache;
+  const payouts = filter === 'all' ? all : all.filter(p => p.status === filter);
+  const countOf = s => all.filter(p => p.status === s).length;
+  const pendingCount = countOf('pending');
+
+  const filterBtns = ['pending','paid','rejected','all'].map(s => {
+    const active = s === filter;
+    const count  = s === 'all' ? all.length : countOf(s);
+    return `<button onclick="_affAdminSetQueueFilter('${s}')"
+      style="font-size:12px;padding:7px 16px;border-radius:8px;border:1px solid var(--border);
+             background:${active?'var(--green)':'var(--navy)'};
+             color:${active?'#000':'var(--muted)'};
+             font-weight:${active?'800':'500'};cursor:pointer;position:relative;">
+      ${s.charAt(0).toUpperCase()+s.slice(1)}
+      ${count>0&&s!=='all'?`<span style="
+        background:${s==='pending'&&count>0?'rgba(255,69,69,.9)':'rgba(122,143,173,.3)'};
+        color:${s==='pending'&&count>0?'#fff':'var(--muted)'};
+        border-radius:10px;font-size:10px;font-weight:800;
+        padding:1px 5px;margin-left:5px;">${count}</span>`:''}
+    </button>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">
+        💸 PAYOUT QUEUE
+      </div>
+      ${pendingCount > 0 ? `<span style="background:rgba(255,69,69,.12);border:1px solid rgba(255,69,69,.3);color:#ff6b6b;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;">${pendingCount} pending</span>` : ''}
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">${filterBtns}</div>
+    ${!payouts.length
+      ? `<div style="padding:40px;text-align:center;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:14px;">
+           <div style="font-size:36px;margin-bottom:10px;">${filter==='pending'?'✅':'📭'}</div>
+           <div style="font-size:14px;">No ${filter} payout requests</div>
+         </div>`
+      : `<div class="tbl-wrap"><table>
+          <thead><tr>
+            <th>Affiliate</th><th>Requested</th><th>Sent</th>
+            <th>M-Pesa #</th><th>Requested At</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody>
+            ${payouts.map(p => {
+              const st  = p.status||'pending';
+              const cls = st==='paid'?'completed':st==='rejected'?'failed':'pending';
+              // enrich with leaderboard data
+              const aff = _affAdminLeaderCache.find(a => a.user_email === p.user_email) || {};
+              const tier = _adminAffTier(aff.referral_spend_kes||0);
+              return `<tr>
+                <td>
+                  <div style="font-weight:700;">${esc(p.user_name||'—')}</div>
+                  <div style="font-size:10px;color:var(--muted);">${esc(p.user_email||'—')}</div>
+                  <div style="margin-top:3px;">
+                    <span style="font-size:11px;">${tier.badge}</span>
+                    <span style="font-size:10px;color:${tier.color};font-weight:700;">${tier.name}</span>
+                    ${aff.total_referrals ? `<span style="font-size:10px;color:var(--muted);margin-left:5px;">· ${aff.total_referrals} refs</span>` : ''}
+                    ${aff.total_earned_kes ? `<span style="font-size:10px;color:var(--green);margin-left:5px;">· ${fmtKES(aff.total_earned_kes)} earned</span>` : ''}
+                  </div>
+                </td>
+                <td style="font-weight:800;color:var(--green);white-space:nowrap;">${fmtKES(p.amount_kes)}</td>
+                <td style="white-space:nowrap;">
+                  ${p.amount_sent_kes!=null
+                    ? `<span style="color:var(--white);font-weight:700;">${fmtKES(p.amount_sent_kes)}</span>`
+                    : `<span style="color:var(--muted);font-size:12px;">—</span>`}
+                </td>
+                <td style="font-family:monospace;font-size:13px;">${esc(p.mpesa_phone||'—')}</td>
+                <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${p.requested_at?new Date(p.requested_at).toLocaleString('en-KE'):'—'}</td>
+                <td>
+                  <span class="status-pill ${cls}">${st}</span>
+                  ${p.mpesa_receipt?`<div style="font-size:10px;color:var(--muted);margin-top:2px;">Rcpt: ${esc(p.mpesa_receipt)}</div>`:''}
+                  ${p.admin_note?`<div style="font-size:10px;color:#ff9a3c;margin-top:2px;">${esc(p.admin_note)}</div>`:''}
+                  ${p.processed_at?`<div style="font-size:10px;color:var(--muted);margin-top:2px;">${new Date(p.processed_at).toLocaleDateString('en-KE')}</div>`:''}
+                </td>
+                <td>
+                  ${st==='pending'
+                    ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button onclick="affAdminOpenDisburse('${esc(p.id)}','${esc(p.user_name||'')}','${esc(p.mpesa_phone||'')}',${p.amount_kes})"
+                          style="background:var(--green);color:#000;border:none;border-radius:8px;
+                                 padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">
+                          💸 Disburse
+                        </button>
+                        <button onclick="affAdminReject('${esc(p.id)}')"
+                          style="background:rgba(255,69,69,.12);color:#ff6b6b;border:1px solid rgba(255,69,69,.3);
+                                 border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;">
+                          ✗ Reject
+                        </button>
+                      </div>`
+                    : `<span style="color:var(--muted);font-size:12px;">—</span>`}
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table></div>`
+    }`;
+}
+
+function _affAdminSetQueueFilter(f) {
+  _affAdminPayoutFilter = f;
+  const wrap = document.getElementById('_affAdminQueueWrap');
+  if (wrap) _affAdminRenderQueue(wrap);
 }
 
 // ─── Disburse modal ───────────────────────────────────────────────────────────
