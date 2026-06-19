@@ -2249,7 +2249,10 @@ async function api(path, opts = {}) {
   // Tokens are now signed JWTs with a 24-hour expiry. If the server returns
   // 401 it means the token has expired or been invalidated. Log the user out
   // immediately so they can re-authenticate rather than seeing a generic error.
-  if (r.status === 401) {
+  // Auth endpoints (/auth/*) legitimately return 401 for wrong credentials,
+  // so we skip the session-expiry logic for those paths.
+  const isAuthEndpoint = path.startsWith('/auth/');
+  if (r.status === 401 && !isAuthEndpoint) {
     doLogout();
     toast('Your session has expired. Please sign in again.', 'error');
     throw new Error('Session expired — please sign in again.');
