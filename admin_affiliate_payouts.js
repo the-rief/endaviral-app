@@ -81,20 +81,38 @@ async function adminLoadAffiliatePayouts(statusFilter = 'pending') {
 
 // ─── Approve flow ─────────────────────────────────────────────────────────────
 function adminApproveAffPayout(payoutId, phone, amount) {
+  // Step 1: confirm actual amount sent (may differ from requested)
+  const amountSentStr = prompt(
+    `Approving payout to ${phone}\n\nRequested: ${fmtKES(amount)}\n\nEnter ACTUAL amount sent via M-Pesa (KES):`,
+    amount
+  );
+  if (amountSentStr === null) return; // cancelled
+
+  const amountSent = parseFloat(amountSentStr);
+  if (isNaN(amountSent) || amountSent <= 0) {
+    toast('Invalid amount entered. Approval cancelled.', 'error');
+    return;
+  }
+
+  // Step 2: receipt number
   const receipt = prompt(
-    `Approving payout of ${fmtKES(amount)} to ${phone}\n\nEnter M-Pesa receipt number (or leave blank):`,
+    `Enter M-Pesa receipt number for this payment (or leave blank):`,
     ''
   );
   if (receipt === null) return; // cancelled
 
-  _doApproveAffPayout(payoutId, receipt.trim());
+  _doApproveAffPayout(payoutId, amountSent, receipt.trim());
 }
 
-async function _doApproveAffPayout(payoutId, receipt) {
+async function _doApproveAffPayout(payoutId, amountSent, receipt) {
   try {
+    // Backend requires amount_sent (mandatory) + optional mpesa_receipt
     await api(`/affiliate/admin/payouts/${payoutId}/approve`, {
       method: 'POST',
-      body: JSON.stringify({ mpesa_receipt: receipt || null }),
+      body: JSON.stringify({
+        amount_sent: amountSent,
+        mpesa_receipt: receipt || null,
+      }),
     });
     toast('Payout approved and marked as paid ✅', 'success');
     adminLoadAffiliatePayouts('pending');
