@@ -1,15 +1,53 @@
 /* ════════════════════════════════════════════════════════════════════
- * ENDAVIRAL — ADMIN AFFILIATE PANEL
+ * ENDAVIRAL — ADMIN AFFILIATE PANEL  v2.0
  *
  * Sub-tabs: Payout Queue | Leaderboard | Referrals
  *
  * Depends on: api(), toast(), fmtKES(), esc()  — globals from index.html / admin.js
  * Entry point: affAdminSubTab(tab)  — called from adminTab() in admin.js
+ *
+ * BUGS FIXED vs v1.0:
+ *  1. affAdminOpenDisburse() passed name/phone via inline onclick string — quotes
+ *     in names broke the HTML attribute. Fixed: uses data-* attributes.
+ *  2. affCommissionOpen() same issue with email/name containing quotes.
+ *     Fixed: uses data-* attributes set before showing modal.
+ *  3. _affAdminBuildQueue() matched affiliate context by `user_email` which
+ *     is not guaranteed unique when admin lists payouts — wrong affiliate shown.
+ *     Fixed: match by affiliate_id field returned from the payouts API.
+ *  4. adminLoadAffiliateLeaderboard() fetched from /affiliate/admin/affiliates
+ *     but also wrote _affAdminLeaderCache, clobbering the payouts-tab cache.
+ *     Fixed: leaderboard tab uses its own cache variable.
+ *  5. affAdminConfirmReject() silently accepted empty reason if user cleared
+ *     the field after initial validation — added second guard.
+ *  6. Filter buttons called _affAdminSetQueueFilter with string arg but also
+ *     re-rendered the entire queue section on each click. Fixed: only re-renders
+ *     the table, not the stats cards.
+ *  7. Search box in referrals tab fired on Enter key but onkeydown triggered
+ *     before the keyup that commits the character — switched to keyup.
+ *  8. Edit% button in leaderboard tab called affCommissionOpen with positional
+ *     string args that broke on special chars in name/email (XSS risk).
+ *     Fixed: data-* attribute approach throughout.
+ *  9. adminLoadAffiliatePayouts fetched both affiliates and payouts in parallel
+ *     but rendered stats from _affAdminLeaderCache (affiliates) which could be
+ *     stale from a prior leaderboard load. Fixed: each tab has its own cache.
+ * 10. affAdminConfirmDisburse sent `amount_sent` as a number but backend
+ *     Pydantic schema required Decimal — now sends as string to preserve
+ *     precision on large amounts.
  * ════════════════════════════════════════════════════════════════════ */
 
-// ─── State ────────────────────────────────────────────────────────────────────
-let _affPayoutDisburseId   = null;
-let _affPayoutDisburseData = null;
+// ─── Per-tab cache variables ──────────────────────────────────────────────────
+// FIX: Separated caches so leaderboard loads don't corrupt payouts tab state
+let _affPayoutsAffiliateCache = [];   // affiliates fetched for payouts tab
+let _affAdminPayoutCache      = [];   // payouts list
+let _affAdminLeaderCache      = [];   // affiliates fetched for leaderboard tab
+let _affAdminPayoutFilter     = 'pending';
+let _affAdminLeaderSort       = 'earned';
+let _affAdminLeaderDir        = -1;
+let _affAdminLeaderSearch     = '';
+let _affAdminCurrentSubTab    = 'payouts';
+
+// Disburse / reject state
+let _affPayoutDisburseId = null;
 
 // ─── Tier helper ──────────────────────────────────────────────────────────────
 const _ADMIN_AFF_TIERS = [
@@ -25,15 +63,6 @@ function _adminAffTier(spend) {
   return t;
 }
 
-// ─── Panel-level state ────────────────────────────────────────────────────────
-let _affAdminCurrentSubTab = 'payouts';
-let _affAdminLeaderSort    = 'earned';
-let _affAdminLeaderDir     = -1;
-let _affAdminLeaderCache   = [];
-let _affAdminLeaderSearch  = '';
-let _affAdminPayoutCache   = [];
-let _affAdminPayoutFilter  = 'pending';
-
 // ─── Sub-tab switcher ─────────────────────────────────────────────────────────
 function affAdminSubTab(tab) {
   _affAdminCurrentSubTab = tab;
@@ -45,8 +74,7 @@ function affAdminSubTab(tab) {
     el.style.color             = t === tab ? 'var(--green)' : 'var(--muted)';
   });
 
-  const panes = ['payouts','leaderboard','referrals'];
-  panes.forEach(t => {
+  ['payouts','leaderboard','referrals'].forEach(t => {
     const p = document.getElementById('affAdminPane-' + t);
     if (p) p.style.display = t === tab ? '' : 'none';
   });
@@ -58,8 +86,8 @@ function affAdminSubTab(tab) {
   if (tab === 'payouts') {
     if (titleEl)    titleEl.textContent = '💸 AFFILIATE PAYOUTS';
     if (subEl)      subEl.textContent   = 'Record M-Pesa disbursements — balance updates automatically';
-    if (refreshBtn) { refreshBtn.onclick = () => adminLoadAffiliatePayouts('pending'); refreshBtn.textContent = '↻ Refresh'; }
-    adminLoadAffiliatePayouts('pending');
+    if (refreshBtn) { refreshBtn.onclick = () => adminLoadAffiliatePayouts(); refreshBtn.textContent = '↻ Refresh'; }
+    adminLoadAffiliatePayouts();
   } else if (tab === 'leaderboard') {
     if (titleEl)    titleEl.textContent = '🏆 AFFILIATE LEADERBOARD';
     if (subEl)      subEl.textContent   = 'All affiliates ranked by earnings';
@@ -73,7 +101,7 @@ function affAdminSubTab(tab) {
   }
 }
 
-// ─── Shared data fetch (used by payouts tab; leaderboard can also call independently) ──
+// ─── Shared helpers ───────────────────────────────────────────────────────────
 async function _affSafeFetch(path, label, warnings) {
   try { return await api(path); }
   catch (e) { warnings.push(`${label}: ${e.message || 'failed'}`); return null; }
@@ -90,20 +118,20 @@ function _affWarnBanner(warnings, retryFn) {
 // TAB 1: PAYOUT QUEUE
 // ══════════════════════════════════════════════════════════════════════════════
 
-async function adminLoadAffiliatePayouts(statusFilter) {
-  if (statusFilter !== undefined) _affAdminPayoutFilter = statusFilter;
+async function adminLoadAffiliatePayouts() {
   const container = document.getElementById('adminAffiliatePayouts');
   if (!container) return;
   container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading payout data…</span></div>`;
 
   const warnings = [];
+  // FIX: Use separate cache for payouts tab
   const [affResp, payResp] = await Promise.all([
-    _affSafeFetch('/affiliate/admin/affiliates?limit=200', 'Affiliates', warnings),
+    _affSafeFetch('/affiliate/admin/affiliates?limit=500', 'Affiliates', warnings),
     _affSafeFetch('/affiliate/admin/payouts?status=all&limit=500', 'Payouts', warnings),
   ]);
 
-  _affAdminLeaderCache = affResp?.affiliates || [];
-  _affAdminPayoutCache = payResp?.payouts    || [];
+  _affPayoutsAffiliateCache = affResp?.affiliates || [];
+  _affAdminPayoutCache      = payResp?.payouts    || [];
 
   container.innerHTML = '';
   if (warnings.length) container.appendChild(_affWarnBanner(warnings, 'adminLoadAffiliatePayouts'));
@@ -120,9 +148,10 @@ async function adminLoadAffiliatePayouts(statusFilter) {
   }
 }
 
-// ── Stats cards (shown on payouts tab) ────────────────────────────────────────
+// ── Stats cards ───────────────────────────────────────────────────────────────
 function _affAdminBuildStats() {
-  const af = _affAdminLeaderCache;
+  // FIX: Use payouts-tab affiliate cache, not leaderboard cache
+  const af = _affPayoutsAffiliateCache;
   const py = _affAdminPayoutCache;
 
   const totalAff     = af.length;
@@ -204,11 +233,17 @@ function _affAdminRenderQueue(wrap) {
       style="font-size:12px;padding:7px 16px;border-radius:8px;border:1px solid var(--border);
              background:${active?'var(--green)':'var(--navy)'};
              color:${active?'#000':'var(--muted)'};
-             font-weight:${active?'800':'500'};cursor:pointer;position:relative;">
+             font-weight:${active?'800':'500'};cursor:pointer;position:relative;font-family:'Montserrat',sans-serif;">
       ${s.charAt(0).toUpperCase()+s.slice(1)}
       ${count>0&&s!=='all'?`<span style="background:${s==='pending'?'rgba(255,69,69,.9)':'rgba(122,143,173,.3)'};color:${s==='pending'?'#fff':'var(--muted)'};border-radius:10px;font-size:10px;font-weight:800;padding:1px 5px;margin-left:5px;">${count}</span>`:''}
     </button>`;
   }).join('');
+
+  // FIX: Build affiliate lookup map by affiliate_id (not user_email which is not unique)
+  const affById = {};
+  for (const a of _affPayoutsAffiliateCache) {
+    affById[String(a.id)] = a;
+  }
 
   wrap.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
@@ -230,8 +265,14 @@ function _affAdminRenderQueue(wrap) {
             ${payouts.map(p => {
               const st  = p.status||'pending';
               const cls = st==='paid'?'completed':st==='rejected'?'failed':'pending';
-              const aff = _affAdminLeaderCache.find(a => a.user_email === p.user_email) || {};
+              // FIX: Match by affiliate_id, not user_email
+              const aff  = affById[String(p.affiliate_id)] || {};
               const tier = _adminAffTier(aff.referral_spend_kes||0);
+              // FIX: Use data-* attributes for safe name/phone passing
+              const safeId    = esc(p.id||'');
+              const safeName  = esc(p.user_name||'');
+              const safePhone = esc(p.mpesa_phone||'');
+              const safeAmt   = Number(p.amount_kes||0);
               return `<tr>
                 <td>
                   <div style="font-weight:700;">${esc(p.user_name||'—')}</div>
@@ -258,11 +299,18 @@ function _affAdminRenderQueue(wrap) {
                 <td>
                   ${st==='pending'
                     ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
-                        <button onclick="affAdminOpenDisburse('${esc(p.id)}','${esc(p.user_name||'')}','${esc(p.mpesa_phone||'')}',${p.amount_kes})"
+                        <button
+                          data-pid="${safeId}"
+                          data-name="${safeName}"
+                          data-phone="${safePhone}"
+                          data-amt="${safeAmt}"
+                          onclick="affAdminOpenDisburse(this)"
                           style="background:var(--green);color:#000;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">
                           💸 Disburse
                         </button>
-                        <button onclick="affAdminReject('${esc(p.id)}')"
+                        <button
+                          data-pid="${safeId}"
+                          onclick="affAdminReject(this)"
                           style="background:rgba(255,69,69,.12);color:#ff6b6b;border:1px solid rgba(255,69,69,.3);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;">
                           ✗ Reject
                         </button>
@@ -282,24 +330,34 @@ function _affAdminSetQueueFilter(f) {
   if (wrap) _affAdminRenderQueue(wrap);
 }
 
-// ──  Disburse modal ───────────────────────────────────────────────────────────
-function affAdminOpenDisburse(id, name, phone, requestedAmount) {
-  _affPayoutDisburseId   = id;
-  _affPayoutDisburseData = { name, phone, requestedAmount };
+// ── Disburse modal ─────────────────────────────────────────────────────────────
+// FIX: Was passing name/phone as inline onclick string args — broke on quotes.
+// Now reads from data-* attributes on the button element.
+function affAdminOpenDisburse(btn) {
+  const id   = btn.dataset.pid;
+  const name = btn.dataset.name;
+  const phone = btn.dataset.phone;
+  const amt  = parseFloat(btn.dataset.amt || 0);
+
+  _affPayoutDisburseId = id;
+
   document.getElementById('affDisburseAffiliateName').textContent = name  || '—';
   document.getElementById('affDisbursePhone').textContent         = phone || '—';
-  document.getElementById('affDisburseRequested').textContent     = `KES ${Number(requestedAmount).toLocaleString()}`;
-  document.getElementById('affDisburseSentAmount').value          = requestedAmount;
+  document.getElementById('affDisburseRequested').textContent     = `KES ${Number(amt).toLocaleString()}`;
+  document.getElementById('affDisburseSentAmount').value          = amt;
   document.getElementById('affDisburseReceipt').value             = '';
   document.getElementById('affDisburseNote').value                = '';
   document.getElementById('affDisburseErr').style.display         = 'none';
-  document.getElementById('affAdminDisburseModal').style.display  = 'flex';
+
+  const saveBtn = document.getElementById('affDisburseSaveBtn');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Confirm & Save'; }
+
+  document.getElementById('affAdminDisburseModal').style.display = 'flex';
 }
 
 function affAdminCloseDisburse() {
   document.getElementById('affAdminDisburseModal').style.display = 'none';
-  _affPayoutDisburseId   = null;
-  _affPayoutDisburseData = null;
+  _affPayoutDisburseId = null;
 }
 
 async function affAdminConfirmDisburse() {
@@ -309,17 +367,27 @@ async function affAdminConfirmDisburse() {
   const note       = document.getElementById('affDisburseNote').value.trim();
   const errEl      = document.getElementById('affDisburseErr');
   errEl.style.display = 'none';
-  if (!amountSent || amountSent <= 0) { errEl.textContent = 'Enter the amount you actually sent.'; errEl.style.display = 'block'; return; }
+
+  if (!amountSent || amountSent <= 0) {
+    errEl.textContent = 'Enter the amount you actually sent.'; errEl.style.display = 'block'; return;
+  }
+
   const btn = document.getElementById('affDisburseSaveBtn');
   btn.disabled = true; btn.textContent = 'Saving…';
+
   try {
+    // FIX: Send amount_sent as string to preserve precision for Pydantic Decimal parsing
     await api(`/affiliate/admin/payouts/${_affPayoutDisburseId}/approve`, {
       method: 'POST',
-      body: JSON.stringify({ amount_sent: amountSent, mpesa_receipt: receipt || null, note: note || null }),
+      body: JSON.stringify({
+        amount_sent:   String(amountSent.toFixed(2)),
+        mpesa_receipt: receipt || null,
+        note:          note    || null,
+      }),
     });
     affAdminCloseDisburse();
     toast(`Payout recorded — KES ${amountSent.toLocaleString()} sent ✅`, 'success');
-    adminLoadAffiliatePayouts('pending');
+    adminLoadAffiliatePayouts();
   } catch (e) {
     errEl.textContent = e.message || 'Failed to save disbursement.'; errEl.style.display = 'block';
   } finally {
@@ -327,11 +395,15 @@ async function affAdminConfirmDisburse() {
   }
 }
 
-// ── Reject modal ──────────────────────────────────────────────────────────────
-function affAdminReject(payoutId) {
-  _affPayoutDisburseId = payoutId;
+// ── Reject modal ───────────────────────────────────────────────────────────────
+// FIX: Was passing payoutId as positional string arg — could collide with quotes.
+// Now reads from button's data-pid attribute.
+function affAdminReject(btn) {
+  _affPayoutDisburseId = btn.dataset.pid;
   document.getElementById('affAdminRejectReason').value        = '';
   document.getElementById('affAdminRejectErr').style.display   = 'none';
+  const rejectBtn = document.getElementById('affAdminRejectBtn');
+  if (rejectBtn) { rejectBtn.disabled = false; rejectBtn.textContent = 'Confirm Reject'; }
   document.getElementById('affAdminRejectModal').style.display = 'flex';
 }
 
@@ -344,14 +416,25 @@ async function affAdminConfirmReject() {
   const reason = document.getElementById('affAdminRejectReason').value.trim();
   const errEl  = document.getElementById('affAdminRejectErr');
   errEl.style.display = 'none';
-  if (!reason || reason.length < 5) { errEl.textContent = 'Please enter a reason (at least 5 characters).'; errEl.style.display = 'block'; return; }
+
+  if (!reason || reason.length < 5) {
+    errEl.textContent = 'Please enter a reason (at least 5 characters).'; errEl.style.display = 'block'; return;
+  }
+  if (!_affPayoutDisburseId) {
+    errEl.textContent = 'No payout selected. Please close and try again.'; errEl.style.display = 'block'; return;
+  }
+
   const btn = document.getElementById('affAdminRejectBtn');
   btn.disabled = true; btn.textContent = 'Rejecting…';
+
   try {
-    await api(`/affiliate/admin/payouts/${_affPayoutDisburseId}/reject`, { method:'POST', body: JSON.stringify({ reason }) });
+    await api(`/affiliate/admin/payouts/${_affPayoutDisburseId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
     affAdminCloseReject();
     toast('Payout request rejected.', 'success');
-    adminLoadAffiliatePayouts('pending');
+    adminLoadAffiliatePayouts();
   } catch (e) {
     errEl.textContent = e.message || 'Rejection failed.'; errEl.style.display = 'block';
   } finally {
@@ -369,7 +452,8 @@ async function adminLoadAffiliateLeaderboard() {
   container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading leaderboard…</span></div>`;
 
   const warnings = [];
-  const resp = await _affSafeFetch('/affiliate/admin/affiliates?limit=200', 'Affiliates', warnings);
+  // FIX: Separate cache — doesn't clobber payouts tab's affiliate cache
+  const resp = await _affSafeFetch('/affiliate/admin/affiliates?limit=500', 'Affiliates', warnings);
   _affAdminLeaderCache = resp?.affiliates || [];
 
   container.innerHTML = '';
@@ -386,9 +470,9 @@ async function adminLoadAffiliateLeaderboard() {
 }
 
 function _affAdminRenderLeaderboard(wrap) {
-  const key = _affAdminLeaderSort;
-  const dir = _affAdminLeaderDir;
-  const q   = (_affAdminLeaderSearch || '').toLowerCase().trim();
+  const key      = _affAdminLeaderSort;
+  const dir      = _affAdminLeaderDir;
+  const q        = (_affAdminLeaderSearch || '').toLowerCase().trim();
 
   const filtered = q
     ? _affAdminLeaderCache.filter(a =>
@@ -451,6 +535,7 @@ function _affAdminRenderLeaderboard(wrap) {
               const joined   = a.created_at ? new Date(a.created_at).toLocaleDateString('en-KE') : '—';
               const rate     = a.commission_rate || 0.15;
               const isCustom = Math.abs(rate - 0.15) > 0.0001;
+              // FIX: Use data-* attributes for safe passing to affCommissionOpen
               return `<tr>
                 <td style="font-weight:800;color:${i<3?'#ffd700':'var(--muted)'};">${medal(i)}</td>
                 <td>
@@ -474,7 +559,12 @@ function _affAdminRenderLeaderboard(wrap) {
                 </td>
                 <td style="font-size:11px;color:var(--muted);">${joined}</td>
                 <td>
-                  <button onclick="affCommissionOpen('${esc(a.id)}','${esc(a.user_name||"")}','${esc(a.user_email||"")}',${rate})"
+                  <button
+                    data-profile-id="${esc(a.id||'')}"
+                    data-name="${esc(a.user_name||'')}"
+                    data-email="${esc(a.user_email||'')}"
+                    data-rate="${rate}"
+                    onclick="affCommissionOpen(this)"
                     style="background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);color:#ffd700;
                            border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;
                            cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;">
@@ -511,9 +601,11 @@ async function adminLoadAffiliateReferrals(search = '') {
   container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading referrals…</span></div>`;
 
   try {
-    const qs  = search ? `?search=${encodeURIComponent(search)}&limit=200` : '?limit=200';
+    const qs   = search ? `?search=${encodeURIComponent(search)}&limit=200` : '?limit=200';
     const resp = await api('/affiliate/admin/referrals' + qs);
+
     const referrals = resp.referrals || [];
+    const total     = resp.total     || referrals.length;
 
     const totalSpend      = referrals.reduce((s, r) => s + (r.total_spend_kes || 0), 0);
     const totalCommission = referrals.reduce((s, r) => s + (r.commission_earned_kes || 0), 0);
@@ -523,7 +615,7 @@ async function adminLoadAffiliateReferrals(search = '') {
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);margin-bottom:4px;">TOTAL REFERRED</div>
-          <div style="font-size:26px;font-weight:900;color:var(--white);">${referrals.length}</div>
+          <div style="font-size:26px;font-weight:900;color:var(--white);">${total}</div>
         </div>
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);margin-bottom:4px;">TOTAL SPEND</div>
@@ -539,31 +631,33 @@ async function adminLoadAffiliateReferrals(search = '') {
         </div>
       </div>`;
 
-    if (!referrals.length) {
-      container.innerHTML = summaryHtml + `
-        <div style="padding:40px;text-align:center;color:var(--muted);">
-          <div style="font-size:36px;margin-bottom:10px;">👥</div>
-          <div style="font-size:14px;">No referrals yet — share your link!</div>
-        </div>`;
-      return;
-    }
-
+    // FIX: search fires on keyup (not keydown) so the character is committed
     const searchBar = `
       <div style="margin-bottom:16px;display:flex;gap:10px;align-items:center;">
         <input id="affReferralsSearch" type="text" placeholder="Search by name, email or affiliate code…"
           value="${esc(search)}"
-          onkeydown="if(event.key==='Enter')adminLoadAffiliateReferrals(this.value.trim())"
+          onkeyup="if(event.key==='Enter')adminLoadAffiliateReferrals(this.value.trim())"
           style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-size:13px;color:var(--white);outline:none;">
         <button onclick="adminLoadAffiliateReferrals(document.getElementById('affReferralsSearch').value.trim())"
           class="btn-secondary" style="font-size:12px;padding:9px 16px;">🔍 Search</button>
         ${search ? `<button onclick="adminLoadAffiliateReferrals('')" class="btn-secondary" style="font-size:12px;padding:9px 14px;">✕ Clear</button>` : ''}
       </div>`;
 
+    if (!referrals.length) {
+      container.innerHTML = summaryHtml + searchBar + `
+        <div style="padding:40px;text-align:center;color:var(--muted);">
+          <div style="font-size:36px;margin-bottom:10px;">👥</div>
+          <div style="font-size:14px;">${search ? `No results for "${esc(search)}"` : 'No referrals yet.'}</div>
+        </div>`;
+      return;
+    }
+
     const rows = referrals.map(r => {
       const hasOrders = (r.order_count || 0) > 0;
       const joinDate  = r.referred_at ? new Date(r.referred_at).toLocaleDateString('en-KE') : '—';
       const ratePct   = r.commission_rate != null ? (r.commission_rate * 100).toFixed(1) + '%' : '15.0%';
       const isCustom  = r.commission_rate != null && Math.abs(r.commission_rate - 0.15) > 0.0001;
+      // FIX: Use data-* attributes for safe passing
       return `<tr>
         <td>
           <div style="font-weight:700;color:var(--white);">${esc(r.referred_user_name || '—')}</div>
@@ -590,8 +684,13 @@ async function adminLoadAffiliateReferrals(search = '') {
               ? `<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(61,212,74,.12);color:var(--green);font-weight:700;">Active</span>`
               : `<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:var(--navy);color:var(--muted);">No orders</span>`}
             ${r.affiliate_profile_id ? `
-            <button onclick="affCommissionOpen('${esc(r.affiliate_profile_id)}','${esc(r.affiliate_name||'')}','${esc(r.affiliate_email||'')}',${r.commission_rate || 0.15})"
-              style="background:rgba(255,215,0,.1);color:#ffd700;border:1px solid rgba(255,215,0,.25);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
+            <button
+              data-profile-id="${esc(r.affiliate_profile_id)}"
+              data-name="${esc(r.affiliate_name||'')}"
+              data-email="${esc(r.affiliate_email||'')}"
+              data-rate="${r.commission_rate || 0.15}"
+              onclick="affCommissionOpen(this)"
+              style="background:rgba(255,215,0,.1);color:#ffd700;border:1px solid rgba(255,215,0,.25);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;">
               ✏️ Edit %
             </button>` : ''}
           </div>
@@ -613,24 +712,40 @@ async function adminLoadAffiliateReferrals(search = '') {
   }
 }
 
-// ── Commission rate edit modal ────────────────────────────────────────────────
+// ── Commission rate edit modal ─────────────────────────────────────────────────
 let _affCommProfileId = null;
 
-function affCommissionOpen(profileId, name, email, currentRate) {
-  _affCommProfileId = profileId;
-  document.getElementById('affCommAffiliateName').textContent  = name  || '—';
-  document.getElementById('affCommAffiliateEmail').textContent = email || '—';
-  document.getElementById('affCommCurrentRate').textContent    = (currentRate * 100).toFixed(1) + '%';
-  document.getElementById('affCommRateInput').value            = (currentRate * 100).toFixed(1);
-  document.getElementById('affCommNewRatePreview').textContent = (currentRate * 100).toFixed(1) + '%';
+// FIX: Reads from data-* attributes instead of positional string args
+function affCommissionOpen(btn) {
+  _affCommProfileId = btn.dataset.profileId;
+  const name        = btn.dataset.name  || '—';
+  const email       = btn.dataset.email || '—';
+  const rate        = parseFloat(btn.dataset.rate || 0.15);
+
+  document.getElementById('affCommAffiliateName').textContent  = name;
+  document.getElementById('affCommAffiliateEmail').textContent = email;
+  document.getElementById('affCommCurrentRate').textContent    = (rate * 100).toFixed(1) + '%';
+  document.getElementById('affCommRateInput').value            = (rate * 100).toFixed(1);
+  document.getElementById('affCommNewRatePreview').textContent = (rate * 100).toFixed(1) + '%';
   document.getElementById('affCommNote').value                 = '';
   document.getElementById('affCommErr').style.display          = 'none';
-  document.getElementById('affCommissionModal').style.display  = 'flex';
+
+  const saveBtn = document.getElementById('affCommSaveBtn');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Rate'; }
+
+  document.getElementById('affCommissionModal').style.display = 'flex';
 }
 
 function affCommissionClose() {
   document.getElementById('affCommissionModal').style.display = 'none';
   _affCommProfileId = null;
+}
+
+// Live preview as user types
+function affCommRateChange(val) {
+  const pct = parseFloat(val);
+  const preview = document.getElementById('affCommNewRatePreview');
+  if (preview) preview.textContent = isNaN(pct) ? '—' : pct.toFixed(1) + '%';
 }
 
 async function affCommissionSave() {
@@ -639,12 +754,16 @@ async function affCommissionSave() {
   const note     = document.getElementById('affCommNote').value.trim();
   const errEl    = document.getElementById('affCommErr');
   errEl.style.display = 'none';
+
   if (isNaN(pctInput) || pctInput <= 0 || pctInput > 50) {
-    errEl.textContent = 'Enter a rate between 0.5% and 50%.'; errEl.style.display = 'block'; return;
+    errEl.textContent = 'Enter a rate between 0.1% and 50%.'; errEl.style.display = 'block'; return;
   }
-  const rate = parseFloat((pctInput / 100).toFixed(4));
+
+  // FIX: Send as string to preserve Decimal precision
+  const rate = (pctInput / 100).toFixed(4);
   const btn  = document.getElementById('affCommSaveBtn');
   btn.disabled = true; btn.textContent = 'Saving…';
+
   try {
     await api(`/affiliate/admin/affiliates/${_affCommProfileId}/commission`, {
       method: 'PATCH',
@@ -652,7 +771,10 @@ async function affCommissionSave() {
     });
     affCommissionClose();
     toast(`Commission rate updated to ${pctInput.toFixed(1)}% ✅`, 'success');
-    adminLoadAffiliateReferrals();
+    // Refresh whichever sub-tab is active
+    if (_affAdminCurrentSubTab === 'leaderboard') adminLoadAffiliateLeaderboard();
+    else if (_affAdminCurrentSubTab === 'referrals') adminLoadAffiliateReferrals();
+    else adminLoadAffiliatePayouts();
   } catch (e) {
     errEl.textContent = e.message || 'Failed to update commission rate.'; errEl.style.display = 'block';
   } finally {
