@@ -1444,22 +1444,39 @@ async function adminLoadAffiliatePayouts(statusFilter) {
   if (!container) return;
   container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading affiliate data…</span></div>`;
 
-  try {
-    const [affResp, payResp] = await Promise.all([
-      api('/affiliate/admin/affiliates?limit=200'),
-      api('/affiliate/admin/payouts?status=all&limit=500'),
-    ]);
+  // Fetch each endpoint independently — a failure on one still renders the UI with zeros
+  const warnings = [];
 
-    _affAdminLeaderCache = affResp.affiliates || [];
-    _affAdminPayoutCache = payResp.payouts    || [];
+  const safeFetch = async (path, label) => {
+    try {
+      return await api(path);
+    } catch (e) {
+      warnings.push(`${label}: ${e.message || 'failed'}`);
+      return null;
+    }
+  };
 
-    container.innerHTML = '';
-    container.appendChild(_affAdminBuildStats());
-    container.appendChild(_affAdminBuildLeaderboard());
-    container.appendChild(_affAdminBuildQueue());
-  } catch (e) {
-    container.innerHTML = `<div style="color:#ff6b6b;padding:20px;">${esc(e.message || 'Failed to load affiliate data')}</div>`;
+  const [affResp, payResp] = await Promise.all([
+    safeFetch('/affiliate/admin/affiliates?limit=200', 'Affiliates'),
+    safeFetch('/affiliate/admin/payouts?status=all&limit=500', 'Payouts'),
+  ]);
+
+  _affAdminLeaderCache = affResp?.affiliates || [];
+  _affAdminPayoutCache = payResp?.payouts    || [];
+
+  container.innerHTML = '';
+
+  // Show a non-blocking warning banner if either fetch failed
+  if (warnings.length) {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:#ff6b6b;display:flex;align-items:center;gap:10px;';
+    banner.innerHTML = `<span style="font-size:16px;">⚠️</span><span><strong>Could not reach backend:</strong> ${warnings.map(esc).join(' · ')}<br><span style="color:var(--muted);">Showing last cached data or zeros. Check your connection and <button onclick="adminLoadAffiliatePayouts()" style="background:none;border:none;color:#ff9a3c;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;padding:0;">retry</button>.</span></span>`;
+    container.appendChild(banner);
   }
+
+  container.appendChild(_affAdminBuildStats());
+  container.appendChild(_affAdminBuildLeaderboard());
+  container.appendChild(_affAdminBuildQueue());
 }
 
 // ── Section 1: Summary stat cards ─────────────────────────────────────────────
