@@ -234,7 +234,7 @@ async function affDoOptin() {
     initAffiliatePage(true);
   } catch (e) {
     toast(e.message || 'Could not opt in. Please try again.', 'error');
-    if (btn) { btn.disabled = false; btn.textContent = '✅ Join Now — It's Free'; }
+    if (btn) { btn.disabled = false; btn.textContent = "✅ Join Now — It's Free"; }
   }
 }
 
