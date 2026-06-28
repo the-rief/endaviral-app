@@ -1474,9 +1474,17 @@ async function adminLoadAffiliatePayouts(statusFilter) {
     container.appendChild(banner);
   }
 
-  container.appendChild(_affAdminBuildStats());
-  container.appendChild(_affAdminBuildLeaderboard());
-  container.appendChild(_affAdminBuildQueue());
+  try {
+    container.appendChild(_affAdminBuildStats());
+    container.appendChild(_affAdminBuildLeaderboard());
+    container.appendChild(_affAdminBuildQueue());
+  } catch (renderErr) {
+    console.error('[adminLoadAffiliatePayouts] render error:', renderErr);
+    const errDiv = document.createElement('div');
+    errDiv.style.cssText = 'color:#ff6b6b;padding:20px;background:rgba(255,69,69,.08);border:1px solid rgba(255,69,69,.25);border-radius:10px;margin-top:12px;font-size:13px;';
+    errDiv.innerHTML = `<strong>Render error:</strong> ${esc(renderErr.message)}<br><span style="color:var(--muted);font-size:11px;">Open DevTools console for details.</span>`;
+    container.appendChild(errDiv);
+  }
 }
 
 // ── Section 1: Summary stat cards ─────────────────────────────────────────────
