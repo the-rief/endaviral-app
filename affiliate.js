@@ -123,7 +123,18 @@ async function initAffiliatePage(force = false) {
   if (!sec) return;
 
   const now = Date.now();
-  if (!force && _affCacheTs > 0 && (now - _affCacheTs) < AFF_CACHE_TTL && _affLastData) return;
+  const cacheWarm = !force && _affCacheTs > 0 && (now - _affCacheTs) < AFF_CACHE_TTL && _affLastData;
+  // BUG FIX: _updateAffiliateBadge() pre-warms the cache on login, so by the
+  // time the user clicks Refer & Earn the cache guard fires and returns early —
+  // but sec is still an empty <div> because _renderDashboard was never called.
+  // If cache is warm but sec has no rendered content, render from cached data
+  // immediately without a network fetch.
+  if (cacheWarm) {
+    if (sec.children.length === 0) {
+      _renderDashboard(sec, _affLastData);
+    }
+    return;
+  }
 
   sec.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading affiliate data…</span></div>`;
 
