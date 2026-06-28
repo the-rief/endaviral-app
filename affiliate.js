@@ -251,13 +251,16 @@ function _renderDashboard(sec, data) {
   const hasPendingPayout = (data.pending_payout_count || 0) > 0;
   const freeCredits      = data.free_credits_kes || 0;
   const monthlyRank      = data.monthly_rank || null;
+  // Use per-affiliate rate from backend (admin may have set a custom rate)
+  const commissionRate   = data.commission_rate || AFF_COMMISSION_RATE;
+  const commissionPct    = Math.round(commissionRate * 100);
 
   sec.innerHTML = `
   <!-- ══ HEADER ══ -->
   <div class="sec-hd" style="flex-wrap:wrap;gap:12px;margin-bottom:24px;">
     <div>
       <div class="sec-title">REFER &amp; EARN</div>
-      <div class="sec-sub">Earn ${Math.round(AFF_COMMISSION_RATE * 100)}% on every order your referrals place</div>
+      <div class="sec-sub">Earn ${commissionPct}% on every order your referrals place</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       ${hasPendingPayout
@@ -317,7 +320,7 @@ function _renderDashboard(sec, data) {
       <div style="display:flex;flex-direction:column;gap:12px;align-items:flex-end;">
         <div style="text-align:center;padding:14px 18px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.15);border-radius:12px;">
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Rate</div>
-          <div style="font-size:32px;font-weight:900;color:var(--green);">${Math.round(AFF_COMMISSION_RATE * 100)}%</div>
+          <div style="font-size:32px;font-weight:900;color:var(--green);">${commissionPct}%</div>
           <div style="font-size:10px;color:var(--muted);">per order</div>
           <button onclick="affCopyLink()" style="margin-top:10px;width:100%;background:var(--green);color:#000;border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;">📋 Copy Link</button>
         </div>
@@ -414,8 +417,8 @@ function _renderDashboard(sec, data) {
 
   <div id="affPane-commissions">${_affCommissionsPane(data.commissions || [])}</div>
   <div id="affPane-referrals" style="display:none;">${_affReferralsPane(data.referrals || [])}</div>
-  <div id="affPane-payouts" style="display:none;"><div class="loading-spinner"><div class="spinner"></div><span>Loading2026</span></div></div>
-  <div id="affPane-leaderboard" style="display:none;"><div class="loading-spinner"><div class="spinner"></div><span>Loading leaderboard2026</span></div></div>
+  <div id="affPane-payouts" style="display:none;"><div class="loading-spinner"><div class="spinner"></div><span>Loading payouts…</span></div></div>
+  <div id="affPane-leaderboard" style="display:none;"><div class="loading-spinner"><div class="spinner"></div><span>Loading leaderboard…</span></div></div>
   `;
 
   // Load payouts pane async on tab click
@@ -432,7 +435,7 @@ function _affCommissionsPane(commissions) {
     </div>`;
 
   return `<div class="tbl-wrap"><table>
-    <thead><tr><th>Date</th><th>From</th><th>Order Value</th><th>Commission (15%)</th><th>Status</th></tr></thead>
+    <thead><tr><th>Date</th><th>From</th><th>Order Value</th><th>Commission</th><th>Status</th></tr></thead>
     <tbody>${commissions.map(c => {
       const st = c.status || 'pending';
       const cls = st === 'paid' ? 'completed' : st === 'pending' ? 'pending' : 'processing';

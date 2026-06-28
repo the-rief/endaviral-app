@@ -1,8 +1,8 @@
 /* ═══════════════════ ENDAVIRAL CHAT WIDGET (DB-backed) ═══════════════════ */
 (function(){
-  const BOT_NAME    = 'EndaViral Bot';
+  const BOT_NAME    = 'Support Team';
   const ADMIN_NAME  = 'EndaViral Support';
-  const BOT_AVATAR  = '🦠';
+  const BOT_AVATAR  = '👤';
   const ADMIN_AVATAR = '👤';
   const SUPPORT_API = API + '/support';
 
@@ -39,14 +39,17 @@
           const detail = await _fetchThread(t.id);
           if (!detail) continue;
           threadMeta[tabKey] = { id: detail.id, status: detail.status };
-          lastSeenCount[tabKey] = (detail.messages || []).length;
+          
+          // Keep only last 10 messages for resource efficiency
+          const messages = (detail.messages || []).slice(-10);
+          lastSeenCount[tabKey] = messages.length;
 
           // Clear any local greeting that was pre-rendered
           const container = document.getElementById('ev-msgs-' + tabKey);
           container.innerHTML = '';
 
-          // Render full history
-          _renderMessages(tabKey, detail.messages || [], false);
+          // Render full history (only last 10 messages)
+          _renderMessages(tabKey, messages, false);
 
           // Show closed/resolved banner if needed
           _updateThreadBanner(tabKey, detail.status);
@@ -104,8 +107,10 @@
       // Clear local greeting, render server truth (includes bot greeting + user msg)
       const container = document.getElementById('ev-msgs-' + tabKey);
       container.innerHTML = '';
-      _renderMessages(tabKey, data.messages || [], false);
-      lastSeenCount[tabKey] = (data.messages || []).length;
+      // Keep only last 10 messages for resource efficiency
+      const messages = (data.messages || []).slice(-10);
+      _renderMessages(tabKey, messages, false);
+      lastSeenCount[tabKey] = messages.length;
 
       evStartPolling();
     } catch (_) {
@@ -516,11 +521,11 @@
       return;
     }
     evBotMsgLocal('order',
-      `👋 Hi there! I'm the EndaViral support bot.\n\nIf you placed a **wrong order** (wrong link, wrong quantity, wrong service), I can help fix it!\n\nJust tell me what happened and I'll walk you through it step by step.`,
+      `👋 Hi! How can we help you?\n\nIf you placed a **wrong order** (wrong link, wrong quantity, wrong service), let me know and I'll help you fix it.\n\nJust tell me what happened.`,
       true
     );
     evBotMsgLocal('delay',
-      `⏳ Hi! Experiencing a service delay?\n\nShare your **Order ID** (found in My Orders) and I'll check on it right away. Delays are usually resolved within a few hours.`,
+      `⏳ Hi! Experiencing a service delay?\n\nShare your **Order ID** (from My Orders) and I'll look into it right away.`,
       true
     );
     if (!state.open) {
@@ -588,7 +593,26 @@
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); evSend(tab); }
   };
 
-  /* ── Send ── */
+  /* ═══════════════════════════════════════════════════════════════
+     SMART INTENT CLASSIFIER — routes to right tab automatically
+  ═══════════════════════════════════════════════════════════════ */
+  function _classifyIntent(text) {
+    const t = text.toLowerCase();
+    if (/delay|stuck|not.*(start|deliver|move|progress|working)|slow|taking.*long|still.*waiting|no.*result|no.*change|haven.t.*received/i.test(t))
+      return 'delay';
+    if (/wrong.*(order|link|service|quantity|url)|changed.*link|bad.*link|incorrect.*(link|url|order)|ordered.*wrong|submitted.*wrong/i.test(t))
+      return 'order';
+    return 'order'; // default to order tab
+  }
+
+  window.evAutoDetectTab = function(text) {
+    const intent = _classifyIntent(text);
+    return intent === 'delay' ? 'delay' : 'order';
+  };
+
+  /* ═══════════════════════════════════════════════════════════════
+     SMART SEND — auto-routes based on intent
+  ═══════════════════════════════════════════════════════════════ */
   window.evSend = function(tab) {
     const input = document.getElementById('ev-input-' + tab);
     if (input.disabled) return;
@@ -624,6 +648,61 @@
      FAQ DETECTOR — answers common questions before they hit admin
      Returns true if the message was handled as a FAQ.
   ═══════════════════════════════════════════════════════════════ */
+  // ── Off-topic detector: user is trying to place/ask about a new order ──────
+  // Returns a bot reply string if off-topic, or null if it's a support issue.
+  function _checkOffTopic(tab, text) {
+    const t = text.toLowerCase().trim();
+
+    // "I want X" / "I need X" / "I'd like X" — new order intent
+    if (/^i (want|need|would like|wanna|need to get|want to get|want to buy)\b/i.test(t)) {
+      evTypingThen(tab, 900, () => {
+        evBotMsgLocal(tab,
+          `😊 Sounds like you want to **place a new order**!\n\n` +
+          `This support chat is for issues with *existing* orders. To place a new order:\n\n` +
+          `1. Click **New Order** in the left menu\n` +
+          `2. Search for the service you want\n` +
+          `3. Paste your profile/post link and confirm\n\n` +
+          `If you already placed an order and something went wrong, tell me what happened and I'll sort it out! 🔧`
+        );
+      });
+      return true;
+    }
+
+    // "how do I get followers / likes / views" — general new-order question
+    if (/how (do i|can i|to) (get|buy|order|boost|increase|grow).*(follower|like|view|subscriber|share|comment|retweet|watch)/i.test(t)) {
+      evTypingThen(tab, 900, () => {
+        evBotMsgLocal(tab,
+          `📦 **Ordering is easy!**\n\n` +
+          `1. Click **New Order** in the left menu\n` +
+          `2. Search for the service (e.g. *"Instagram Followers"*)\n` +
+          `3. Paste your **profile or post link**\n` +
+          `4. Enter the quantity and pay via **M-Pesa**\n\n` +
+          `Your order starts processing right after payment! If you have an *existing order* with an issue, just tell me what went wrong.`
+        );
+      });
+      return true;
+    }
+
+    // "will likes/followers help me" / "does X boost algorithm" — engagement education
+    if (/(does|do|will|can).*(like|follower|view|subscriber|share|comment).*(algorithm|spread|reach|viral|wider|audience|help|boost|grow|engage)/i.test(t) ||
+        /(algorithm|reach|viral|engagement).*(like|follower|view|subscriber|share)/i.test(t)) {
+      evTypingThen(tab, 1000, () => {
+        evBotMsgLocal(tab,
+          `📈 **Yes — social proof signals matter!**\n\n` +
+          `Here's how engagement helps:\n\n` +
+          `• **Likes & Views** — platforms like TikTok and Instagram use engagement rate to decide how widely to push content. More likes = more likely to hit the *For You* page.\n` +
+          `• **Followers** — a higher follower count builds trust, making new visitors more likely to follow and engage organically.\n` +
+          `• **Watch time (YouTube)** — more views with high watch time signals quality to the algorithm, boosting recommendations.\n\n` +
+          `💡 Our services give your content the initial push — the algorithm does the rest.\n\n` +
+          `Ready to boost? Click **New Order** to get started! 🚀`
+        );
+      });
+      return true;
+    }
+
+    return false;
+  }
+
   const _faqs = [
     {
       match: /how.long.*(start|begin|deliver|take)/i,
@@ -661,6 +740,8 @@
     const collectingData = (tab === 'order' && s.step >= 1 && s.step <= 4) ||
                            (tab === 'delay' && s.step === 1);
     if (collectingData) return false;
+    // Check off-topic FIRST (new order intents, algorithm questions)
+    if (_checkOffTopic(tab, text)) return true;
     for (const faq of _faqs) {
       if (faq.match.test(lower)) {
         evTypingThen(tab, 1000, () => { evBotMsgLocal(tab, faq.answer); });
@@ -676,10 +757,11 @@
   function _botFallback(tab) {
     evTypingThen(tab, 1100, () => {
       evBotMsgLocal(tab,
-        `🙋 I've passed your question to our support team — they'll get back to you within **12 hours**. We appreciate your patience!\n\n` +
-        `💸 While you wait, did you know you can **earn with EndaViral's Affiliate Program?**\n` +
-        `Share your referral link and earn a commission on every order your referrals place.\n\n` +
-        `👉 [**Check out the Affiliate Program →**](/refer-and-earn)`
+        `🤔 I'm not sure I understood that — let me clarify what I can help with here:\n\n` +
+        `• **Wrong order?** Tell me what went wrong (wrong link, wrong service, wrong quantity)\n` +
+        `• **Order delayed?** Share your **Order ID** and I'll escalate it\n` +
+        `• **Want to place a new order?** Click **New Order** in the menu\n\n` +
+        `If none of the above fits, type *"connect with team"* and I'll bring in a real person right away.`
       );
     });
   }
@@ -695,21 +777,21 @@
     const initial = (user.name || 'U').charAt(0).toUpperCase();
 
     // Show user's chip tap as a message
-    evUserMsgLocal(tab, 'Talk to a human 🙋', initial);
+    evUserMsgLocal(tab, 'Connect with team', initial);
     lastSeenCount[tab]++;
 
     if (!threadMeta[tab]) {
       // No thread yet — open one now with the escalation as first message
-      evOpenThread(tab, '[Human escalation requested] Customer wants to speak with support directly.');
+      evOpenThread(tab, '[Support escalation] Customer requesting human support.');
     } else {
-      evPostMessage(tab, '[Human escalation requested] Customer wants to speak with support directly.');
+      evPostMessage(tab, '[Support escalation] Customer requesting human support.');
     }
 
     evTypingThen(tab, 900, () => {
       evBotMsgLocal(tab,
-        `✅ Got it! I've flagged this conversation for our support team.\n\n` +
-        `A human agent will reply here within **12 hours** (usually much sooner). ` +
-        `Feel free to type any extra details below and we'll pick them up when we respond.`
+        `✅ I'm passing this to our support team right now.\n\n` +
+        `Someone will get back to you within **12 hours** (usually much sooner). ` +
+        `Feel free to add any extra details below and we'll see them.`
       );
     });
   };
@@ -737,6 +819,8 @@
     if (_checkFaq('order', text)) return;
 
     if (s.step === 0) {
+      // If it's clearly a new-order intent, _checkFaq already handled it above.
+      // If we get here it's a genuine support message — proceed.
       s.step = 1;
       evTypingThen('order', 1400, () => {
         evBotMsgLocal('order',
