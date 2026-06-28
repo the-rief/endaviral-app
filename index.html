@@ -1907,6 +1907,11 @@ tbody td{padding:13px 16px;font-size:14px;}
               style="padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--green);color:var(--green);white-space:nowrap;margin-bottom:-1px;transition:all .2s;">
               💸 Payout Queue
             </div>
+            <div id="affSubTab-leaderboard"
+              onclick="affAdminSubTab('leaderboard')"
+              style="padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap;margin-bottom:-1px;transition:all .2s;">
+              🏆 Leaderboard
+            </div>
             <div id="affSubTab-referrals"
               onclick="affAdminSubTab('referrals')"
               style="padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap;margin-bottom:-1px;transition:all .2s;">
@@ -1917,6 +1922,11 @@ tbody td{padding:13px 16px;font-size:14px;}
           <!-- Payouts pane -->
           <div id="affAdminPane-payouts">
             <div id="adminAffiliatePayouts"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+          </div>
+
+          <!-- Leaderboard pane (hidden initially) -->
+          <div id="affAdminPane-leaderboard" style="display:none;">
+            <div id="adminAffiliateLeaderboard"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
           </div>
 
           <!-- Referrals pane (hidden initially) -->
