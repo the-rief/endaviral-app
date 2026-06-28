@@ -166,12 +166,12 @@ async function initAffiliatePage(force = false) {
     data = await api('/affiliate/dashboard');
     _affCacheTs = Date.now();
   } catch (e) {
-    // 404 = not opted in yet — show opt-in prompt instead
-    if (e.status === 404 || (e.message && e.message.includes('opt'))) {
+    // 404 = not opted in — show the join screen
+    if (e.status === 404) {
       notYetOptin = true;
     } else {
-      // Graceful fallback with zeroes
-      data = _affFallback();
+      // Network/server error — show join screen rather than broken dashboard
+      notYetOptin = true;
     }
   }
 
@@ -217,7 +217,7 @@ function _renderOptIn(sec) {
       `).join('')}
     </div>
 
-    <button onclick="affDoOptin()" style="background:var(--green);color:#000;border:none;border-radius:14px;padding:16px 48px;font-size:16px;font-weight:900;cursor:pointer;letter-spacing:.3px;">
+    <button id="affJoinBtn" onclick="affDoOptin()" style="background:var(--green);color:#000;border:none;border-radius:14px;padding:16px 48px;font-size:16px;font-weight:900;cursor:pointer;letter-spacing:.3px;">
       ✅ Join Now — It's Free
     </button>
     <div style="font-size:11px;color:var(--muted);margin-top:12px;">Instant activation. No approval needed.</div>
@@ -225,12 +225,16 @@ function _renderOptIn(sec) {
 }
 
 async function affDoOptin() {
+  const btn = document.getElementById('affJoinBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Joining…'; }
   try {
     await api('/affiliate/optin', { method: 'POST' });
     toast('Welcome to the affiliate programme! 🎉', 'success');
-    initAffiliatePage();
+    _affCacheTs = 0; // bust cache so dashboard re-fetches fresh data
+    initAffiliatePage(true);
   } catch (e) {
     toast(e.message || 'Could not opt in. Please try again.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '✅ Join Now — It's Free'; }
   }
 }
 

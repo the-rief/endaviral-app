@@ -1430,9 +1430,10 @@ function _adminAffTier(spend) {
 }
 
 // ─── Panel-level state ────────────────────────────────────────────────────────
-let _affAdminLeaderSort  = 'earned';
-let _affAdminLeaderDir   = -1;
-let _affAdminLeaderCache = [];
+let _affAdminLeaderSort   = 'earned';
+let _affAdminLeaderDir    = -1;
+let _affAdminLeaderCache  = [];
+let _affAdminLeaderSearch = '';
 let _affAdminPayoutCache = [];
 let _affAdminPayoutFilter = 'pending';
 
@@ -1537,8 +1538,17 @@ function _affAdminBuildLeaderboard() {
 function _affAdminRenderLeaderboard(wrap) {
   const key = _affAdminLeaderSort;
   const dir = _affAdminLeaderDir;
+  const q   = (_affAdminLeaderSearch || '').toLowerCase().trim();
 
-  const sorted = [..._affAdminLeaderCache].sort((a, b) => {
+  const filtered = q
+    ? _affAdminLeaderCache.filter(a =>
+        (a.user_email    || '').toLowerCase().includes(q) ||
+        (a.user_name     || '').toLowerCase().includes(q) ||
+        (a.referral_code || '').toLowerCase().includes(q)
+      )
+    : _affAdminLeaderCache;
+
+  const sorted = [...filtered].sort((a, b) => {
     const vals = {
       earned:    [a.total_earned_kes,   b.total_earned_kes],
       referrals: [a.total_referrals,    b.total_referrals],
@@ -1552,9 +1562,9 @@ function _affAdminRenderLeaderboard(wrap) {
   const sBtn = (k, label) => {
     const active = key === k;
     return `<button onclick="_affAdminSortLeader('${k}')"
-      style="background:${active?'rgba(61,212,74,.15)':'var(--card2)'};
-             border:1px solid ${active?'rgba(61,212,74,.4)':'var(--border)'};
-             color:${active?'var(--green)':'var(--muted)'};
+      style="background:${active?'rgba(61,212,74,.15)':`var(--card2)`};
+             border:1px solid ${active?'rgba(61,212,74,.4)':`var(--border)`};
+             color:${active?`var(--green)`:`var(--muted)`};
              border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;
              cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;">
       ${label}${active?(dir===-1?' ↓':' ↑'):''}
@@ -1565,25 +1575,38 @@ function _affAdminRenderLeaderboard(wrap) {
 
   wrap.innerHTML = `
     <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">
-      🏆 ALL AFFILIATES (${sorted.length})
+      🏆 ALL AFFILIATES (${filtered.length}${q ? ' of ' + _affAdminLeaderCache.length : ''})
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
-      <span style="font-size:11px;color:var(--muted);">Sort:</span>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+      <input id="affLeaderSearch" type="text"
+        value="${esc(q)}"
+        placeholder="Search by email, name or code…"
+        oninput="_affAdminLeaderSearchInput(this.value)"
+        style="flex:1;min-width:200px;max-width:320px;background:var(--navy);border:1px solid var(--border);
+               border-radius:8px;padding:7px 12px;font-size:12px;color:var(--white);
+               font-family:'Montserrat',sans-serif;outline:none;">
+      <span style="font-size:11px;color:var(--muted);margin-left:4px;">Sort:</span>
       ${sBtn('earned','💰 Earned')} ${sBtn('referrals','👥 Referrals')} ${sBtn('spend','🛒 Spend')} ${sBtn('pending','⏳ Pending')}
     </div>
+
     ${!sorted.length
-      ? `<div style="padding:32px;text-align:center;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:14px;">No affiliates yet.</div>`
+      ? `<div style="padding:32px;text-align:center;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:14px;">
+           ${q ? `No affiliates matching <strong style="color:var(--white);">"${esc(q)}"</strong>` : 'No affiliates yet.'}
+         </div>`
       : `<div class="tbl-wrap"><table>
           <thead><tr>
             <th>#</th><th>Affiliate</th><th>Tier</th><th>Code</th>
             <th>Referrals</th><th>Ref. Spend</th><th>Total Earned</th>
-            <th>Pending</th><th>Paid Out</th><th>Rate</th><th>Joined</th>
+            <th>Pending</th><th>Paid Out</th><th>Rate</th><th>Joined</th><th></th>
           </tr></thead>
           <tbody>
             ${sorted.map((a,i) => {
-              const tier   = _adminAffTier(a.referral_spend_kes||0);
-              const pend   = a.pending_kes||0;
-              const joined = a.created_at ? new Date(a.created_at).toLocaleDateString('en-KE') : '—';
+              const tier     = _adminAffTier(a.referral_spend_kes||0);
+              const pend     = a.pending_kes||0;
+              const joined   = a.created_at ? new Date(a.created_at).toLocaleDateString('en-KE') : '—';
+              const rate     = a.commission_rate || 0.15;
+              const isCustom = Math.abs(rate - 0.15) > 0.0001;
               return `<tr>
                 <td style="font-weight:800;color:${i<3?'#ffd700':'var(--muted)'};">${medal(i)}</td>
                 <td>
@@ -1600,18 +1623,35 @@ function _affAdminRenderLeaderboard(wrap) {
                 <td style="font-weight:800;color:var(--green);">${fmtKES(a.total_earned_kes||0)}</td>
                 <td style="font-weight:700;color:${pend>0?'#ff9a3c':'var(--muted)'};">${fmtKES(pend)}</td>
                 <td style="color:var(--muted);font-size:13px;">${fmtKES(a.paid_kes||0)}</td>
-                <td style="font-size:12px;color:var(--muted);">${((a.commission_rate||0.15)*100).toFixed(0)}%</td>
+                <td>
+                  <span style="font-size:12px;color:${isCustom?'#ffd700':'var(--muted)'};font-weight:${isCustom?'800':'400'};">
+                    ${(rate*100).toFixed(0)}%${isCustom?' ★':''}
+                  </span>
+                </td>
                 <td style="font-size:11px;color:var(--muted);">${joined}</td>
+                <td>
+                  <button onclick="affCommissionOpen('${esc(a.id)}','${esc(a.user_name||"")}','${esc(a.user_email||"")}',${rate})"
+                    style="background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);color:#ffd700;
+                           border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;
+                           cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;">
+                    ✏️ Edit %
+                  </button>
+                </td>
               </tr>`;
             }).join('')}
           </tbody>
         </table></div>`
     }`;
 }
-
 function _affAdminSortLeader(key) {
   if (_affAdminLeaderSort === key) { _affAdminLeaderDir *= -1; }
   else { _affAdminLeaderSort = key; _affAdminLeaderDir = -1; }
+  const wrap = document.getElementById('_affAdminLeaderWrap');
+  if (wrap) _affAdminRenderLeaderboard(wrap);
+}
+
+function _affAdminLeaderSearchInput(val) {
+  _affAdminLeaderSearch = val;
   const wrap = document.getElementById('_affAdminLeaderWrap');
   if (wrap) _affAdminRenderLeaderboard(wrap);
 }

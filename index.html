@@ -3370,26 +3370,34 @@ body:has(.tnc-overlay.show) #ev-chat-widget{
   </div>
 </div>
 <script>
-// Hide affiliate promo banner on dashboard if user is already opted in as affiliate
+// Swap dashboard affiliate banner to compact teaser if user is already opted in
 async function _maybeHideAffBanner() {
   const banner = document.getElementById('dashAffBanner');
-  if (!banner) return;
+  if (!banner || !token) return;
   try {
-    await api('/affiliate/dashboard');
-    // Already an affiliate — show a smaller "earnings" teaser instead of full promo
+    const data = await api('/affiliate/dashboard');
+    // Already an affiliate — show compact earnings teaser linking to the page
+    const pending = data.pending_kes || 0;
+    const earned  = data.total_earned_kes || 0;
     banner.innerHTML = `
       <style>#dashAffBanner{cursor:pointer;}#dashAffBanner:hover{border-color:rgba(61,212,74,.55);}</style>
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;" onclick="navTo('affiliate')">
         <div style="font-size:22px;">💸</div>
         <div style="flex:1;min-width:160px;">
-          <div style="font-size:13px;font-weight:800;color:var(--white);">Your Affiliate Programme</div>
-          <div style="font-size:12px;color:var(--muted);">Check your earnings, referral link &amp; payout history</div>
+          <div style="font-size:13px;font-weight:800;color:var(--white);">Your Affiliate Earnings</div>
+          <div style="font-size:12px;color:var(--muted);">
+            Total: <strong style="color:var(--green);">${fmtKES(earned)}</strong>
+            &nbsp;·&nbsp; Available: <strong style="color:var(--green);">${fmtKES(pending)}</strong>
+          </div>
         </div>
-        <button onclick="event.stopPropagation();navTo('affiliate')" style="background:rgba(61,212,74,.12);border:1px solid rgba(61,212,74,.25);color:var(--green);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Montserrat',sans-serif;">View →</button>
+        <button onclick="event.stopPropagation();navTo('affiliate')"
+          style="background:rgba(61,212,74,.12);border:1px solid rgba(61,212,74,.25);color:var(--green);
+                 border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;
+                 font-family:'Montserrat',sans-serif;">View →</button>
       </div>`;
     banner.style.padding = '14px 18px';
   } catch (e) {
-    // Not opted in — keep the full promo banner visible (default)
+    // 404 = not opted in yet — keep the full promo banner with "Start Earning →"
   }
 }
 </script>
