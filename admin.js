@@ -23,7 +23,7 @@ function adminTab(tab, el) {
   if (tab === 'users') loadAdminUsers();
   if (tab === 'allorders') loadAdminOrders();
   if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); }
-  if (tab === 'stats') loadAdminStats();
+  if (tab === 'stats') { loadAdminStats(); loadAdminTrends(); }
   if (tab === 'providers') loadAdminProviders();
   if (tab === 'support') loadAdminSupport();
   if (tab === 'create-order') initAdminCreateOrder();
@@ -352,6 +352,192 @@ async function loadAdminStats(force = false) {
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
     breakdownPanel.style.display = 'none';
+  }
+}
+
+
+/* ══════════════════ GROWTH & TRENDS (scaling analytics) ══════════════════ */
+
+let _adminTrendsCacheTs = 0;
+const ADMIN_TRENDS_TTL = 60 * 1000;
+let _adminTrendsWindow = 14;
+
+function _sparklineSvg(values, color, w = 600, h = 70) {
+  if (!values.length) return '';
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = (max - min) || 1;
+  const step = w / Math.max(values.length - 1, 1);
+  const pts = values.map((v, i) => {
+    const x = Math.round(i * step);
+    const y = Math.round(h - ((v - min) / range) * (h - 8) - 4);
+    return `${x},${y}`;
+  });
+  const lastX = Math.round((values.length - 1) * step);
+  const lastY = Math.round(h - ((values[values.length - 1] - min) / range) * (h - 8) - 4);
+  const areaPts = `0,${h} ${pts.join(' ')} ${w},${h}`;
+  return `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:${h}px;display:block;">
+      <polyline points="${areaPts}" fill="${color}" opacity="0.08" stroke="none"></polyline>
+      <polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline>
+      <circle cx="${lastX}" cy="${lastY}" r="4" fill="${color}"></circle>
+    </svg>`;
+}
+
+function _growthBadge(pct) {
+  if (pct === null || pct === undefined) return `<span style="font-size:11px;color:var(--muted);">—</span>`;
+  const up = pct >= 0;
+  const color = up ? 'var(--green)' : 'var(--red)';
+  const arrow = up ? '▲' : '▼';
+  return `<span style="font-size:12px;font-weight:700;color:${color};">${arrow} ${Math.abs(pct)}%</span>`;
+}
+
+async function loadAdminTrends(force = false, days = null) {
+  if (days) _adminTrendsWindow = days;
+  const now = Date.now();
+  if (!force && _adminTrendsCacheTs > 0 && (now - _adminTrendsCacheTs) < ADMIN_TRENDS_TTL) return;
+  const el = document.getElementById('adminTrendsPanel');
+  if (!el) return; // markup not present yet — safe no-op
+  el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading trends…</span></div>`;
+
+  try {
+    const t = await api(`/admin/stats/trends?days=${_adminTrendsWindow}`);
+    _adminTrendsCacheTs = Date.now();
+
+    const daily = t.daily || [];
+    const g = t.growth || {};
+    const funnel = t.funnel || {};
+    const topServices = t.top_services || [];
+    const customers = t.customers || {};
+    const burn = t.balance_burn || {};
+
+    const salesVals  = daily.map(d => d.sales_kes || 0);
+    const orderVals  = daily.map(d => d.orders || 0);
+    const signupVals = daily.map(d => d.new_users || 0);
+
+    // ── Burn-rate warning banner ────────────────────────────────────────────
+    let burnBanner = '';
+    if (burn.burn_usd_per_day && burn.burn_usd_per_day > 0) {
+      const critical = burn.days_until_empty !== null && burn.days_until_empty <= 3;
+      const warn = burn.days_until_empty !== null && burn.days_until_empty <= 7;
+      const bg = critical ? 'rgba(229,57,53,.10)' : warn ? 'rgba(255,112,67,.10)' : 'rgba(61,212,74,.08)';
+      const border = critical ? 'rgba(229,57,53,.3)' : warn ? 'rgba(255,112,67,.3)' : 'rgba(61,212,74,.25)';
+      const fg = critical ? '#ff8a80' : warn ? 'var(--orange)' : 'var(--green)';
+      burnBanner = `
+        <div style="background:${bg};border:1px solid ${border};border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${fg};margin-bottom:4px;">🔥 Panel Balance Burn Rate</div>
+            <div style="font-size:13px;color:var(--muted);">Spending ~<b style="color:${fg};">$${burn.burn_usd_per_day.toFixed(2)}/day</b>${burn.days_until_empty !== null ? ` · projected to run out in <b style="color:${fg};">${burn.days_until_empty} day${burn.days_until_empty == 1 ? '' : 's'}</b> at this pace` : ''}</div>
+          </div>
+        </div>`;
+    }
+
+    // ── Sparkline cards ──────────────────────────────────────────────────────
+    const windowPicker = `
+      <div style="display:flex;gap:6px;">
+        ${[7, 14, 30].map(d => `<button onclick="loadAdminTrends(true, ${d})" style="background:${d === _adminTrendsWindow ? 'var(--green)' : 'var(--card)'};color:${d === _adminTrendsWindow ? '#04140a' : 'var(--muted)'};border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">${d}D</button>`).join('')}
+      </div>`;
+
+    const sparkCards = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:20px;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Sales (last 7d)</div>
+              <div style="font-size:20px;font-weight:800;color:var(--white);margin-top:2px;">${fmtKES(g.this_week ? g.this_week.sales_kes : 0)}</div>
+            </div>
+            ${_growthBadge(g.sales_wow_pct)}
+          </div>
+          ${_sparklineSvg(salesVals, '#3dd44a')}
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Orders (last 7d)</div>
+              <div style="font-size:20px;font-weight:800;color:var(--white);margin-top:2px;">${g.this_week ? g.this_week.orders : 0}</div>
+            </div>
+            ${_growthBadge(g.orders_wow_pct)}
+          </div>
+          ${_sparklineSvg(orderVals, '#ff7043')}
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">New Users (last 7d)</div>
+              <div style="font-size:20px;font-weight:800;color:var(--white);margin-top:2px;">${g.this_week ? g.this_week.new_users : 0}</div>
+            </div>
+            ${_growthBadge(g.users_wow_pct)}
+          </div>
+          ${_sparklineSvg(signupVals, '#2196f3')}
+        </div>
+      </div>`;
+
+    // ── Order status funnel ───────────────────────────────────────────────────
+    const funnelOrder = ['pending', 'processing', 'partial', 'completed', 'failed', 'cancelled'];
+    const funnelColors = { pending:'#7a8fad', processing:'#2196f3', partial:'#ff7043', completed:'#3dd44a', failed:'#e53935', cancelled:'#7a8fad' };
+    const funnelTotal = Object.values(funnel).reduce((a, b) => a + b, 0) || 1;
+    const funnelHtml = funnelOrder
+      .filter(k => funnel[k] !== undefined)
+      .map(k => {
+        const count = funnel[k] || 0;
+        const pct = Math.round((count / funnelTotal) * 100);
+        return `<div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span style="color:var(--muted);text-transform:capitalize;">${esc(k)}</span>
+            <span style="color:var(--white);font-weight:700;">${count} <span style="color:var(--muted);font-weight:500;">(${pct}%)</span></span>
+          </div>
+          <div style="height:6px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${funnelColors[k] || '#7a8fad'};border-radius:4px;"></div>
+          </div>
+        </div>`;
+      }).join('') || `<div style="font-size:12px;color:var(--muted);">No orders in this window.</div>`;
+
+    // ── Top services table ───────────────────────────────────────────────────
+    const topServicesHtml = topServices.length
+      ? topServices.map((s, i) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;${i < topServices.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,.05);' : ''}">
+            <div style="font-size:12px;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%;" title="${esc(s.service)}">${i + 1}. ${esc(s.service)}</div>
+            <div style="text-align:right;">
+              <div style="font-size:12px;font-weight:700;color:var(--green);">${fmtKES(s.revenue_kes)}</div>
+              <div style="font-size:10px;color:var(--muted);">${s.orders} order${s.orders === 1 ? '' : 's'}</div>
+            </div>
+          </div>`).join('')
+      : `<div style="font-size:12px;color:var(--muted);">No service revenue in this window.</div>`;
+
+    // ── Repeat customer rate ──────────────────────────────────────────────────
+    const repeatCard = `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">🔁 Repeat-Customer Rate</div>
+        <div style="font-size:28px;font-weight:800;color:var(--white);">${customers.repeat_rate_pct ?? 0}%</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">${customers.repeat_customers || 0} of ${customers.customers_with_orders || 0} paying customers have ordered 2+ times</div>
+      </div>`;
+
+    // ── Assemble ──────────────────────────────────────────────────────────────
+    el.innerHTML = `
+      ${burnBanner}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">📈 Growth & Trends</div>
+        ${windowPicker}
+      </div>
+      ${sparkCards}
+      <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px;" id="adminTrendsLowerGrid">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🧭 Order Status Funnel (${_adminTrendsWindow}d)</div>
+          ${funnelHtml}
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🏆 Top 5 Services (${_adminTrendsWindow}d)</div>
+          ${topServicesHtml}
+        </div>
+        ${repeatCard}
+      </div>
+      <style>
+        @media (max-width: 900px) {
+          #adminTrendsLowerGrid { grid-template-columns: 1fr !important; }
+        }
+      </style>`;
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
   }
 }
 
