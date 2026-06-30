@@ -384,6 +384,112 @@ function _sparklineSvg(values, color, w = 600, h = 70) {
     </svg>`;
 }
 
+function _fmtShortDate(iso) {
+  try {
+    const dt = new Date(iso + 'T00:00:00Z');
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  } catch (e) { return iso; }
+}
+
+// Combined bar + line chart: bars = count metric (left axis), line = value
+// metric (right axis, independently scaled so small/large numbers both read
+// clearly). Used for Orders (bars) + Sales KES (line) per day.
+function _comboChartSvg(daily, { barColor = '#ff7043', lineColor = '#3dd44a', barKey = 'orders', valueKey = 'sales_kes', barLabel = 'orders', valueFmt = (v) => v, w = 700, h = 230 } = {}) {
+  if (!daily.length) return `<div style="font-size:12px;color:var(--muted);padding:30px 0;text-align:center;">No data in this window.</div>`;
+
+  const padTop = 22, padBottom = 26, padX = 4;
+  const plotW = w - padX * 2;
+  const plotH = h - padTop - padBottom;
+  const n = daily.length;
+  const step = plotW / n;
+  const barW = Math.max(2, Math.min(26, step * 0.55));
+
+  const counts = daily.map(d => d[barKey] || 0);
+  const values = daily.map(d => d[valueKey] || 0);
+  const maxCount = Math.max(...counts, 1) * 1.15;
+  const maxValue = Math.max(...values, 1) * 1.15;
+
+  const bars = daily.map((d, i) => {
+    const cx = padX + step * i + step / 2;
+    const bh = (counts[i] / maxCount) * plotH;
+    const x = cx - barW / 2;
+    const y = padTop + plotH - bh;
+    // Show the count above the bar. With many days on screen at once, only
+    // label every Nth bar so the numbers don't overlap each other.
+    const labelEvery = n <= 16 ? 1 : Math.ceil(n / 16);
+    const showLabel = counts[i] > 0 && (i % labelEvery === 0 || i === n - 1);
+    const countLabel = showLabel
+      ? `<text x="${cx.toFixed(1)}" y="${Math.max(y - 4, 10).toFixed(1)}" font-size="9" fill="${barColor}" text-anchor="middle" font-weight="700">${counts[i]}</text>`
+      : '';
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(bh, 0).toFixed(1)}" rx="2" fill="${barColor}" opacity="0.85"><title>${esc(d.date)}: ${counts[i]} ${esc(barLabel)}</title></rect>${countLabel}`;
+  }).join('');
+
+  const ptCoords = daily.map((d, i) => {
+    const cx = padX + step * i + step / 2;
+    const cy = padTop + plotH - (values[i] / maxValue) * plotH;
+    return { cx, cy };
+  });
+  const linePts = ptCoords.map(p => `${p.cx.toFixed(1)},${p.cy.toFixed(1)}`).join(' ');
+  const dots = daily.map((d, i) => {
+    const { cx, cy } = ptCoords[i];
+    return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3" fill="${lineColor}" stroke="var(--card)" stroke-width="1"><title>${esc(d.date)}: ${esc(String(valueFmt(values[i])))}</title></circle>`;
+  }).join('');
+
+  const labelEvery = Math.max(1, Math.ceil(n / 7));
+  const labels = daily.map((d, i) => {
+    if (i % labelEvery !== 0 && i !== n - 1) return '';
+    const cx = padX + step * i + step / 2;
+    return `<text x="${cx.toFixed(1)}" y="${h - 8}" font-size="9" fill="#7a8fad" text-anchor="middle">${esc(_fmtShortDate(d.date))}</text>`;
+  }).join('');
+
+  return `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:${h}px;display:block;">
+      ${bars}
+      <polyline points="${linePts}" fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline>
+      ${dots}
+      ${labels}
+    </svg>`;
+}
+
+// Bar-only chart (used for New Users — a count with no paired value metric).
+function _barChartSvg(daily, { key = 'new_users', color = '#2196f3', label = 'new users', w = 700, h = 150 } = {}) {
+  if (!daily.length) return `<div style="font-size:12px;color:var(--muted);padding:20px 0;text-align:center;">No data in this window.</div>`;
+  const padTop = 18, padBottom = 22, padX = 4;
+  const plotW = w - padX * 2;
+  const plotH = h - padTop - padBottom;
+  const n = daily.length;
+  const step = plotW / n;
+  const barW = Math.max(2, Math.min(26, step * 0.55));
+  const counts = daily.map(d => d[key] || 0);
+  const maxCount = Math.max(...counts, 1) * 1.15;
+
+  const bars = daily.map((d, i) => {
+    const cx = padX + step * i + step / 2;
+    const bh = (counts[i] / maxCount) * plotH;
+    const x = cx - barW / 2;
+    const y = padTop + plotH - bh;
+    const labelEvery = n <= 16 ? 1 : Math.ceil(n / 16);
+    const showLabel = counts[i] > 0 && (i % labelEvery === 0 || i === n - 1);
+    const countLabel = showLabel
+      ? `<text x="${cx.toFixed(1)}" y="${Math.max(y - 4, 10).toFixed(1)}" font-size="9" fill="${color}" text-anchor="middle" font-weight="700">${counts[i]}</text>`
+      : '';
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(bh, 0).toFixed(1)}" rx="2" fill="${color}" opacity="0.85"><title>${esc(d.date)}: ${counts[i]} ${esc(label)}</title></rect>${countLabel}`;
+  }).join('');
+
+  const labelEvery = Math.max(1, Math.ceil(n / 5));
+  const labels = daily.map((d, i) => {
+    if (i % labelEvery !== 0 && i !== n - 1) return '';
+    const cx = padX + step * i + step / 2;
+    return `<text x="${cx.toFixed(1)}" y="${h - 6}" font-size="9" fill="#7a8fad" text-anchor="middle">${esc(_fmtShortDate(d.date))}</text>`;
+  }).join('');
+
+  return `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:${h}px;display:block;">
+      ${bars}
+      ${labels}
+    </svg>`;
+}
+
 function _growthBadge(pct) {
   if (pct === null || pct === undefined) return `<span style="font-size:11px;color:var(--muted);">—</span>`;
   const up = pct >= 0;
@@ -411,10 +517,6 @@ async function loadAdminTrends(force = false, days = null) {
     const customers = t.customers || {};
     const burn = t.balance_burn || {};
 
-    const salesVals  = daily.map(d => d.sales_kes || 0);
-    const orderVals  = daily.map(d => d.orders || 0);
-    const signupVals = daily.map(d => d.new_users || 0);
-
     // ── Burn-rate warning banner ────────────────────────────────────────────
     let burnBanner = '';
     if (burn.burn_usd_per_day && burn.burn_usd_per_day > 0) {
@@ -432,44 +534,43 @@ async function loadAdminTrends(force = false, days = null) {
         </div>`;
     }
 
-    // ── Sparkline cards ──────────────────────────────────────────────────────
-    const windowPicker = `
-      <div style="display:flex;gap:6px;">
-        ${[7, 14, 30].map(d => `<button onclick="loadAdminTrends(true, ${d})" style="background:${d === _adminTrendsWindow ? 'var(--green)' : 'var(--card)'};color:${d === _adminTrendsWindow ? '#04140a' : 'var(--muted)'};border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">${d}D</button>`).join('')}
-      </div>`;
+    // ── Combo chart: Orders (bars) + Sales KES (line) per day ───────────────
+    const comboChart = _comboChartSvg(daily, {
+      barColor: '#ff7043',
+      lineColor: '#3dd44a',
+      barKey: 'orders',
+      valueKey: 'sales_kes',
+      barLabel: 'orders',
+      valueFmt: (v) => fmtKES(v),
+    });
 
-    const sparkCards = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:20px;">
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-            <div>
-              <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Sales (last 7d)</div>
-              <div style="font-size:20px;font-weight:800;color:var(--white);margin-top:2px;">${fmtKES(g.this_week ? g.this_week.sales_kes : 0)}</div>
+    const usersChart = _barChartSvg(daily, { key: 'new_users', color: '#2196f3', label: 'new users', h: 130 });
+
+    const comboCard = `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:6px;">
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Orders &amp; Sales — count + value per day</div>
+            <div style="display:flex;gap:14px;align-items:baseline;margin-top:4px;flex-wrap:wrap;">
+              <div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(g.this_week ? g.this_week.sales_kes : 0)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> sales/7d</span> ${_growthBadge(g.sales_wow_pct)}</div>
+              <div style="font-size:20px;font-weight:800;color:var(--white);">${g.this_week ? g.this_week.orders : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> orders/7d</span> ${_growthBadge(g.orders_wow_pct)}</div>
             </div>
-            ${_growthBadge(g.sales_wow_pct)}
           </div>
-          ${_sparklineSvg(salesVals, '#3dd44a')}
-        </div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-            <div>
-              <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Orders (last 7d)</div>
-              <div style="font-size:20px;font-weight:800;color:var(--white);margin-top:2px;">${g.this_week ? g.this_week.orders : 0}</div>
-            </div>
-            ${_growthBadge(g.orders_wow_pct)}
+          <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);">
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#ff7043;display:inline-block;"></span>Orders (count)</span>
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:2.5px;border-radius:2px;background:#3dd44a;display:inline-block;"></span>Sales KES (value)</span>
           </div>
-          ${_sparklineSvg(orderVals, '#ff7043')}
         </div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-            <div>
-              <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">New Users (last 7d)</div>
-              <div style="font-size:20px;font-weight:800;color:var(--white);margin-top:2px;">${g.this_week ? g.this_week.new_users : 0}</div>
-            </div>
-            ${_growthBadge(g.users_wow_pct)}
+        ${comboChart}
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">New Users per day</div>
+            <div style="font-size:18px;font-weight:800;color:var(--white);margin-top:2px;">${g.this_week ? g.this_week.new_users : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> /7d</span> ${_growthBadge(g.users_wow_pct)}</div>
           </div>
-          ${_sparklineSvg(signupVals, '#2196f3')}
         </div>
+        ${usersChart}
       </div>`;
 
     // ── Order status funnel ───────────────────────────────────────────────────
@@ -512,6 +613,20 @@ async function loadAdminTrends(force = false, days = null) {
         <div style="font-size:11px;color:var(--muted);margin-top:4px;">${customers.repeat_customers || 0} of ${customers.customers_with_orders || 0} paying customers have ordered 2+ times</div>
       </div>`;
 
+    // ── Average spend per paying user (in-window) ───────────────────────────
+    const avgSpendCard = `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">💵 Avg Spend / Paying User</div>
+        <div style="font-size:28px;font-weight:800;color:var(--white);">${fmtKES(customers.avg_spend_per_user_kes || 0)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">across ${customers.paying_users_in_window || 0} paying user${(customers.paying_users_in_window || 0) === 1 ? '' : 's'} in last ${_adminTrendsWindow}d</div>
+      </div>`;
+
+    // ── Window picker (7D / 14D / 30D) ──────────────────────────────────────
+    const windowPicker = `
+      <div style="display:flex;gap:6px;">
+        ${[7, 14, 30].map(d => `<button onclick="loadAdminTrends(true, ${d})" style="background:${d === _adminTrendsWindow ? 'var(--green)' : 'var(--card)'};color:${d === _adminTrendsWindow ? '#04140a' : 'var(--muted)'};border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">${d}D</button>`).join('')}
+      </div>`;
+
     // ── Assemble ──────────────────────────────────────────────────────────────
     el.innerHTML = `
       ${burnBanner}
@@ -519,8 +634,8 @@ async function loadAdminTrends(force = false, days = null) {
         <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">📈 Growth & Trends</div>
         ${windowPicker}
       </div>
-      ${sparkCards}
-      <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px;" id="adminTrendsLowerGrid">
+      ${comboCard}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;" id="adminTrendsLowerGrid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
           <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🧭 Order Status Funnel (${_adminTrendsWindow}d)</div>
           ${funnelHtml}
@@ -530,12 +645,8 @@ async function loadAdminTrends(force = false, days = null) {
           ${topServicesHtml}
         </div>
         ${repeatCard}
-      </div>
-      <style>
-        @media (max-width: 900px) {
-          #adminTrendsLowerGrid { grid-template-columns: 1fr !important; }
-        }
-      </style>`;
+        ${avgSpendCard}
+      </div>`;
   } catch (e) {
     el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
   }
