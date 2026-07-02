@@ -80,7 +80,7 @@ async function loadAdminOrders() {
 
     if (!orders.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
     el.innerHTML = `<table>
-      <thead><tr><th>#ID</th><th>Customer</th><th>Service</th><th>Link</th><th>Qty</th><th>Cost</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+      <thead><tr><th>#ID</th><th>Customer</th><th>Service</th><th>Link</th><th>Qty</th><th>Start/Remains</th><th>Cost</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
       <tbody>${orders.map(o => {
         const shortId   = esc((o.id||'').slice(0,8));
         const fullId    = esc(o.id||'');
@@ -96,6 +96,9 @@ async function loadAdminOrders() {
         const svcName    = esc(o.service_name||o.service||'—');
         const userId     = esc(o.user_id||'');
         const date       = o.created_at ? new Date(o.created_at).toLocaleDateString() : '—';
+        const startRemains = (o.start_count != null || o.remains != null)
+          ? `${o.start_count != null ? parseInt(o.start_count).toLocaleString() : '—'} / ${o.remains != null ? parseInt(o.remains).toLocaleString() : '—'}`
+          : '—';
         return `<tr>
           <td style="font-size:11px;">
             <span style="color:var(--muted);">#${shortId}</span>
@@ -109,6 +112,7 @@ async function loadAdminOrders() {
           <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${svcName}</td>
           <td style="max-width:160px;">${linkDisplay}</td>
           <td>${parseInt(o.quantity||0).toLocaleString()}</td>
+          <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${startRemains}</td>
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:15px;">${fmtKES(o.charge||o.cost)}</td>
           <td>${statusPill(o.status)}</td>
           <td style="font-size:12px;color:var(--muted);">${date}</td>

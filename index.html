@@ -512,11 +512,23 @@ tbody td{padding:13px 16px;font-size:14px;}
 .svc-plat.li{background:rgba(0,119,181,.1);color:#0077b5;}
 .svc-plat.ls{background:rgba(220,38,38,.12);color:#f87171;}
 .svc-plat.wb{background:rgba(99,102,241,.12);color:#818cf8;}
+.svc-plat.th{background:rgba(0,0,0,.4);color:#e4e4e4;border:1px solid rgba(228,228,228,.2);}
+.svc-plat.dc{background:rgba(88,101,242,.12);color:#5865f2;}
+.svc-plat.tc{background:rgba(145,70,255,.12);color:#9146ff;}
+.svc-plat.kc{background:rgba(83,252,17,.12);color:#53fc18;}
+.svc-plat.sd{background:rgba(255,85,0,.12);color:#ff5500;}
+.svc-plat.vm{background:rgba(26,183,234,.12);color:#1ab7ea;}
+.svc-plat.qa{background:rgba(185,43,39,.12);color:#b92b27;}
+.svc-plat.of{background:rgba(0,175,240,.12);color:#00aff0;}
 .svc-plat.ot{background:var(--border);color:var(--muted);}
 
 .svc-rank-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0;}
 .svc-rank-badge.cheapest{background:rgba(61,212,74,.15);color:var(--green);border:1px solid rgba(61,212,74,.3);}
 .svc-rank-badge.popular{background:rgba(255,112,67,.12);color:var(--orange);border:1px solid rgba(255,112,67,.25);}
+.svc-feature-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.svc-feature-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap;}
+.svc-feature-badge.refill{background:rgba(33,150,243,.12);color:#2196f3;border:1px solid rgba(33,150,243,.25);}
+.svc-feature-badge.cancel{background:rgba(158,158,158,.12);color:var(--muted);border:1px solid rgba(158,158,158,.2);}
 
 .svc-name{font-size:13.5px;font-weight:600;line-height:1.4;flex:1;}
 .svc-subcat{font-size:11px;color:var(--muted);padding:2px 0;}
@@ -2170,6 +2182,14 @@ const PLATFORMS = [
   { key: 'spotify',    label: 'Spotify',     emoji: '🎧', cls: 'sp', keywords: ['spotify'] },
   { key: 'snapchat',   label: 'Snapchat',    emoji: '👻', cls: 'sc', keywords: ['snapchat'] },
   { key: 'linkedin',   label: 'LinkedIn',    emoji: '💼', cls: 'li', keywords: ['linkedin'] },
+  { key: 'threads',    label: 'Threads',     emoji: '🧵', cls: 'th', keywords: ['threads'] },
+  { key: 'discord',    label: 'Discord',     emoji: '🎮', cls: 'dc', keywords: ['discord'] },
+  { key: 'twitch',     label: 'Twitch',      emoji: '🟣', cls: 'tc', keywords: ['twitch'] },
+  { key: 'kick',       label: 'Kick',        emoji: '🟢', cls: 'kc', keywords: ['kick'] },
+  { key: 'soundcloud', label: 'SoundCloud',  emoji: '☁️', cls: 'sd', keywords: ['soundcloud'] },
+  { key: 'vimeo',      label: 'Vimeo',       emoji: '🎬', cls: 'vm', keywords: ['vimeo'] },
+  { key: 'quora',      label: 'Quora',       emoji: '❓', cls: 'qa', keywords: ['quora'] },
+  { key: 'onlyfans',   label: 'OnlyFans',    emoji: '🔒', cls: 'of', keywords: ['onlyfans','only fans'] },
   { key: 'livestream', label: 'Live Stream', emoji: '🔴', cls: 'ls', keywords: ['livestream','live stream','live-stream'] },
   { key: 'website',    label: 'Website',     emoji: '🌍', cls: 'wb', keywords: ['website'] },
   { key: 'other',      label: 'Other',       emoji: '🔗', cls: 'ot', keywords: [] },
@@ -2177,7 +2197,7 @@ const PLATFORMS = [
 
 const SUBCATS = {
   followers: { label: '👥 Followers',   keywords: ['follower','follow'] },
-  likes:     { label: '❤️ Likes',       keywords: ['like','heart','react'] },
+  likes:     { label: '❤️ Likes',       keywords: ['like','heart','react','upvote'] },
   views:     { label: '👁️ Views',       keywords: ['view','watch','impression','reach'] },
   comments:  { label: '💬 Comments',    keywords: ['comment'] },
   shares:    { label: '🔁 Shares',      keywords: ['share','repost','retweet','rt '] },
@@ -2524,6 +2544,14 @@ function buildPlatformTabs() {
     spotify:   '♫',
     snapchat:  '👻',
     linkedin:  'in',
+    threads:   '🧵',
+    discord:   '🎮',
+    twitch:    '🟣',
+    kick:      '🟢',
+    soundcloud:'☁',
+    vimeo:     '🎬',
+    quora:     '❓',
+    onlyfans:  '🔒',
     other:     '✳',
   };
 
@@ -2627,11 +2655,16 @@ function renderServices(list) {
     else if (rate === cheapestRate) rankBadge = '<span class="svc-rank-badge cheapest">💚 Best Price</span>';
     else if (idx < 3) rankBadge = '<span class="svc-rank-badge popular">🔥 Popular</span>';
     const subcatLabel = subcatDef ? `<div class="svc-subcat">${subcatDef.label}</div>` : '';
+    const featureBadges = (s.refill || s.cancel) ? `<div class="svc-feature-badges">
+        ${s.refill ? '<span class="svc-feature-badge refill">♻️ Refill</span>' : ''}
+        ${s.cancel ? '<span class="svc-feature-badge cancel">✕ Cancellable</span>' : ''}
+      </div>` : '';
     const svcJson = JSON.stringify(s).replace(/"/g, '&quot;');
     return `<div class="svc-card" onclick="openOrderModal(${svcJson})">
       <div class="svc-card-top">${platformTag(s)}${rankBadge}</div>
       <div class="svc-name">${name}</div>
       ${subcatLabel}
+      ${featureBadges}
       <div class="svc-meta">
         <div class="svc-price-block">
           <div class="svc-price">${fmtKES(rate)}</div>
@@ -2855,10 +2888,24 @@ function renderOrders() {
   const el = document.getElementById('ordersTable');
   if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
   el.innerHTML = `<table>
-    <thead><tr><th>#ID</th><th>Service</th><th class="hide-mobile">Link</th><th>Qty</th><th>Cost</th><th>Status</th><th class="hide-mobile">Date</th></tr></thead>
+    <thead><tr><th>#ID</th><th>Service</th><th class="hide-mobile">Link</th><th>Qty</th><th class="hide-mobile">Start/Remains</th><th>Cost</th><th>Status</th><th class="hide-mobile">Date</th><th>Actions</th></tr></thead>
     <tbody>${list.map(o => {
       const fullId  = o.id || o._id || '';
       const shortId = fullId.slice(0,8) || '—';
+      const status  = (o.status||'').toLowerCase();
+      const startRemains = (o.start_count != null || o.remains != null)
+        ? `${o.start_count != null ? parseInt(o.start_count).toLocaleString() : '—'} / ${o.remains != null ? parseInt(o.remains).toLocaleString() : '—'}`
+        : '—';
+      // Cancel only makes sense before the order is done; refill only after
+      // delivery, when a drop might need topping up. Backend still validates
+      // eligibility either way, this just avoids showing a button that will
+      // obviously 400.
+      const canCancel = o.provider_order_id && ['pending','processing','partial','inprogress'].includes(status);
+      const canRefill = o.provider_order_id && ['completed','partial'].includes(status);
+      const actions = [
+        canRefill ? `<button class="action-btn" onclick="event.stopPropagation();requestOrderRefill('${fullId}')" title="Request a refill for dropped counts">♻️ Refill</button>` : '',
+        canCancel ? `<button class="action-btn danger" onclick="event.stopPropagation();requestOrderCancel('${fullId}')" title="Cancel this order">✕ Cancel</button>` : '',
+      ].filter(Boolean).join(' ') || '<span style="color:var(--muted);font-size:11px;">—</span>';
       return `<tr>
         <td style="font-size:11px;white-space:nowrap;">
           <span style="color:var(--muted);">#${shortId}</span>
@@ -2867,13 +2914,37 @@ function renderOrders() {
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${o.service_name||o.serviceName||o.service||'—'}</td>
         <td class="hide-mobile" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--muted);">${o.link||'—'}</td>
         <td>${parseInt(o.quantity||o.qty||0).toLocaleString()}</td>
+        <td class="hide-mobile" style="font-size:12px;color:var(--muted);white-space:nowrap;">${startRemains}</td>
         <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost||o.amount)}</td>
         <td>${statusPill(o.status)}</td>
         <td class="hide-mobile" style="font-size:12px;color:var(--muted);">${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
+        <td style="white-space:nowrap;">${actions}</td>
       </tr>`;
     }).join('')}
     </tbody>
   </table>`;
+}
+
+async function requestOrderRefill(orderId) {
+  if (!confirm('Request a refill for this order? Your provider will re-check delivery and top up any drop.')) return;
+  try {
+    const data = await api(`/orders/${orderId}/refill`, { method: 'POST' });
+    toast(data.message || 'Refill request submitted', 'success');
+    loadOrders();
+  } catch (e) {
+    toast(`Refill failed: ${e.message}`, 'error');
+  }
+}
+
+async function requestOrderCancel(orderId) {
+  if (!confirm('Cancel this order? This cannot be undone.')) return;
+  try {
+    const data = await api(`/orders/${orderId}/cancel`, { method: 'POST' });
+    toast(data.message || 'Cancellation requested', 'success');
+    loadOrders();
+  } catch (e) {
+    toast(`Cancel failed: ${e.message}`, 'error');
+  }
 }
 
 async function loadWalletPage() {
