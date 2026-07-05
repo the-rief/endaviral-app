@@ -23,7 +23,7 @@ function adminTab(tab, el) {
   if (tab === 'users') loadAdminUsers();
   if (tab === 'allorders') loadAdminOrders();
   if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); }
-  if (tab === 'stats') { loadAdminStats(); loadAdminTrends(); }
+  if (tab === 'stats') { loadAdminStats(); loadAdminTrends(); loadAdminEngagement(); }
   if (tab === 'providers') loadAdminProviders();
   if (tab === 'support') loadAdminSupport();
   if (tab === 'create-order') initAdminCreateOrder();
@@ -198,7 +198,7 @@ function renderAdminServices() {
 }
 
 let _adminStatsCacheTs = 0;
-const ADMIN_STATS_TTL  = 30 * 1000; // match the auto-refresh interval
+const ADMIN_STATS_TTL  = 180 * 1000; // match the auto-refresh interval (was 30s)
 
 async function loadAdminStats(force = false) {
   const now = Date.now();
@@ -363,7 +363,7 @@ async function loadAdminStats(force = false) {
 /* ══════════════════ GROWTH & TRENDS (scaling analytics) ══════════════════ */
 
 let _adminTrendsCacheTs = 0;
-const ADMIN_TRENDS_TTL = 60 * 1000;
+const ADMIN_TRENDS_TTL = 5 * 60 * 1000; // was 60s — trend/day-level data doesn't need to be that fresh
 let _adminTrendsWindow = 14;
 
 function _sparklineSvg(values, color, w = 600, h = 70) {
@@ -653,6 +653,112 @@ async function loadAdminTrends(force = false, days = null) {
       </div>`;
   } catch (e) {
     el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+let _adminEngagementCacheTs = 0;
+const ADMIN_ENGAGEMENT_TTL = 5 * 60 * 1000; // day-level data — no need to hit Neon every 30s
+let _adminEngagementWindow = 14;
+
+async function loadAdminEngagement(force = false, days = null) {
+  if (days) _adminEngagementWindow = days;
+  const now = Date.now();
+  if (!force && _adminEngagementCacheTs > 0 && (now - _adminEngagementCacheTs) < ADMIN_ENGAGEMENT_TTL) return;
+  const el = document.getElementById('adminEngagementPanel');
+  if (!el) return; // markup not present yet — safe no-op
+  el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading engagement…</span></div>`;
+
+  try {
+    const t = await api(`/admin/stats/engagement?days=${_adminEngagementWindow}`);
+    _adminEngagementCacheTs = Date.now();
+
+    const daily = t.daily || [];
+    const allTime = t.all_time || {};
+
+    // ── Today / latest day snapshot ─────────────────────────────────────────
+    const latest = daily.length ? daily[daily.length - 1] : {};
+    const last7 = daily.slice(-7);
+    const dauAvg7 = last7.length
+      ? Math.round(last7.reduce((a, d) => a + (d.unique_logins || 0), 0) / last7.length)
+      : 0;
+
+    // ── DAU bar chart (unique logins per day) ───────────────────────────────
+    const dauChart = _barChartSvg(daily, { key: 'unique_logins', color: '#3dd44a', label: 'unique logins', h: 150 });
+
+    // ── Avg spend per active user per day — line-ish bar chart ──────────────
+    const spendChart = _barChartSvg(daily, {
+      key: 'avg_spend_per_active_user_kes',
+      color: '#2196f3',
+      label: 'avg KES/active user',
+      h: 150,
+    });
+
+    const dauCard = `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:6px;">
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">👥 Daily Active Users (unique logins)</div>
+            <div style="display:flex;gap:14px;align-items:baseline;margin-top:4px;flex-wrap:wrap;">
+              <div style="font-size:20px;font-weight:800;color:var(--white);">${latest.unique_logins || 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> logins today</span></div>
+              <div style="font-size:20px;font-weight:800;color:var(--white);">${dauAvg7}<span style="font-size:11px;color:var(--muted);font-weight:600;"> avg DAU / 7d</span></div>
+              <div style="font-size:13px;color:var(--muted);">${latest.new_logins || 0} new · ${latest.returning_logins || 0} returning today</div>
+            </div>
+          </div>
+        </div>
+        ${dauChart}
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">💵 Avg Spend per Active User / day</div>
+        <div style="font-size:18px;font-weight:800;color:var(--white);margin-bottom:4px;">${fmtKES(latest.avg_spend_per_active_user_kes || 0)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> today</span></div>
+        ${spendChart}
+      </div>`;
+
+    // ── All-time ARPU / ARPPU / AOV cards ───────────────────────────────────
+    const arpuCards = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">📊 ARPU (all users)</div>
+          <div style="font-size:26px;font-weight:800;color:var(--white);">${fmtKES(allTime.arpu_kes || 0)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">across ${allTime.total_users || 0} total users</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">💎 ARPPU (paying users)</div>
+          <div style="font-size:26px;font-weight:800;color:var(--white);">${fmtKES(allTime.arppu_kes || 0)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">across ${allTime.paying_users || 0} paying users</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">🧾 Avg Order Value</div>
+          <div style="font-size:26px;font-weight:800;color:var(--white);">${fmtKES(allTime.avg_order_value_kes || 0)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">all-time, paid orders only</div>
+        </div>
+      </div>`;
+
+    // ── Window picker (7D / 14D / 30D) ──────────────────────────────────────
+    const windowPicker = `
+      <div style="display:flex;gap:6px;align-items:center;">
+        ${[7, 14, 30].map(d => `<button onclick="loadAdminEngagement(true, ${d})" style="background:${d === _adminEngagementWindow ? 'var(--green)' : 'var(--card)'};color:${d === _adminEngagementWindow ? '#04140a' : 'var(--muted)'};border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">${d}D</button>`).join('')}
+        <button onclick="adminCleanupLoginEvents()" title="Delete login_events older than 90 days — keeps Neon storage usage bounded" style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">🧹 Cleanup</button>
+      </div>`;
+
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">🔑 Logins & Spend per User</div>
+        ${windowPicker}
+      </div>
+      ${dauCard}
+      ${arpuCards}`;
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+async function adminCleanupLoginEvents() {
+  if (!confirm('Delete login records older than 90 days? This only affects raw login history used for charts — it does not touch users, orders, or wallets.')) return;
+  try {
+    const res = await api('/admin/stats/engagement/cleanup?older_than_days=90', { method: 'POST' });
+    toast(`Deleted ${res.deleted} old login record${res.deleted === 1 ? '' : 's'}.`, 'success');
+  } catch (e) {
+    toast(e.message || 'Cleanup failed.', 'error');
   }
 }
 

@@ -1837,6 +1837,10 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div id="adminTrendsPanel" style="margin-top:28px;">
             <div class="loading-spinner"><div class="spinner"></div><span>Loading trends…</span></div>
           </div>
+          <!-- Logins & Spend-per-user Panel (NEW) -->
+          <div id="adminEngagementPanel" style="margin-top:28px;">
+            <div class="loading-spinner"><div class="spinner"></div><span>Loading engagement…</span></div>
+          </div>
           <!-- Filter Breakdown Panel -->
           <div id="filterBreakdownPanel" style="display:none;margin-top:28px;">
             <div class="sec-hd" style="margin-bottom:16px;">
@@ -2450,7 +2454,11 @@ function navTo(page) {
     loadAdminUsers();
     loadAdminStats().catch(()=>{});
     loadAdminSupport().catch(()=>{});
-    // Auto-refresh balance every 30s while admin panel is open
+    // Auto-refresh balance every 3 min while admin panel is open.
+    // (Was 30s — that alone was the biggest driver of Neon compute-hour
+    // usage on the free tier, since it keeps the DB awake continuously
+    // any time an admin has this tab open. 3 min is still fresh enough
+    // for a panel-balance/stat check, and cuts DB wake-ups ~6x.)
     if (window._adminStatsTimer) clearInterval(window._adminStatsTimer);
     window._adminStatsTimer = setInterval(() => {
       if (document.getElementById('sec-admin').classList.contains('active')) {
@@ -2458,7 +2466,7 @@ function navTo(page) {
       } else {
         clearInterval(window._adminStatsTimer);
       }
-    }, 30000);
+    }, 180000);
   } else {
     if (window._adminStatsTimer) { clearInterval(window._adminStatsTimer); window._adminStatsTimer = null; }
   }
