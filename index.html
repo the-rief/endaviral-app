@@ -2243,11 +2243,22 @@ async function fetchProviderMaxKes() {
  * If over limit: disable the button and show a warning message.
  * Returns true when amount is within limit (button should be enabled).
  */
-function _checkProviderLimit(amountKes, btnId, warningElId) {
+function _checkProviderLimit(amountKes, btnId, warningElId, minKes) {
   const maxKes = _providerMaxKes;
   const warnEl = document.getElementById(warningElId);
   const btn    = document.getElementById(btnId);
   if (!btn) return true;
+
+  if (minKes && amountKes < minKes) {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor  = 'not-allowed';
+    if (warnEl) {
+      warnEl.textContent = `⚠️ Minimum amount is ${fmtKES(minKes)}.`;
+      warnEl.style.display = 'block';
+    }
+    return false;
+  }
 
   if (maxKes !== null && maxKes > 0 && amountKes > maxKes) {
     btn.disabled = true;
@@ -2259,7 +2270,7 @@ function _checkProviderLimit(amountKes, btnId, warningElId) {
     }
     return false;
   }
-  // Amount is fine — re-enable
+
   btn.disabled = false;
   btn.style.opacity = '';
   btn.style.cursor  = '';
@@ -2717,7 +2728,7 @@ function calcOrderCost() {
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
   const costKes = (qty / 1000) * rate;
   document.getElementById('omCost').textContent = fmtKES(costKes);
-  _checkProviderLimit(Math.ceil(costKes), 'placeOrderBtn', 'omProviderWarn');
+  _checkProviderLimit(Math.ceil(costKes), 'placeOrderBtn', 'omProviderWarn', 10);
 }
 
 
@@ -2760,7 +2771,7 @@ async function placeOrder() {
   // Provider capacity hard-gate (safety net if button was somehow not disabled)
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
   const costKes = Math.ceil((qty / 1000) * rate);
-  if (!_checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn')) return;
+  if (!_checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 10)) return;
   const btn = document.getElementById('placeOrderBtn');
   btn.textContent = 'Sending STK Push…';
   btn.classList.add('loading');
@@ -2951,7 +2962,7 @@ async function loadWalletPage() {
   // Pre-fetch provider capacity so the deposit button gate is ready immediately
   fetchProviderMaxKes().then(() => {
     const v = parseInt(document.getElementById('depAmount').value) || 0;
-    _checkProviderLimit(v, 'depBtn', 'depProviderWarn');
+    _checkProviderLimit(v, 'depBtn', 'depProviderWarn', 10);
   });
   try {
     const data = await api('/wallet/transactions');
@@ -2986,14 +2997,14 @@ function selectPreset2(btn) {
   depAmount2 = parseInt(btn.dataset.val);
   document.getElementById('depAmount').value = depAmount2;
   document.getElementById('depBigAmt').textContent = fmtKES(depAmount2);
-  _checkProviderLimit(depAmount2, 'depBtn', 'depProviderWarn');
+  _checkProviderLimit(depAmount2, 'depBtn', 'depProviderWarn', 10);
 }
 function onDepAmtInput() {
   const v = parseInt(document.getElementById('depAmount').value) || 0;
   document.querySelectorAll('.preset2').forEach(b => b.classList.remove('active'));
   depAmount2 = v;
   document.getElementById('depBigAmt').textContent = v > 0 ? fmtKES(v) : 'KES —';
-  _checkProviderLimit(v, 'depBtn', 'depProviderWarn');
+  _checkProviderLimit(v, 'depBtn', 'depProviderWarn', 10);
 }
 
 async function submitDeposit() {
@@ -3003,7 +3014,7 @@ async function submitDeposit() {
   if (!phoneRe.test(phone)) { toast('Enter a valid M-Pesa number', 'error'); return; }
   if (amount < 10 || amount > 300000) { toast('Amount must be between KES 10 and 300,000', 'error'); return; }
   // Provider capacity gate (hard-check as a safety net)
-  if (!_checkProviderLimit(amount, 'depBtn', 'depProviderWarn')) return;
+  if (!_checkProviderLimit(amount, 'depBtn', 'depProviderWarn', 10)) return;
   const btn = document.getElementById('depBtn');
   btn.textContent = 'Sending…'; btn.classList.add('loading');
   try {
