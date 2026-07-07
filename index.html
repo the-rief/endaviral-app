@@ -1759,6 +1759,9 @@ tbody td{padding:13px 16px;font-size:14px;}
               <button class="btn-primary" style="padding:10px 20px;margin-top:0;width:auto;" onclick="syncServices()">⟳ Sync &amp; Apply</button>
             </div>
           </div>
+          <div style="margin:12px 0 16px;">
+            <input class="search-inp" id="adminSvcSearch" placeholder="🔍  Search services by name, ID, or category…" style="max-width:360px;" oninput="renderAdminServices()"/>
+          </div>
           <div class="tbl-wrap" id="adminSvcTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
         </div>
 

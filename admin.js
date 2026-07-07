@@ -145,25 +145,37 @@ function renderAdminServices() {
   const minQtyLimit = parseInt(document.getElementById('minQtyFilter')?.value || '10000');
   const minRateKes  = parseFloat(document.getElementById('minRateKes')?.value || '100');
   const maxRateKes  = parseFloat(document.getElementById('maxRateKes')?.value || '10000');
+  const searchTerm  = (document.getElementById('adminSvcSearch')?.value || '').trim().toLowerCase();
+
+  // Search filter applies first — matches name, ID, or category
+  const searched = searchTerm
+    ? _adminAllSvcs.filter(s => {
+        const svcId = String(s.service || s.id || s._id || '').toLowerCase();
+        const name  = String(s.name || '').toLowerCase();
+        const cat   = String(s.category || '').toLowerCase();
+        return svcId.includes(searchTerm) || name.includes(searchTerm) || cat.includes(searchTerm);
+      })
+    : _adminAllSvcs;
 
   // A service is visible only if it passes ALL three filters
-  const shown = _adminAllSvcs.filter(s => {
+  const shown = searched.filter(s => {
     const rate = parseFloat(s.rate || s.price || 0);
     return parseInt(s.min || 0) <= minQtyLimit && rate >= minRateKes && rate <= maxRateKes;
   });
-  const hiddenByQty  = _adminAllSvcs.filter(s => parseInt(s.min || 0) > minQtyLimit);
-  const hiddenByRate = _adminAllSvcs.filter(s => {
+  const hiddenByQty  = searched.filter(s => parseInt(s.min || 0) > minQtyLimit);
+  const hiddenByRate = searched.filter(s => {
     const rate = parseFloat(s.rate || s.price || 0);
     return parseInt(s.min || 0) <= minQtyLimit && (rate < minRateKes || rate > maxRateKes);
   });
 
   if (!_adminAllSvcs.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No services. Click Sync.</p></div>'; return; }
+  if (searchTerm && !searched.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No services match "${esc(document.getElementById('adminSvcSearch').value)}".</p></div>`; return; }
   el.innerHTML = `
     <div style="padding:10px 0 14px;font-size:12px;color:var(--muted);">
       Showing <strong style="color:var(--white);">${shown.length}</strong> services
       ${hiddenByQty.length  ? `· <strong style="color:var(--orange);">${hiddenByQty.length} hidden</strong> (min qty &gt; ${minQtyLimit.toLocaleString()})` : ''}
       ${hiddenByRate.length ? `· <strong style="color:var(--blue);">${hiddenByRate.length} hidden</strong> (rate outside KES ${minRateKes}–${maxRateKes})` : ''}
-      · Total: ${_adminAllSvcs.length}
+      · Total: ${_adminAllSvcs.length}${searchTerm ? ` · Matching "${esc(document.getElementById('adminSvcSearch').value)}": ${searched.length}` : ''}
     </div>
     <table>
       <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Rate / 1000</th><th>Min</th><th>Max</th><th>Active</th><th>Actions</th></tr></thead>
