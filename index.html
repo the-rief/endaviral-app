@@ -2092,7 +2092,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="modal-title" id="omTitle">PLACE ORDER</div>
       <div class="modal-sub" id="omSub">Fill in the details below</div>
       <div id="omServiceInfo" style="margin-bottom:16px;"></div>
-      <div class="modal-field"><label>Link / URL</label><input type="url" id="omLink" placeholder="https://instagram.com/yourprofile"/></div>
+      <div class="modal-field"><label>Link / URL</label><input type="url" id="omLink" placeholder="https://instagram.com/yourprofile"/><div id="omLinkHint" style="font-size:11.5px;color:var(--muted,#8a97a8);margin-top:5px;line-height:1.4;"></div></div>
       <div class="modal-field"><label>Quantity</label><input type="number" id="omQty" placeholder="1000" oninput="calcOrderCost()"/></div>
       <div class="cost-preview"><span class="cost-lbl">Total Cost</span><span class="cost-val" id="omCost">KES 0</span></div>
       <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="omPhone" placeholder="07XX XXX XXX"/></div></div>
@@ -2198,6 +2198,42 @@ const PLATFORMS = [
   { key: 'website',    label: 'Website',     emoji: '🌍', cls: 'wb', keywords: ['website'] },
   { key: 'other',      label: 'Other',       emoji: '🔗', cls: 'ot', keywords: [] },
 ];
+
+// ── Link placeholder / format guidance, keyed by platform + link "shape" ──────
+// "profile" = account/page/channel link (followers, members, subscribers…)
+// "content" = a specific post/video/track link (likes, views, comments, shares…)
+const LINK_GUIDANCE = {
+  instagram:  { profile: 'https://instagram.com/yourusername', content: 'https://instagram.com/p/POST_CODE/', hint: 'Paste your Instagram profile link, or the link to the specific post/reel.' },
+  tiktok:     { profile: 'https://tiktok.com/@yourusername', content: 'https://tiktok.com/@username/video/1234567890123456789', hint: 'Paste your TikTok profile link, or the link to the specific video.' },
+  youtube:    { profile: 'https://youtube.com/@yourchannel', content: 'https://youtube.com/watch?v=VIDEO_ID', hint: 'Paste your YouTube channel link, or the link to the specific video.' },
+  facebook:   { profile: 'https://facebook.com/yourpage', content: 'https://facebook.com/yourpage/posts/123456789', hint: 'Paste your Facebook page/profile link, or the link to the specific post.' },
+  twitter:    { profile: 'https://twitter.com/yourusername', content: 'https://twitter.com/username/status/1234567890123456789', hint: 'Paste your X (Twitter) profile link, or the link to the specific tweet.' },
+  telegram:   { profile: 'https://t.me/yourchannel', content: 'https://t.me/yourchannel/123', hint: 'Paste your Telegram channel/group link (e.g. https://t.me/yourchannel).' },
+  spotify:    { profile: 'https://open.spotify.com/artist/ARTIST_ID', content: 'https://open.spotify.com/track/TRACK_ID', hint: 'Paste your Spotify artist/playlist link, or the specific track link.' },
+  snapchat:   { profile: 'https://snapchat.com/add/yourusername', content: 'https://snapchat.com/add/yourusername', hint: 'Paste your Snapchat profile link (e.g. https://snapchat.com/add/username).' },
+  linkedin:   { profile: 'https://linkedin.com/in/yourprofile', content: 'https://linkedin.com/posts/username_activity-1234567890', hint: 'Paste your LinkedIn profile/page link, or the link to the specific post.' },
+  threads:    { profile: 'https://threads.net/@yourusername', content: 'https://threads.net/@username/post/POST_CODE', hint: 'Paste your Threads profile link, or the link to the specific post.' },
+  discord:    { profile: 'https://discord.gg/yourinvite', content: 'https://discord.gg/yourinvite', hint: 'Paste your Discord server invite link (e.g. https://discord.gg/abc123).' },
+  twitch:     { profile: 'https://twitch.tv/yourchannel', content: 'https://twitch.tv/yourchannel', hint: 'Paste your Twitch channel link (e.g. https://twitch.tv/yourchannel).' },
+  kick:       { profile: 'https://kick.com/yourchannel', content: 'https://kick.com/yourchannel', hint: 'Paste your Kick channel link (e.g. https://kick.com/yourchannel).' },
+  soundcloud: { profile: 'https://soundcloud.com/yourusername', content: 'https://soundcloud.com/username/track-name', hint: 'Paste your SoundCloud profile link, or the specific track link.' },
+  vimeo:      { profile: 'https://vimeo.com/user/yourchannel', content: 'https://vimeo.com/123456789', hint: 'Paste the link to your specific Vimeo video.' },
+  quora:      { profile: 'https://quora.com/profile/Your-Name', content: 'https://quora.com/profile/Your-Name/answer-link', hint: 'Paste your Quora profile link, or the link to the specific answer.' },
+  onlyfans:   { profile: 'https://onlyfans.com/yourusername', content: 'https://onlyfans.com/yourusername', hint: 'Paste your OnlyFans profile link (e.g. https://onlyfans.com/username).' },
+  livestream: { profile: 'https://youtube.com/watch?v=LIVE_ID', content: 'https://youtube.com/watch?v=LIVE_ID', hint: 'Paste the direct link to your live stream.' },
+  website:    { profile: 'https://yourwebsite.com', content: 'https://yourwebsite.com/page', hint: 'Paste your website URL, including https://' },
+  other:      { profile: 'https://example.com/your-link', content: 'https://example.com/your-link', hint: 'Paste the link this service applies to.' },
+};
+// Subcategory keys that expect an account/page/channel link rather than a single post/video link
+const PROFILE_SUBCATS = new Set(['followers', 'members']);
+
+function getLinkGuidance(svc) {
+  const platKey = getPlatformKey(svc);
+  const subcatKey = getSubcatKey(svc);
+  const g = LINK_GUIDANCE[platKey] || LINK_GUIDANCE.other;
+  const shape = PROFILE_SUBCATS.has(subcatKey) ? 'profile' : 'content';
+  return { placeholder: g[shape], hint: g.hint };
+}
 
 const SUBCATS = {
   followers: { label: '👥 Followers',   keywords: ['follower','follow'] },
@@ -2704,6 +2740,9 @@ function openOrderModal(svc) {
   document.getElementById('omTitle').textContent = 'PLACE ORDER';
   document.getElementById('omSub').textContent = name;
   document.getElementById('omLink').value = '';
+  const linkGuide = getLinkGuidance(svc);
+  document.getElementById('omLink').placeholder = linkGuide.placeholder;
+  document.getElementById('omLinkHint').textContent = linkGuide.hint;
   document.getElementById('omPhone').value = '';
   document.getElementById('omQty').value = svc.min || svc.min_quantity || 100;
   document.getElementById('omQty').min = svc.min || svc.min_quantity || 100;
