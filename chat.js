@@ -436,6 +436,7 @@
     threadMeta[tabKey] = null;
     lastSeenCount[tabKey] = 0;
     state[tabKey].step = 0;
+    state[tabKey].escalated = false;
 
     // Clear message area
     const container = document.getElementById('ev-msgs-' + tabKey);
@@ -752,16 +753,37 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     FALLBACK — fires when the bot can't answer the question.
+     FALLBACK — fires when the bot has no scripted answer.
+     Instead of guessing or looping the customer through more prompts,
+     hand the conversation straight to a human admin.
   ═══════════════════════════════════════════════════════════════ */
   function _botFallback(tab) {
+    const s = state[tab];
+
+    // Already escalated this thread — don't spam admin with repeat notices,
+    // just reassure the customer a human already has it.
+    if (s.escalated) {
+      evTypingThen(tab, 800, () => {
+        evBotMsgLocal(tab,
+          `🙋 Our support team already has this conversation and will reply here shortly. Feel free to add any more details.`
+        );
+      });
+      return;
+    }
+    s.escalated = true;
+    s.step = 99; // stop bot-guided flow from re-triggering on this thread
+
+    const escalationNote = '[Auto-escalation] Bot had no answer for this message — routing directly to a human admin.';
+    if (!threadMeta[tab]) {
+      evOpenThread(tab, escalationNote);
+    } else {
+      evPostMessage(tab, escalationNote);
+    }
+
     evTypingThen(tab, 1100, () => {
       evBotMsgLocal(tab,
-        `🤔 I'm not sure I understood that — let me clarify what I can help with here:\n\n` +
-        `• **Wrong order?** Tell me what went wrong (wrong link, wrong service, wrong quantity)\n` +
-        `• **Order delayed?** Share your **Order ID** and I'll escalate it\n` +
-        `• **Want to place a new order?** Click **New Order** in the menu\n\n` +
-        `If none of the above fits, type *"connect with team"* and I'll bring in a real person right away.`
+        `🙋 That's outside what I can answer directly, so I've forwarded this straight to our support team — no need to repeat yourself.\n\n` +
+        `A real person will reply here shortly (usually within a few hours). Feel free to add any more details below in the meantime.`
       );
     });
   }
@@ -772,6 +794,7 @@
   window.evEscalateToHuman = function(tab) {
     // Pin the flow step to 99 so bot-guided steps are skipped from now on
     state[tab].step = 99;
+    state[tab].escalated = true;
 
     const user    = _getUser();
     const initial = (user.name || 'U').charAt(0).toUpperCase();
