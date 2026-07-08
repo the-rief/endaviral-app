@@ -1099,7 +1099,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Is EndaViral safe to use?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">EndaViral is designed for promotional and marketing purposes. Outcomes can vary based on platform algorithms. We recommend using services responsibly.</div></div>
       <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Can I use multiple providers at once?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">We do not recommend using multiple providers for the same link at the same time, as this may affect delivery results.</div></div>
       <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Do you guarantee results?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">We guarantee delivery of the service purchased as described. We do not guarantee specific outcomes such as viral growth or monetization.</div></div>
-      <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Can I get a refund?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">All purchases are final once processed. Refunds are only considered for undeliverable orders or verified technical issues.</div></div>
+      <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Can I get a refund?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">All orders are final once placed and payment is confirmed — refunds and cancellations are not available, so please double-check your link, quantity, and service before ordering. If an order stalls or delivers partially, our team will complete or re-queue it for you.</div></div>
     </div>
   </section>
 
@@ -1385,6 +1385,14 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="catalog-toolbar">
           <input class="search-inp" id="svcSearch" placeholder="🔍  Search within platform…" oninput="applyFilters()"/>
           <div class="sort-badge"><span class="sort-arrow">↑</span> Cheapest first</div>
+        </div>
+
+        <!-- Service Colors legend -->
+        <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px 14px;margin-bottom:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;font-size:12.5px;">
+          <span style="font-weight:600;color:var(--white);opacity:.85;">Service Colors:</span>
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#facc15;display:inline-block;"></span><strong style="color:#facc15;">Basic</strong> <span style="opacity:.7;">— cheapest, drops more likely</span></span>
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#22c55e;display:inline-block;"></span><strong style="color:#22c55e;">Medium</strong> <span style="opacity:.7;">— balanced, better stability</span></span>
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#3b82f6;display:inline-block;"></span><strong style="color:#3b82f6;">Elite</strong> <span style="opacity:.7;">— priciest, best for long-term results</span></span>
         </div>
 
         <div id="servicesContainer">
@@ -3395,6 +3403,7 @@ body:has(.tnc-overlay.show) #ev-chat-widget{
         <button class="ev-chip" onclick="evChip('My order is stuck on Processing')">Stuck on Processing</button>
         <button class="ev-chip" onclick="evChip('No delivery after 24 hours')">No delivery 24h+</button>
         <button class="ev-chip" onclick="evChip('Partial delivery stopped')">Partial delivery</button>
+        <button class="ev-chip" onclick="evChip('My count dropped after delivery')">Count dropped 📉</button>
         <button class="ev-chip ev-chip-human" onclick="evEscalateToHuman('delay')" style="border-color:rgba(251,191,36,.4);color:#fbbf24;background:rgba(251,191,36,.08);">Talk to a human 🙋</button>
       </div>
       <div class="ev-chat-input-row">

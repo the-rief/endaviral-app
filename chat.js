@@ -719,11 +719,22 @@
     },
     {
       match: /refund|money back|cancel/i,
-      answer: `💰 **Refund & cancellation policy:**\n\nIf your order **hasn't started** and you'd like to cancel, reply with your **Order ID** and we'll process a wallet refund within **1–2 hours**.\n\nIf an order **partially delivered** and stalled, our team will either complete it or refund the undelivered portion.`
+      answer: `💰 **Refund & cancellation policy:**\n\nOnce an order is **placed and payment confirmed**, it goes straight to processing and **cannot be refunded or cancelled** — so please double-check your **link, quantity, and service** before confirming.\n\nThat said, we've got you covered on our end: if an order **stalls, delays, or delivers partially**, our team will **complete it or re-queue it** at no extra cost. Share your **Order ID** and we'll sort it out.`
     },
     {
       match: /payment.*(fail|not.work|error|declined)|m.?pesa.*(fail|not.work|error)/i,
       answer: `📱 **M-Pesa payment not working?**\n\nTry these steps:\n1. Make sure you have **sufficient M-Pesa balance**\n2. Check that your **phone number** on your account is correct\n3. The STK push expires in **60 seconds** — don't close the prompt\n4. If it keeps failing, try again in **5 minutes**\n\nStill stuck? Reply with your **phone number** (last 4 digits only for safety) and we'll look into it.`
+    },
+    {
+      match: /(drop|dropp|reduc|decreas|losing|lost|lose|fell|falling|going down|unfollow|disappear|not.*(stay|stable|permanent))/i,
+      answer: `📉 **Noticed your count going down?** This is a common (and honest) question — here's why it happens:\n\n` +
+        `Platforms like TikTok and Instagram regularly run cleanup sweeps that remove inactive or low-activity accounts. Sources that are more likely to get flagged in these sweeps will naturally lose more over time — that's what causes visible drops.\n\n` +
+        `This is exactly why we grade services by tier:\n\n` +
+        `🟡 **Basic** — cheapest option, but pulled from sources platforms flag most often, so drops are more likely.\n` +
+        `🟢 **Medium** — a balanced option with better stability than Basic.\n` +
+        `🔵 **Elite** — highest quality sources, built for long-term retention with minimal drops.\n\n` +
+        `If you're seeing drops on a **Basic** order, that's expected behavior, not a fault — cheaper pricing reflects that trade-off. For results that last, we'd recommend upgrading to **Medium** or **Elite** next time.\n\n` +
+        `If you'd like, share your **Order ID** and I'll take a closer look at what happened on this specific order.`
     },
     {
       match: /what.*(service|offer|sell|available|provide)/i,
@@ -959,7 +970,7 @@
       if (notice) notice.style.display = 'flex';
       evTypingThen('delay', 1500, () => {
         evBotMsgLocal('delay',
-          `Thanks! I've escalated **Order #${text}** to our admin team. ✅\n\nMost delays are resolved within **2–6 hours**. If it's been over 24 hours, we'll issue a refund or re-queue your order.\n\nWe'll update you here shortly.`
+          `Thanks! I've escalated **Order #${text}** to our admin team. ✅\n\nMost delays are resolved within **2–6 hours**. If it's been over 24 hours, we'll complete or re-queue your order — orders can't be refunded once placed, but we'll make sure you get what you paid for.\n\nWe'll update you here shortly.`
         );
       });
 
