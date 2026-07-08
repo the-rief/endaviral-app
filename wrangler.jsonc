@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/cloudflare/wrangler2/main/packages/wrangler/config-schema.json",
   "name": "endaviral",
   "compatibility_date": "2026-07-08",
   "observability": {
