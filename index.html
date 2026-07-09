@@ -1841,9 +1841,13 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-stats">
           <div class="sec-hd" style="margin-bottom:20px;">
             <div><div class="sec-title">PLATFORM STATS</div><div class="sec-sub">Live overview of your EndaViral platform</div></div>
-            <button class="btn-secondary" onclick="loadAdminStats()">↻ Refresh</button>
+            <button class="btn-secondary" onclick="loadAdminStats(true); loadAdminRevenue(true);">↻ Refresh</button>
           </div>
           <div class="stats-grid" id="adminStatsGrid"><div class="loading-spinner"><div class="spinner"></div><span>Loading stats…</span></div></div>
+          <!-- Revenue: Weekly/Monthly + Affiliate Net + Insights Panel (NEW) -->
+          <div id="adminRevenuePanel" style="margin-top:28px;">
+            <div class="loading-spinner"><div class="spinner"></div><span>Loading revenue…</span></div>
+          </div>
           <!-- Growth & Trends Panel (NEW) -->
           <div id="adminTrendsPanel" style="margin-top:28px;">
             <div class="loading-spinner"><div class="spinner"></div><span>Loading trends…</span></div>

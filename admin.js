@@ -23,7 +23,7 @@ function adminTab(tab, el) {
   if (tab === 'users') loadAdminUsers();
   if (tab === 'allorders') loadAdminOrders();
   if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); }
-  if (tab === 'stats') { loadAdminStats(); loadAdminTrends(); loadAdminEngagement(); }
+  if (tab === 'stats') { loadAdminStats(); loadAdminRevenue(); loadAdminTrends(); loadAdminEngagement(); }
   if (tab === 'providers') loadAdminProviders();
   if (tab === 'support') loadAdminSupport();
   if (tab === 'create-order') initAdminCreateOrder();
@@ -368,6 +368,135 @@ async function loadAdminStats(force = false) {
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
     breakdownPanel.style.display = 'none';
+  }
+}
+
+
+/* ══════════════════ REVENUE: WEEKLY/MONTHLY + AFFILIATE NET (NEW) ══════════════════
+ * "As a business person" view: calendar week/month sales & profit, an
+ * insights list in plain English, and — the part /stats can't show — how
+ * much of that profit is already spoken for by affiliate commissions, so
+ * you can see what's actually left for the business.
+ * ══════════════════════════════════════════════════════════════════════ */
+
+let _adminRevenueCacheTs = 0;
+const ADMIN_REVENUE_TTL = 5 * 60 * 1000;
+
+function _miniBarChart(items, { key = 'net_revenue_kes', labelKey, color = '#3dd44a', w = 700, h = 160 } = {}) {
+  if (!items.length) return `<div style="font-size:12px;color:var(--muted);padding:20px 0;text-align:center;">No data yet.</div>`;
+  const padTop = 18, padBottom = 22, padX = 4;
+  const plotW = w - padX * 2;
+  const plotH = h - padTop - padBottom;
+  const n = items.length;
+  const step = plotW / n;
+  const barW = Math.max(4, Math.min(46, step * 0.6));
+  const vals = items.map(d => d[key] || 0);
+  const maxV = Math.max(...vals.map(v => Math.abs(v)), 1) * 1.15;
+
+  const bars = items.map((d, i) => {
+    const cx = padX + step * i + step / 2;
+    const v = vals[i];
+    const bh = (Math.abs(v) / maxV) * plotH;
+    const x = cx - barW / 2;
+    const y = padTop + plotH - bh;
+    const barColor = v < 0 ? 'var(--red)' : color;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(bh,0).toFixed(1)}" rx="3" fill="${barColor}" opacity="0.9"><title>${esc(d[labelKey])}: ${fmtKES(v)}</title></rect>`;
+  }).join('');
+  const labels = items.map((d, i) => {
+    const cx = padX + step * i + step / 2;
+    return `<text x="${cx.toFixed(1)}" y="${h-6}" font-size="9" fill="#7a8fad" text-anchor="middle">${esc(d[labelKey])}</text>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:${h}px;display:block;">${bars}${labels}</svg>`;
+}
+
+async function loadAdminRevenue(force = false) {
+  const now = Date.now();
+  if (!force && _adminRevenueCacheTs > 0 && (now - _adminRevenueCacheTs) < ADMIN_REVENUE_TTL) return;
+  const el = document.getElementById('adminRevenuePanel');
+  if (!el) return; // markup not present yet — safe no-op
+  el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading revenue…</span></div>`;
+
+  try {
+    const r = await api('/admin/stats/revenue?weeks=8&months=6');
+    _adminRevenueCacheTs = Date.now();
+
+    const weekly = r.weekly || [];
+    const monthly = r.monthly || [];
+    const ai = r.affiliate_impact || {};
+    const insights = r.insights || [];
+
+    const thisWeek = weekly[weekly.length - 1];
+    const lastWeek = weekly[weekly.length - 2];
+    const thisMonth = monthly[monthly.length - 1];
+    const lastMonth = monthly[monthly.length - 2];
+
+    const pct = (curr, prev) => (prev ? Math.round(((curr - prev) / prev) * 1000) / 10 : (curr ? 100 : null));
+
+    const weekCards = thisWeek ? `
+      <div class="stat-card green"><div class="stat-icon">📅</div><div class="stat-label">This Week — Sales</div><div class="stat-val">${fmtKES(thisWeek.sales_kes)}</div><div class="stat-sub">${lastWeek ? _growthBadge(pct(thisWeek.sales_kes, lastWeek.sales_kes)) + ' vs last week' : `${thisWeek.orders} orders`}</div></div>
+      <div class="stat-card green" style="border-color:rgba(61,212,74,.6);"><div class="stat-icon">💰</div><div class="stat-label">This Week — Profit</div><div class="stat-val">${fmtKES(thisWeek.revenue_kes)}</div><div class="stat-sub">${lastWeek ? _growthBadge(pct(thisWeek.revenue_kes, lastWeek.revenue_kes)) + ' vs last week' : 'before affiliate cost'}</div></div>
+      <div class="stat-card orange"><div class="stat-icon">🤝</div><div class="stat-label">This Week — Affiliate Cost</div><div class="stat-val">${fmtKES(thisWeek.affiliate_commission_kes)}</div><div class="stat-sub">owed to affiliates</div></div>
+      <div class="stat-card blue" style="border-color:rgba(33,150,243,.6);"><div class="stat-icon">🏆</div><div class="stat-label">This Week — Net to Business</div><div class="stat-val">${fmtKES(thisWeek.net_revenue_kes)}</div><div class="stat-sub">profit − affiliate cost</div></div>
+    ` : `<div class="empty-state"><p>No paid orders yet this week.</p></div>`;
+
+    const monthCards = thisMonth ? `
+      <div class="stat-card green"><div class="stat-icon">🗓️</div><div class="stat-label">This Month — Sales</div><div class="stat-val">${fmtKES(thisMonth.sales_kes)}</div><div class="stat-sub">${lastMonth ? _growthBadge(pct(thisMonth.sales_kes, lastMonth.sales_kes)) + ' vs last month' : `${thisMonth.orders} orders`}</div></div>
+      <div class="stat-card green" style="border-color:rgba(61,212,74,.6);"><div class="stat-icon">💰</div><div class="stat-label">This Month — Profit</div><div class="stat-val">${fmtKES(thisMonth.revenue_kes)}</div><div class="stat-sub">${lastMonth ? _growthBadge(pct(thisMonth.revenue_kes, lastMonth.revenue_kes)) + ' vs last month' : 'before affiliate cost'}</div></div>
+      <div class="stat-card orange"><div class="stat-icon">🤝</div><div class="stat-label">This Month — Affiliate Cost</div><div class="stat-val">${fmtKES(thisMonth.affiliate_commission_kes)}</div><div class="stat-sub">${ai.commission_pct_of_revenue_this_month || 0}% of profit</div></div>
+      <div class="stat-card blue" style="border-color:rgba(33,150,243,.6);"><div class="stat-icon">🏆</div><div class="stat-label">This Month — Net to Business</div><div class="stat-val">${fmtKES(thisMonth.net_revenue_kes)}</div><div class="stat-sub">profit − affiliate cost</div></div>
+    ` : `<div class="empty-state"><p>No paid orders yet this month.</p></div>`;
+
+    const insightsHtml = insights.map(txt => `
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:16px;flex-shrink:0;">💡</span>
+        <span style="font-size:13px;color:var(--white);line-height:1.5;">${esc(txt)}</span>
+      </div>`).join('');
+
+    el.innerHTML = `
+      <div class="sec-hd" style="margin-bottom:16px;">
+        <div><div class="sec-title" style="font-size:16px;">💼 REVENUE — WEEKLY & MONTHLY</div><div class="sec-sub">What you made, and what's actually left after affiliates are paid</div></div>
+        <button class="btn-secondary" onclick="loadAdminRevenue(true)">↻ Refresh</button>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">THIS WEEK</div>
+      <div class="stats-grid" style="margin-bottom:24px;">${weekCards}</div>
+
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">THIS MONTH</div>
+      <div class="stats-grid" style="margin-bottom:24px;">${monthCards}</div>
+
+      <div style="background:rgba(33,150,243,.06);border:1px solid rgba(33,150,243,.2);border-radius:12px;padding:16px 18px;margin-bottom:24px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(33,150,243,.8);margin-bottom:10px;">🤝 Affiliate Cost — All Time</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;">
+          <div><div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(ai.total_commission_owed_kes || 0)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Total owed to affiliates (accrued)</div></div>
+          <div><div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(ai.total_commission_paid_kes || 0)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Already paid out</div></div>
+          <div><div style="font-size:20px;font-weight:800;color:var(--orange);">${fmtKES((ai.total_commission_owed_kes || 0) - (ai.total_commission_paid_kes || 0))}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Accrued but not yet paid</div></div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:24px;">
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">NET-TO-BUSINESS BY WEEK (last ${weekly.length})</div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+          ${_miniBarChart(weekly, { key: 'net_revenue_kes', labelKey: 'week_start', color: '#3dd44a' })}
+        </div>
+      </div>
+
+      <div style="margin-bottom:24px;">
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">NET-TO-BUSINESS BY MONTH (last ${monthly.length})</div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+          ${_miniBarChart(monthly, { key: 'net_revenue_kes', labelKey: 'month', color: '#3dd44a' })}
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">📊 INSIGHTS</div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px 18px;">
+          ${insightsHtml}
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
   }
 }
 
