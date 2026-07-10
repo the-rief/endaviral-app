@@ -1215,6 +1215,13 @@ tbody td{padding:13px 16px;font-size:14px;}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         My Account
       </div>
+      <div class="nav-item" onclick="navTo('academy')" id="academyNavItem">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/>
+        </svg>
+        Creator Academy
+        <span class="nav-badge" id="academyBadge" style="display:none;background:var(--green);color:#000;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:auto;"></span>
+      </div>
       <div class="nav-section" id="adminNavSection" style="display:none">Admin</div>
       <div class="nav-item" id="adminNavItem" onclick="navTo('admin')" style="display:none">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -1358,6 +1365,18 @@ tbody td{padding:13px 16px;font-size:14px;}
               </div>
             </div>
             <button id="affBannerBtn" onclick="event.stopPropagation();navTo('affiliate')">Start Earning →</button>
+          </div>
+        </div>
+
+        <!-- ── Creator Academy Promo Banner ── -->
+        <div id="dashAcademyBanner" onclick="navTo('academy')" title="Creator Academy" style="position:relative;overflow:hidden;background:linear-gradient(120deg,#1a1330 0%,#241a42 50%,#150f26 100%);border:1px solid rgba(155,107,255,.28);border-radius:16px;padding:18px 20px;margin-bottom:20px;cursor:pointer;transition:border-color .2s;">
+          <div style="position:relative;z-index:1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <div style="flex-shrink:0;width:46px;height:46px;border-radius:12px;background:rgba(155,107,255,.16);border:1px solid rgba(155,107,255,.28);display:flex;align-items:center;justify-content:center;font-size:22px;">🎓</div>
+            <div style="flex:1;min-width:180px;">
+              <div style="font-size:13px;font-weight:900;color:var(--white);margin-bottom:3px;">Creator Academy</div>
+              <div style="font-size:12px;color:#8faab8;line-height:1.5;" id="dashAcademyDesc">Learn how to grow on every platform — free lessons, XP &amp; badges</div>
+            </div>
+            <button style="flex-shrink:0;background:#9b6bff;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:900;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;" onclick="event.stopPropagation();navTo('academy')" id="dashAcademyBtn">Start Learning →</button>
           </div>
         </div>
 
@@ -1709,6 +1728,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 
       <!-- AFFILIATE -->
       <div class="page-section" id="sec-affiliate"></div>
+      <div class="page-section" id="sec-academy"></div>
 
       <!-- ADMIN -->
       <div class="page-section" id="sec-admin">
@@ -1721,6 +1741,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="admin-tab" onclick="adminTab('support',this)">💬 Support</div>
           <div class="admin-tab" onclick="adminTab('create-order',this)">➕ Create Order</div>
           <div class="admin-tab" onclick="adminTab('affiliate-payouts',this)" id="affPayoutsTabBtn">💸 Payouts</div>
+          <div class="admin-tab" onclick="adminTab('academy', this)">🎓 Academy</div>
         </div>
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
@@ -2042,6 +2063,26 @@ tbody td{padding:13px 16px;font-size:14px;}
   </div>
 </div>
 
+</div>
+
+<div class="admin-panel" id="ap-academy">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+    <div>
+      <div style="font-size:16px;font-weight:900;color:var(--white);" id="acAdminPanelTitle">📊 ACADEMY OVERVIEW</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="acAdminPanelSub">Learner activity, drop-off, revenue &amp; top performers</div>
+    </div>
+    <button class="btn-secondary" id="acAdminRefreshBtn" style="font-size:12px;padding:8px 16px;">↻ Refresh</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+    <button id="acSubTab-overview"    onclick="acAdminSubTab('overview')"    style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Overview</button>
+    <button id="acSubTab-funnel"      onclick="acAdminSubTab('funnel')"      style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Funnel</button>
+    <button id="acSubTab-revenue"     onclick="acAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
+    <button id="acSubTab-leaderboard" onclick="acAdminSubTab('leaderboard')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Leaderboard</button>
+  </div>
+  <div id="acAdminPane-overview"><div id="adminAcademyOverview"></div></div>
+  <div id="acAdminPane-funnel" style="display:none;"><div id="adminAcademyFunnel"></div></div>
+  <div id="acAdminPane-revenue" style="display:none;"><div id="adminAcademyRevenue"></div></div>
+  <div id="acAdminPane-leaderboard" style="display:none;"><div id="adminAcademyLeaderboard"></div></div>
 </div>
 
 <!-- AFFILIATE COMMISSION EDIT MODAL -->
@@ -2480,7 +2521,7 @@ function togglePass(inputId, btn) {
   btn.style.color = show ? '#3dd44a' : '';
 }
 
-const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT', affiliate:'REFER & EARN' };
+const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT', affiliate:'REFER & EARN', academy:'CREATOR ACADEMY' };
 
 function navTo(page) {
   // Guard: only admins can navigate to the admin panel
@@ -2522,6 +2563,7 @@ function navTo(page) {
   }
   if (page === 'account') { initAccountPage(); }
   if (page === 'affiliate') { if (typeof initAffiliatePage === 'function') initAffiliatePage(); }
+  if (page === 'academy') { if (typeof initAcademyPage === 'function') initAcademyPage(); }
   if (page === 'dashboard') { _maybeHideAffBanner(); }
 }
 
@@ -2546,6 +2588,7 @@ async function loadDashboard() {
     document.getElementById('dash-orders').textContent = total;
     document.getElementById('dash-active').textContent = active;
     document.getElementById('dash-spent').textContent = fmtKES(spent);
+    if (typeof _acUpdateBadges === 'function') _acUpdateBadges();
   } catch(_) {
     document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders yet. Place your first order!</p></div>';
   }
@@ -3146,6 +3189,7 @@ function resetDeposit() {
 <script src="tnc.js"></script>
 <script src="admin.js"></script>
 <script src="admin_affiliate_payouts.js"></script>
+<script src="admin_academy_stats.js"></script>
 <script src="account.js"></script>
 <script src="auth.js"></script>
 
@@ -3564,6 +3608,59 @@ async function _maybeHideAffBanner() {
 }
 </script>
 <script src="affiliate.js"></script>
+
+<!-- ── Creator Academy lesson modal ── -->
+<div class="modal-overlay" id="academyLessonModal">
+  <div class="modal" style="max-width:560px;">
+    <button class="modal-close" onclick="closeAcademyLesson()">✕</button>
+    <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#9b6bff;margin-bottom:6px;" id="acLessonEyebrow">MODULE</div>
+    <div class="modal-title" id="acLessonTitle" style="margin-bottom:4px;">Lesson title</div>
+    <div class="modal-sub" style="margin-bottom:18px;" id="acLessonMeta">3 min read</div>
+    <div id="acLessonBody" style="font-size:13.5px;color:var(--white);line-height:1.75;"></div>
+    <div style="display:flex;gap:10px;margin-top:26px;">
+      <button class="btn-secondary" style="flex:1;" onclick="closeAcademyLesson()">Close</button>
+      <button class="btn-primary" style="flex:2;" id="acLessonCompleteBtn" onclick="acMarkCurrentComplete()">Mark Complete +<span id="acLessonXp">25</span> XP</button>
+    </div>
+  </div>
+</div>
+<!-- ── Creator Academy: premium module unlock (M-Pesa STK) ── -->
+<div class="modal-overlay" id="academyPurchaseModal">
+  <div class="modal" style="max-width:420px;">
+    <button class="modal-close" onclick="closeAcademyPurchase()">✕</button>
+    <div class="modal-title" id="acPurchaseModuleTitle" style="margin-bottom:4px;">Module</div>
+    <div class="modal-sub" style="margin-bottom:18px;">One-time unlock — <span id="acPurchasePrice">KSh 50</span></div>
+
+    <div id="acPurchaseForm">
+      <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="acPurchasePhone" placeholder="07XX XXX XXX"/></div></div>
+      <button class="btn-primary" id="acPurchaseBtn" style="width:100%;" onclick="submitAcademyPurchase()">📱 SEND STK PUSH</button>
+    </div>
+
+    <div class="deposit-status" id="acPurchaseStatus" style="display:none;">
+      <div class="d-icon" id="acPurchaseStatusIcon">📱</div>
+      <div class="d-title" id="acPurchaseStatusTitle">WAITING FOR PAYMENT</div>
+      <div class="d-desc" id="acPurchaseStatusDesc">A prompt has been sent to your phone.<br>Enter your M-Pesa PIN to unlock this module.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Creator Academy: certificate (module or graduation) ── -->
+<div class="modal-overlay" id="academyCertModal">
+  <div class="modal" style="max-width:640px;">
+    <button class="modal-close" onclick="closeAcademyCertificate()">✕</button>
+    <div class="modal-title" style="margin-bottom:4px;">🎓 Your Certificate</div>
+    <div class="modal-sub" style="margin-bottom:18px;">Download it or share it straight to your socials</div>
+    <div style="width:100%;overflow:auto;border-radius:12px;border:1px solid var(--border);">
+      <canvas id="acCertCanvas" width="1200" height="800" style="width:100%;height:auto;display:block;"></canvas>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn-secondary" style="flex:1;" onclick="closeAcademyCertificate()">Close</button>
+      <button class="btn-secondary" style="flex:1;" onclick="acDownloadCertificate()">⬇ Download</button>
+      <button class="btn-primary" style="flex:2;background:#ffd700;color:#000;" onclick="acShareCertificate()">📤 Share</button>
+    </div>
+  </div>
+</div>
+
+<script src="academy.js"></script>
 
 </body>
 </html>
