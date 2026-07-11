@@ -1222,6 +1222,14 @@ tbody td{padding:13px 16px;font-size:14px;}
         Creator Academy
         <span class="nav-badge" id="academyBadge" style="display:none;background:var(--green);color:#000;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:auto;"></span>
       </div>
+      <div class="nav-item" onclick="navTo('connect')" id="connectNavItem">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Connect
+        <span class="nav-badge" id="connectBadge" style="display:none;background:var(--green);color:#000;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:auto;"></span>
+      </div>
       <div class="nav-section" id="adminNavSection" style="display:none">Admin</div>
       <div class="nav-item" id="adminNavItem" onclick="navTo('admin')" style="display:none">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -1729,6 +1737,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <!-- AFFILIATE -->
       <div class="page-section" id="sec-affiliate"></div>
       <div class="page-section" id="sec-academy"></div>
+      <div class="page-section" id="sec-connect"></div>
 
       <!-- ADMIN -->
       <div class="page-section" id="sec-admin">
@@ -2526,7 +2535,7 @@ function togglePass(inputId, btn) {
   btn.style.color = show ? '#3dd44a' : '';
 }
 
-const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT', affiliate:'REFER & EARN', academy:'CREATOR ACADEMY' };
+const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT', affiliate:'REFER & EARN', academy:'CREATOR ACADEMY', connect:'ENDAVIRAL CONNECT' };
 
 function navTo(page) {
   // Guard: only admins can navigate to the admin panel
@@ -2571,6 +2580,7 @@ function navTo(page) {
   if (page === 'account') { initAccountPage(); }
   if (page === 'affiliate') { if (typeof initAffiliatePage === 'function') initAffiliatePage(); }
   if (page === 'academy') { if (typeof initAcademyPage === 'function') initAcademyPage(); }
+  if (page === 'connect') { if (typeof initConnectPage === 'function') initConnectPage(); }
   if (page === 'dashboard') { _maybeHideAffBanner(); }
 }
 
@@ -3667,7 +3677,21 @@ async function _maybeHideAffBanner() {
   </div>
 </div>
 
+<div class="modal-overlay" id="cnCampaignModal">
+  <div class="modal" style="max-width:640px;">
+    <button class="modal-close" onclick="_cnCloseCampaign()">✕</button>
+    <div id="cnCampaignModalBody"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="cnCreateModal">
+  <div class="modal" style="max-width:560px;">
+    <button class="modal-close" onclick="_cnCloseCreate()">✕</button>
+    <div id="cnCreateModalBody"></div>
+  </div>
+</div>
+
 <script src="academy.js"></script>
+<script src="connect.js"></script>
 
 </body>
 </html>
