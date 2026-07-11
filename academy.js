@@ -1357,7 +1357,7 @@ async function acOpenCertificate(refId) {
   const canvas  = document.getElementById('acCertCanvas');
   if (!overlay || !canvas) return;
 
-  overlay.classList.add('active');
+  overlay.classList.add('show');
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#131b27';
@@ -1383,7 +1383,7 @@ async function acOpenCertificate(refId) {
 
 function closeAcademyCertificate() {
   const overlay = document.getElementById('academyCertModal');
-  if (overlay) overlay.classList.remove('active');
+  if (overlay) overlay.classList.remove('show');
 }
 
 function _acFormatCertDate(isoString) {
