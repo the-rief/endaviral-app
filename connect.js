@@ -156,7 +156,7 @@ async function initConnectPage() {
 function _cnRenderShell(sec) {
   sec.innerHTML = `
     <div class="cn-hero">
-      <div class="cn-hero-title">🤝 EndaViral Connect</div>
+      <div class="cn-hero-title">🤝 EndaViral Marketplace</div>
       <div class="cn-hero-sub">Businesses fund campaigns through secure escrow · creators get paid the moment work is approved · EndaViral takes a 15% fee only when a deal completes.</div>
     </div>
     <div class="cn-role-toggle">
