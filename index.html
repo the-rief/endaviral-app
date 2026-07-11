@@ -1993,6 +1993,26 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
         </div>
 
+        <div class="admin-panel" id="ap-academy">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+            <div>
+              <div style="font-size:16px;font-weight:900;color:var(--white);" id="acAdminPanelTitle">📊 ACADEMY OVERVIEW</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="acAdminPanelSub">Learner activity, drop-off, revenue &amp; top performers</div>
+            </div>
+            <button class="btn-secondary" id="acAdminRefreshBtn" style="font-size:12px;padding:8px 16px;">↻ Refresh</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+            <button id="acSubTab-overview"    onclick="acAdminSubTab('overview')"    style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Overview</button>
+            <button id="acSubTab-funnel"      onclick="acAdminSubTab('funnel')"      style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Funnel</button>
+            <button id="acSubTab-revenue"     onclick="acAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
+            <button id="acSubTab-leaderboard" onclick="acAdminSubTab('leaderboard')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Leaderboard</button>
+          </div>
+          <div id="acAdminPane-overview"><div id="adminAcademyOverview"></div></div>
+          <div id="acAdminPane-funnel" style="display:none;"><div id="adminAcademyFunnel"></div></div>
+          <div id="acAdminPane-revenue" style="display:none;"><div id="adminAcademyRevenue"></div></div>
+          <div id="acAdminPane-leaderboard" style="display:none;"><div id="adminAcademyLeaderboard"></div></div>
+        </div>
+
       </div>
 
     </div>
@@ -2063,26 +2083,6 @@ tbody td{padding:13px 16px;font-size:14px;}
   </div>
 </div>
 
-</div>
-
-<div class="admin-panel" id="ap-academy">
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
-    <div>
-      <div style="font-size:16px;font-weight:900;color:var(--white);" id="acAdminPanelTitle">📊 ACADEMY OVERVIEW</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="acAdminPanelSub">Learner activity, drop-off, revenue &amp; top performers</div>
-    </div>
-    <button class="btn-secondary" id="acAdminRefreshBtn" style="font-size:12px;padding:8px 16px;">↻ Refresh</button>
-  </div>
-  <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
-    <button id="acSubTab-overview"    onclick="acAdminSubTab('overview')"    style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Overview</button>
-    <button id="acSubTab-funnel"      onclick="acAdminSubTab('funnel')"      style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Funnel</button>
-    <button id="acSubTab-revenue"     onclick="acAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
-    <button id="acSubTab-leaderboard" onclick="acAdminSubTab('leaderboard')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Leaderboard</button>
-  </div>
-  <div id="acAdminPane-overview"><div id="adminAcademyOverview"></div></div>
-  <div id="acAdminPane-funnel" style="display:none;"><div id="adminAcademyFunnel"></div></div>
-  <div id="acAdminPane-revenue" style="display:none;"><div id="adminAcademyRevenue"></div></div>
-  <div id="acAdminPane-leaderboard" style="display:none;"><div id="adminAcademyLeaderboard"></div></div>
 </div>
 
 <!-- AFFILIATE COMMISSION EDIT MODAL -->

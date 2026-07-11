@@ -600,9 +600,9 @@ const ACADEMY_MODULES = [
     premium: true,
     priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'm1', title: 'Brand Deals 101', minutes: 4, body: null },
-      { id: 'm2', title: 'Refer & Earn — Your Second Income', minutes: 3, body: null },
-      { id: 'm3', title: 'Selling Your Own Products or Services', minutes: 3, body: null },
+      { id: 'm1', title: 'Brand Deals: Pricing Yourself Like a Business, Not a Hobby', minutes: 7, body: null },
+      { id: 'm2', title: 'Referral Income: The Math Behind Your Second Income Stream', minutes: 5, body: null },
+      { id: 'm3', title: 'Selling Your Own Products or Services: The Full Funnel', minutes: 6, body: null },
     ],
   },
   {
@@ -633,9 +633,11 @@ const ACADEMY_MODULES = [
     blurb: 'Beyond the basics — engineered virality',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'ttp1', title: 'Reading Your Analytics Like a Growth Team', minutes: 4, body: null },
-      { id: 'ttp2', title: 'Engineering a Video for Re-Watches', minutes: 4, body: null },
-      { id: 'ttp3', title: 'Batching a Week of Content in One Sitting', minutes: 3, body: null },
+      { id: 'ttp1', title: 'Reading Your Analytics Like a Growth Team', minutes: 5, body: null },
+      { id: 'ttp2', title: 'Engineering a Video for Completion and Re-Watches', minutes: 5, body: null },
+      { id: 'ttp3', title: 'Batching a Week of Content in One Sitting', minutes: 4, body: null },
+      { id: 'ttp4', title: 'The 2026 Algorithm Reset: Follower-First Testing & Search', minutes: 6, body: null },
+      { id: 'ttp5', title: 'Longer Videos, TikTok Shop & Where Distribution Is Heading', minutes: 5, body: null },
     ],
   },
   {
@@ -643,9 +645,11 @@ const ACADEMY_MODULES = [
     blurb: 'Turn a Facebook page into real income',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'fbm1', title: 'Which Monetization Path Fits Your Page', minutes: 4, body: null },
-      { id: 'fbm2', title: 'Hitting Eligibility Thresholds Faster', minutes: 4, body: null },
-      { id: 'fbm3', title: 'Diversifying Beyond Ad Revenue', minutes: 3, body: null },
+      { id: 'fbm1', title: 'Which Monetization Path Fits Your Page', minutes: 5, body: null },
+      { id: 'fbm2', title: 'Hitting Eligibility Thresholds Faster', minutes: 5, body: null },
+      { id: 'fbm3', title: 'What Kenyan Creators Actually Earn', minutes: 5, body: null },
+      { id: 'fbm4', title: 'Staying Eligible: The Compliance Traps That Cost Creators', minutes: 4, body: null },
+      { id: 'fbm5', title: 'Diversifying Beyond Ad Revenue', minutes: 4, body: null },
     ],
   },
   {
@@ -653,9 +657,11 @@ const ACADEMY_MODULES = [
     blurb: 'Get found, not just watched',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'yts1', title: 'Titles & Thumbnails That Win the Click', minutes: 4, body: null },
-      { id: 'yts2', title: 'Tags, Descriptions & the Algorithm', minutes: 4, body: null },
-      { id: 'yts3', title: 'Retention: The Metric That Decides Everything', minutes: 3, body: null },
+      { id: 'yts1', title: 'Titles & Thumbnails That Win the Click', minutes: 5, body: null },
+      { id: 'yts2', title: 'Tags, Descriptions & Semantic Search', minutes: 5, body: null },
+      { id: 'yts3', title: 'Satisfaction Over Watch Time: The 2026 Shift', minutes: 6, body: null },
+      { id: 'yts4', title: 'Shorts SEO: A Separate Ranking Track', minutes: 5, body: null },
+      { id: 'yts5', title: 'Monetization Requirements & the AI Disclosure Rule', minutes: 5, body: null },
     ],
   },
   {
@@ -663,9 +669,11 @@ const ACADEMY_MODULES = [
     blurb: 'One short-form video, three platforms, three algorithms',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'shp1', title: 'One Video, Three Platforms — What Actually Changes', minutes: 4, body: null },
-      { id: 'shp2', title: 'Repurposing Without It Looking Repurposed', minutes: 4, body: null },
-      { id: 'shp3', title: 'A Weekly System Across All Three', minutes: 3, body: null },
+      { id: 'shp1', title: 'One Video, Three Platforms — What Actually Changes', minutes: 5, body: null },
+      { id: 'shp2', title: 'Repurposing Without It Looking Repurposed', minutes: 5, body: null },
+      { id: 'shp3', title: 'A Weekly System Across All Three', minutes: 4, body: null },
+      { id: 'shp4', title: 'Length: Why the Same Clip Needs Different Cuts', minutes: 5, body: null },
+      { id: 'shp5', title: 'Choosing Where to Double Down', minutes: 4, body: null },
     ],
   },
   {
@@ -673,9 +681,11 @@ const ACADEMY_MODULES = [
     blurb: 'The specific mechanics behind Reels reach',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'igrp1', title: 'The First 3 Seconds, Frame by Frame', minutes: 4, body: null },
-      { id: 'igrp2', title: 'Saves & Shares: Engineering the Signal', minutes: 4, body: null },
-      { id: 'igrp3', title: 'Cadence, Cover Images & Profile Conversion', minutes: 3, body: null },
+      { id: 'igrp1', title: 'The First 3 Seconds, Frame by Frame', minutes: 5, body: null },
+      { id: 'igrp2', title: 'Sends Per Reach: The Signal That Matters Most in 2026', minutes: 6, body: null },
+      { id: 'igrp3', title: '"Your Algorithm": Niche Consistency Is No Longer Optional', minutes: 5, body: null },
+      { id: 'igrp4', title: 'Account-Level Authority: Why Consistency Compounds', minutes: 5, body: null },
+      { id: 'igrp5', title: 'Cadence, Cover Images & Profile Conversion', minutes: 4, body: null },
     ],
   },
   {
@@ -683,9 +693,11 @@ const ACADEMY_MODULES = [
     blurb: 'From single prompts to a repeatable content pipeline',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'aip1', title: 'Building a Month of Ideas in One Session', minutes: 4, body: null },
-      { id: 'aip2', title: 'Scripting Hooks & Captions That Sound Like You', minutes: 4, body: null },
-      { id: 'aip3', title: 'A Repeatable Weekly AI Workflow', minutes: 3, body: null },
+      { id: 'aip1', title: 'Building a Month of Ideas in One Session', minutes: 5, body: null },
+      { id: 'aip2', title: 'Scripting Hooks & Captions That Sound Like You', minutes: 5, body: null },
+      { id: 'aip3', title: 'The 2026 AI Video Toolkit: What Each Tool Is Actually For', minutes: 6, body: null },
+      { id: 'aip4', title: 'Disclosure & Authenticity: Staying on the Right Side of Platform Rules', minutes: 5, body: null },
+      { id: 'aip5', title: 'A Repeatable Weekly AI Workflow', minutes: 4, body: null },
     ],
   },
   {
@@ -693,9 +705,11 @@ const ACADEMY_MODULES = [
     blurb: 'Editing techniques that keep people watching',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'ccp1', title: 'Pacing: Cutting for Retention', minutes: 4, body: null },
-      { id: 'ccp2', title: 'Captions, Keyframes & Templates That Save Hours', minutes: 4, body: null },
-      { id: 'ccp3', title: 'Sound Design: The Most Skipped Step', minutes: 3, body: null },
+      { id: 'ccp1', title: 'Pacing: Cutting for Retention, Not Just Movement', minutes: 5, body: null },
+      { id: 'ccp2', title: 'Captions, Keyframes & Presets That Save Hours Every Week', minutes: 5, body: null },
+      { id: 'ccp3', title: 'Sound Design: The Most Skipped Step That Signals "Professional"', minutes: 4, body: null },
+      { id: 'ccp4', title: "CapCut's AI Tools: What's Actually Worth Using", minutes: 5, body: null },
+      { id: 'ccp5', title: 'A 15-Minute Edit Workflow, Start to Finish', minutes: 4, body: null },
     ],
   },
   {
@@ -703,9 +717,9 @@ const ACADEMY_MODULES = [
     blurb: 'Design that looks consistent, not thrown together',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'cvp1', title: 'Building a Brand Kit You Actually Use', minutes: 4, body: null },
-      { id: 'cvp2', title: 'Templates That Convert, Not Just Look Nice', minutes: 4, body: null },
-      { id: 'cvp3', title: 'Batch-Designing a Week of Posts', minutes: 3, body: null },
+      { id: 'cvp1', title: 'Brand Kit: The One Setup Step That Multiplies Every Design After It', minutes: 5, body: null },
+      { id: 'cvp2', title: 'Magic Studio in 2026: The Five Tools Worth Learning (and 35 to Skip)', minutes: 6, body: null },
+      { id: 'cvp3', title: 'Batch-Designing a Week of Posts With Bulk Create', minutes: 4, body: null },
     ],
   },
   {
@@ -713,9 +727,9 @@ const ACADEMY_MODULES = [
     blurb: 'Beyond the referral link — a real income channel',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'afp1', title: 'Picking Programs Worth Your Audience\'s Trust', minutes: 4, body: null },
-      { id: 'afp2', title: 'Placement: Where Links Actually Convert', minutes: 4, body: null },
-      { id: 'afp3', title: 'Turning One-Time Promotion Into Recurring Income', minutes: 3, body: null },
+      { id: 'afp1', title: 'The Kenyan Affiliate Landscape: Real Programs, Real Numbers', minutes: 6, body: null },
+      { id: 'afp2', title: 'The Math: EPC, CPE and Knowing What a Program Is Actually Worth You', minutes: 5, body: null },
+      { id: 'afp3', title: 'Placement & Disclosure: Where Links Convert and Staying Compliant', minutes: 5, body: null },
     ],
   },
   {
@@ -723,9 +737,9 @@ const ACADEMY_MODULES = [
     blurb: 'Being known for something specific, on purpose',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'pbp1', title: 'Defining the One Thing You\'re Known For', minutes: 4, body: null },
-      { id: 'pbp2', title: 'Visual & Voice Consistency Across Platforms', minutes: 4, body: null },
-      { id: 'pbp3', title: 'Turning a Personal Brand Into Opportunities', minutes: 3, body: null },
+      { id: 'pbp1', title: 'Defining the One Thing You\'re Known For', minutes: 5, body: null },
+      { id: 'pbp2', title: 'Visual & Voice Consistency: The Trust Multiplier', minutes: 5, body: null },
+      { id: 'pbp3', title: 'Turning a Personal Brand Into Opportunities', minutes: 4, body: null },
     ],
   },
 ];
