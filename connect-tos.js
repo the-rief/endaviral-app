@@ -42,7 +42,7 @@ const CONNECT_BUSINESS_TOS_CHECKS = [
 
 const CONNECT_TOS_HTML = `
   <div class="modal-title" style="font-size:18px;">EndaViral Connect Marketplace Terms of Service</div>
-  <div class="cn-tos-updated">Last updated: [fill in your launch date before going live]</div>
+  <div class="cn-tos-updated">Last updated: 12/07/2026 </div>
   <div class="cn-tos-body">
     <p>Welcome to <strong>EndaViral Marketplace</strong>, the creator marketplace on the <strong>EndaViral</strong> platform. These Terms of Service govern your use of the EndaViral Connect Marketplace. By creating an account, posting campaigns, applying for jobs, funding campaigns, or using any Marketplace services, you agree to these Terms.</p>
 

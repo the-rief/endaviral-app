@@ -110,26 +110,68 @@ function _cnInjectStyles() {
   const style = document.createElement('style');
   style.id = 'cnStyles';
   style.textContent = `
-    .cn-hero{position:relative;overflow:hidden;border-radius:18px;padding:22px 22px 20px;margin-bottom:18px;background:linear-gradient(120deg,#0f1f2e 0%,#132433 45%,#0d1a26 100%);border:1px solid rgba(33,150,243,.25);}
-    .cn-hero-title{font-size:17px;font-weight:900;color:var(--white);margin-bottom:4px;}
-    .cn-hero-sub{font-size:12.5px;color:#8faab8;line-height:1.5;}
-    .cn-role-toggle{display:flex;gap:8px;margin:16px 0 18px;}
-    .cn-role-btn{flex:1;padding:11px;border-radius:12px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:800;cursor:pointer;transition:all .15s;text-align:center;}
-    .cn-role-btn.active{background:rgba(33,150,243,.12);border-color:rgba(33,150,243,.5);color:var(--white);}
-    .cn-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:10px;}
-    .cn-tab{padding:8px 14px;border-radius:20px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
-    .cn-tab.active{background:var(--card2);border-color:rgba(33,150,243,.5);color:var(--white);}
+    /* Role-based accent — set on #sec-connect via data-cn-role, everything
+       downstream (tabs, cards, journey guide, role toggle) reads these two
+       variables instead of hardcoding blue/orange in a dozen places. */
+    #sec-connect{--cn-accent:#2196f3;--cn-accent-dark:#1670c2;--cn-accent-soft:rgba(33,150,243,.14);}
+    #sec-connect[data-cn-role="business"]{--cn-accent:#ff7043;--cn-accent-dark:#e0562b;--cn-accent-soft:rgba(255,112,67,.14);}
+
+    /* ── Hero ─────────────────────────────────────────────────────────── */
+    .cn-hero{position:relative;overflow:hidden;border-radius:20px;padding:26px 26px 22px;margin-bottom:16px;background:linear-gradient(135deg,#0f1f2e 0%,#13253a 55%,#0d1a26 100%);border:1px solid var(--border);}
+    .cn-hero::after{content:'';position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,var(--cn-accent) 0%,transparent 70%);opacity:.14;pointer-events:none;transition:background .25s;}
+    .cn-hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--cn-accent);margin-bottom:10px;position:relative;}
+    .cn-hero-title{font-size:21px;font-weight:900;color:var(--white);margin-bottom:8px;letter-spacing:-.4px;line-height:1.25;max-width:540px;position:relative;}
+    .cn-hero-sub{font-size:12.5px;color:#a9bccd;line-height:1.6;max-width:560px;margin-bottom:16px;position:relative;}
+    .cn-hero-badges{display:flex;gap:8px;flex-wrap:wrap;position:relative;}
+    .cn-hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:10.5px;font-weight:700;color:#c3d3e0;}
+
+    /* ── Role toggle (segmented control) ─────────────────────────────────*/
+    .cn-role-toggle{display:flex;gap:4px;margin:16px 0 16px;background:var(--navy);border:1px solid var(--border);border-radius:14px;padding:4px;}
+    .cn-role-btn{flex:1;padding:12px;border-radius:10px;background:transparent;border:none;color:var(--muted);font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:800;cursor:pointer;transition:all .18s;text-align:center;}
+    .cn-role-btn:hover:not(.active){color:var(--white);}
+    .cn-role-btn.active[data-role="creator"]{background:linear-gradient(135deg,#2196f3,#1670c2);color:#fff;box-shadow:0 4px 14px rgba(33,150,243,.3);}
+    .cn-role-btn.active[data-role="business"]{background:linear-gradient(135deg,#ff7043,#e0562b);color:#fff;box-shadow:0 4px 14px rgba(255,112,67,.3);}
+
+    /* ── "How it works" journey guide — short, literal step-by-step ─────*/
+    .cn-guide-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .cn-guide-title{font-size:10.5px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);}
+    .cn-guide-toggle-btn{background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:4px 2px;}
+    .cn-guide-toggle-btn:hover{color:var(--white);}
+    .cn-journey{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+    .cn-journey-step{position:relative;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;}
+    .cn-journey-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin-bottom:9px;color:#fff;background:var(--cn-accent);}
+    .cn-journey-step-title{font-size:12px;font-weight:800;color:var(--white);margin-bottom:4px;line-height:1.3;}
+    .cn-journey-step-desc{font-size:11px;color:var(--muted);line-height:1.5;}
+    @media (max-width:900px){ .cn-journey{grid-template-columns:repeat(2,1fr);} }
+    @media (max-width:520px){ .cn-journey{grid-template-columns:1fr;} }
+
+    /* ── Tab nav (pills) ──────────────────────────────────────────────── */
+    .cn-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+    .cn-tab{padding:9px 15px;border-radius:24px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .cn-tab:hover:not(.active){border-color:rgba(255,255,255,.22);color:var(--white);}
+    .cn-tab.active{background:var(--cn-accent-soft);border-color:var(--cn-accent);color:var(--white);}
+
+    /* ── Cards ────────────────────────────────────────────────────────── */
     .cn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
-    .cn-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;transition:transform .14s ease,border-color .14s ease;}
-    .cn-card:hover{transform:translateY(-2px);border-color:rgba(33,150,243,.5);}
+    .cn-card{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 16px 16px 19px;cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;}
+    .cn-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cn-accent);opacity:.75;}
+    .cn-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.2);box-shadow:0 12px 28px rgba(0,0,0,.35);}
     .cn-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:9px;}
     .cn-card-title{font-size:14px;font-weight:800;color:var(--white);line-height:1.35;}
-    .cn-card-budget{font-family:'Montserrat',sans-serif;font-size:16px;font-weight:800;color:var(--green);white-space:nowrap;}
+    .cn-card-budget{font-family:'Montserrat',sans-serif;font-size:14px;font-weight:900;color:var(--green);white-space:nowrap;background:rgba(61,212,74,.12);padding:3px 10px;border-radius:20px;}
     .cn-card-desc{font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:11px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
     .cn-card-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);}
     .cn-tag{background:var(--navy);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:10.5px;font-weight:700;}
-    .cn-empty{padding:50px 20px;text-align:center;color:var(--muted);font-size:13px;}
+    .cn-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--cn-accent),var(--cn-accent-dark));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;flex-shrink:0;}
+    .cn-card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+
+    /* ── Empty states — an invitation to act, not a dead end ────────────*/
+    .cn-empty{padding:44px 22px;text-align:center;color:var(--muted);font-size:12.5px;background:var(--card);border:1px dashed var(--border);border-radius:16px;line-height:1.6;}
+    .cn-empty-icon{font-size:28px;display:block;margin-bottom:10px;}
+    .cn-empty-title{font-size:13.5px;font-weight:800;color:var(--white);margin-bottom:5px;}
+
     .cn-section-lbl{font-size:10.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;}
+    .cn-tip{display:flex;gap:8px;align-items:flex-start;background:var(--cn-accent-soft);border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:11.5px;color:#c3d3e0;line-height:1.5;margin-bottom:14px;}
     .cn-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:12.5px;}
     .cn-row:last-child{border-bottom:none;}
     .cn-row .k{color:var(--muted);}
@@ -143,20 +185,30 @@ function _cnInjectStyles() {
     .cn-btn-reject{background:rgba(229,57,53,.14);color:#ff8a80;border:1px solid rgba(229,57,53,.3) !important;}
     .cn-field{margin-bottom:14px;}
     .cn-field label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;}
-    .cn-field input,.cn-field textarea,.cn-field select{width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--white);font-size:13px;font-family:inherit;}
+    .cn-field input,.cn-field textarea,.cn-field select{width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--white);font-size:13px;font-family:inherit;transition:border-color .15s;}
+    .cn-field input:focus,.cn-field textarea:focus,.cn-field select:focus{outline:none;border-color:var(--cn-accent);}
     .cn-field textarea{resize:vertical;min-height:70px;}
     .cn-msgs{max-height:260px;overflow-y:auto;background:var(--navy);border-radius:12px;padding:12px;margin-bottom:10px;}
     .cn-msg{margin-bottom:10px;max-width:80%;}
     .cn-msg .bubble{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px 12px;font-size:12.5px;color:var(--white);}
     .cn-msg.mine{margin-left:auto;text-align:right;}
-    .cn-msg.mine .bubble{background:rgba(33,150,243,.16);border-color:rgba(33,150,243,.35);}
+    .cn-msg.mine .bubble{background:var(--cn-accent-soft);border-color:var(--cn-accent);}
     .cn-msg .who{font-size:10px;color:var(--muted);margin-bottom:3px;}
     .cn-stars{display:flex;gap:6px;font-size:24px;margin-bottom:10px;}
     .cn-star{cursor:pointer;opacity:.3;transition:opacity .1s;}
     .cn-star.on{opacity:1;}
-    .cn-join-check{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--white);margin-bottom:11px;cursor:pointer;line-height:1.5;}
-    .cn-join-check input{margin-top:3px;flex-shrink:0;width:15px;height:15px;cursor:pointer;}
-    .cn-join-check a{color:#2196f3;text-decoration:underline;}
+
+    /* ── Join / onboarding screen ─────────────────────────────────────── */
+    .cn-join-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px;}
+    .cn-join-badge{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--cn-accent);margin-bottom:10px;}
+    .cn-join-check{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--white);margin-bottom:11px;cursor:pointer;line-height:1.5;}
+    .cn-join-check input{margin-top:3px;flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:var(--cn-accent);}
+    .cn-join-check a{color:var(--cn-accent);text-decoration:underline;}
+    .cn-join-item{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:var(--navy);margin-bottom:8px;cursor:pointer;transition:border-color .15s;border:1px solid transparent;}
+    .cn-join-item:hover{border-color:var(--border);}
+    .cn-join-item input{margin-top:3px;flex-shrink:0;width:16px;height:16px;cursor:pointer;accent-color:var(--cn-accent);}
+    .cn-join-item span{font-size:12px;color:var(--white);line-height:1.5;}
+    .cn-join-icon{font-size:14px;line-height:1.4;margin-top:1px;flex-shrink:0;}
     .cn-tos-body{font-size:12px;line-height:1.7;color:var(--muted);max-height:56vh;overflow-y:auto;padding-right:8px;margin-bottom:16px;}
     .cn-tos-body h4{color:var(--white);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 6px;}
     .cn-tos-body h4:first-child{margin-top:0;}
@@ -166,9 +218,52 @@ function _cnInjectStyles() {
     .cn-tos-body li{margin-bottom:3px;}
     .cn-tos-updated{font-size:10.5px;color:var(--muted);margin-bottom:10px;}
     .cn-tos-example{background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:11.5px;}
-    .cn-tos-check-summary{background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:4px;}
+    .cn-tos-check-summary{background:transparent;border:none;padding:0;margin-top:4px;}
   `;
   document.head.appendChild(style);
+}
+
+// ─── Hero copy + "how it works" guide content — role-aware ────────────────
+// Short, literal, and specific to what each side actually does next; this
+// doubles as the "short guidelines" a new user needs before they touch
+// anything. Steps are a real sequence, so numbering them is meaningful here.
+function _cnHeroCopy(role) {
+  return role === 'creator' ? {
+    eyebrow: '🎬 For Creators',
+    title: 'Turn your following into income',
+    sub: 'Apply to paid brand campaigns, message businesses directly, and get paid via M-Pesa the moment your work is approved. EndaViral holds the money safe until then.',
+  } : {
+    eyebrow: '🏢 For Businesses',
+    title: 'Get real creators making content for your brand',
+    sub: 'Post a campaign or invite creators directly. Your budget sits safely in EndaViral escrow until you approve the finished work — you only pay when you\'re happy.',
+  };
+}
+
+function _cnJourneySteps(role) {
+  return role === 'creator' ? [
+    { title: 'Join & accept terms', desc: 'Tap Join, accept the marketplace terms — takes under a minute.' },
+    { title: 'Complete your profile', desc: 'Add your email and M-Pesa number — that\'s how EndaViral pays you.' },
+    { title: 'Apply or get invited', desc: 'Browse open campaigns, message a business, or wait for a direct invite.' },
+    { title: 'Deliver & get paid', desc: 'Post the work link, the business approves, you raise a payout ticket — money lands on your phone.' },
+  ] : [
+    { title: 'Join & accept terms', desc: 'Tap Join, accept the marketplace terms — takes under a minute.' },
+    { title: 'Set up your profile', desc: 'Tell us who you are so creators know your brand is legit.' },
+    { title: 'Post a campaign', desc: 'Set a budget and deliverables, then invite creators or wait for applications.' },
+    { title: 'Fund, review & pay', desc: 'Fund escrow once you pick a creator. Approve the finished work and EndaViral releases the payment.' },
+  ];
+}
+
+function _cnGuideCollapsed() {
+  try { return localStorage.getItem('cnGuideCollapsed') === '1'; } catch (_) { return false; }
+}
+
+function _cnToggleGuide() {
+  const collapsed = !_cnGuideCollapsed();
+  try { localStorage.setItem('cnGuideCollapsed', collapsed ? '1' : '0'); } catch (_) { /* ignore */ }
+  const rail = document.getElementById('cnJourney');
+  const btn = document.getElementById('cnGuideToggleBtn');
+  if (rail) rail.style.display = collapsed ? 'none' : 'grid';
+  if (btn) btn.textContent = collapsed ? 'Show guide ▾' : 'Hide guide ▴';
 }
 
 // ─── Page init ───────────────────────────────────────────────────────────────
@@ -181,16 +276,38 @@ async function initConnectPage() {
 }
 
 function _cnRenderShell(sec) {
+  sec.dataset.cnRole = _cnRole;
+  const hero = _cnHeroCopy(_cnRole);
+  const steps = _cnJourneySteps(_cnRole);
+  const collapsed = _cnGuideCollapsed();
   sec.innerHTML = `
     <div class="cn-hero">
-      <div class="cn-hero-title">🤝 EndaViral Marketplace</div>
-      <div class="cn-hero-sub">EndaViral Marketplace connects independent creators with businesses. EndaViral charges a marketplace service fee that covers secure payments, 
-      campaign management, creator discovery, messaging, and dispute resolution. Businesses fund campaigns, EndaViral holds the funds in escrow while the creator does the job, 
-      and once the business approves the work the creator raises a payout ticket to get paid via M-Pesa · EndaViral takes a 15% fee only when a deal completes.</div>
+      <div class="cn-hero-eyebrow">${hero.eyebrow} · EndaViral Marketplace</div>
+      <div class="cn-hero-title">${esc(hero.title)}</div>
+      <div class="cn-hero-sub">${esc(hero.sub)}</div>
+      <div class="cn-hero-badges">
+        <span class="cn-hero-badge">🔒 Escrow protected</span>
+        <span class="cn-hero-badge">💸 M-Pesa payouts</span>
+        <span class="cn-hero-badge">✅ 15% fee — only on completed work</span>
+        <span class="cn-hero-badge">⭐ Rated by both sides</span>
+      </div>
     </div>
     <div class="cn-role-toggle">
-      <button class="cn-role-btn ${_cnRole === 'creator' ? 'active' : ''}" onclick="_cnSetRole('creator')">🎬 I'm a Creator</button>
-      <button class="cn-role-btn ${_cnRole === 'business' ? 'active' : ''}" onclick="_cnSetRole('business')">🏢 I'm a Business</button>
+      <button class="cn-role-btn ${_cnRole === 'creator' ? 'active' : ''}" data-role="creator" onclick="_cnSetRole('creator')">🎬 I'm a Creator</button>
+      <button class="cn-role-btn ${_cnRole === 'business' ? 'active' : ''}" data-role="business" onclick="_cnSetRole('business')">🏢 I'm a Business</button>
+    </div>
+    <div class="cn-guide-head">
+      <span class="cn-guide-title">How EndaViral Connect works</span>
+      <button class="cn-guide-toggle-btn" id="cnGuideToggleBtn" onclick="_cnToggleGuide()">${collapsed ? 'Show guide ▾' : 'Hide guide ▴'}</button>
+    </div>
+    <div class="cn-journey" id="cnJourney" style="display:${collapsed ? 'none' : 'grid'};">
+      ${steps.map((s, i) => `
+        <div class="cn-journey-step">
+          <div class="cn-journey-num">${i + 1}</div>
+          <div class="cn-journey-step-title">${esc(s.title)}</div>
+          <div class="cn-journey-step-desc">${esc(s.desc)}</div>
+        </div>
+      `).join('')}
     </div>
     <div class="cn-tabs" id="cnTabs"></div>
     <div id="cnTabContent"><div class="cn-empty">Loading…</div></div>
@@ -310,32 +427,42 @@ async function _cnApplyJoinGate(target) {
 function _cnRenderJoinScreen(target, role) {
   const isCreator = role === 'creator';
   const roleChecks = isCreator ? CONNECT_CREATOR_TOS_CHECKS : CONNECT_BUSINESS_TOS_CHECKS;
+  // A tiny icon per checkbox just helps the eye scan a list of commitments —
+  // purely decorative, keyed loosely off each check's subject.
+  const iconFor = (key) => ({
+    fee_deduction: '💸', payment_after_approval: '✅', independent_contractor: '🎬',
+    escrow_hold: '🔒', marketplace_intermediary: '🤝',
+    no_circumvention: '🚫', platform_transactions: '📋',
+  }[key] || '•');
   target.innerHTML = `
-    <div class="cn-empty" style="text-align:left;">
-      <div style="font-size:15px;font-weight:800;color:var(--white);margin-bottom:10px;">
-        ${isCreator ? '🎬 Join EndaViral Connect as a Creator' : '🏢 Join EndaViral Connect as a Business'}
+    <div class="cn-join-card">
+      <div class="cn-join-badge">${isCreator ? '🎬 Join as a Creator' : '🏢 Join as a Business'}</div>
+      <div style="font-size:16px;font-weight:800;color:var(--white);margin-bottom:8px;">
+        ${isCreator ? 'One step from your first paid campaign' : 'One step from your first campaign'}
       </div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:18px;line-height:1.6;">
         ${isCreator
           ? 'Get discovered by brands, apply to paid campaigns, and get paid via M-Pesa once your work is approved.'
           : 'Post paid campaigns, discover creators, and pay securely through EndaViral escrow.'}
       </div>
 
-      <label class="cn-join-check">
-        <input type="checkbox" class="cn-join-check-box" id="cnJoinTos" onchange="_cnUpdateJoinBtn()">
-        <span>I have read and agree to the <a href="#" onclick="return _cnOpenTos()">EndaViral Connect Marketplace Terms of Service</a>, and confirm I am at least 18 years old or have legal authority to enter into this agreement.</span>
-      </label>
-
+      <div class="cn-section-lbl" style="margin-top:0;">Before you join</div>
       <div class="cn-tos-check-summary">
-        ${roleChecks.map((c, i) => `
-          <label class="cn-join-check" style="margin-bottom:${i === roleChecks.length - 1 ? '0' : '11px'};">
+        ${roleChecks.map(c => `
+          <label class="cn-join-item">
             <input type="checkbox" class="cn-join-check-box cn-join-role-check" data-key="${c.key}" onchange="_cnUpdateJoinBtn()">
+            <span class="cn-join-icon">${iconFor(c.key)}</span>
             <span>${esc(c.text)}</span>
           </label>
         `).join('')}
       </div>
 
-      <button class="btn-primary" id="cnJoinBtn" style="margin-top:16px;" onclick="_cnSubmitJoin('${role}')" disabled>Join the Marketplace</button>
+      <label class="cn-join-check" style="margin-top:6px;">
+        <input type="checkbox" class="cn-join-check-box" id="cnJoinTos" onchange="_cnUpdateJoinBtn()">
+        <span>I have read and agree to the <a href="#" onclick="return _cnOpenTos()">EndaViral Connect Marketplace Terms of Service</a>, and confirm I am at least 18 years old or have legal authority to enter into this agreement.</span>
+      </label>
+
+      <button class="btn-primary" id="cnJoinBtn" style="margin-top:6px;" onclick="_cnSubmitJoin('${role}')" disabled>Join the Marketplace</button>
     </div>
   `;
 }
@@ -379,10 +506,12 @@ function _cnRenderIncompleteProfileScreen(target, role) {
   const isCreator = role === 'creator';
   target.innerHTML = `
     <div class="cn-empty">
+      <span class="cn-empty-icon">${isCreator ? '💳' : '🏢'}</span>
+      <div class="cn-empty-title">${isCreator ? 'Almost there — add your payment details' : 'Finish setting up your business profile'}</div>
       ${isCreator
-        ? "Add your email and phone number to your Creator profile — that's how EndaViral pays you — before browsing campaigns."
-        : "Finish setting up your Business profile before posting a campaign or inviting creators."}
-      <br><button class="btn-secondary" style="margin-top:12px;" onclick="_cnSetTab('profile')">Go to My Profile →</button>
+        ? "Add your email and M-Pesa number to your Creator profile — that's how EndaViral pays you — before browsing campaigns."
+        : "Add your company name before posting a campaign or inviting creators."}
+      <br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('profile')">Go to My Profile →</button>
     </div>
   `;
 }
@@ -392,7 +521,7 @@ async function _cnRenderDiscover(target) {
   const data = await api('/connect/discover');
   _cnCampaigns = data || [];
   if (!_cnCampaigns.length) {
-    target.innerHTML = `<div class="cn-empty">No open campaigns right now — check back soon!</div>`;
+    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">🔍</span><div class="cn-empty-title">No open campaigns right now</div>Check back soon — new campaigns get posted regularly.</div>`;
     return;
   }
   target.innerHTML = `<div class="cn-grid">${_cnCampaigns.map(_cnCardHtml).join('')}</div>`;
@@ -403,7 +532,7 @@ function _cnCardHtml(c) {
   return `
   <div class="cn-card" onclick="_cnOpenCampaign('${c.id}')">
     <div class="cn-card-top">
-      <div class="cn-card-title">${esc(c.title)}</div>
+      <div class="cn-card-title">${plat.emoji} ${esc(c.title)}</div>
       <div class="cn-card-budget">${fmtKES(c.budget_kes)}</div>
     </div>
     <div class="cn-card-desc">${esc(c.description)}</div>
@@ -420,7 +549,7 @@ function _cnCardHtml(c) {
 async function _cnRenderMyApplications(target) {
   const apps = await api('/connect/applications/mine');
   if (!apps.length) {
-    target.innerHTML = `<div class="cn-empty">You haven't applied to any campaigns yet.<br><button class="btn-secondary" style="margin-top:12px;" onclick="_cnSetTab('discover')">Browse campaigns →</button></div>`;
+    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">📨</span><div class="cn-empty-title">No applications yet</div>Find a campaign you like and apply — your bid and delivery time show up here.<br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('discover')">Browse campaigns →</button></div>`;
     return;
   }
   target.innerHTML = apps.map(a => `
@@ -440,7 +569,7 @@ async function _cnRenderMyWork(target) {
   const campaigns = await api('/connect/campaigns/mine?role=creator');
   const active = campaigns.filter(c => c.status !== 'draft');
   if (!active.length) {
-    target.innerHTML = `<div class="cn-empty">Once a business accepts one of your applications, it'll show up here.</div>`;
+    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">🛠</span><div class="cn-empty-title">Nothing in progress yet</div>Once a business accepts your application or you accept an invite, the job shows up here.</div>`;
     return;
   }
   target.innerHTML = `<div class="cn-grid">${active.map(_cnCardHtml).join('')}</div>`;
@@ -450,7 +579,7 @@ async function _cnRenderMyWork(target) {
 async function _cnRenderMyCampaigns(target) {
   const campaigns = await api('/connect/campaigns/mine?role=business');
   if (!campaigns.length) {
-    target.innerHTML = `<div class="cn-empty">You haven't posted a campaign yet.<br><button class="btn-secondary" style="margin-top:12px;" onclick="_cnSetTab('create')">Post your first campaign →</button></div>`;
+    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">📋</span><div class="cn-empty-title">No campaigns posted yet</div>Set a budget and deliverables, and creators can start applying within minutes.<br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('create')">Post your first campaign →</button></div>`;
     return;
   }
   target.innerHTML = `<div class="cn-grid">${campaigns.map(_cnCardHtml).join('')}</div>`;
@@ -459,6 +588,7 @@ async function _cnRenderMyCampaigns(target) {
 // ─── Create campaign (business) ──────────────────────────────────────────────
 function _cnRenderCreateForm(target) {
   target.innerHTML = `
+    <div class="cn-tip">💡 Once you publish, this goes live to every creator on EndaViral — you can invite someone directly from here too, right after it's posted.</div>
     <div class="cn-field">
       <label>Campaign Title</label>
       <input type="text" id="cnNewTitle" placeholder="e.g. TikTok Reel for Our New Product Launch" maxlength="200">
@@ -547,7 +677,7 @@ async function _cnRenderCreatorProfileForm(target) {
   _cnCreatorProfile = profile;
 
   target.innerHTML = `
-    ${profile?.joined_at ? `<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">✅ Joined EndaViral Connect on ${new Date(profile.joined_at).toLocaleDateString()}</div>` : ''}
+    ${profile?.joined_at ? `<div class="cn-hero-badge" style="display:inline-flex;margin-bottom:14px;">✅ Joined EndaViral Connect on ${new Date(profile.joined_at).toLocaleDateString()}</div>` : ''}
     <div class="cn-field"><label>Display Name</label><input type="text" id="cnCpName" value="${esc(profile?.display_name || '')}"></div>
     <div class="cn-field"><label>Profile Photo URL</label><input type="text" id="cnCpAvatar" value="${esc(profile?.avatar_url || '')}" placeholder="https://..."></div>
     <div class="cn-field"><label>Bio</label><textarea id="cnCpBio">${esc(profile?.bio || '')}</textarea></div>
@@ -556,7 +686,7 @@ async function _cnRenderCreatorProfileForm(target) {
     <div class="cn-field"><label>Platforms (comma-separated)</label><input type="text" id="cnCpPlatforms" value="${esc(profile?.platforms || '')}" placeholder="e.g. tiktok, instagram"></div>
     <div class="cn-field"><label>Follower Count</label><input type="number" id="cnCpFollowers" value="${profile?.followers_count || 0}" min="0"></div>
     <div class="cn-section-lbl">Payment Details</div>
-    <div style="font-size:11px;color:var(--muted);margin:-6px 0 10px;">Required before you can apply to campaigns. Your phone number is only ever visible to EndaViral — businesses never see it — and it's what your payout tickets pay out to.</div>
+    <div class="cn-tip">🔒 Required before you can apply to campaigns. Your phone number is only ever visible to EndaViral — businesses never see it — and it's what your payout tickets pay out to.</div>
     <div class="cn-field"><label>Email</label><input type="email" id="cnCpEmail" value="${esc(profile?.email || '')}" placeholder="you@example.com"></div>
     <div class="cn-field"><label>M-Pesa Phone Number</label><input type="text" id="cnCpPhone" value="${esc(profile?.phone || '')}" placeholder="07XXXXXXXX"></div>
     <div class="cn-section-lbl">Pricing (KES, optional)</div>
@@ -1304,15 +1434,16 @@ let _cnCreatorFilters = { niche: '', platform: '', location: '', min_followers: 
 
 async function _cnRenderFindCreators(target) {
   target.innerHTML = `
+    <div class="cn-tip">🔎 Search by niche, platform or follower count — or skip the filters and invite anyone straight from their profile card.</div>
     <div class="cn-field" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-      <input type="text" id="cnFcNiche" placeholder="Niche (e.g. fashion)" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" value="${esc(_cnCreatorFilters.niche)}">
-      <select id="cnFcPlatform" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;">
+      <input type="text" id="cnFcNiche" placeholder="Niche (e.g. fashion)" class="cn-fc-input" value="${esc(_cnCreatorFilters.niche)}">
+      <select id="cnFcPlatform" class="cn-fc-input">
         <option value="">Any platform</option>
         ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}" ${_cnCreatorFilters.platform === p.key ? 'selected' : ''}>${p.emoji} ${esc(p.label)}</option>`).join('')}
       </select>
-      <input type="text" id="cnFcLocation" placeholder="Location" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" value="${esc(_cnCreatorFilters.location)}">
-      <input type="number" id="cnFcMinFollowers" placeholder="Min. followers" min="0" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" value="${_cnCreatorFilters.min_followers}">
-      <select id="cnFcSort" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;">
+      <input type="text" id="cnFcLocation" placeholder="Location" class="cn-fc-input" value="${esc(_cnCreatorFilters.location)}">
+      <input type="number" id="cnFcMinFollowers" placeholder="Min. followers" min="0" class="cn-fc-input" value="${_cnCreatorFilters.min_followers}">
+      <select id="cnFcSort" class="cn-fc-input">
         <option value="rating" ${_cnCreatorFilters.sort === 'rating' ? 'selected' : ''}>Sort: Top Rated</option>
         <option value="followers" ${_cnCreatorFilters.sort === 'followers' ? 'selected' : ''}>Sort: Most Followers</option>
         <option value="jobs_completed" ${_cnCreatorFilters.sort === 'jobs_completed' ? 'selected' : ''}>Sort: Most Jobs Done</option>
