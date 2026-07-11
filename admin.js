@@ -423,9 +423,17 @@ async function loadAdminStats(force = false) {
 let _adminRevenueCacheTs = 0;
 const ADMIN_REVENUE_TTL = 5 * 60 * 1000;
 
+function _compactKES(v) {
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  if (abs >= 1000000) return sign + (abs / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (abs >= 1000) return sign + (abs / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  return sign + Math.round(abs).toString();
+}
+
 function _miniBarChart(items, { key = 'net_revenue_kes', labelKey, color = '#3dd44a', w = 700, h = 160 } = {}) {
   if (!items.length) return `<div style="font-size:12px;color:var(--muted);padding:20px 0;text-align:center;">No data yet.</div>`;
-  const padTop = 18, padBottom = 22, padX = 4;
+  const padTop = 30, padBottom = 22, padX = 4; // padTop widened to fit the value label above each bar
   const plotW = w - padX * 2;
   const plotH = h - padTop - padBottom;
   const n = items.length;
@@ -441,7 +449,8 @@ function _miniBarChart(items, { key = 'net_revenue_kes', labelKey, color = '#3dd
     const x = cx - barW / 2;
     const y = padTop + plotH - bh;
     const barColor = v < 0 ? 'var(--red)' : color;
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(bh,0).toFixed(1)}" rx="3" fill="${barColor}" opacity="0.9"><title>${esc(d[labelKey])}: ${fmtKES(v)}</title></rect>`;
+    const valueLabel = `<text x="${cx.toFixed(1)}" y="${Math.max(y - 6, 10).toFixed(1)}" font-size="10" font-weight="700" fill="${barColor}" text-anchor="middle">${esc(_compactKES(v))}</text>`;
+    return `${valueLabel}<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(bh,0).toFixed(1)}" rx="3" fill="${barColor}" opacity="0.9"><title>${esc(d[labelKey])}: ${fmtKES(v)}</title></rect>`;
   }).join('');
   const labels = items.map((d, i) => {
     const cx = padX + step * i + step / 2;
