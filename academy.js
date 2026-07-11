@@ -114,6 +114,8 @@ const ACADEMY_PREMIUM_PRICE_KES = 50;
 // Display fallback for the business_pro module — real price still comes
 // from the server the same way ACADEMY_PREMIUM_PRICE_KES does for money.
 const ACADEMY_BUSINESS_PRO_PRICE_KES = 150;
+// Display fallback for the brand_pricing_pro module — same pattern.
+const ACADEMY_BRAND_PRICING_PRO_PRICE_KES = 200;
 
 const ACADEMY_LEVELS = [
   { min: 0,   name: 'New Creator',       icon: '🌱' },
@@ -740,6 +742,25 @@ const ACADEMY_MODULES = [
       { id: 'pbp1', title: 'Defining the One Thing You\'re Known For', minutes: 5, body: null },
       { id: 'pbp2', title: 'Visual & Voice Consistency: The Trust Multiplier', minutes: 5, body: null },
       { id: 'pbp3', title: 'Turning a Personal Brand Into Opportunities', minutes: 4, body: null },
+    ],
+  },
+  {
+    // PREMIUM — KES 200 one-time unlock via M-Pesa. Standalone deep-dive
+    // (no free counterpart module), priced above the standard KSh50 "_pro"
+    // tier — same gating pattern as money/business_pro above: teaser only
+    // here, full lesson body text lives in academy_premium_content.py and
+    // is only ever served after academy.py confirms a SUCCESS purchase (or
+    // a points redemption) for this (user, module) pair. Do NOT paste
+    // lesson body text back into this file.
+    id: 'brand_pricing_pro', icon: '💼', title: 'Charging Brands: The Kenya Pricing Playbook',
+    blurb: 'Know your worth, quote it with confidence, and get it in writing',
+    premium: true, priceKes: ACADEMY_BRAND_PRICING_PRO_PRICE_KES,
+    lessons: [
+      { id: 'cbp1', title: 'Know Your Worth: The Numbers Brands Actually Pay For', minutes: 7, body: null },
+      { id: 'cbp2', title: 'Building Your Rate Card & Media Kit', minutes: 6, body: null },
+      { id: 'cbp3', title: 'The Negotiation Playbook: Getting Paid What You\'re Worth', minutes: 6, body: null },
+      { id: 'cbp4', title: 'The Fine Print: Usage Rights, Exclusivity & Getting Paid on Time', minutes: 6, body: null },
+      { id: 'cbp5', title: 'Pricing Mistakes That Cost Kenyan Creators Money — and Taxes Nobody Explains', minutes: 7, body: null },
     ],
   },
 ];
