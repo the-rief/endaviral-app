@@ -133,7 +133,7 @@ const ACADEMY_MODULES = [
         { type: 'ul', items: [
           'Keep the target account or post set to Public — private content can\'t be delivered to and often can\'t be refunded.',
           "Double-check your link before paying. Wrong links are the #1 reason orders can't be refunded.",
-          'Many services use drip-feed, spreading delivery over hours or days so growth looks natural instead of an instant spike.',
+          'Many services use drip-feed, spreading delivery over hours or days so growth looks natural instead of an instant spike — this mirrors exactly how the platforms\' own anti-spam systems expect real growth to look.',
         ]},
       ]},
       { id: 'b2', title: 'Reading Service Names Like a Pro', minutes: 3, body: [
@@ -142,6 +142,7 @@ const ACADEMY_MODULES = [
           '"Real Mix" or "High Quality" tiers use accounts with profile pictures and activity — better for pages that need to look credible to brands or new visitors.',
           '"No Refill" means if numbers drop naturally over time, that\'s not covered — "Refill" or "30-Day Refill" services top you back up automatically.',
           'Cheaper isn\'t always better. Rock-bottom pricing usually means lower-quality accounts that can drop fast — match the tier to what the order is actually for.',
+          'Speed matters too: "Instant Start" is good for time-sensitive posts, but a service with gradual delivery over 24–48 hours almost always protects account health better than one that dumps everything in minutes.',
         ]},
       ]},
       { id: 'b3', title: 'Payments, Minimums & Refunds', minutes: 3, body: [
@@ -161,7 +162,7 @@ const ACADEMY_MODULES = [
         ]},
       ]},
       { id: 'b5', title: 'Why Smart Creators Don\'t Wait for Organic Growth', minutes: 3, body: [
-        { type: 'p', text: 'Building an audience from zero, purely organically, can take months of consistent posting before it feels worth the effort — that long, quiet stretch is exactly where most people give up.' },
+        { type: 'p', text: 'Building an audience from zero, purely organically, can take months of consistent posting before it feels worth the effort — that long, quiet stretch is exactly where most people give up. Every platform\'s own recommendation systems make this worse, not better: a brand-new account has no watch-history, no engagement pattern and no "relationship signal" for the algorithm to work with, so it gets shown to almost nobody until it produces some.' },
         { type: 'ul', items: [
           'A page that already shows some followers, likes or views clears the biggest hurdle a brand-new profile faces: convincing a stranger to be the *first* person to follow it.',
           'Starting an order for even a modest amount removes the "0" from your profile at the exact moment new visitors are deciding whether you\'re worth following — first impressions happen before anyone reads a single caption.',
@@ -174,44 +175,55 @@ const ACADEMY_MODULES = [
     id: 'ig', icon: '📸', title: 'Instagram Growth Playbook',
     blurb: 'Turn the algorithm in your favor',
     lessons: [
-      { id: 'ig1', title: 'How the Algorithm Actually Ranks You', minutes: 4, body: [
-        { type: 'p', text: 'Instagram ranks content by early engagement velocity and watch-time — how much interaction a post gets in its first hour, and how long people watch Reels, matters far more than raw follower count.' },
+      { id: 'ig1', title: 'How the Algorithm Actually Ranks You', minutes: 5, body: [
+        { type: 'p', text: 'Instagram doesn\'t run one algorithm anymore — it runs separate AI ranking systems for Feed, Reels, Stories and Explore, and each one weighs signals differently. But in January 2025, Instagram head Adam Mosseri confirmed the three signals that matter most across every surface: watch time, likes-per-reach, and sends-per-reach (DM shares) — and by 2026 that third one has quietly become the most important of all.' },
         { type: 'ul', items: [
-          'Saves and shares are weighted more heavily than likes — they tell Instagram the content is worth revisiting or sending to a friend.',
-          'Consistency beats intensity — accounts that post regularly get more distribution than ones that post in bursts and go quiet.',
-          'A follower count with no matching engagement is a red flag to both the algorithm and to brands.',
+          'Sends per reach — how often people forward your post via DM — is now weighted so heavily that industry trackers estimate one DM share carries roughly the distribution value of 10–15 likes. Content built for a "send this to someone who…" moment outperforms content built purely to be liked.',
+          'Saves are the second-strongest signal — they tell Instagram the content is worth returning to, which is why practical, reference-style posts (tips, lists, how-tos) consistently out-reach purely entertaining ones.',
+          'Relationship strength (DMs, comments, profile visits, Story replies) increasingly decides your Feed ranking with existing followers — replying to every comment and DM isn\'t just good manners, it\'s a direct algorithmic lever.',
+          'A follower count with no matching engagement is a red flag to both the algorithm and to brands evaluating you for a deal.',
         ]},
       ]},
       { id: 'ig2', title: 'Stacking Services the Smart Way', minutes: 4, body: [
-        { type: 'p', text: 'The order you buy services in matters. Engagement first, reach second is the pattern that mirrors organic growth and gets the best algorithmic response.' },
+        { type: 'p', text: 'The order you buy services in matters. Engagement first, reach second is the pattern that mirrors organic growth and gets the best algorithmic response — especially now that Instagram tests every Reel on a batch of non-followers before deciding whether to expand it further.' },
         { type: 'ul', items: [
-          'Post first, then add likes and comments within the first hour — this boosts the early-engagement signal that decides how far a post travels.',
-          'Add followers over the following days rather than all at once — a sudden jump in followers with flat engagement looks unnatural.',
-          "Spread big orders using drip-feed instead of buying everything in one sitting — it protects your account and your budget.",
+          'Post first, then add likes and comments within the first hour — this is the exact "window one" testing period Instagram uses to decide whether a post deserves wider distribution.',
+          'Add followers over the following days rather than all at once — a sudden jump in followers with flat engagement looks unnatural to both the algorithm and human visitors.',
+          "Spread big orders using drip-feed instead of buying everything in one sitting — it protects your account and mirrors the gradual pattern real audience growth actually produces.",
         ]},
       ]},
-      { id: 'ig3', title: 'Reels & Posting Cadence', minutes: 3, body: [
-        { type: 'p', text: 'Reels remain Instagram\'s biggest distribution engine. What you post — and when — has a direct effect on how far each one reaches.' },
+      { id: 'ig3', title: 'Reels & Posting Cadence', minutes: 4, body: [
+        { type: 'p', text: 'Reels remain Instagram\'s biggest discovery engine — most Reel views now come from people who don\'t follow you yet. What you post, and when, has a direct effect on how far each one travels.' },
         { type: 'ul', items: [
-          'Hook viewers in the first 3 seconds — that\'s the window where most people decide to keep watching or scroll past.',
-          'Posting 4–6 times a week keeps you visible without burning out your content ideas.',
-          'Trending audio gives a small discovery boost, but only pair it with content that\'s actually relevant to your niche.',
+          'Hook viewers in the first 3 seconds — research on viewer behavior shows people decide within under 2 seconds whether to keep watching or scroll past, so the "setup" has to come after the payoff, not before it.',
+          'Posting 4–6 times a week keeps you visible without burning out your content ideas, and gives the algorithm enough fresh data to keep refining who it shows you to.',
+          'Shorter, tightly-looped Reels (7–15 seconds) tend to get rewatched more, and a rewatch counts as a much stronger engagement signal than a first-time view.',
+          'Instagram now actively suppresses Reels carrying a visible watermark from another app — always export a clean version before posting, never repost directly from TikTok.',
         ]},
       ]},
       { id: 'ig4', title: 'Staying Under the Radar', minutes: 3, body: [
         { type: 'p', text: 'Growth only helps if the account stays healthy. A few habits keep your Instagram looking — and performing — like an organically growing page.' },
         { type: 'ul', items: [
           'Keep the account Public while orders are running so delivery isn\'t blocked.',
-          'Avoid combining growth services with mass-follow/unfollow bots at the same time — that pattern is what actually triggers platform flags.',
+          'Avoid combining growth services with mass-follow/unfollow bots at the same time — Instagram\'s systems now actively detect coordinated engagement-pod patterns, and that behavior (not gradual, real-account engagement) is what actually triggers a flag.',
           "Watch your engagement rate over time, not just the follower number — a healthy account keeps both moving together.",
         ]},
       ]},
       { id: 'ig5', title: 'The Case for Buying Instagram Growth', minutes: 3, body: [
-        { type: 'p', text: 'Instagram decides how far a post travels almost entirely in its first hour — the amount of engagement it gets early on tells the algorithm whether to keep showing it to more people.' },
+        { type: 'p', text: 'Instagram decides how far a post travels almost entirely in its first testing window — the amount of engagement it gets from that early sample audience tells the algorithm whether to keep showing it to more people.' },
         { type: 'ul', items: [
           'A post with visible early likes and comments earns noticeably more organic reach in that window than an identical post with none — an early boost is timing engineering, not a shortcut around having good content.',
           'New accounts benefit the most: a profile with some engagement history gets more benefit of the doubt from both the algorithm and human visitors deciding whether to follow.',
-          'Pairing a boosted post with the ranking behavior from Lesson 2.1 means you\'re feeding the algorithm the exact signal it already rewards, instead of hoping it notices you eventually.',
+          'Pairing a boosted post with the ranking behavior from Lesson 2.1 means you\'re feeding the algorithm the exact signals it already rewards — sends, saves, watch time — instead of hoping it notices you eventually.',
+        ]},
+      ]},
+      { id: 'ig6', title: 'Sends, "Your Algorithm" & What Actually Changed in 2026', minutes: 4, body: [
+        { type: 'p', text: 'Two shifts reshaped Instagram distribution going into 2026, and most creators still haven\'t adjusted to either one. Understanding both is the difference between guessing and actually working with the algorithm.' },
+        { type: 'ul', items: [
+          'In December 2025, Instagram launched "Your Algorithm" — a feature letting every user directly edit which topics their Reels feed favors. By early 2026 it was live globally. Practically, this means your Reels now need to match a topic viewers have actively chosen, not just one Instagram predicted for them — a niche mismatch, even on a well-made Reel, means it simply won\'t surface for that person.',
+          'Instagram is also now actively fingerprinting and demoting aggregator accounts — profiles that repost more than roughly 10 pieces of other people\'s content within 30 days lose recommendation eligibility almost entirely, while accounts posting original, platform-native content have seen meaningful reach increases from the same change.',
+          'Mosseri\'s own year-end note flagged a shift toward "raw, real human content" over polished AI output through 2026 — content that visibly carries your own voice, face or perspective is now favored over anything that reads as fully AI-generated with no personal layer.',
+          'This module gives you the ranking fundamentals. Instagram Reels Growth Engine (premium) goes deeper into the specific mechanics of the sends-per-reach signal, the first-3-seconds frame-by-frame breakdown that actually gets Reels past window one, and the account-level authority patterns that compound your reach month over month — the exact playbook behind accounts consistently breaking out of the algorithm\'s cold-start test pool.',
         ]},
       ]},
     ],
@@ -220,36 +232,45 @@ const ACADEMY_MODULES = [
     id: 'tiktok', icon: '🎵', title: 'TikTok Growth Playbook',
     blurb: 'Crack the For You Page',
     lessons: [
-      { id: 'tt1', title: 'Cracking the For You Page', minutes: 4, body: [
-        { type: 'p', text: 'TikTok\'s FYP is driven almost entirely by completion rate and re-watches — how many people watch your video to the end, and how many watch it twice.' },
+      { id: 'tt1', title: 'Cracking the For You Page', minutes: 5, body: [
+        { type: 'p', text: 'TikTok\'s FYP is driven above all by completion rate and rewatches. TikTok itself states plainly that a strong indicator of interest — like finishing a video from beginning to end — gets far more weight than a weak one like a passing like. By 2026, the bar for what counts as "viral-worthy" completion has climbed to roughly 70%, up from around 50% just a couple of years earlier.' },
         { type: 'ul', items: [
-          'The first 2 seconds decide whether someone scrolls away — open with the payoff, not the setup.',
-          'Short, tight videos with a clear loop tend to get re-watched, which is one of the strongest FYP signals.',
-          'A slow start on a video usually means a re-edit, not a bigger promotion — fix the hook before spending on growth.',
+          'The first 2–3 seconds decide whether someone scrolls away — open with the payoff, not the setup. TikTok\'s own data shows most viewers decide within this window whether to keep watching.',
+          'Short, tight videos with a clear loop tend to get rewatched, and each rewatch is scored almost like a fresh engagement — it\'s one of the strongest signals a video can send.',
+          'A slow start on a video usually means a re-edit, not a bigger promotion — fix the hook before spending on growth, since no amount of purchased engagement fixes a video people are dropping off in the first two seconds.',
         ]},
       ]},
-      { id: 'tt2', title: 'Views, Likes or Shares — What to Buy First', minutes: 3, body: [
-        { type: 'p', text: 'Each metric plays a different role in how a video performs after you\'ve posted it.' },
+      { id: 'tt2', title: 'Views, Likes or Shares — What to Buy First', minutes: 4, body: [
+        { type: 'p', text: 'Each metric plays a different role in how a video performs after you\'ve posted it, and TikTok weighs them very differently in 2026.' },
         { type: 'ul', items: [
-          'Views build early social proof and can help nudge the FYP push if the video is already gaining organic traction.',
-          'Likes and comments boost credibility for people who land on the video from the FYP — they decide in seconds whether to keep watching.',
-          'Shares carry the heaviest algorithmic weight of the three — pace these rather than buying them all at once.',
+          'Views build early social proof and can help nudge the FYP push if the video is already gaining organic traction in its test pool.',
+          'Likes and comments boost credibility for people who land on the video from the FYP — they decide in seconds whether to keep watching. Comment *depth* matters more than count now: a genuine two-sentence comment outweighs a handful of emoji reactions.',
+          'Shares — especially direct shares to DM — carry the heaviest algorithmic weight of the three, reportedly worth roughly 3x a like in distribution value. Pace these rather than buying them all at once.',
         ]},
       ]},
       { id: 'tt3', title: 'Trend-Jacking Without Losing Your Voice', minutes: 3, body: [
         { type: 'p', text: 'Trends are a distribution shortcut, not a content strategy — the accounts that grow fastest adapt trends to their own niche instead of copying them exactly.' },
         { type: 'ul', items: [
-          'Post 1–3 times a day if you can sustain the quality — TikTok rewards frequency more than any other platform.',
-          'Use TikTok\'s own search and captions to find rising sounds and formats before they peak.',
+          'Post 3–5 times a week if you can sustain the quality — TikTok\'s own 2026 guidance favors steady, sustainable frequency over daily bursts that burn creators out and drop in quality.',
+          'Use TikTok\'s own search and captions to find rising sounds and formats before they peak — TikTok now scans your spoken audio and on-screen text as "Search Value," matching your video to search queries, not just hashtags.',
           'Keep a recognizable style (a phrase, a transition, a topic) so viewers remember you beyond one viral clip.',
         ]},
       ]},
       { id: 'tt4', title: 'Why Buy Views, Likes or Shares on TikTok', minutes: 3, body: [
-        { type: 'p', text: 'A video\'s first few minutes online decide most of its fate — TikTok tests new content on a small slice of viewers first, then pushes it wider only if that early group reacts well.' },
+        { type: 'p', text: 'A video\'s first hour online decides most of its fate. TikTok shows every new upload to a small cold-start test pool — typically a few hundred viewers — before deciding whether to expand it to thousands, then tens of thousands, then the open FYP.' },
         { type: 'ul', items: [
-          'A quick order of views or likes right after posting gives that first test slice something to react to instead of a blank counter — it\'s the difference between an untested video and one that already looks worth watching.',
+          'A quick order of views or likes right after posting gives that first test pool something to react to instead of a blank counter — it\'s the difference between an untested video and one that already looks worth watching.',
           'Shares carry the heaviest algorithmic weight of the three metrics — a small paced order can nudge a video past the threshold where TikTok starts distributing it more widely on its own.',
           'Buying growth on a video you\'re proud of costs far less than the hours spent reshooting and re-posting the same idea hoping the FYP notices it eventually.',
+        ]},
+      ]},
+      { id: 'tt5', title: 'The Cold-Start Test Pool: What Actually Happens in Your Video\'s First Hour', minutes: 4, body: [
+        { type: 'p', text: 'Most creators think TikTok either "picks you" or it doesn\'t. In reality, every single upload goes through the same measurable pipeline — and knowing the actual mechanics changes how you use every tool in this module.' },
+        { type: 'ul', items: [
+          'TikTok\'s 2026 system shows a new video to a stratified test pool of roughly 200–500 viewers, drawn from a mix of your followers and category browsers — late 2025 changes mean your own followers now see it first, before strangers do.',
+          'To graduate out of that first pool into a 5,000–10,000 viewer expansion round, a video typically needs completion rate above roughly 35% and at least one engagement signal — a share, save, or substantial comment — firing above about 1.5% of viewers. Fall short, and the video quietly stops circulating: the so-called "200-view jail."',
+          'This is exactly why timing a small, paced boost in that first hour matters more on TikTok than almost anywhere else — you\'re not gaming a black box, you\'re helping a video clear a specific, known threshold before the test window closes.',
+          'The Advanced TikTok Growth & Algorithm Playbook (premium) breaks down how to read your own analytics like TikTok\'s growth team does, how to engineer a video specifically for rewatches, how to batch a week of content in one sitting, and the full 2026 algorithm reset — including the shift toward follower-first testing and TikTok Shop\'s growing role in distribution. If cracking the test pool consistently (not just once) is the goal, that\'s where the real depth lives.',
         ]},
       ]},
     ],
@@ -258,19 +279,19 @@ const ACADEMY_MODULES = [
     id: 'yt', icon: '▶️', title: 'YouTube Growth Playbook',
     blurb: 'Subscribers, retention & safe monetization',
     lessons: [
-      { id: 'yt1', title: 'Subscribers vs Views — Sequencing', minutes: 4, body: [
-        { type: 'p', text: 'YouTube\'s search and suggested-video systems respond first to views and watch time, then use subscriber growth as a trust signal on top of that.' },
+      { id: 'yt1', title: 'Subscribers vs Views — Sequencing', minutes: 5, body: [
+        { type: 'p', text: 'YouTube tests every new upload on a small audience first — typically your subscribers plus a lookalike micro-audience of 10 to 100 viewers — before deciding whether to expand it over the following 7 to 14 days. What that test group does with the video matters more than anything you can control after the upload button.' },
         { type: 'ul', items: [
-          'Build views and watch time on a video first — this is what actually triggers YouTube to suggest it to more people.',
+          'Build views and watch time on a video first — this is what actually triggers YouTube to widen its testing pool and suggest it to more people.',
           'Add subscribers gradually afterward so growth on the channel matches growth on the content, rather than spiking on its own.',
-          'A channel with subscribers but no view growth signals inactivity to YouTube\'s recommendation system.',
+          'A channel with subscribers but no view growth signals inactivity to YouTube\'s recommendation system — subscriber count alone hasn\'t been a strong ranking signal for years.',
         ]},
       ]},
-      { id: 'yt2', title: 'Thumbnails, Titles & Retention', minutes: 3, body: [
-        { type: 'p', text: 'Click-through rate gets someone to open the video — retention decides whether YouTube keeps recommending it.' },
+      { id: 'yt2', title: 'Thumbnails, Titles & Retention', minutes: 4, body: [
+        { type: 'p', text: 'Click-through rate gets someone to open the video — but as of 2026, YouTube weighs what happens *after* the click, through viewer satisfaction, even more heavily than raw watch time.' },
         { type: 'ul', items: [
-          'A thumbnail that overpromises will hurt retention even if it wins the click — mismatch is worse for long-term growth than a lower CTR.',
-          'The first 15 seconds should deliver on the title\'s promise — that\'s the window most viewers decide to stay or leave.',
+          'A thumbnail that overpromises will hurt retention even if it wins the click — mismatch is worse for long-term growth than a lower CTR, since disappointed viewers now show up directly in satisfaction survey data YouTube feeds into ranking.',
+          'The first 30 seconds are now treated as a core ranking input on their own, not just a diagnostic stat — that opening window is the strongest early predictor of whether YouTube keeps recommending the video.',
           'Pattern-interrupts (a cut, a question, a visual change) every 30–60 seconds help hold attention through longer videos.',
         ]},
       ]},
@@ -279,15 +300,24 @@ const ACADEMY_MODULES = [
         { type: 'ul', items: [
           'Stay inside YouTube Partner Program guidelines for watch-hours and subscribers — there\'s no legitimate shortcut around the eligibility thresholds themselves.',
           'Favor real-engagement service tiers over anything promising instant guaranteed watch-hours — those patterns are exactly what triggers manual review.',
-          'Understand what commonly triggers demonetization review (reused content, misleading titles, community guideline strikes) and audit your own uploads against it regularly.',
+          'As of May 2026, YouTube enforces AI-content disclosure with automated detection — undisclosed, fully AI-generated photorealistic video now faces reduced distribution or removal, so label AI-assisted content honestly rather than risk the penalty.',
         ]},
       ]},
       { id: 'yt4', title: 'Why Seed Your Channel With Real Engagement', minutes: 3, body: [
         { type: 'p', text: 'A brand-new video competes for suggested-video slots against millions of others with a head start — seeding it with an early batch of views and watch time gives YouTube\'s system something to measure instead of nothing.' },
         { type: 'ul', items: [
-          'Watch time is the single biggest input into whether YouTube suggests a video further — an order that adds real watch time gives the algorithm a stronger, earlier signal than waiting on organic views alone to accumulate.',
+          'Watch time is still one of the biggest inputs into whether YouTube suggests a video further — an order that adds real watch time gives the algorithm a stronger, earlier signal than waiting on organic views alone to accumulate.',
           'A channel that shows steady subscriber growth alongside its content looks active to both YouTube\'s systems and to sponsors evaluating it for a deal.',
-          'The cost of seeding one video is small compared to the ad revenue, sponsorship value, or reach a video permanently loses by never clearing that first-hours hurdle.',
+          'The cost of seeding one video is small compared to the ad revenue, sponsorship value, or reach a video permanently loses by never clearing that first-days testing window.',
+        ]},
+      ]},
+      { id: 'yt5', title: 'Satisfaction Over Watch Time: Why the Rules Changed in 2026', minutes: 4, body: [
+        { type: 'p', text: 'For over a decade, "make it longer" was the safest YouTube advice there was — more minutes meant more watch time, and watch time was king. That era is over, and creators still optimizing for it are quietly losing ground to shorter, more satisfying videos.' },
+        { type: 'ul', items: [
+          'YouTube now feeds post-watch satisfaction surveys, replay rates and whether a viewer stays on the platform afterward directly into ranking — a video someone genuinely enjoyed for 4 minutes now consistently outranks one they merely tolerated for 8.',
+          '"Session contribution" — whether your video keeps someone watching YouTube afterward, not just your own video — is the leading signal for long-form ranking in 2026. It\'s a big part of why playlists and multi-part series now consistently outperform one-off uploads.',
+          'Shorts run on a completely separate ranking engine from long-form as of late 2025 — Shorts need roughly 65% retention under 30 seconds, or roughly 50% for 30–60 second Shorts, to get pushed to a wider audience. The old advice to keep every Short under 15 seconds now actively works against you, since ultra-short clips can\'t clear the watch-time-per-impression bar even at 100% completion — the 2026 sweet spot sits closer to 30–45 seconds.',
+          'YouTube SEO Mastery (premium) goes deep on exactly this shift — the semantic search changes behind titles and descriptions, a full breakdown of the satisfaction signal, Shorts-specific SEO as its own ranking track, and the current monetization and AI-disclosure requirements you need to stay eligible under. If your upload strategy still assumes 2023\'s rules, that module is where you catch up fast.',
         ]},
       ]},
     ],
@@ -296,12 +326,12 @@ const ACADEMY_MODULES = [
     id: 'other', icon: '👥', title: 'Facebook, X & Telegram',
     blurb: 'Grow beyond the big two',
     lessons: [
-      { id: 'fb1', title: 'Facebook Page Growth Tactics', minutes: 3, body: [
-        { type: 'p', text: 'Facebook rewards post engagement more than raw page likes now — a smaller, active page often outperforms a larger dormant one.' },
+      { id: 'fb1', title: 'Facebook Page Growth Tactics', minutes: 4, body: [
+        { type: 'p', text: 'Facebook rewards post engagement more than raw page likes now — a smaller, active page often outperforms a larger dormant one. This matters even more in Kenya since Meta activated native monetization here, making an "active-looking" page a direct revenue question, not just a vanity one.' },
         { type: 'ul', items: [
           'Engagement (comments, shares) on individual posts does more for reach than growing the page-like count on its own.',
           'Relevant Kenyan Facebook groups are still one of the highest-engagement discovery channels available.',
-          'Pairing a boosted post with existing engagement services amplifies both — Facebook\'s ad system responds to accounts that already show activity.',
+          'Pairing a boosted post with existing engagement services amplifies both — Facebook\'s ad and recommendation systems respond to accounts that already show activity.',
         ]},
       ]},
       { id: 'x1', title: 'Growing on X (Twitter)', minutes: 3, body: [
@@ -320,12 +350,13 @@ const ACADEMY_MODULES = [
           'Use it as the "closer" step in a funnel — the place followers go to get exclusive content, deals or direct access to you.',
         ]},
       ]},
-      { id: 'conv1', title: 'Why Small Accounts Buy Growth on Every Platform', minutes: 3, body: [
-        { type: 'p', text: 'Facebook, X and Telegram all share the same cold-start problem as the bigger platforms — people trust a page, profile or channel more once it already looks like other people trust it too.' },
+      { id: 'conv1', title: 'Why Small Accounts Buy Growth on Every Platform', minutes: 4, body: [
+        { type: 'p', text: 'Facebook, X and Telegram all share the same cold-start problem as the bigger platforms — people trust a page, profile or channel more once it already looks like other people trust it too. On Facebook specifically, this now has a hard dollar value: Kenya\'s Content Monetization program requires a Page (not a personal profile) to show real, sustained activity before Meta will even review it for ads.' },
         { type: 'ul', items: [
           'A Facebook page with some page likes and post engagement clears local group and search discovery filters that a completely empty page doesn\'t.',
           'An X profile with a modest, believable follower count gets replies and quote-tweets read by more people than an identical account with a near-zero count.',
           'A Telegram channel that already shows an active member count converts new joiners faster, since nobody wants to be the only person in an empty room.',
+          'The Facebook Monetization Blueprint (premium) walks through exactly which of Facebook\'s payout paths — in-stream ads, Reels bonuses, Stars, subscriptions — fits your page, and the real thresholds Meta checks (follower count, minutes-viewed-in-60-days, active video count) before it lets a Kenyan Page start earning.',
         ]},
       ]},
     ],
@@ -335,10 +366,10 @@ const ACADEMY_MODULES = [
     blurb: 'Grow without risking your account',
     lessons: [
       { id: 's1', title: 'Understanding Platform Risk', minutes: 3, body: [
-        { type: 'p', text: "Every platform has terms of service around inauthentic activity. The safest approach isn't avoiding growth services — it's understanding what actually gets flagged." },
+        { type: 'p', text: "Every platform has terms of service around inauthentic activity. The safest approach isn't avoiding growth services — it's understanding what actually gets flagged, and in 2026 the platforms are unusually specific and public about exactly what that is." },
         { type: 'ul', items: [
           'Sudden, isolated spikes in one single metric (only followers, only likes) are what typically draw attention — not gradual, mixed growth.',
-          'Bot-spam patterns (identical comments, obviously fake accounts) are the real risk, not engagement services with real or high-quality accounts.',
+          'Coordinated engagement-pod patterns (groups of accounts scripted to like/comment on each other on cue) are now actively detected by Instagram\'s and other platforms\' AI systems — that\'s the real risk category, not engagement services using real or high-quality accounts.',
           'Reading a service description before buying tells you which risk category it falls into — this is exactly why Lesson 1.2 on service names matters.',
         ]},
       ]},
@@ -351,7 +382,7 @@ const ACADEMY_MODULES = [
         ]},
       ]},
       { id: 's3', title: 'Organic + Paid = The Winning Combo', minutes: 3, body: [
-        { type: 'p', text: 'Paid growth works best as an amplifier for content you\'re already posting — not a replacement for a content strategy.' },
+        { type: 'p', text: 'Paid growth works best as an amplifier for content you\'re already posting — not a replacement for a content strategy. Every platform\'s 2026 algorithm update points the same direction: systems increasingly reward accounts with a real, consistent posting history over anything that looks like a one-off spike.' },
         { type: 'ul', items: [
           'The accounts that grow fastest post consistently and use services to boost specific posts, not to sit still and hope numbers rise on their own.',
           'Consistency in posting matters more long-term than any single order — algorithms reward accounts that show up regularly.',
@@ -401,7 +432,157 @@ const ACADEMY_MODULES = [
         { type: 'ul', items: [
           'A clear call-to-action (a WhatsApp link, a phone number, an order form) in your bio and in every boosted post is what actually turns page traffic into revenue.',
           'A page with credible social proof gets that call-to-action clicked far more often than an identical page with none — this is the whole reason the earlier lessons in this module matter.',
-          'The Turn Growth Into Income module goes deeper on pricing, brand deals and building a repeatable revenue system once your page has the audience to support it — worth unlocking once you\'re past the cold-start stage.',
+          'The Business Scale-Up Playbook (premium) goes much deeper here — a CAC/LTV budgeting framework built for Kenyan SME budgets, real patterns behind businesses that scaled with paid growth, how to combine paid ads with growth services for maximum ROI, and an honest breakdown of when an agency is worth paying for versus doing it yourself. Worth unlocking once you\'re past the cold-start stage and ready to treat this as a real revenue channel.',
+        ]},
+      ]},
+    ],
+  },
+  {
+    id: 'shorts', icon: '🎬', title: 'Shorts Strategy',
+    blurb: 'One video, three feeds — the fundamentals',
+    lessons: [
+      { id: 'sh1', title: 'Why Short-Form Is the Cheapest Reach on the Internet', minutes: 3, body: [
+        { type: 'p', text: 'YouTube Shorts, Instagram Reels and TikTok all actively push short vertical video to new viewers who\'ve never followed you — no other content format gets that much free distribution by default.' },
+        { type: 'ul', items: [
+          'A single well-hooked short video can reach far beyond your existing followers, unlike a static post which mostly reaches people already following you.',
+          'Vertical, full-screen framing (9:16) is required to be eligible for each platform\'s short-form feed — landscape or square clips get far less push.',
+          'Posting consistently in this format is one of the fastest ways to grow an audience from zero, faster than almost any other content type.',
+        ]},
+      ]},
+      { id: 'sh2', title: 'The 3-Second Rule', minutes: 3, body: [
+        { type: 'p', text: 'Every short-form platform decides a video\'s fate in its first few seconds — if a viewer swipes away before that window closes, the algorithm treats that as a signal to stop showing it.' },
+        { type: 'ul', items: [
+          'Start with the most interesting frame or line, not a slow build-up — save context for after you\'ve earned the viewer\'s attention.',
+          'Avoid title cards, logos, or intros before the content starts — they\'re the single most common reason a short underperforms.',
+          'Watch your own video with the sound off for the first 3 seconds — if it\'s not visually interesting without audio, it needs a stronger hook.',
+        ]},
+      ]},
+      { id: 'sh3', title: 'One Idea, Filmed Once, Posted Everywhere', minutes: 4, body: [
+        { type: 'p', text: 'A single short video idea can become three posts — one for Shorts, one for Reels, one for TikTok — without needing three separate filming sessions. But the three platforms don\'t actually reward the same length or pacing, which is the part most creators get wrong.' },
+        { type: 'ul', items: [
+          'Film in the vertical 9:16 safe zone from the start so the same clip works across all three without re-cropping.',
+          'Export a clean, unwatermarked version each time — every platform now programmatically detects and suppresses a rival platform\'s watermark.',
+          'The sweet spot differs by platform in 2026: TikTok now rewards completion rate up to roughly 70%, which favors tighter clips; YouTube Shorts favor 30–45 seconds since anything under ~15 seconds can\'t clear its watch-time bar; Instagram Reels reward 7–15 second loops that get rewatched. The Shorts, Reels & TikTok: One Playbook (premium) breaks down exactly how to re-cut one piece of footage into three length- and pacing-optimized versions without reshooting.',
+        ]},
+      ]},
+    ],
+  },
+  {
+    id: 'ai_content', icon: '🤖', title: 'AI Content Creation',
+    blurb: 'Use AI to never run out of ideas again',
+    lessons: [
+      { id: 'ai1', title: 'AI as a Brainstorming Partner, Not a Ghostwriter', minutes: 3, body: [
+        { type: 'p', text: 'AI tools are most useful for creators as an idea-generation engine — the fastest way to escape a blank page, not a replacement for your own voice. This isn\'t just a style preference anymore: platforms are now actively rewarding content that reads as genuinely human over anything that looks fully AI-generated.' },
+        { type: 'ul', items: [
+          'Ask for 10 content ideas around a specific topic rather than one — quantity first, then pick the strongest 2–3 to actually make.',
+          'Give the AI context about your niche and audience before asking for ideas — generic prompts get generic, unusable suggestions back.',
+          'Treat every AI output as a first draft to edit, not a finished product — Instagram\'s own leadership has publicly signaled a 2026 push toward "raw, real human content," and posting AI text unedited is usually easy for both audiences and algorithms to spot.',
+        ]},
+      ]},
+      { id: 'ai2', title: 'Getting Better Prompts, Faster', minutes: 3, body: [
+        { type: 'p', text: 'The difference between a useless AI response and a genuinely useful one usually comes down to how specific the prompt was.' },
+        { type: 'ul', items: [
+          'Include your platform, audience, and goal in every prompt (e.g. "TikTok, small business owners, drive page visits") instead of a vague request.',
+          'Ask for multiple tones or angles on the same idea so you have real options to choose from, rather than accepting the first response.',
+          'Save prompts that worked well — reusing a proven prompt structure saves far more time than starting fresh every session.',
+        ]},
+      ]},
+      { id: 'ai3', title: 'Where AI Fits Into a Real Content Workflow', minutes: 3, body: [
+        { type: 'p', text: 'AI tools are most valuable as one step in a workflow — idea generation, caption drafts, hashtag suggestions — not as the entire process.' },
+        { type: 'ul', items: [
+          'Use AI for the planning and writing stages, then keep filming, editing and posting decisions in your own hands — that\'s where your specific voice matters most, and where both YouTube\'s AI-disclosure rules and Instagram\'s authenticity push reward you for showing up as a real person.',
+          'A short weekly session generating a batch of ideas and captions saves far more time than prompting fresh every time you sit down to post.',
+          'AI Content Creation — Advanced Workflows (premium) goes deeper on building a full month of ideas in one sitting, scripting hooks that still sound like you, the current 2026 AI video toolkit broken down by what each tool actually does well, and how to stay compliant with each platform\'s disclosure rules while still moving fast.',
+        ]},
+      ]},
+    ],
+  },
+  {
+    id: 'capcut', icon: '✂️', title: 'CapCut Editing',
+    blurb: 'Free, powerful, and built for short-form video',
+    lessons: [
+      { id: 'cc1', title: 'Setting Up Your First Edit', minutes: 3, body: [
+        { type: 'p', text: 'CapCut is free, mobile-first, and purpose-built for the vertical short-form video every growth platform now favors — no prior editing experience needed to get a clean result.' },
+        { type: 'ul', items: [
+          'Start every project in the 9:16 vertical canvas size — it\'s the correct format for Shorts, Reels and TikTok alike.',
+          'Trim dead space and silence from your raw footage first, before adding any effects — pacing matters more than polish, and pacing is what platforms\' completion-rate algorithms actually measure.',
+          'Keep your first few edits simple (cuts + captions only) — added effects are easy to layer in once the basics feel natural.',
+        ]},
+      ]},
+      { id: 'cc2', title: 'Auto-Captions in Under a Minute', minutes: 3, body: [
+        { type: 'p', text: 'Captions noticeably increase watch time, since most viewers watch short-form video with the sound off — CapCut\'s auto-caption tool makes adding them nearly instant.' },
+        { type: 'ul', items: [
+          'Always proofread auto-generated captions before posting — even small typos undercut how polished a video feels.',
+          'Keep caption text large and high-contrast so it\'s readable on a small phone screen while scrolling.',
+          'Position captions in the middle third of the frame — top and bottom areas are often covered by platform UI elements, and on-screen text now also feeds directly into how TikTok and YouTube match your video to search queries.',
+        ]},
+      ]},
+      { id: 'cc3', title: 'Your First Reusable Template', minutes: 3, body: [
+        { type: 'p', text: 'Saving your caption style and basic structure as a reusable template is what makes editing fast enough to sustain regular posting.' },
+        { type: 'ul', items: [
+          'Save your preferred caption font, size, and color once you find a style you like, and reuse it across every future video.',
+          'Keep a consistent intro/outro structure (even 1–2 seconds) so your videos start feeling recognizable as "yours."',
+          'CapCut Editing Mastery (premium) goes deeper on pacing for retention, sound design (the most-skipped step in most edits), CapCut\'s built-in AI tools worth actually using, and a full 15-minute edit workflow from raw footage to posted video.',
+        ]},
+      ]},
+    ],
+  },
+  {
+    id: 'canva', icon: '🎨', title: 'Canva Design',
+    blurb: 'Professional-looking graphics without a designer',
+    lessons: [
+      { id: 'cv1', title: 'Picking the Right Template', minutes: 3, body: [
+        { type: 'p', text: 'Canva\'s templates give you a professional starting point instantly — the skill worth building isn\'t designing from scratch, it\'s picking and adapting the right template fast.' },
+        { type: 'ul', items: [
+          'Search templates by platform (Instagram Post, Reel Cover, Facebook Post) so the dimensions are already correct for where you\'re posting.',
+          'Pick a template with a layout that matches your content type (a list, a quote, a photo showcase) rather than forcing your content into a mismatched design.',
+          'Swap fonts and colors to match your own brand before publishing — an unedited template looks like everyone else\'s unedited template.',
+        ]},
+      ]},
+      { id: 'cv2', title: 'Text, Contrast & Readability', minutes: 3, body: [
+        { type: 'p', text: 'A design that looks great to you on a laptop can be unreadable on a small phone screen while someone scrolls — readability matters more than decoration.' },
+        { type: 'ul', items: [
+          'Use high-contrast text/background combinations (dark text on light, or light text on dark) rather than similar tones that blend together.',
+          'Keep font sizes large enough to read at a glance — if you have to zoom in to read your own design, so will everyone else.',
+          'Limit each design to one clear message — a design trying to say five things usually communicates none of them well.',
+        ]},
+      ]},
+      { id: 'cv3', title: 'Building Your First Brand Kit', minutes: 3, body: [
+        { type: 'p', text: 'Saving your colors and fonts as a Canva Brand Kit is the single fastest way to make every future design look consistent with the last.' },
+        { type: 'ul', items: [
+          'Pick 2–3 core colors and stick to them across every design — consistency reads as more professional than variety.',
+          'Upload your logo once and reuse it in the same position across templates so it becomes a recognizable visual anchor.',
+          'Canva Design for Creators — Advanced (premium) goes deeper on building a brand kit you\'ll actually keep using, templates engineered to convert rather than just look nice, and batch-designing a full week of posts in one sitting.',
+        ]},
+      ]},
+    ],
+  },
+  {
+    id: 'branding', icon: '👤', title: 'Personal Branding',
+    blurb: 'Becoming known for something specific',
+    lessons: [
+      { id: 'pb1', title: 'Why "Known For Something" Beats "Known For Everything"', minutes: 3, body: [
+        { type: 'p', text: 'Viewers remember creators who are clearly about one thing far more easily than ones who post a bit of everything — specificity is what makes a brand memorable, and it\'s now also what the algorithms reward. Instagram\'s "Your Algorithm" and TikTok\'s interest-graph both work by matching your content to a specific declared topic — a scattered account gives them nothing consistent to match against.' },
+        { type: 'ul', items: [
+          'Try to describe what you post in one short sentence — if it takes several sentences, your content is likely too scattered to build a clear brand or a clear algorithmic identity.',
+          'A specific niche builds a smaller but far more loyal and engaged audience than a broad, unfocused one.',
+          'You can always expand later — starting specific is easier to grow from than starting broad and trying to narrow down.',
+        ]},
+      ]},
+      { id: 'pb2', title: 'Consistency: The Unglamorous Growth Lever', minutes: 3, body: [
+        { type: 'p', text: 'The same profile photo, bio and posting style across every platform makes you instantly recognizable — inconsistency is one of the most common (and fixable) reasons a personal brand doesn\'t stick.' },
+        { type: 'ul', items: [
+          'Use the same profile photo and bio wording everywhere so someone finding you on a second platform immediately recognizes you.',
+          'Post on a predictable rhythm — audiences build a habit of checking in on creators who show up consistently.',
+          'A recognizable visual or verbal habit (a phrase, a color, an intro) helps people remember you beyond a single post.',
+        ]},
+      ]},
+      { id: 'pb3', title: 'Making Your Profile Do the Selling For You', minutes: 3, body: [
+        { type: 'p', text: 'Most new visitors decide whether to follow within seconds of landing on your profile — that first impression matters as much as any individual post, and it\'s directly tied to the "profile click" signal several platforms now weigh in their ranking.' },
+        { type: 'ul', items: [
+          'Make sure your bio clearly states what you do and who it\'s for — a vague bio wastes the attention you\'ve already earned.',
+          'Pin your best 1–3 posts to the top of your profile — they\'re what most new visitors see first.',
+          'Personal Branding Blueprint (premium) goes deeper on positioning your brand for real opportunities — brand deals, partnerships and audience trust — and turning "known for something" into "paid for something."',
         ]},
       ]},
     ],
@@ -436,10 +617,115 @@ const ACADEMY_MODULES = [
     premium: true,
     priceKes: ACADEMY_BUSINESS_PRO_PRICE_KES,
     lessons: [
-      { id: 'bp1', title: 'Budgeting for Growth: What to Spend and When', minutes: 4, body: null },
-      { id: 'bp2', title: 'Patterns Behind Kenyan SMEs That Scaled With Paid Growth', minutes: 4, body: null },
-      { id: 'bp3', title: 'Combining Paid Ads + Growth Services for Maximum ROI', minutes: 4, body: null },
-      { id: 'bp4', title: 'Building a Repeatable Growth System You Can Run Monthly', minutes: 3, body: null },
+      { id: 'bp1', title: 'Budgeting for Growth: The CAC/LTV Framework', minutes: 6, body: null },
+      { id: 'bp2', title: 'Patterns Behind Kenyan SMEs That Scaled With Paid Growth', minutes: 6, body: null },
+      { id: 'bp3', title: 'Combining Paid Ads + Growth Services for Maximum ROI', minutes: 6, body: null },
+      { id: 'bp4', title: 'Building a Repeatable Growth System You Can Run Monthly', minutes: 5, body: null },
+      { id: 'bp5', title: 'The Digital Marketing Stack Every Kenyan Business Needs', minutes: 6, body: null },
+      { id: 'bp6', title: 'Agencies vs DIY: What You Should Actually Pay For', minutes: 6, body: null },
+    ],
+  },
+  // ── New low-ticket premium topics — each its OWN separate KSh50 unlock ──
+  // (not bundled together). Teaser only; body text lives in
+  // academy_premium_content.py, same gating pattern as money/business_pro.
+  {
+    id: 'tiktok_pro', icon: '🎵', title: 'Advanced TikTok Growth & Algorithm Playbook',
+    blurb: 'Beyond the basics — engineered virality',
+    premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
+    lessons: [
+      { id: 'ttp1', title: 'Reading Your Analytics Like a Growth Team', minutes: 4, body: null },
+      { id: 'ttp2', title: 'Engineering a Video for Re-Watches', minutes: 4, body: null },
+      { id: 'ttp3', title: 'Batching a Week of Content in One Sitting', minutes: 3, body: null },
+    ],
+  },
+  {
+    id: 'fb_monetize', icon: '👥', title: 'Facebook Monetization Blueprint',
+    blurb: 'Turn a Facebook page into real income',
+    premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
+    lessons: [
+      { id: 'fbm1', title: 'Which Monetization Path Fits Your Page', minutes: 4, body: null },
+      { id: 'fbm2', title: 'Hitting Eligibility Thresholds Faster', minutes: 4, body: null },
+      { id: 'fbm3', title: 'Diversifying Beyond Ad Revenue', minutes: 3, body: null },
+    ],
+  },
+  {
+    id: 'yt_seo', icon: '🔍', title: 'YouTube SEO Mastery',
+    blurb: 'Get found, not just watched',
+    premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
+    lessons: [
+      { id: 'yts1', title: 'Titles & Thumbnails That Win the Click', minutes: 4, body: null },
+      { id: 'yts2', title: 'Tags, Descriptions & the Algorithm', minutes: 4, body: null },
+      { id: 'yts3', title: 'Retention: The Metric That Decides Everything', minutes: 3, body: null },
+    ],
+  },
+  {
+    id: 'shorts_pro', icon: '🎬', title: 'Shorts, Reels & TikTok: One Playbook',
+    blurb: 'One short-form video, three platforms, three algorithms',
+    premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
+    lessons: [
+      { id: 'shp1', title: 'One Video, Three Platforms — What Actually Changes', minutes: 4, body: null },
+      { id: 'shp2', title: 'Repurposing Without It Looking Repurposed', minutes: 4, body: null },
+      { id: 'shp3', title: 'A Weekly System Across All Three', minutes: 3, body: null },
+    ],
+  },
+  {
+    id: 'ig_reels_pro', icon: '📸', title: 'Instagram Reels Growth Engine',
+    blurb: 'The specific mechanics behind Reels reach',
+    premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
+    lessons: [
+      { id: 'igrp1', title: 'The First 3 Seconds, Frame by Frame', minutes: 4, body: null },
+      { id: 'igrp2', title: 'Saves & Shares: Engineering the Signal', minutes: 4, body: null },
+      { id: 'igrp3', title: 'Cadence, Cover Images & Profile Conversion', minutes: 3, body: null },
+    ],
+  },
+  {
+    id: 'ai_content_pro', icon: '🤖', title: 'AI Content Creation — Advanced Workflows',
+    blurb: 'From single prompts to a repeatable content pipeline',
+    premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
+    lessons: [
+      { id: 'aip1', title: 'Building a Month of Ideas in One Session', minutes: 4, body: null },
+      { id: 'aip2', title: 'Scripting Hooks & Captions That Sound Like You', minutes: 4, body: null },
+      { id: 'aip3', title: 'A Repeatable Weekly AI Workflow', minutes: 3, body: null },
+    ],
+  },
+  {
+    id: 'capcut_pro', icon: '✂️', title: 'CapCut Editing Mastery',
+    blurb: 'Editing techniques that keep people watching',
+    premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
+    lessons: [
+      { id: 'ccp1', title: 'Pacing: Cutting for Retention', minutes: 4, body: null },
+      { id: 'ccp2', title: 'Captions, Keyframes & Templates That Save Hours', minutes: 4, body: null },
+      { id: 'ccp3', title: 'Sound Design: The Most Skipped Step', minutes: 3, body: null },
+    ],
+  },
+  {
+    id: 'canva_pro', icon: '🎨', title: 'Canva Design for Creators — Advanced',
+    blurb: 'Design that looks consistent, not thrown together',
+    premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
+    lessons: [
+      { id: 'cvp1', title: 'Building a Brand Kit You Actually Use', minutes: 4, body: null },
+      { id: 'cvp2', title: 'Templates That Convert, Not Just Look Nice', minutes: 4, body: null },
+      { id: 'cvp3', title: 'Batch-Designing a Week of Posts', minutes: 3, body: null },
+    ],
+  },
+  {
+    id: 'affiliate_pro', icon: '💵', title: 'Affiliate Marketing Playbook',
+    blurb: 'Beyond the referral link — a real income channel',
+    premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
+    lessons: [
+      { id: 'afp1', title: 'Picking Programs Worth Your Audience\'s Trust', minutes: 4, body: null },
+      { id: 'afp2', title: 'Placement: Where Links Actually Convert', minutes: 4, body: null },
+      { id: 'afp3', title: 'Turning One-Time Promotion Into Recurring Income', minutes: 3, body: null },
+    ],
+  },
+  {
+    id: 'branding_pro', icon: '👤', title: 'Personal Branding Blueprint',
+    blurb: 'Being known for something specific, on purpose',
+    premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
+    lessons: [
+      { id: 'pbp1', title: 'Defining the One Thing You\'re Known For', minutes: 4, body: null },
+      { id: 'pbp2', title: 'Visual & Voice Consistency Across Platforms', minutes: 4, body: null },
+      { id: 'pbp3', title: 'Turning a Personal Brand Into Opportunities', minutes: 3, body: null },
     ],
   },
 ];
@@ -810,6 +1096,15 @@ function openAcademyLesson(moduleId, lessonId) {
   document.getElementById('acLessonBody').innerHTML = lesson.body.map(block => {
     if (block.type === 'p') return `<p style="margin-bottom:12px;">${esc(block.text)}</p>`;
     if (block.type === 'ul') return `<ul style="margin:0 0 12px 18px;padding:0;">${block.items.map(it => `<li style="margin-bottom:7px;color:var(--muted);">${esc(it)}</li>`).join('')}</ul>`;
+    // ── Richer block types (premium lessons) ──────────────────────────
+    if (block.type === 'h3') return `<h3 style="margin:22px 0 10px;font-size:14.5px;font-weight:800;color:var(--white);letter-spacing:.2px;">${esc(block.text)}</h3>`;
+    if (block.type === 'ol') return `<ol style="margin:0 0 12px 18px;padding:0;">${block.items.map(it => `<li style="margin-bottom:7px;color:var(--muted);">${esc(it)}</li>`).join('')}</ol>`;
+    if (block.type === 'callout') return `<div style="margin:0 0 14px;padding:12px 14px;border-radius:10px;background:var(--card);border-left:3px solid var(--green);">${block.label ? `<div style="font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">${esc(block.label)}</div>` : ''}<div style="color:var(--white);font-size:13.5px;line-height:1.5;">${esc(block.text)}</div></div>`;
+    if (block.type === 'table') {
+      const head = (block.headers || []).map(h => `<th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);border-bottom:1px solid var(--border);">${esc(h)}</th>`).join('');
+      const rows = (block.rows || []).map(r => `<tr>${r.map(c => `<td style="padding:8px 10px;font-size:13px;color:var(--white);border-bottom:1px solid var(--border);">${esc(c)}</td>`).join('')}</tr>`).join('');
+      return `<div style="overflow-x:auto;margin-bottom:14px;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
     return '';
   }).join('');
 
