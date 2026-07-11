@@ -173,8 +173,11 @@ function _cnRenderTabs() {
   const wrap = document.getElementById('cnTabs');
   if (!wrap) return;
   const tabs = _cnRole === 'creator'
-    ? [['discover', '🔍 Discover'], ['applications', '📨 My Applications'], ['work', '🛠 Active Work'], ['profile', '👤 My Profile']]
-    : [['campaigns', '📋 My Campaigns'], ['create', '➕ New Campaign'], ['profile', '🏢 Business Profile']];
+    ? [['discover', '🔍 Discover'], ['applications', '📨 My Applications'], ['invites', '✉️ Invites'], ['work', '🛠 Active Work'], ['profile', '👤 My Profile']]
+    : [['campaigns', '📋 My Campaigns'], ['create', '➕ New Campaign'], ['find', '🔎 Find Creators'], ['profile', '🏢 Business Profile']];
+  if (typeof currentUser !== 'undefined' && currentUser && currentUser.is_admin) {
+    tabs.push(['admin', '🛡 Admin']);
+  }
   wrap.innerHTML = tabs.map(([id, label]) =>
     `<button class="cn-tab ${_cnTab === id ? 'active' : ''}" onclick="_cnSetTab('${id}')">${label}</button>`
   ).join('');
@@ -202,9 +205,12 @@ async function _cnLoadActiveTab() {
   try {
     if (_cnTab === 'discover')     return await _cnRenderDiscover(target);
     if (_cnTab === 'applications') return await _cnRenderMyApplications(target);
+    if (_cnTab === 'invites')      return await _cnRenderInvites(target);
     if (_cnTab === 'work')         return await _cnRenderMyWork(target);
     if (_cnTab === 'campaigns')    return await _cnRenderMyCampaigns(target);
     if (_cnTab === 'create')       return _cnRenderCreateForm(target);
+    if (_cnTab === 'find')         return await _cnRenderFindCreators(target);
+    if (_cnTab === 'admin')        return await _cnRenderAdmin(target);
     if (_cnTab === 'profile')      return _cnRole === 'creator' ? await _cnRenderCreatorProfileForm(target) : await _cnRenderBusinessProfileForm(target);
   } catch (e) {
     target.innerHTML = `<div class="cn-empty">Couldn't load this — ${esc(e.message || 'please try again.')}<br><button class="btn-secondary" style="margin-top:12px;" onclick="_cnLoadActiveTab()">Retry</button></div>`;
@@ -372,6 +378,7 @@ async function _cnRenderCreatorProfileForm(target) {
 
   target.innerHTML = `
     <div class="cn-field"><label>Display Name</label><input type="text" id="cnCpName" value="${esc(profile?.display_name || '')}"></div>
+    <div class="cn-field"><label>Profile Photo URL</label><input type="text" id="cnCpAvatar" value="${esc(profile?.avatar_url || '')}" placeholder="https://..."></div>
     <div class="cn-field"><label>Bio</label><textarea id="cnCpBio">${esc(profile?.bio || '')}</textarea></div>
     <div class="cn-field"><label>Location</label><input type="text" id="cnCpLocation" value="${esc(profile?.location || '')}" placeholder="e.g. Nairobi, Kenya"></div>
     <div class="cn-field"><label>Niches (comma-separated)</label><input type="text" id="cnCpNiches" value="${esc(profile?.niches || '')}" placeholder="e.g. comedy, fashion"></div>
@@ -382,11 +389,22 @@ async function _cnRenderCreatorProfileForm(target) {
     <div class="cn-field"><label>Instagram Reel</label><input type="number" id="cnCpPriceReel" value="${profile?.prices_kes?.ig_reel || ''}" min="0"></div>
     <div class="cn-field"><label>TikTok</label><input type="number" id="cnCpPriceTiktok" value="${profile?.prices_kes?.tiktok || ''}" min="0"></div>
     <button class="btn-primary" id="cnCpSaveBtn" onclick="_cnSaveCreatorProfile()">Save Profile</button>
-    ${profile ? `<div style="margin-top:16px;display:flex;gap:20px;font-size:12px;color:var(--muted);">
+    ${profile ? `
+    <div style="margin-top:16px;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--muted);">
+      ${profile.is_verified ? `<span style="color:#3dd44a;">✓ Verified</span>` : ''}
+      ${profile.is_suspended ? `<span style="color:#e53935;">⛔ Suspended${profile.suspend_reason ? ': ' + esc(profile.suspend_reason) : ''}</span>` : ''}
       <span>⭐ ${profile.rating_avg || 0} (${profile.rating_count || 0})</span>
       <span>✅ ${profile.jobs_completed || 0} jobs completed</span>
       <span>📈 ${profile.success_rate_pct || 0}% success rate</span>
-    </div>` : ''}
+      ${profile.response_time_hours != null ? `<span>⏱ ~${profile.response_time_hours}h response time</span>` : ''}
+    </div>
+    ${profile.academy ? `<div style="margin-top:10px;font-size:12px;color:var(--muted);">🎓 Creator Academy: ${profile.academy.modules_completed || 0} modules completed</div>` : ''}
+    ${profile.portfolio && profile.portfolio.length ? `
+    <div class="cn-section-lbl">Portfolio — Past Campaigns</div>
+    ${profile.portfolio.map(pf => `
+      <div class="cn-row"><span class="k">${esc(pf.title)} · ${esc(pf.business_name)}</span><span class="v" style="font-weight:400;">${pf.completed_at ? new Date(pf.completed_at).toLocaleDateString() : ''}</span></div>
+    `).join('')}` : ''}
+    ` : ''}
   `;
 }
 
@@ -395,6 +413,7 @@ async function _cnSaveCreatorProfile() {
   btn.disabled = true; btn.textContent = 'Saving…';
   const payload = {
     display_name: document.getElementById('cnCpName').value.trim() || null,
+    avatar_url: document.getElementById('cnCpAvatar').value.trim() || null,
     bio: document.getElementById('cnCpBio').value.trim() || null,
     location: document.getElementById('cnCpLocation').value.trim() || null,
     niches: document.getElementById('cnCpNiches').value.trim() || null,
@@ -494,7 +513,8 @@ function _cnRenderCampaignModal() {
   let html = `
     <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#2196f3;margin-bottom:6px;">${plat.emoji} ${esc(plat.label).toUpperCase()}</div>
     <div class="modal-title" style="margin-bottom:4px;">${esc(c.title)}</div>
-    <div style="margin-bottom:14px;">${_cnStatusPill(c.status)}</div>
+    <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">${_cnStatusPill(c.status)}${c.is_frozen ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#e5393520;color:#ff8a80;border:1px solid #e5393540;">🧊 Frozen by admin</span>` : ''}</div>
+    ${c.is_frozen ? `<div style="font-size:12px;color:#ff8a80;background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;">This campaign is frozen${c.frozen_reason ? ': ' + esc(c.frozen_reason) : ''}. No actions can be taken until an admin unfreezes it.</div>` : ''}
     <div style="font-size:13px;color:var(--white);line-height:1.6;margin-bottom:14px;">${esc(c.description)}</div>
     <div class="cn-row"><span class="k">Budget</span><span class="v" style="color:var(--green);">${fmtKES(c.budget_kes)}</span></div>
     <div class="cn-row"><span class="k">Deliverables</span><span class="v">${esc(c.deliverables)}</span></div>
@@ -505,6 +525,7 @@ function _cnRenderCampaignModal() {
   `;
 
   // ── Role/status-specific action area ──────────────────────────────────
+  if (!c.is_frozen) {
   if (!isBusinessOwner && c.status === 'published' && _cnRole === 'creator') {
     html += _cnApplyFormHtml();
   }
@@ -531,6 +552,7 @@ function _cnRenderCampaignModal() {
         </div>
       `).join('');
     }
+    html += `<button class="btn-secondary" style="width:100%;margin-top:10px;" onclick="_cnOpenInviteModal(null,'${c.id}')">✉️ Invite a Creator Directly</button>`;
   }
 
   if (isBusinessOwner && c.status === 'awaiting_fund') {
@@ -553,6 +575,11 @@ function _cnRenderCampaignModal() {
   if ((isBusinessOwner || isAssignedCreator) && c.status === 'completed') {
     html += `<div id="cnReviewArea">${_cnReviewFormHtml()}</div>`;
   }
+
+  if (isBusinessOwner && ['completed', 'cancelled'].includes(c.status)) {
+    html += `<button class="btn-secondary" style="margin-top:10px;width:100%;" onclick="_cnArchiveCampaign('${c.id}')">🗄 Archive Campaign</button>`;
+  }
+  } // end !c.is_frozen
 
   if (isBusinessOwner || isAssignedCreator) {
     html += `
