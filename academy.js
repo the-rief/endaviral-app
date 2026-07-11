@@ -1482,31 +1482,108 @@ function _acDrawDivider(ctx, cx, y, halfWidth, gold) {
   ctx.restore();
 }
 
+// Rounded-rect path — used for the frame and the promo banner.
+function _acRoundedRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Letter-spaced (tracked) text, centered on cx — reads like an engraved
+// certificate label instead of a plain UI string.
+function _acFillTracked(ctx, text, cx, y, spacing) {
+  const chars = Array.from(text);
+  const widths = chars.map(c => ctx.measureText(c).width);
+  const totalWidth = widths.reduce((a, b) => a + b, 0) + spacing * (chars.length - 1);
+  let x = cx - totalWidth / 2;
+  const prevAlign = ctx.textAlign;
+  ctx.textAlign = 'left';
+  chars.forEach((c, i) => { ctx.fillText(c, x, y); x += widths[i] + spacing; });
+  ctx.textAlign = prevAlign;
+}
+
+// A small L-shaped gold corner accent, mirrored via sx/sy (±1).
+function _acDrawCornerFlourish(ctx, x, y, sx, sy, gold) {
+  const len = 30;
+  ctx.strokeStyle = gold;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y + sy * len);
+  ctx.lineTo(x, y);
+  ctx.lineTo(x + sx * len, y);
+  ctx.stroke();
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillStyle = gold;
+  ctx.fillRect(-3, -3, 6, 6);
+  ctx.restore();
+}
+
+// Two notched ribbon tails hanging behind the seal.
+function _acDrawRibbonTails(ctx, cx, y, len, color) {
+  const w = 20, gap = 9;
+  ctx.fillStyle = color;
+  [-1, 1].forEach(dir => {
+    const x0 = cx + dir * gap;
+    const x1 = cx + dir * (gap + w);
+    ctx.beginPath();
+    ctx.moveTo(x0, y);
+    ctx.lineTo(x1, y);
+    ctx.lineTo(x1, y + len);
+    ctx.lineTo(x0 + dir * w / 2, y + len - 14);
+    ctx.lineTo(x0, y + len);
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
 function _acDrawCertificate(canvas, data, logoImg) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
-  const gold = '#ffd700', green = '#3dd44a', white = '#f0f4ff', muted = '#7a8fad';
+  const gold = '#ffd700', green = '#3dd44a', white = '#f4f7ff', muted = '#8296b3';
 
-  // Background — base gradient plus a soft vignette for a bit of depth.
+  // ── Background — richer gradient with a soft glow, plus a faint oversized
+  // logo watermark for brand texture even before anyone reads a word.
   const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, '#1a2435');
-  bg.addColorStop(1, '#0d1117');
+  bg.addColorStop(0, '#161f2e');
+  bg.addColorStop(0.55, '#0f1720');
+  bg.addColorStop(1, '#0a0f14');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  const vignette = ctx.createRadialGradient(W / 2, H * 0.42, H * 0.15, W / 2, H * 0.42, H * 0.85);
-  vignette.addColorStop(0, 'rgba(255,255,255,0.02)');
-  vignette.addColorStop(1, 'rgba(0,0,0,0.35)');
-  ctx.fillStyle = vignette;
+  const glow = ctx.createRadialGradient(W / 2, H * 0.4, 40, W / 2, H * 0.4, H * 0.9);
+  glow.addColorStop(0, 'rgba(61,212,74,0.07)');
+  glow.addColorStop(1, 'rgba(0,0,0,0.4)');
+  ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
-  // Borders
+  if (logoImg) {
+    ctx.save();
+    ctx.globalAlpha = 0.05;
+    const wmW = 640, wmH = logoImg.height * (wmW / logoImg.width);
+    ctx.drawImage(logoImg, W / 2 - wmW / 2, H / 2 - wmH / 2, wmW, wmH);
+    ctx.restore();
+  }
+
+  // ── Rounded double-line frame + corner flourishes
+  _acRoundedRectPath(ctx, 28, 28, W - 56, H - 56, 18);
   ctx.strokeStyle = gold;
   ctx.lineWidth = 3;
-  ctx.strokeRect(30, 30, W - 60, H - 60);
-  ctx.strokeStyle = 'rgba(255,215,0,.35)';
+  ctx.stroke();
+  _acRoundedRectPath(ctx, 42, 42, W - 84, H - 84, 12);
+  ctx.strokeStyle = 'rgba(255,215,0,.3)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(44, 44, W - 88, H - 88);
+  ctx.stroke();
+
+  _acDrawCornerFlourish(ctx, 64, 64, 1, 1, gold);
+  _acDrawCornerFlourish(ctx, W - 64, 64, -1, 1, gold);
+  _acDrawCornerFlourish(ctx, 64, H - 64, 1, -1, gold);
+  _acDrawCornerFlourish(ctx, W - 64, H - 64, -1, -1, gold);
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
@@ -1514,10 +1591,10 @@ function _acDrawCertificate(canvas, data, logoImg) {
   // ── Brand mark — the real EndaViral logo, not a text wordmark ──────────
   let brandBottom;
   if (logoImg) {
-    const logoW = 250;
+    const logoW = 220;
     const logoH = logoImg.height * (logoW / logoImg.width);
-    ctx.drawImage(logoImg, W / 2 - logoW / 2, 56, logoW, logoH);
-    brandBottom = 56 + logoH;
+    ctx.drawImage(logoImg, W / 2 - logoW / 2, 54, logoW, logoH);
+    brandBottom = 54 + logoH;
   } else {
     // Extremely unlikely (the logo is embedded, not fetched) — text fallback
     // keeps the certificate usable even if the image somehow fails to decode.
@@ -1529,35 +1606,43 @@ function _acDrawCertificate(canvas, data, logoImg) {
 
   ctx.fillStyle = muted;
   ctx.font = '700 12px Montserrat, sans-serif';
-  ctx.fillText('C R E A T O R   A C A D E M Y', W / 2, brandBottom + 22);
+  _acFillTracked(ctx, 'CREATOR ACADEMY', W / 2, brandBottom + 20, 4);
 
-  _acDrawDivider(ctx, W / 2, brandBottom + 44, 90, gold);
+  _acDrawDivider(ctx, W / 2, brandBottom + 40, 90, gold);
 
-  // Title
+  // Title — subtle gold glow for an engraved-foil feel
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,215,0,.5)';
+  ctx.shadowBlur = 14;
   ctx.fillStyle = gold;
-  ctx.font = '400 38px Georgia, serif';
-  ctx.fillText('Certificate of Completion', W / 2, brandBottom + 96);
+  ctx.font = '400 40px Georgia, serif';
+  ctx.fillText('Certificate of Completion', W / 2, brandBottom + 88);
+  ctx.restore();
 
   ctx.fillStyle = muted;
-  ctx.font = 'italic 15px Georgia, serif';
-  ctx.fillText('This certifies that', W / 2, brandBottom + 134);
+  ctx.font = 'italic 14px Georgia, serif';
+  ctx.fillText('This certifies that', W / 2, brandBottom + 120);
 
   // Learner name
   ctx.fillStyle = white;
-  ctx.font = '700 48px Georgia, serif';
+  ctx.font = '700 44px Georgia, serif';
   const learnerName = data.learner_name || 'Creator';
-  ctx.fillText(learnerName, W / 2, brandBottom + 198);
+  ctx.fillText(learnerName, W / 2, brandBottom + 174);
   const nameWidth = Math.min(520, ctx.measureText(learnerName).width + 40);
-  ctx.strokeStyle = 'rgba(255,215,0,.5)';
-  ctx.lineWidth = 1;
+  const underline = ctx.createLinearGradient(W / 2 - nameWidth / 2, 0, W / 2 + nameWidth / 2, 0);
+  underline.addColorStop(0, 'rgba(255,215,0,0)');
+  underline.addColorStop(0.5, gold);
+  underline.addColorStop(1, 'rgba(255,215,0,0)');
+  ctx.strokeStyle = underline;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(W / 2 - nameWidth / 2, brandBottom + 216);
-  ctx.lineTo(W / 2 + nameWidth / 2, brandBottom + 216);
+  ctx.moveTo(W / 2 - nameWidth / 2, brandBottom + 190);
+  ctx.lineTo(W / 2 + nameWidth / 2, brandBottom + 190);
   ctx.stroke();
 
   ctx.fillStyle = muted;
-  ctx.font = 'italic 15px Georgia, serif';
-  ctx.fillText('has successfully completed', W / 2, brandBottom + 254);
+  ctx.font = 'italic 14px Georgia, serif';
+  ctx.fillText('has successfully completed', W / 2, brandBottom + 222);
 
   // Module / graduation title — auto-shrinks & wraps up to 2 lines so a
   // long module name never overflows the card or crowds the seal.
@@ -1566,67 +1651,81 @@ function _acDrawCertificate(canvas, data, logoImg) {
   ctx.fillStyle = green;
   ctx.font = `800 ${titleFontSize}px Montserrat, sans-serif`;
   const titleLineHeight = titleFontSize * 1.2;
-  const titleBlockTop = brandBottom + 296;
+  const titleBlockTop = brandBottom + 257;
   titleLines.forEach((line, i) => {
     ctx.fillText(line, W / 2, titleBlockTop + i * titleLineHeight);
   });
   const titleBlockBottom = titleBlockTop + (titleLines.length - 1) * titleLineHeight;
 
-  _acDrawDivider(ctx, W / 2, titleBlockBottom + 40, 90, gold);
+  _acDrawDivider(ctx, W / 2, titleBlockBottom + 34, 90, gold);
 
-  // Seal — soft glow + double ring, centered so it never sits under the
-  // left/right-aligned footer text regardless of vertical spacing above.
-  const sealY = titleBlockBottom + 105;
+  // Seal with hanging ribbon tails — soft glow + double ring, centered so it
+  // never sits under the left/right-aligned footer text.
+  const sealY = titleBlockBottom + 90;
+  const sealRadius = 38;
+  _acDrawRibbonTails(ctx, W / 2, sealY + sealRadius - 10, 44, '#d9b400');
   ctx.save();
   ctx.shadowColor = 'rgba(255,215,0,.45)';
   ctx.shadowBlur = 24;
   ctx.beginPath();
-  ctx.arc(W / 2, sealY, 44, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,215,0,.12)';
+  ctx.arc(W / 2, sealY, sealRadius, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,215,0,.14)';
   ctx.fill();
   ctx.restore();
 
   ctx.beginPath();
-  ctx.arc(W / 2, sealY, 44, 0, Math.PI * 2);
+  ctx.arc(W / 2, sealY, sealRadius, 0, Math.PI * 2);
   ctx.strokeStyle = gold;
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(W / 2, sealY, 36, 0, Math.PI * 2);
+  ctx.arc(W / 2, sealY, sealRadius - 8, 0, Math.PI * 2);
   ctx.strokeStyle = 'rgba(255,215,0,.5)';
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.fillStyle = gold;
-  ctx.font = '34px sans-serif';
-  ctx.fillText(data.kind === 'graduation' ? '🎓' : '🏅', W / 2, sealY + 12);
+  ctx.font = '30px sans-serif';
+  ctx.fillText(data.kind === 'graduation' ? '🎓' : '🏅', W / 2, sealY + 10);
 
-  // Footer: issued date (left) + certificate number (right) — pinned near
-  // the bottom of the card, clear of the seal since they sit in different
-  // horizontal zones (far left/right vs. dead center).
-  const footerLabelY = H - 100;
-  const footerValueY = H - 78;
+  // Issued date (left) + certificate number (right) — small and unobtrusive,
+  // sitting just above the promo banner rather than competing with it.
+  const footerLabelY = H - 150;
+  const footerValueY = H - 132;
 
   ctx.textAlign = 'left';
   ctx.fillStyle = muted;
-  ctx.font = '700 11px Montserrat, sans-serif';
-  ctx.fillText('ISSUED', 100, footerLabelY);
+  ctx.font = '700 10px Montserrat, sans-serif';
+  ctx.fillText('ISSUED', 96, footerLabelY);
   ctx.fillStyle = white;
-  ctx.font = '700 16px Montserrat, sans-serif';
-  ctx.fillText(_acFormatCertDate(data.issued_at), 100, footerValueY);
+  ctx.font = '700 15px Montserrat, sans-serif';
+  ctx.fillText(_acFormatCertDate(data.issued_at), 96, footerValueY);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = muted;
-  ctx.font = '700 11px Montserrat, sans-serif';
-  ctx.fillText('CERTIFICATE NO.', W - 100, footerLabelY);
+  ctx.font = '700 10px Montserrat, sans-serif';
+  ctx.fillText('CERTIFICATE NO.', W - 96, footerLabelY);
   ctx.fillStyle = white;
-  ctx.font = '700 16px Montserrat, sans-serif';
-  ctx.fillText(data.certificate_number || '', W - 100, footerValueY);
+  ctx.font = '700 15px Montserrat, sans-serif';
+  ctx.fillText(data.certificate_number || '', W - 96, footerValueY);
 
-  // Footer tagline
+  // ── Promotional banner — the part that actually sells EndaViral once this
+  // is posted to Instagram/WhatsApp: bold, on-brand, unmissable even cropped
+  // into a small thumbnail.
+  const bannerX = 70, bannerW = W - 140, bannerY = H - 118, bannerH = 56;
+  _acRoundedRectPath(ctx, bannerX, bannerY, bannerW, bannerH, 12);
+  const bannerGrad = ctx.createLinearGradient(bannerX, 0, bannerX + bannerW, 0);
+  bannerGrad.addColorStop(0, '#1f7a2e');
+  bannerGrad.addColorStop(0.5, green);
+  bannerGrad.addColorStop(1, '#1f7a2e');
+  ctx.fillStyle = bannerGrad;
+  ctx.fill();
+
   ctx.textAlign = 'center';
-  ctx.fillStyle = muted;
-  ctx.font = '11px Montserrat, sans-serif';
-  ctx.fillText('endaviral.co.ke  ·  Verify this certificate anytime with its certificate number', W / 2, H - 42);
+  ctx.fillStyle = '#08120a';
+  ctx.font = '900 21px Montserrat, sans-serif';
+  ctx.fillText('🚀  ENDAVIRAL.CO.KE', W / 2, bannerY + 25);
+  ctx.font = '700 12px Montserrat, sans-serif';
+  ctx.fillText('Fuel Your Growth  ·  Learn a skill, get paid for it', W / 2, bannerY + 44);
 }
 
 function _acCertFileName() {
@@ -1650,7 +1749,7 @@ async function acShareCertificate() {
   canvas.toBlob(async (blob) => {
     if (!blob) { acDownloadCertificate(); return; }
     const file = new File([blob], _acCertFileName(), { type: 'image/png' });
-    const shareText = `I just earned my "${_acCertData.title}" certificate from EndaViral Creator Academy! 🎓`;
+    const shareText = `I just earned my "${_acCertData.title}" certificate from EndaViral Creator Academy! 🎓🚀 Learn a skill, get paid for it → endaviral.co.ke`;
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
