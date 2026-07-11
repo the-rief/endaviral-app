@@ -892,7 +892,131 @@ async function initAcademyPage() {
   _acUpdateBadges();
 }
 
+// One-time CSS for the Academy home screen — scoped with an ac- prefix so it
+// never leaks into the rest of the app. Injected lazily (once) into <head>
+// rather than re-inserted on every render.
+function _acInjectHomeStyles() {
+  if (document.getElementById('acHomeStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'acHomeStyles';
+  style.textContent = `
+    .ac-hero{position:relative;overflow:hidden;border-radius:20px;padding:26px 24px 22px;margin-bottom:20px;background:linear-gradient(120deg,#1a1330 0%,#1c1a3c 45%,#131b27 100%);border:1px solid rgba(255,215,0,.22);}
+    .ac-hero::after{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(155,107,255,.18) 0%,rgba(155,107,255,0) 70%);pointer-events:none;}
+    .ac-hero-corner{position:absolute;width:20px;height:20px;border:2px solid rgba(255,215,0,.5);pointer-events:none;}
+    .ac-hero-corner.tl{top:12px;left:12px;border-right:none;border-bottom:none;}
+    .ac-hero-corner.tr{top:12px;right:12px;border-left:none;border-bottom:none;}
+    .ac-hero-corner.bl{bottom:12px;left:12px;border-right:none;border-top:none;}
+    .ac-hero-corner.br{bottom:12px;right:12px;border-left:none;border-top:none;}
+    .ac-hero-main{position:relative;z-index:1;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+    .ac-hero-crest{flex-shrink:0;width:52px;height:52px;border-radius:14px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.32);display:flex;align-items:center;justify-content:center;font-size:25px;}
+    .ac-hero-copy{flex:1;min-width:200px;}
+    .ac-hero-kicker{font-size:10.5px;font-weight:800;letter-spacing:2px;color:#ffd700;margin-bottom:5px;}
+    .ac-hero-title{font-size:18px;font-weight:900;color:var(--white);margin-bottom:4px;letter-spacing:-.2px;}
+    .ac-hero-sub{font-size:12.5px;color:#a9b8cc;line-height:1.5;}
+    .ac-hero-level{flex-shrink:0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:10px 16px;text-align:right;}
+    .ac-hero-level-top{display:flex;align-items:center;justify-content:flex-end;gap:6px;font-size:13px;font-weight:800;color:var(--white);white-space:nowrap;}
+    .ac-hero-level-xp{font-size:11px;color:#a9b8cc;margin-top:4px;white-space:nowrap;}
+    .ac-hero-level-next{color:var(--muted);}
+    .ac-hero-progress{position:relative;z-index:1;margin-top:20px;}
+    .ac-hero-progress-track{height:8px;border-radius:8px;background:rgba(255,255,255,.08);overflow:hidden;}
+    .ac-hero-progress-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,#9b6bff,#ffd700);transition:width .4s ease;}
+    .ac-hero-progress-label{display:flex;justify-content:space-between;font-size:11px;color:#a9b8cc;margin-top:7px;}
+
+    .ac-grad-banner{position:relative;overflow:hidden;background:linear-gradient(120deg,#241a42 0%,#1a1330 60%,#150f26 100%);border:1px solid rgba(255,215,0,.4);border-radius:16px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+    .ac-grad-icon{flex-shrink:0;width:46px;height:46px;border-radius:12px;background:rgba(255,215,0,.16);border:1px solid rgba(255,215,0,.35);display:flex;align-items:center;justify-content:center;font-size:22px;}
+    .ac-grad-btn{flex-shrink:0;background:linear-gradient(120deg,#ffe259,#ffd700);color:#000;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:900;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;}
+
+    .ac-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:26px;}
+    .ac-stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px 16px;position:relative;overflow:hidden;}
+    .ac-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--ac-c,#9b6bff);}
+    .ac-stat-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:10px;background:var(--ac-cbg);border:1px solid var(--ac-cbd);}
+    .ac-stat-val{font-size:13.5px;font-weight:800;color:var(--white);}
+    .ac-stat-sub{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4;}
+
+    .ac-group-hd{display:flex;align-items:center;gap:9px;margin:4px 0 12px;}
+    .ac-group-hd .t{font-size:12px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--white);}
+    .ac-group-hd .n{background:var(--navy);border:1px solid var(--border);border-radius:20px;padding:1px 9px;font-size:10.5px;color:var(--muted);font-weight:700;}
+    .ac-group-hd .line{flex:1;height:1px;background:var(--border);}
+
+    .ac-modgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:14px;margin-bottom:28px;}
+    .ac-modcard{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;}
+    .ac-modcard:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(0,0,0,.38);border-color:rgba(155,107,255,.55);}
+    .ac-modcard.locked{border-color:rgba(255,215,0,.3);}
+    .ac-modcard.locked:hover{border-color:rgba(255,215,0,.65);}
+    .ac-modcard.done{border-color:rgba(61,212,74,.3);}
+    .ac-modcard.done:hover{border-color:rgba(61,212,74,.65);}
+    .ac-mod-top{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+    .ac-mod-icon{flex-shrink:0;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:19px;background:var(--ac-cbg);border:1px solid var(--ac-cbd);}
+    .ac-mod-pill{margin-left:auto;flex-shrink:0;font-size:10px;font-weight:800;border-radius:20px;padding:3px 9px;white-space:nowrap;}
+    .ac-mod-title{font-size:14px;font-weight:800;color:var(--white);margin-bottom:4px;}
+    .ac-mod-blurb{font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:13px;}
+    .ac-mod-progress-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px;}
+    .ac-mod-progress-track{height:5px;border-radius:5px;background:var(--navy);overflow:hidden;}
+    .ac-mod-progress-fill{height:100%;border-radius:5px;background:var(--ac-c,#9b6bff);}
+    .ac-mod-unlock{font-size:11px;color:#ffd700;font-weight:700;}
+
+    .ac-modhead{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+    .ac-modhead-icon{flex-shrink:0;width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:21px;background:var(--ac-cbg,rgba(155,107,255,.14));border:1px solid var(--ac-cbd,rgba(155,107,255,.3));}
+    .ac-modhead-title{font-size:16px;font-weight:900;color:var(--white);}
+    .ac-modhead-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+
+    .ac-lockcard{position:relative;overflow:hidden;max-width:520px;background:linear-gradient(150deg,#1a1330 0%,#151c2c 60%,var(--card) 100%);border:1px solid rgba(255,215,0,.32);border-radius:18px;padding:30px 26px;text-align:center;}
+    .ac-lockcard .cr{position:absolute;width:18px;height:18px;border:2px solid rgba(255,215,0,.5);}
+    .ac-lockcard .cr.tl{top:12px;left:12px;border-right:none;border-bottom:none;}
+    .ac-lockcard .cr.tr{top:12px;right:12px;border-left:none;border-bottom:none;}
+    .ac-lockcard .cr.bl{bottom:12px;left:12px;border-right:none;border-top:none;}
+    .ac-lockcard .cr.br{bottom:12px;right:12px;border-left:none;border-top:none;}
+    .ac-lockcard-icon{width:56px;height:56px;margin:0 auto 14px;border-radius:16px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.32);display:flex;align-items:center;justify-content:center;font-size:26px;}
+
+    .ac-lesson-row{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .14s ease,border-color .14s ease,background .14s ease;}
+    .ac-lesson-row:hover{transform:translateX(3px);border-color:rgba(155,107,255,.4);background:var(--card2);}
+    .ac-lesson-row.done{border-color:rgba(61,212,74,.28);}
+    .ac-lesson-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;}
+  `;
+  document.head.appendChild(style);
+}
+
+// Builds the inline CSS-variable string that colors a module card's accent
+// (icon chip background, top rule, progress fill) based on its state.
+function _acModAccent(kind) {
+  if (kind === 'locked') return "--ac-c:#ffd700;--ac-cbg:rgba(255,215,0,.14);--ac-cbd:rgba(255,215,0,.32);";
+  if (kind === 'done')   return "--ac-c:#3dd44a;--ac-cbg:rgba(61,212,74,.14);--ac-cbd:rgba(61,212,74,.3);";
+  if (kind === 'active')  return "--ac-c:#9b6bff;--ac-cbg:rgba(155,107,255,.14);--ac-cbd:rgba(155,107,255,.3);";
+  return "--ac-c:#7a8fad;--ac-cbg:rgba(122,143,173,.12);--ac-cbd:var(--border);";
+}
+
+function _acRenderModCard(mod, state) {
+  const mp = _acModuleProgress(state, mod);
+  const mpct = Math.round((mp.done / mp.total) * 100);
+  const badge = state.moduleBadges.includes(mod.id);
+  const locked = mod.premium && !_acIsPurchased(state, mod.id);
+  const meta = state.moduleMeta && state.moduleMeta[mod.id];
+  const price = (meta && meta.price_kes) || mod.priceKes || ACADEMY_PREMIUM_PRICE_KES;
+  const ptsCost = meta && meta.points_cost;
+  const kind = locked ? 'locked' : (mpct === 100 ? 'done' : (mpct > 0 ? 'active' : 'idle'));
+  const cardClass = 'ac-modcard' + (locked ? ' locked' : '') + (kind === 'done' ? ' done' : '');
+
+  return `
+  <div class="${cardClass}" style="${_acModAccent(kind)}" onclick="_acOpenModule('${mod.id}')">
+    <div class="ac-mod-top">
+      <div class="ac-mod-icon">${mod.icon}</div>
+      ${badge ? `<span onclick="event.stopPropagation();acOpenCertificate('${mod.id}')" class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.3);color:#ffd700;cursor:pointer;">🎓 Certificate</span>` : ''}
+      ${(!badge && locked) ? `<span class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.32);color:#ffd700;">🔒 KSh ${price}${ptsCost ? ` · ⭐ ${ptsCost}pts` : ''}</span>` : ''}
+      ${(!badge && !locked && kind === 'done') ? `<span class="ac-mod-pill" style="background:rgba(61,212,74,.14);border:1px solid rgba(61,212,74,.3);color:var(--green);">✓ Done</span>` : ''}
+    </div>
+    <div class="ac-mod-title">${esc(mod.title)}</div>
+    <div class="ac-mod-blurb">${esc(mod.blurb)}</div>
+    ${locked ? `
+    <div class="ac-mod-unlock">Unlock to view ${mp.total} lessons →</div>
+    ` : `
+    <div class="ac-mod-progress-row"><span>${mp.done}/${mp.total} lessons</span><span>${mpct}%</span></div>
+    <div class="ac-mod-progress-track"><div class="ac-mod-progress-fill" style="width:${mpct}%"></div></div>
+    `}
+  </div>`;
+}
+
 function _acRenderHome(sec, state) {
+  _acInjectHomeStyles();
   const total   = _acTotalLessons();
   const done    = _acCompletedCount(state);
   const pct     = total ? Math.round((done / total) * 100) : 0;
@@ -901,82 +1025,69 @@ function _acRenderHome(sec, state) {
   const xpToNext = nextLvl ? (nextLvl.min - state.xp) : 0;
   const streak  = state.streak.count || 0;
 
+  const freeMods   = ACADEMY_MODULES.filter(m => !(m.premium && !_acIsPurchased(state, m.id)));
+  const lockedMods = ACADEMY_MODULES.filter(m => m.premium && !_acIsPurchased(state, m.id));
+
   sec.innerHTML = `
-  <div class="sec-hd" style="flex-wrap:wrap;gap:12px;margin-bottom:20px;">
-    <div>
-      <div class="sec-title">🎓 CREATOR ACADEMY</div>
-      <div class="sec-sub">Free lessons on growing every platform — learn a little, earn XP, level up</div>
+  <div class="ac-hero">
+    <div class="ac-hero-corner tl"></div><div class="ac-hero-corner tr"></div>
+    <div class="ac-hero-corner bl"></div><div class="ac-hero-corner br"></div>
+    <div class="ac-hero-main">
+      <div class="ac-hero-crest">🎓</div>
+      <div class="ac-hero-copy">
+        <div class="ac-hero-kicker">CREATOR ACADEMY</div>
+        <div class="ac-hero-title">Learn a little, earn XP, level up</div>
+        <div class="ac-hero-sub">Free lessons on growing every platform, plus deep-dive premium modules</div>
+      </div>
+      <div class="ac-hero-level">
+        <div class="ac-hero-level-top"><span>${level.icon}</span><span>${esc(level.name)}</span></div>
+        <div class="ac-hero-level-xp">${state.xp} XP${nextLvl ? ` <span class="ac-hero-level-next">· ${xpToNext} to next level</span>` : ' · Max level'}</div>
+      </div>
+    </div>
+    <div class="ac-hero-progress">
+      <div class="ac-hero-progress-track"><div class="ac-hero-progress-fill" style="width:${pct}%"></div></div>
+      <div class="ac-hero-progress-label"><span>${done}/${total} lessons complete</span><span>${pct}% through the Academy</span></div>
     </div>
   </div>
 
   ${state.graduated ? `
-  <div style="position:relative;overflow:hidden;background:linear-gradient(120deg,#1a1330 0%,#241a42 50%,#150f26 100%);border:1px solid rgba(255,215,0,.35);border-radius:16px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-    <div style="flex-shrink:0;width:46px;height:46px;border-radius:12px;background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.3);display:flex;align-items:center;justify-content:center;font-size:22px;">🎓</div>
+  <div class="ac-grad-banner">
+    <div class="ac-grad-icon">🎓</div>
     <div style="flex:1;min-width:180px;">
       <div style="font-size:13px;font-weight:900;color:var(--white);margin-bottom:3px;">Academy Graduate</div>
-      <div style="font-size:12px;color:#8faab8;line-height:1.5;">You finished every module — claim your graduation certificate</div>
+      <div style="font-size:12px;color:#a9b8cc;line-height:1.5;">You finished every module — claim your graduation certificate</div>
     </div>
-    <button style="flex-shrink:0;background:#ffd700;color:#000;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:900;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;" onclick="acOpenCertificate('graduation')">Get Certificate →</button>
+    <button class="ac-grad-btn" onclick="acOpenCertificate('graduation')">Get Certificate →</button>
   </div>` : ''}
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;">
-      <div style="font-size:22px;margin-bottom:4px;">${level.icon}</div>
-      <div style="font-size:13px;font-weight:800;color:var(--white);">${esc(level.name)}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${state.xp} XP${nextLvl ? ` · ${xpToNext} to next level` : ' · Max level'}</div>
+  <div class="ac-stats">
+    <div class="ac-stat" style="${_acModAccent('active')}">
+      <div class="ac-stat-icon">🔥</div>
+      <div class="ac-stat-val">${streak} day${streak === 1 ? '' : 's'}</div>
+      <div class="ac-stat-sub">Learning streak</div>
     </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;">
-      <div style="font-size:22px;margin-bottom:4px;">🔥</div>
-      <div style="font-size:13px;font-weight:800;color:var(--white);">${streak} day${streak === 1 ? '' : 's'}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;">Learning streak</div>
+    <div class="ac-stat" style="${_acModAccent('locked')}">
+      <div class="ac-stat-icon">🏅</div>
+      <div class="ac-stat-val">${state.moduleBadges.length}/${ACADEMY_MODULES.length} badges</div>
+      <div class="ac-stat-sub">${state.graduated ? 'Academy Graduate 🎓' : 'Finish modules to earn badges'}</div>
     </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;">
-      <div style="font-size:22px;margin-bottom:4px;">📚</div>
-      <div style="font-size:13px;font-weight:800;color:var(--white);">${done}/${total} lessons</div>
-      <div style="margin-top:8px;height:6px;border-radius:6px;background:var(--navy);overflow:hidden;"><div style="height:100%;width:${pct}%;background:#9b6bff;"></div></div>
-    </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;">
-      <div style="font-size:22px;margin-bottom:4px;">🏅</div>
-      <div style="font-size:13px;font-weight:800;color:var(--white);">${state.moduleBadges.length}/${ACADEMY_MODULES.length} badges</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${state.graduated ? 'Academy Graduate 🎓' : 'Finish modules to earn badges'}</div>
-    </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;">
-      <div style="font-size:22px;margin-bottom:4px;">⭐</div>
-      <div style="font-size:13px;font-weight:800;color:var(--white);">${(state.pointsBalance || 0).toLocaleString()} pts</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;">Earned on every order · spend to unlock modules</div>
+    <div class="ac-stat" style="${_acModAccent('done')}">
+      <div class="ac-stat-icon">⭐</div>
+      <div class="ac-stat-val">${(state.pointsBalance || 0).toLocaleString()} pts</div>
+      <div class="ac-stat-sub">Earned on every order · spend to unlock modules</div>
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">
-    ${ACADEMY_MODULES.map(mod => {
-      const mp = _acModuleProgress(state, mod);
-      const mpct = Math.round((mp.done / mp.total) * 100);
-      const badge = state.moduleBadges.includes(mod.id);
-      const locked = mod.premium && !_acIsPurchased(state, mod.id);
-      const meta = state.moduleMeta && state.moduleMeta[mod.id];
-      const price = (meta && meta.price_kes) || mod.priceKes || ACADEMY_PREMIUM_PRICE_KES;
-      const ptsCost = meta && meta.points_cost;
-      return `
-      <div onclick="_acOpenModule('${mod.id}')" style="position:relative;background:var(--card);border:1px solid ${locked ? 'rgba(155,107,255,.35)' : 'var(--border)'};border-radius:16px;padding:18px;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor='rgba(155,107,255,.4)'" onmouseout="this.style.borderColor='${locked ? 'rgba(155,107,255,.35)' : 'var(--border)'}'">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <div style="font-size:26px;">${mod.icon}</div>
-          ${badge ? '<span style="font-size:11px;">✅</span>' : ''}
-          ${badge ? `<span onclick="event.stopPropagation();acOpenCertificate('${mod.id}')" style="margin-left:auto;font-size:10px;font-weight:800;background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.3);color:#ffd700;border-radius:20px;padding:2px 8px;cursor:pointer;">🎓 Certificate</span>` : ''}
-          ${(!badge && locked) ? `<span style="margin-left:auto;font-size:10px;font-weight:800;background:rgba(155,107,255,.16);border:1px solid rgba(155,107,255,.3);color:#9b6bff;border-radius:20px;padding:2px 8px;">🔒 KSh ${price}${ptsCost ? ` · ⭐ ${ptsCost}pts` : ''}</span>` : ''}
-        </div>
-        <div style="font-size:14px;font-weight:800;color:var(--white);margin-bottom:3px;">${esc(mod.title)}</div>
-        <div style="font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:10px;">${esc(mod.blurb)}</div>
-        ${locked ? `
-        <div style="font-size:11px;color:#9b6bff;font-weight:700;">Unlock to view ${mp.total} lessons →</div>
-        ` : `
-        <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px;">
-          <span>${mp.done}/${mp.total} lessons</span><span>${mpct}%</span>
-        </div>
-        <div style="height:5px;border-radius:5px;background:var(--navy);overflow:hidden;"><div style="height:100%;width:${mpct}%;background:#9b6bff;"></div></div>
-        `}
-      </div>`;
-    }).join('')}
-  </div>`;
+  <div class="ac-group-hd"><span class="t">📘 Learning Path</span><span class="n">${freeMods.length} modules</span><span class="line"></span></div>
+  <div class="ac-modgrid">
+    ${freeMods.map(mod => _acRenderModCard(mod, state)).join('')}
+  </div>
+
+  ${lockedMods.length ? `
+  <div class="ac-group-hd"><span class="t">🔒 Premium Modules</span><span class="n">${lockedMods.length} to unlock</span><span class="line"></span></div>
+  <div class="ac-modgrid">
+    ${lockedMods.map(mod => _acRenderModCard(mod, state)).join('')}
+  </div>` : ''}`;
 }
 
 // ─── Rendering: module (lesson list) ───────────────────────────────────────
@@ -994,6 +1105,7 @@ function _acMergePremiumContent(mod, content) {
 async function _acOpenModule(moduleId) {
   const mod = ACADEMY_MODULES.find(m => m.id === moduleId);
   if (!mod) return;
+  _acInjectHomeStyles();
   const sec = document.getElementById('sec-academy');
   const state = _acState || _acEmptyState();
   const locked = mod.premium && !_acIsPurchased(state, mod.id);
@@ -1009,15 +1121,21 @@ async function _acOpenModule(moduleId) {
     sec.innerHTML = `
     <div class="sec-hd" style="margin-bottom:16px;">
       <div>
-        <button class="btn-secondary" style="margin-bottom:10px;" onclick="initAcademyPage()">← All Modules</button>
-        <div class="sec-title">${mod.icon} ${esc(mod.title)}</div>
-        <div class="sec-sub">${esc(mod.blurb)}</div>
+        <button class="btn-secondary" style="margin-bottom:14px;" onclick="initAcademyPage()">← All Modules</button>
+        <div class="ac-modhead">
+          <div class="ac-modhead-icon" style="${_acModAccent('locked')}">${mod.icon}</div>
+          <div>
+            <div class="ac-modhead-title">${esc(mod.title)}</div>
+            <div class="ac-modhead-sub">${esc(mod.blurb)}</div>
+          </div>
+        </div>
       </div>
     </div>
-    <div style="max-width:520px;background:var(--card);border:1px solid rgba(155,107,255,.3);border-radius:16px;padding:28px 24px;text-align:center;">
-      <div style="font-size:32px;margin-bottom:10px;">🔒</div>
+    <div class="ac-lockcard">
+      <div class="cr tl"></div><div class="cr tr"></div><div class="cr bl"></div><div class="cr br"></div>
+      <div class="ac-lockcard-icon">🔒</div>
       <div style="font-size:15px;font-weight:800;color:var(--white);margin-bottom:6px;">${mod.lessons.length} lessons locked</div>
-      <div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:20px;">
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:22px;">
         ${mod.lessons.map(l => esc(l.title)).join(' · ')}
       </div>
       <button class="btn-primary" style="width:100%;" onclick="openAcademyPurchase('${mod.id}')">Unlock for KSh ${price} — Pay with M-Pesa</button>
@@ -1047,8 +1165,11 @@ async function _acOpenModule(moduleId) {
     sec.innerHTML = `
     <div class="sec-hd" style="margin-bottom:16px;">
       <div>
-        <button class="btn-secondary" style="margin-bottom:10px;" onclick="initAcademyPage()">← All Modules</button>
-        <div class="sec-title">${mod.icon} ${esc(mod.title)}</div>
+        <button class="btn-secondary" style="margin-bottom:14px;" onclick="initAcademyPage()">← All Modules</button>
+        <div class="ac-modhead">
+          <div class="ac-modhead-icon">${mod.icon}</div>
+          <div class="ac-modhead-title">${esc(mod.title)}</div>
+        </div>
       </div>
     </div>
     <div style="padding:40px 0;text-align:center;color:var(--muted);font-size:13px;">Loading your lessons…</div>`;
@@ -1071,31 +1192,36 @@ async function _acOpenModule(moduleId) {
   }
 
   const badgeEarned = state.moduleBadges.includes(mod.id);
+  const doneCount = mod.lessons.filter(l => !!state.completed[mod.id + ':' + l.id]).length;
 
   sec.innerHTML = `
   <div class="sec-hd" style="margin-bottom:16px;">
     <div>
-      <button class="btn-secondary" style="margin-bottom:10px;" onclick="initAcademyPage()">← All Modules</button>
-      <div class="sec-title">${mod.icon} ${esc(mod.title)}</div>
-      <div class="sec-sub">${esc(mod.blurb)}</div>
+      <button class="btn-secondary" style="margin-bottom:14px;" onclick="initAcademyPage()">← All Modules</button>
+      <div class="ac-modhead">
+        <div class="ac-modhead-icon" style="${_acModAccent(badgeEarned ? 'done' : (doneCount > 0 ? 'active' : 'idle'))}">${mod.icon}</div>
+        <div>
+          <div class="ac-modhead-title">${esc(mod.title)}</div>
+          <div class="ac-modhead-sub">${esc(mod.blurb)} · ${doneCount}/${mod.lessons.length} lessons</div>
+        </div>
+      </div>
     </div>
   </div>
   ${badgeEarned ? `
-  <div style="max-width:640px;background:linear-gradient(120deg,#1a1330 0%,#241a42 50%,#150f26 100%);border:1px solid rgba(255,215,0,.3);border-radius:14px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-    <div style="font-size:26px;">🎓</div>
+  <div class="ac-grad-banner" style="max-width:640px;">
+    <div class="ac-grad-icon">🎓</div>
     <div style="flex:1;min-width:180px;">
       <div style="font-size:13px;font-weight:900;color:var(--white);">Module complete — your certificate is ready</div>
-      <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">Download it or share it straight to your socials</div>
+      <div style="font-size:11.5px;color:#a9b8cc;margin-top:2px;">Download it or share it straight to your socials</div>
     </div>
-    <button class="btn-primary" style="flex-shrink:0;background:#ffd700;color:#000;" onclick="acOpenCertificate('${mod.id}')">Get Certificate →</button>
+    <button class="ac-grad-btn" onclick="acOpenCertificate('${mod.id}')">Get Certificate →</button>
   </div>` : ''}
   <div style="display:flex;flex-direction:column;gap:10px;max-width:640px;">
     ${mod.lessons.map((l, i) => {
       const complete = !!state.completed[mod.id + ':' + l.id];
       return `
-      <div onclick="openAcademyLesson('${mod.id}','${l.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;">
-        <div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;
-          background:${complete ? 'rgba(61,212,74,.15)' : 'var(--navy)'};color:${complete ? 'var(--green)' : 'var(--muted)'};border:1px solid ${complete ? 'rgba(61,212,74,.3)' : 'var(--border)'};">
+      <div onclick="openAcademyLesson('${mod.id}','${l.id}')" class="ac-lesson-row${complete ? ' done' : ''}">
+        <div class="ac-lesson-num" style="background:${complete ? 'rgba(61,212,74,.15)' : 'var(--navy)'};color:${complete ? 'var(--green)' : 'var(--muted)'};border:1px solid ${complete ? 'rgba(61,212,74,.3)' : 'var(--border)'};">
           ${complete ? '✓' : (i + 1)}
         </div>
         <div style="flex:1;min-width:0;">
