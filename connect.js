@@ -20,7 +20,8 @@
  *     hooks live:
  *       if (page === 'connect') { if (typeof initConnectPage === 'function') initConnectPage(); }
  *
- *  6. Script tag — add near the other page scripts:
+ *  6. Script tags — add near the other page scripts, connect-tos.js FIRST:
+ *       <script src="connect-tos.js"></script>
  *       <script src="connect.js"></script>
  *
  * ★NAVITEM
@@ -49,6 +50,12 @@
  *     <div id="cnCreateModalBody"></div>
  *   </div>
  * </div>
+ * <div class="modal-overlay" id="cnTosModal">
+ *   <div class="modal" style="max-width:640px;">
+ *     <button class="modal-close" onclick="_cnCloseTos()">✕</button>
+ *     <div id="cnTosModalBody"></div>
+ *   </div>
+ * </div>
  * ════════════════════════════════════════════════════════════════════ */
 
 // ─── State ──────────────────────────────────────────────────────────────────
@@ -60,6 +67,7 @@ let _cnCurrentApplications = [];  // applications for the open campaign (busines
 let _cnCreatorProfile = null;
 let _cnBusinessProfile = null;
 let _cnFundPollTimer = null;
+let _cnMsgThreadCreatorId = null;  // which creator's thread is open in the campaign modal (business side, when unassigned)
 
 const CONNECT_COMMISSION_RATE = 0.15;   // display-only — server (connect_service.py) is the source of truth
 const CONNECT_PLATFORMS = [
@@ -72,6 +80,12 @@ const CONNECT_PLATFORMS = [
 function _cnPlatformDef(key) {
   return CONNECT_PLATFORMS.find(p => p.key === key) || { key, label: key || '—', emoji: '📱' };
 }
+
+// ─── Terms of Service ───────────────────────────────────────────────────────
+// The ToS text, checkbox definitions (CONNECT_CREATOR_TOS_CHECKS /
+// CONNECT_BUSINESS_TOS_CHECKS) and rendered HTML (CONNECT_TOS_HTML) now
+// live in connect-tos.js, which must be loaded before this file. See
+// _cnOpenTos() and _cnRenderJoinScreen() below for where they're used.
 
 const CN_STATUS_LABELS = {
   draft: 'Draft', published: 'Published', awaiting_fund: 'Awaiting Funding',
@@ -140,6 +154,19 @@ function _cnInjectStyles() {
     .cn-stars{display:flex;gap:6px;font-size:24px;margin-bottom:10px;}
     .cn-star{cursor:pointer;opacity:.3;transition:opacity .1s;}
     .cn-star.on{opacity:1;}
+    .cn-join-check{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--white);margin-bottom:11px;cursor:pointer;line-height:1.5;}
+    .cn-join-check input{margin-top:3px;flex-shrink:0;width:15px;height:15px;cursor:pointer;}
+    .cn-join-check a{color:#2196f3;text-decoration:underline;}
+    .cn-tos-body{font-size:12px;line-height:1.7;color:var(--muted);max-height:56vh;overflow-y:auto;padding-right:8px;margin-bottom:16px;}
+    .cn-tos-body h4{color:var(--white);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 6px;}
+    .cn-tos-body h4:first-child{margin-top:0;}
+    .cn-tos-body h5{color:var(--white);font-size:12px;font-weight:700;margin:10px 0 4px;}
+    .cn-tos-body p{margin:0 0 8px;}
+    .cn-tos-body ul{margin:0 0 8px;padding-left:18px;}
+    .cn-tos-body li{margin-bottom:3px;}
+    .cn-tos-updated{font-size:10.5px;color:var(--muted);margin-bottom:10px;}
+    .cn-tos-example{background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:11.5px;}
+    .cn-tos-check-summary{background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:4px;}
   `;
   document.head.appendChild(style);
 }
@@ -158,8 +185,8 @@ function _cnRenderShell(sec) {
     <div class="cn-hero">
       <div class="cn-hero-title">🤝 EndaViral Marketplace</div>
       <div class="cn-hero-sub">EndaViral Marketplace connects independent creators with businesses. EndaViral charges a marketplace service fee that covers secure payments, 
-      campaign management, creator discovery, messaging, and dispute resolutionBusinesses fund campaigns, 
-      Endaviral keeps the funds as creator does the job, after completion Creators get paid the moment work is approved · EndaViral takes a 15% fee only when a deal completes.</div>
+      campaign management, creator discovery, messaging, and dispute resolution. Businesses fund campaigns, EndaViral holds the funds in escrow while the creator does the job, 
+      and once the business approves the work the creator raises a payout ticket to get paid via M-Pesa · EndaViral takes a 15% fee only when a deal completes.</div>
     </div>
     <div class="cn-role-toggle">
       <button class="cn-role-btn ${_cnRole === 'creator' ? 'active' : ''}" onclick="_cnSetRole('creator')">🎬 I'm a Creator</button>
@@ -205,6 +232,8 @@ async function _cnLoadActiveTab() {
   if (!target) return;
   target.innerHTML = '<div class="cn-empty">Loading…</div>';
   try {
+    const gated = await _cnApplyJoinGate(target);
+    if (gated) return;
     if (_cnTab === 'discover')     return await _cnRenderDiscover(target);
     if (_cnTab === 'applications') return await _cnRenderMyApplications(target);
     if (_cnTab === 'invites')      return await _cnRenderInvites(target);
@@ -217,6 +246,145 @@ async function _cnLoadActiveTab() {
   } catch (e) {
     target.innerHTML = `<div class="cn-empty">Couldn't load this — ${esc(e.message || 'please try again.')}<br><button class="btn-secondary" style="margin-top:12px;" onclick="_cnLoadActiveTab()">Retry</button></div>`;
   }
+}
+
+// ─── Terms of Service modal ─────────────────────────────────────────────────
+function _cnOpenTos() {
+  const modal = document.getElementById('cnTosModal');
+  const body = document.getElementById('cnTosModalBody');
+  if (modal && body) {
+    body.innerHTML = CONNECT_TOS_HTML;
+    modal.classList.add('show');
+  }
+  return false; // prevent the <a href="#"> from jumping the page
+}
+
+function _cnCloseTos() {
+  document.getElementById('cnTosModal').classList.remove('show');
+}
+
+// ─── Join marketplace + profile-completeness gate ──────────────────────────
+// Journey: click "Join" -> accept ToS -> update profile (creator: email +
+// phone for payment; business: company profile) -> only then can a creator
+// browse/apply to adverts or a business post a campaign / invite creators.
+// Admin is exempt — an admin browsing Connect isn't joining as either side.
+async function _cnApplyJoinGate(target) {
+  if (typeof currentUser !== 'undefined' && currentUser && currentUser.is_admin && _cnTab === 'admin') return false;
+
+  const role = _cnRole;
+  let profile = null;
+  try {
+    profile = role === 'creator'
+      ? await api('/connect/profile/creator/me')
+      : await api(`/connect/profile/business/${currentUser.id}`);
+  } catch (_) {
+    profile = null;
+  }
+  if (role === 'creator') _cnCreatorProfile = profile; else _cnBusinessProfile = profile;
+
+  const joined = !!(profile && profile.joined_at);
+  if (!joined) {
+    _cnRenderJoinScreen(target, role);
+    return true;
+  }
+
+  // Once joined, always let them reach the profile editor so they can
+  // actually complete it.
+  if (_cnTab === 'profile') return false;
+
+  const complete = role === 'creator'
+    ? !!(profile && profile.has_payment_details)
+    : !!(profile && profile.company_name && profile.company_name !== 'Unnamed Business');
+
+  const needsComplete = role === 'creator'
+    ? _cnTab === 'discover'
+    : (_cnTab === 'create' || _cnTab === 'find');
+
+  if (needsComplete && !complete) {
+    _cnRenderIncompleteProfileScreen(target, role);
+    return true;
+  }
+  return false;
+}
+
+function _cnRenderJoinScreen(target, role) {
+  const isCreator = role === 'creator';
+  const roleChecks = isCreator ? CONNECT_CREATOR_TOS_CHECKS : CONNECT_BUSINESS_TOS_CHECKS;
+  target.innerHTML = `
+    <div class="cn-empty" style="text-align:left;">
+      <div style="font-size:15px;font-weight:800;color:var(--white);margin-bottom:10px;">
+        ${isCreator ? '🎬 Join EndaViral Connect as a Creator' : '🏢 Join EndaViral Connect as a Business'}
+      </div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
+        ${isCreator
+          ? 'Get discovered by brands, apply to paid campaigns, and get paid via M-Pesa once your work is approved.'
+          : 'Post paid campaigns, discover creators, and pay securely through EndaViral escrow.'}
+      </div>
+
+      <label class="cn-join-check">
+        <input type="checkbox" class="cn-join-check-box" id="cnJoinTos" onchange="_cnUpdateJoinBtn()">
+        <span>I have read and agree to the <a href="#" onclick="return _cnOpenTos()">EndaViral Connect Marketplace Terms of Service</a>, and confirm I am at least 18 years old or have legal authority to enter into this agreement.</span>
+      </label>
+
+      <div class="cn-tos-check-summary">
+        ${roleChecks.map((c, i) => `
+          <label class="cn-join-check" style="margin-bottom:${i === roleChecks.length - 1 ? '0' : '11px'};">
+            <input type="checkbox" class="cn-join-check-box cn-join-role-check" data-key="${c.key}" onchange="_cnUpdateJoinBtn()">
+            <span>${esc(c.text)}</span>
+          </label>
+        `).join('')}
+      </div>
+
+      <button class="btn-primary" id="cnJoinBtn" style="margin-top:16px;" onclick="_cnSubmitJoin('${role}')" disabled>Join the Marketplace</button>
+    </div>
+  `;
+}
+
+// Enables the Join button only once every ToS + role-specific checkbox on
+// the join screen is ticked.
+function _cnUpdateJoinBtn() {
+  const btn = document.getElementById('cnJoinBtn');
+  if (!btn) return;
+  const boxes = document.querySelectorAll('.cn-join-check-box');
+  btn.disabled = !(boxes.length && Array.from(boxes).every(b => b.checked));
+}
+
+async function _cnSubmitJoin(role) {
+  const boxes = document.querySelectorAll('.cn-join-check-box');
+  if (!boxes.length || !Array.from(boxes).every(b => b.checked)) {
+    toast('Please accept all the checkboxes to continue', 'error');
+    return;
+  }
+  // The server independently re-verifies these keys against
+  // CREATOR_TOS_ACK_KEYS / BUSINESS_TOS_ACK_KEYS in connect_service.py —
+  // this is just what the person actually ticked on screen.
+  const acknowledgements = Array.from(document.querySelectorAll('.cn-join-role-check'))
+    .map(b => b.dataset.key);
+  const btn = document.getElementById('cnJoinBtn');
+  btn.disabled = true; btn.textContent = 'Joining…';
+  try {
+    await api(`/connect/join/${role}`, {
+      method: 'POST',
+      body: JSON.stringify({ tos_accepted: true, tos_acknowledgements: acknowledgements }),
+    });
+    toast('Welcome to EndaViral Connect!', 'success');
+    _cnSetTab('profile');
+  } catch (e) {
+    toast(e.message || 'Could not join', 'error');
+    btn.disabled = false; btn.textContent = 'Join the Marketplace';
+  }
+}
+
+function _cnRenderIncompleteProfileScreen(target, role) {
+  const isCreator = role === 'creator';
+  target.innerHTML = `
+    <div class="cn-empty">
+      ${isCreator
+        ? "Add your email and phone number to your Creator profile — that's how EndaViral pays you — before browsing campaigns."
+        : "Finish setting up your Business profile before posting a campaign or inviting creators."}
+      <br><button class="btn-secondary" style="margin-top:12px;" onclick="_cnSetTab('profile')">Go to My Profile →</button>
+    </div>
+  `;
 }
 
 // ─── Discover (creator) ──────────────────────────────────────────────────────
@@ -375,10 +543,11 @@ async function _cnSubmitCreateCampaign() {
 // ─── Profiles ─────────────────────────────────────────────────────────────────
 async function _cnRenderCreatorProfileForm(target) {
   let profile = null;
-  try { profile = await api(`/connect/profile/creator/${currentUser.id}`); } catch (_) { /* not created yet */ }
+  try { profile = await api('/connect/profile/creator/me'); } catch (_) { /* not created yet */ }
   _cnCreatorProfile = profile;
 
   target.innerHTML = `
+    ${profile?.joined_at ? `<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">✅ Joined EndaViral Connect on ${new Date(profile.joined_at).toLocaleDateString()}</div>` : ''}
     <div class="cn-field"><label>Display Name</label><input type="text" id="cnCpName" value="${esc(profile?.display_name || '')}"></div>
     <div class="cn-field"><label>Profile Photo URL</label><input type="text" id="cnCpAvatar" value="${esc(profile?.avatar_url || '')}" placeholder="https://..."></div>
     <div class="cn-field"><label>Bio</label><textarea id="cnCpBio">${esc(profile?.bio || '')}</textarea></div>
@@ -386,6 +555,10 @@ async function _cnRenderCreatorProfileForm(target) {
     <div class="cn-field"><label>Niches (comma-separated)</label><input type="text" id="cnCpNiches" value="${esc(profile?.niches || '')}" placeholder="e.g. comedy, fashion"></div>
     <div class="cn-field"><label>Platforms (comma-separated)</label><input type="text" id="cnCpPlatforms" value="${esc(profile?.platforms || '')}" placeholder="e.g. tiktok, instagram"></div>
     <div class="cn-field"><label>Follower Count</label><input type="number" id="cnCpFollowers" value="${profile?.followers_count || 0}" min="0"></div>
+    <div class="cn-section-lbl">Payment Details</div>
+    <div style="font-size:11px;color:var(--muted);margin:-6px 0 10px;">Required before you can apply to campaigns. Your phone number is only ever visible to EndaViral — businesses never see it — and it's what your payout tickets pay out to.</div>
+    <div class="cn-field"><label>Email</label><input type="email" id="cnCpEmail" value="${esc(profile?.email || '')}" placeholder="you@example.com"></div>
+    <div class="cn-field"><label>M-Pesa Phone Number</label><input type="text" id="cnCpPhone" value="${esc(profile?.phone || '')}" placeholder="07XXXXXXXX"></div>
     <div class="cn-section-lbl">Pricing (KES, optional)</div>
     <div class="cn-field"><label>Short Video</label><input type="number" id="cnCpPriceVideo" value="${profile?.prices_kes?.short_video || ''}" min="0"></div>
     <div class="cn-field"><label>Instagram Reel</label><input type="number" id="cnCpPriceReel" value="${profile?.prices_kes?.ig_reel || ''}" min="0"></div>
@@ -421,6 +594,8 @@ async function _cnSaveCreatorProfile() {
     niches: document.getElementById('cnCpNiches').value.trim() || null,
     platforms: document.getElementById('cnCpPlatforms').value.trim() || null,
     followers_count: parseInt(document.getElementById('cnCpFollowers').value) || 0,
+    email: document.getElementById('cnCpEmail').value.trim() || null,
+    phone: document.getElementById('cnCpPhone').value.trim() || null,
     price_short_video_kes: parseFloat(document.getElementById('cnCpPriceVideo').value) || null,
     price_ig_reel_kes: parseFloat(document.getElementById('cnCpPriceReel').value) || null,
     price_tiktok_kes: parseFloat(document.getElementById('cnCpPriceTiktok').value) || null,
@@ -554,7 +729,7 @@ function _cnRenderCampaignModal() {
         </div>
       `).join('');
     }
-    html += `<button class="btn-secondary" style="width:100%;margin-top:10px;" onclick="_cnOpenInviteModal(null,'${c.id}')">✉️ Invite a Creator Directly</button>`;
+    html += `<button class="btn-secondary" style="width:100%;margin-top:10px;" onclick="_cnOpenInviteModal(null,null,'${c.id}')">✉️ Invite a Creator Directly</button>`;
   }
 
   if (isBusinessOwner && c.status === 'awaiting_fund') {
@@ -578,25 +753,53 @@ function _cnRenderCampaignModal() {
     html += `<div id="cnReviewArea">${_cnReviewFormHtml()}</div>`;
   }
 
+  if (isAssignedCreator && c.status === 'completed') {
+    html += `<div class="cn-section-lbl">💰 Payout</div><div id="cnPayoutArea"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>`;
+  }
+
   if (isBusinessOwner && ['completed', 'cancelled'].includes(c.status)) {
     html += `<button class="btn-secondary" style="margin-top:10px;width:100%;" onclick="_cnArchiveCampaign('${c.id}')">🗄 Archive Campaign</button>`;
   }
   } // end !c.is_frozen
 
-  if (isBusinessOwner || isAssignedCreator) {
-    html += `
-      <div class="cn-section-lbl">Messages</div>
-      <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>
-      <div style="display:flex;gap:8px;">
-        <input type="text" id="cnMsgInput" placeholder="Type a message…" style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" onkeydown="if(event.key==='Enter')_cnSendMessage('${c.id}')">
-        <button class="btn-secondary" onclick="_cnSendMessage('${c.id}')">Send</button>
-      </div>
-    `;
+  // A creator can message the business about any published campaign they're
+  // interested in — this is BEFORE an application is accepted, per the
+  // journey, not gated on it. Once accepted, they keep messaging as before.
+  const creatorCanMessage = _cnRole === 'creator' && !isBusinessOwner
+    && (isAssignedCreator || c.status === 'published');
+
+  _cnMsgThreadCreatorId = null;
+  if (isBusinessOwner || creatorCanMessage) {
+    html += `<div class="cn-section-lbl">Messages</div>`;
+    if (isBusinessOwner && !c.creator_user_id) {
+      // No creator assigned yet — the business may be hearing from several
+      // interested creators, so show a thread picker first.
+      html += `<div id="cnMsgThreads"><div style="color:var(--muted);font-size:12px;">Loading conversations…</div></div>`;
+      html += `<div class="cn-msgs" id="cnMsgList" style="display:none;"></div>
+        <div id="cnMsgInputRow" style="display:none;gap:8px;">
+          <input type="text" id="cnMsgInput" placeholder="Type a message…" style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" onkeydown="if(event.key==='Enter')_cnSendMessage('${c.id}')">
+          <button class="btn-secondary" onclick="_cnSendMessage('${c.id}')">Send</button>
+        </div>`;
+    } else {
+      _cnMsgThreadCreatorId = isBusinessOwner ? c.creator_user_id : currentUser.id;
+      html += `
+        <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="cnMsgInput" placeholder="Type a message…" style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" onkeydown="if(event.key==='Enter')_cnSendMessage('${c.id}')">
+          <button class="btn-secondary" onclick="_cnSendMessage('${c.id}')">Send</button>
+        </div>
+      `;
+    }
   }
 
   body.innerHTML = html;
 
-  if (isBusinessOwner || isAssignedCreator) _cnLoadMessages(c.id);
+  if (isBusinessOwner && !c.creator_user_id) {
+    _cnLoadMessageThreads(c.id);
+  } else if (isBusinessOwner || creatorCanMessage) {
+    _cnLoadMessages(c.id, _cnMsgThreadCreatorId);
+  }
+  if (isAssignedCreator && c.status === 'completed') _cnLoadPayoutArea(c);
 }
 
 // ─── Apply (creator) ──────────────────────────────────────────────────────────
@@ -764,15 +967,21 @@ async function _cnSubmitDeliverable(campaignId) {
 
 // ─── Review deliverable (business) ─────────────────────────────────────────────
 async function _cnLoadDeliverableForReview(campaignId) {
-  // The API doesn't expose a "latest deliverable" endpoint directly, so we
-  // reuse the campaign detail's messages/escrow context and ask the creator's
-  // submission via the campaign object isn't returned — instead we prompt
-  // review inline using the approve/reject endpoints, which look up the
-  // right deliverable server-side by campaign+status.
+  // The campaign detail response already carries the pending deliverable
+  // (id, content_url, note) whenever status is 'submitted' — no separate
+  // fetch needed, and it's what lets the business actually see the link
+  // to the posted work before approving payment.
   const el = document.getElementById('cnDeliverableReview');
   if (!el) return;
+  const d = _cnCurrentCampaign && _cnCurrentCampaign.pending_deliverable;
+  if (!d) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--muted);">Couldn't load the submission — refresh and try again.</div>`;
+    return;
+  }
   el.innerHTML = `
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">The creator has submitted work for review. Check the content, then approve to release payment (85% to creator, 15% platform fee) or reject to request changes.</div>
+    <div class="cn-row"><span class="k">Submitted Link</span><span class="v"><a href="${esc(d.content_url)}" target="_blank" rel="noopener" style="color:#2196f3;">${esc(d.content_url)}</a></span></div>
+    ${d.note ? `<div style="font-size:12px;color:var(--white);margin:8px 0;">${esc(d.note)}</div>` : ''}
+    <div style="font-size:12px;color:var(--muted);margin:10px 0;">Check the content, then approve to release payment (85% to creator, 15% platform fee) or reject to request changes.</div>
     <div class="cn-field"><label>Review Note (optional)</label><textarea id="cnReviewNote" placeholder="Feedback for the creator"></textarea></div>
     <div style="display:flex;gap:10px;">
       <button class="btn-secondary" style="flex:1;" onclick="_cnReviewDeliverable('${campaignId}','reject')">Request Changes</button>
@@ -783,14 +992,7 @@ async function _cnLoadDeliverableForReview(campaignId) {
 
 async function _cnReviewDeliverable(campaignId, decision) {
   const review_note = document.getElementById('cnReviewNote')?.value.trim() || null;
-  // Fetch the campaign's pending deliverable id via the messages/applications
-  // we already have isn't available — call a lightweight lookup instead.
-  let deliverableId;
-  try {
-    const list = await api(`/connect/campaigns/${campaignId}`); // ensures campaign still submitted
-    if (list.status !== 'submitted') { toast('This deliverable was already reviewed.', 'info'); _cnOpenCampaign(campaignId); return; }
-    deliverableId = _cnCurrentDeliverableId;
-  } catch (e) { /* fall through — deliverableId may still be cached */ }
+  const deliverableId = _cnCurrentCampaign && _cnCurrentCampaign.pending_deliverable && _cnCurrentCampaign.pending_deliverable.id;
 
   if (!deliverableId) {
     toast('Could not find the submission to review — refresh and try again.', 'error');
@@ -870,13 +1072,109 @@ async function _cnSubmitReview(campaignId) {
   }
 }
 
+// ─── Payout request (creator, last step of the journey) ────────────────────
+async function _cnLoadPayoutArea(c) {
+  const el = document.getElementById('cnPayoutArea');
+  if (!el) return;
+
+  let existing = null;
+  try {
+    const mine = await api('/connect/payout-requests/mine');
+    existing = (mine || []).find(t => t.campaign_id === c.id) || null;
+  } catch (_) { /* no ticket yet, or couldn't load — fall through to the request form */ }
+
+  const payout = c.creator_payout_kes;
+  const fee = c.platform_fee_kes;
+  const breakdown = (payout != null && fee != null) ? `
+    <div class="cn-row"><span class="k">Amount Paid to You</span><span class="v" style="color:var(--green);">${fmtKES(payout)}</span></div>
+    <div class="cn-row"><span class="k">EndaViral Service Fee (15%)</span><span class="v">${fmtKES(fee)}</span></div>
+  ` : '';
+
+  if (existing && existing.status !== 'rejected') {
+    const statusLabel = existing.status === 'paid'
+      ? `✅ Paid${existing.mpesa_receipt ? ` — M-Pesa ref ${esc(existing.mpesa_receipt)}` : ''}`
+      : '⏳ Pending — EndaViral is sending your money via M-Pesa';
+    el.innerHTML = `${breakdown}<div style="font-size:12px;color:var(--muted);margin-top:8px;">Payout ticket: ${statusLabel}</div>`;
+    return;
+  }
+
+  const phone = (_cnCreatorProfile && _cnCreatorProfile.phone) || '';
+  const rejectedNote = existing && existing.status === 'rejected'
+    ? `<div style="font-size:12px;color:#ff8a80;margin-bottom:8px;">Your last payout request was rejected${existing.admin_note ? `: ${esc(existing.admin_note)}` : ''}. Fix the details below and re-request.</div>`
+    : '';
+
+  el.innerHTML = `
+    ${breakdown}
+    ${rejectedNote}
+    <div class="cn-field"><label>M-Pesa Phone Number</label><input type="text" id="cnPayoutPhone" value="${esc(phone)}" placeholder="07XXXXXXXX"></div>
+    <div class="cn-field"><label>Link to Your Posted Work</label><input type="text" id="cnPayoutUrl" placeholder="https://..."></div>
+    <button class="btn-primary" id="cnPayoutBtn" onclick="_cnRequestPayout('${c.id}')">Request Payout</button>
+  `;
+}
+
+async function _cnRequestPayout(campaignId) {
+  const phone = document.getElementById('cnPayoutPhone').value.trim();
+  const content_url = document.getElementById('cnPayoutUrl').value.trim();
+  if (!phone) { toast('Enter your M-Pesa phone number', 'error'); return; }
+  if (!content_url) { toast('Add the link to your posted work', 'error'); return; }
+
+  const btn = document.getElementById('cnPayoutBtn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    await api(`/connect/campaigns/${campaignId}/payout-request`, {
+      method: 'POST',
+      body: JSON.stringify({ phone, content_url }),
+    });
+    toast('Payout requested — EndaViral will send your money via M-Pesa.', 'success');
+    _cnOpenCampaign(campaignId);
+  } catch (e) {
+    toast(e.message || 'Could not request payout', 'error');
+    btn.disabled = false; btn.textContent = 'Request Payout';
+  }
+}
+
 // ─── Messages ──────────────────────────────────────────────────────────────────
-async function _cnLoadMessages(campaignId) {
+async function _cnLoadMessageThreads(campaignId) {
+  const wrap = document.getElementById('cnMsgThreads');
+  if (!wrap) return;
+  let threads;
+  try { threads = await api(`/connect/campaigns/${campaignId}/message-threads`); }
+  catch (e) { wrap.innerHTML = `<div style="color:var(--muted);font-size:12px;">Couldn't load conversations.</div>`; return; }
+
+  if (!threads.length) {
+    wrap.innerHTML = `<div style="color:var(--muted);font-size:12px;">No creators have messaged about this campaign yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = threads.map(t => `
+    <div class="cn-thread-row" onclick="_cnOpenMsgThread('${campaignId}','${t.creator_user_id}')" style="cursor:pointer;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:12.5px;color:var(--white);font-weight:700;">${esc(t.display_name || 'Creator')}</div>
+        <div style="font-size:11px;color:var(--muted);">${esc(t.last_message || '')}</div>
+      </div>
+      ${t.unread_count ? `<span style="background:#2196f3;color:#fff;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;">${t.unread_count}</span>` : ''}
+    </div>
+  `).join('');
+}
+
+function _cnOpenMsgThread(campaignId, creatorUserId) {
+  _cnMsgThreadCreatorId = creatorUserId;
+  const threadsEl = document.getElementById('cnMsgThreads');
+  const listEl = document.getElementById('cnMsgList');
+  const inputRow = document.getElementById('cnMsgInputRow');
+  if (threadsEl) threadsEl.style.display = 'none';
+  if (listEl) listEl.style.display = 'block';
+  if (inputRow) inputRow.style.display = 'flex';
+  _cnLoadMessages(campaignId, creatorUserId);
+}
+
+async function _cnLoadMessages(campaignId, threadCreatorId) {
   const list = document.getElementById('cnMsgList');
   if (!list) return;
   let messages;
-  try { messages = await api(`/connect/campaigns/${campaignId}/messages`); }
-  catch (e) { list.innerHTML = `<div style="color:var(--muted);font-size:12px;">Could not load messages.</div>`; return; }
+  try {
+    const qs = threadCreatorId ? `?creator_user_id=${encodeURIComponent(threadCreatorId)}` : '';
+    messages = await api(`/connect/campaigns/${campaignId}/messages${qs}`);
+  } catch (e) { list.innerHTML = `<div style="color:var(--muted);font-size:12px;">Could not load messages.</div>`; return; }
 
   if (!messages.length) {
     list.innerHTML = `<div style="color:var(--muted);font-size:12px;">No messages yet — say hello!</div>`;
@@ -898,8 +1196,10 @@ async function _cnSendMessage(campaignId) {
   if (!body) return;
   input.value = '';
   try {
-    await api(`/connect/campaigns/${campaignId}/messages`, { method: 'POST', body: JSON.stringify({ body }) });
-    _cnLoadMessages(campaignId);
+    const payload = { body };
+    if (_cnMsgThreadCreatorId) payload.creator_user_id = _cnMsgThreadCreatorId;
+    await api(`/connect/campaigns/${campaignId}/messages`, { method: 'POST', body: JSON.stringify(payload) });
+    _cnLoadMessages(campaignId, _cnMsgThreadCreatorId);
   } catch (e) {
     toast(e.message || 'Could not send message', 'error');
   }
@@ -913,5 +1213,509 @@ async function _cnPublishFromModal(campaignId) {
     _cnOpenCampaign(campaignId);
   } catch (e) {
     toast(e.message || 'Could not publish', 'error');
+  }
+}
+
+// ─── Archive (business, completed/cancelled campaigns) ────────────────────────
+async function _cnArchiveCampaign(campaignId) {
+  try {
+    await api(`/connect/campaigns/${campaignId}/archive`, { method: 'POST' });
+    toast('Campaign archived', 'success');
+    _cnCloseCampaign();
+    if (_cnTab === 'campaigns') _cnLoadActiveTab();
+  } catch (e) {
+    toast(e.message || 'Could not archive campaign', 'error');
+  }
+}
+
+// ─── Create-modal close (referenced by index.html's ★MODALS markup) ──────────
+function _cnCloseCreate() {
+  const m = document.getElementById('cnCreateModal');
+  if (m) m.classList.remove('show');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Invites — creator's received invites tab
+// ══════════════════════════════════════════════════════════════════════════
+async function _cnRenderInvites(target) {
+  const invites = await api('/connect/invites/mine');
+  if (!invites.length) {
+    target.innerHTML = `<div class="cn-empty">No invites yet — businesses can invite you directly once you have a creator profile.</div>`;
+    return;
+  }
+  target.innerHTML = invites.map(i => {
+    const c = i.campaign || {};
+    const plat = _cnPlatformDef(c.platform);
+    return `
+    <div class="cn-app-row">
+      <div class="cn-app-top">
+        <span style="font-size:13px;font-weight:800;color:var(--white);">${esc(c.title || 'Campaign')}</span>
+        ${_cnStatusPillGeneric(i.status)}
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px;">
+        ${plat.emoji} ${esc(plat.label)} · ${c.budget_kes != null ? fmtKES(c.budget_kes) : ''} ·
+        Invited ${i.created_at ? new Date(i.created_at).toLocaleDateString() : ''}
+      </div>
+      ${i.message ? `<div style="font-size:12px;color:var(--white);margin-bottom:8px;">"${esc(i.message)}"</div>` : ''}
+      ${i.status === 'pending' ? `
+      <div class="cn-app-actions">
+        <button class="cn-btn-sm cn-btn-accept" onclick="_cnAcceptInvite('${i.id}')">Accept</button>
+        <button class="cn-btn-sm cn-btn-reject" onclick="_cnDeclineInvite('${i.id}')">Decline</button>
+      </div>` : ''}
+      ${c.id ? `<button class="btn-secondary" style="width:100%;margin-top:8px;" onclick="_cnOpenCampaign('${c.id}')">View Campaign</button>` : ''}
+    </div>
+  `;
+  }).join('');
+}
+
+function _cnStatusPillGeneric(status) {
+  // Small helper for statuses (invite/application/payout ticket/dispute) that don't live in CN_STATUS_LABELS.
+  const labels = { pending: 'Pending', accepted: 'Accepted', declined: 'Declined', withdrawn: 'Withdrawn', rejected: 'Rejected', paid: 'Paid', open: 'Open', resolved: 'Resolved' };
+  const colors = { pending: '#ff7043', accepted: '#3dd44a', declined: '#e53935', withdrawn: '#7a8fad', rejected: '#e53935', paid: '#3dd44a', open: '#ff7043', resolved: '#3dd44a' };
+  const color = colors[status] || '#7a8fad';
+  const label = labels[status] || status;
+  return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${color}1f;color:${color};border:1px solid ${color}40;">${esc(label)}</span>`;
+}
+
+async function _cnAcceptInvite(inviteId) {
+  try {
+    await api(`/connect/invites/${inviteId}/accept`, { method: 'POST' });
+    toast('Invite accepted — fund it once the business pays into escrow.', 'success');
+    _cnRenderInvites(document.getElementById('cnTabContent'));
+  } catch (e) {
+    toast(e.message || 'Could not accept invite', 'error');
+  }
+}
+
+async function _cnDeclineInvite(inviteId) {
+  try {
+    await api(`/connect/invites/${inviteId}/decline`, { method: 'POST' });
+    toast('Invite declined', 'success');
+    _cnRenderInvites(document.getElementById('cnTabContent'));
+  } catch (e) {
+    toast(e.message || 'Could not decline invite', 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Find Creators — business searches the creator directory
+// ══════════════════════════════════════════════════════════════════════════
+let _cnCreatorFilters = { niche: '', platform: '', location: '', min_followers: '', verified_only: false, sort: 'rating' };
+
+async function _cnRenderFindCreators(target) {
+  target.innerHTML = `
+    <div class="cn-field" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+      <input type="text" id="cnFcNiche" placeholder="Niche (e.g. fashion)" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" value="${esc(_cnCreatorFilters.niche)}">
+      <select id="cnFcPlatform" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;">
+        <option value="">Any platform</option>
+        ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}" ${_cnCreatorFilters.platform === p.key ? 'selected' : ''}>${p.emoji} ${esc(p.label)}</option>`).join('')}
+      </select>
+      <input type="text" id="cnFcLocation" placeholder="Location" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" value="${esc(_cnCreatorFilters.location)}">
+      <input type="number" id="cnFcMinFollowers" placeholder="Min. followers" min="0" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" value="${_cnCreatorFilters.min_followers}">
+      <select id="cnFcSort" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;">
+        <option value="rating" ${_cnCreatorFilters.sort === 'rating' ? 'selected' : ''}>Sort: Top Rated</option>
+        <option value="followers" ${_cnCreatorFilters.sort === 'followers' ? 'selected' : ''}>Sort: Most Followers</option>
+        <option value="jobs_completed" ${_cnCreatorFilters.sort === 'jobs_completed' ? 'selected' : ''}>Sort: Most Jobs Done</option>
+      </select>
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);margin-bottom:12px;cursor:pointer;">
+      <input type="checkbox" id="cnFcVerified" ${_cnCreatorFilters.verified_only ? 'checked' : ''}> Verified creators only
+    </label>
+    <button class="btn-secondary" style="margin-bottom:16px;" onclick="_cnSearchCreators()">🔎 Search</button>
+    <div id="cnFcResults"><div class="cn-empty">Loading…</div></div>
+  `;
+  await _cnSearchCreators();
+}
+
+async function _cnSearchCreators() {
+  const resultsEl = document.getElementById('cnFcResults');
+  _cnCreatorFilters = {
+    niche: document.getElementById('cnFcNiche').value.trim(),
+    platform: document.getElementById('cnFcPlatform').value,
+    location: document.getElementById('cnFcLocation').value.trim(),
+    min_followers: document.getElementById('cnFcMinFollowers').value,
+    verified_only: document.getElementById('cnFcVerified').checked,
+    sort: document.getElementById('cnFcSort').value,
+  };
+  const params = new URLSearchParams();
+  if (_cnCreatorFilters.niche) params.set('niche', _cnCreatorFilters.niche);
+  if (_cnCreatorFilters.platform) params.set('platform', _cnCreatorFilters.platform);
+  if (_cnCreatorFilters.location) params.set('location', _cnCreatorFilters.location);
+  if (_cnCreatorFilters.min_followers) params.set('min_followers', _cnCreatorFilters.min_followers);
+  if (_cnCreatorFilters.verified_only) params.set('verified_only', 'true');
+  params.set('sort', _cnCreatorFilters.sort);
+
+  resultsEl.innerHTML = `<div class="cn-empty">Loading…</div>`;
+  try {
+    const creators = await api(`/connect/creators?${params.toString()}`);
+    if (!creators.length) {
+      resultsEl.innerHTML = `<div class="cn-empty">No creators match those filters.</div>`;
+      return;
+    }
+    resultsEl.innerHTML = `<div class="cn-grid">${creators.map(_cnCreatorCardHtml).join('')}</div>`;
+  } catch (e) {
+    resultsEl.innerHTML = `<div class="cn-empty">${esc(e.message || "Couldn't load creators.")}</div>`;
+  }
+}
+
+function _cnCreatorCardHtml(p) {
+  const name = p.display_name || 'Unnamed Creator';
+  const niches = (p.niches || '').split(',').map(s => s.trim()).filter(Boolean);
+  const platforms = (p.platforms || '').split(',').map(s => s.trim()).filter(Boolean);
+  return `
+  <div class="cn-card" style="cursor:default;">
+    <div class="cn-card-top">
+      <div class="cn-card-title">${esc(name)} ${p.is_verified ? '<span title="Verified" style="color:#2196f3;">✔️</span>' : ''}</div>
+      <div style="font-size:12px;color:var(--muted);">★ ${p.rating_avg || 0} (${p.rating_count || 0})</div>
+    </div>
+    ${p.bio ? `<div class="cn-card-desc">${esc(p.bio)}</div>` : ''}
+    <div class="cn-card-meta" style="margin-bottom:10px;">
+      ${platforms.map(pl => `<span class="cn-tag">${_cnPlatformDef(pl).emoji} ${esc(_cnPlatformDef(pl).label)}</span>`).join('')}
+      ${niches.map(n => `<span class="cn-tag">${esc(n)}</span>`).join('')}
+      ${p.followers_count ? `<span class="cn-tag">${p.followers_count.toLocaleString()} followers</span>` : ''}
+      ${p.jobs_completed != null ? `<span class="cn-tag">${p.jobs_completed} jobs done</span>` : ''}
+    </div>
+    <button class="btn-secondary" style="width:100%;" onclick="_cnOpenInviteModal('${p.user_id}','${esc(name).replace(/'/g, "\\'")}',null)">✉️ Invite to a Campaign</button>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Invite modal — shared by "Find Creators" (creator known, pick campaign)
+// and a campaign's detail view (campaign known, pick creator)
+// ══════════════════════════════════════════════════════════════════════════
+let _cnInviteCtx = { creatorUserId: null, creatorLabel: null, campaignId: null };
+
+async function _cnOpenInviteModal(creatorUserId, creatorLabel, campaignId) {
+  _cnInviteCtx = { creatorUserId, creatorLabel, campaignId };
+  const modal = document.getElementById('cnInviteModal');
+  const body = document.getElementById('cnInviteModalBody');
+  if (!modal || !body) return;
+  body.innerHTML = `<div class="cn-empty">Loading…</div>`;
+  modal.classList.add('show');
+
+  let campaignOptionsHtml = '';
+  if (!campaignId) {
+    try {
+      const campaigns = await api('/connect/campaigns/mine?role=business');
+      const open = campaigns.filter(c => c.status === 'published');
+      if (!open.length) {
+        body.innerHTML = `<div class="cn-empty">You don't have any published campaigns to invite a creator to yet.<br><button class="btn-secondary" style="margin-top:12px;" onclick="_cnCloseInviteModal();_cnSetTab('create')">Post a campaign →</button></div>`;
+        return;
+      }
+      campaignOptionsHtml = open.map(c => `<option value="${c.id}">${esc(c.title)} · ${fmtKES(c.budget_kes)}</option>`).join('');
+    } catch (e) {
+      body.innerHTML = `<div class="cn-empty">${esc(e.message || "Couldn't load your campaigns.")}</div>`;
+      return;
+    }
+  }
+
+  let creatorOptionsHtml = '';
+  if (!creatorUserId) {
+    try {
+      const creators = await api('/connect/creators?sort=rating&limit=50');
+      if (!creators.length) {
+        body.innerHTML = `<div class="cn-empty">No creators in the directory yet.</div>`;
+        return;
+      }
+      creatorOptionsHtml = creators.map(p => `<option value="${p.user_id}">${esc(p.display_name || p.user_id)}${p.is_verified ? ' ✔️' : ''} — ★${p.rating_avg || 0}</option>`).join('');
+    } catch (e) {
+      body.innerHTML = `<div class="cn-empty">${esc(e.message || "Couldn't load creators.")}</div>`;
+      return;
+    }
+  }
+
+  body.innerHTML = `
+    <div class="modal-title" style="margin-bottom:14px;">✉️ Invite ${creatorLabel ? esc(creatorLabel) : 'a Creator'}</div>
+    ${!campaignId ? `
+    <div class="cn-field"><label>Campaign</label>
+      <select id="cnInviteCampaignSelect">${campaignOptionsHtml}</select>
+    </div>` : ''}
+    ${!creatorUserId ? `
+    <div class="cn-field"><label>Creator</label>
+      <select id="cnInviteCreatorSelect">${creatorOptionsHtml}</select>
+    </div>` : ''}
+    <div class="cn-field"><label>Message (optional)</label>
+      <textarea id="cnInviteMessage" placeholder="Tell them why you'd love to work with them…"></textarea>
+    </div>
+    <button class="btn-primary" id="cnInviteSendBtn" onclick="_cnSubmitInvite()">Send Invite</button>
+  `;
+}
+
+function _cnCloseInviteModal() {
+  const m = document.getElementById('cnInviteModal');
+  if (m) m.classList.remove('show');
+}
+
+async function _cnSubmitInvite() {
+  const campaignId = _cnInviteCtx.campaignId || document.getElementById('cnInviteCampaignSelect')?.value;
+  const creatorUserId = _cnInviteCtx.creatorUserId || document.getElementById('cnInviteCreatorSelect')?.value;
+  const message = document.getElementById('cnInviteMessage')?.value.trim() || null;
+  if (!campaignId) { toast('Choose a campaign to invite them to', 'error'); return; }
+  if (!creatorUserId) { toast('No creator selected', 'error'); return; }
+
+  const btn = document.getElementById('cnInviteSendBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  try {
+    await api(`/connect/campaigns/${campaignId}/invite`, {
+      method: 'POST',
+      body: JSON.stringify({ creator_user_id: creatorUserId, message }),
+    });
+    toast('Invite sent!', 'success');
+    _cnCloseInviteModal();
+  } catch (e) {
+    toast(e.message || 'Could not send invite', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Send Invite'; }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Admin — disputes, freeze/unfreeze, verify/suspend, stats
+// ══════════════════════════════════════════════════════════════════════════
+async function _cnRenderAdmin(target) {
+  target.innerHTML = `
+    <div class="cn-section-lbl">Marketplace Stats</div>
+    <div id="cnAdminStats" class="cn-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:6px;"><div class="cn-empty">Loading…</div></div>
+
+    <div class="cn-section-lbl">Payout Requests</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;">
+      ${['pending', 'paid', 'rejected', 'all'].map(s => `<button class="cn-tab ${s === 'pending' ? 'active' : ''}" id="cnPayoutFilter-${s}" onclick="_cnLoadAdminPayouts('${s}')" style="padding:6px 12px;font-size:11.5px;">${s[0].toUpperCase()}${s.slice(1)}</button>`).join('')}
+    </div>
+    <div id="cnAdminPayouts"><div class="cn-empty">Loading…</div></div>
+
+    <div class="cn-section-lbl">Open Disputes</div>
+    <div id="cnAdminDisputes"><div class="cn-empty">Loading…</div></div>
+
+    <div class="cn-section-lbl">Frozen Campaigns</div>
+    <div id="cnAdminFrozen"><div class="cn-empty">Loading…</div></div>
+    <div class="cn-field" style="display:flex;gap:8px;align-items:flex-end;margin-top:10px;">
+      <div style="flex:2;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Campaign ID to freeze</label>
+        <input type="text" id="cnAdminFreezeId" placeholder="campaign id" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
+      <div style="flex:2;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Reason</label>
+        <input type="text" id="cnAdminFreezeReason" placeholder="reason (optional)" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
+      <button class="btn-secondary" onclick="_cnAdminFreeze()">🧊 Freeze</button>
+    </div>
+
+    <div class="cn-section-lbl">Verify / Suspend a User</div>
+    <div class="cn-field" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+      <div style="flex:2;min-width:160px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">User ID</label>
+        <input type="text" id="cnAdminUserId" placeholder="user id" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
+      <div style="flex:1;min-width:120px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Role</label>
+        <select id="cnAdminUserRole" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;">
+          <option value="creator">Creator</option>
+          <option value="business">Business</option>
+        </select></div>
+      <div style="flex:2;min-width:160px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Reason (for suspend)</label>
+        <input type="text" id="cnAdminSuspendReason" placeholder="reason (optional)" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+      <button class="cn-btn-sm cn-btn-accept" style="flex:none;padding:9px 14px;" onclick="_cnAdminVerify(true)">✔️ Verify Creator</button>
+      <button class="btn-secondary" onclick="_cnAdminVerify(false)">Unverify Creator</button>
+      <button class="cn-btn-sm cn-btn-reject" style="flex:none;padding:9px 14px;" onclick="_cnAdminSuspend(true)">🚫 Suspend</button>
+      <button class="btn-secondary" onclick="_cnAdminSuspend(false)">Unsuspend</button>
+    </div>
+  `;
+  await Promise.all([_cnLoadAdminStats(), _cnLoadAdminPayouts('pending'), _cnLoadAdminDisputes(), _cnLoadAdminFrozen()]);
+}
+
+// ─── Payout requests (admin confirms the M-Pesa transfer went out) ─────────
+async function _cnLoadAdminPayouts(status) {
+  const el = document.getElementById('cnAdminPayouts');
+  if (!el) return;
+  ['pending', 'paid', 'rejected', 'all'].forEach(s => {
+    const btn = document.getElementById(`cnPayoutFilter-${s}`);
+    if (btn) btn.classList.toggle('active', s === status);
+  });
+  el.innerHTML = `<div class="cn-empty">Loading…</div>`;
+  try {
+    const tickets = await api(`/connect/admin/payout-requests?status=${status}`);
+    if (!tickets.length) {
+      el.innerHTML = `<div class="cn-empty">No ${status === 'all' ? '' : status + ' '}payout requests.</div>`;
+      return;
+    }
+    el.innerHTML = tickets.map(t => `
+      <div class="cn-app-row">
+        <div class="cn-app-top">
+          <span style="font-size:12.5px;font-weight:800;color:var(--white);">${fmtKES(t.amount_kes)}</span>
+          ${_cnStatusPillGeneric(t.status)}
+        </div>
+        <div style="font-size:11.5px;color:var(--muted);">Campaign ${esc(t.campaign_id.slice(0, 8))}… · Creator ${esc(t.creator_user_id.slice(0, 8))}…</div>
+        <div style="font-size:12px;color:var(--white);margin:6px 0;">📱 ${esc(t.phone)} · <a href="${esc(t.content_url)}" target="_blank" rel="noopener" style="color:#2196f3;">View posted work</a></div>
+        ${t.status !== 'pending' ? `
+          <div style="font-size:11.5px;color:var(--muted);">${t.mpesa_receipt ? `M-Pesa ref: ${esc(t.mpesa_receipt)}` : ''}${t.admin_note ? ` — ${esc(t.admin_note)}` : ''}</div>
+        ` : `
+          <input type="text" id="cnPayoutReceipt-${t.id}" placeholder="M-Pesa receipt code (optional)" style="width:100%;margin:8px 0 6px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:11.5px;">
+          <input type="text" id="cnPayoutNote-${t.id}" placeholder="Note (optional, e.g. reason for rejection)" style="width:100%;margin-bottom:8px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:11.5px;">
+          <div class="cn-app-actions">
+            <button class="cn-btn-sm cn-btn-accept" onclick="_cnAdminResolvePayout('${t.id}', true)">✅ Mark Paid</button>
+            <button class="cn-btn-sm cn-btn-reject" onclick="_cnAdminResolvePayout('${t.id}', false)">Reject</button>
+          </div>
+        `}
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="cn-empty">${esc(e.message || "Couldn't load payout requests.")}</div>`;
+  }
+}
+
+async function _cnAdminResolvePayout(payoutRequestId, approve) {
+  const mpesa_receipt = document.getElementById(`cnPayoutReceipt-${payoutRequestId}`)?.value.trim() || null;
+  const admin_note = document.getElementById(`cnPayoutNote-${payoutRequestId}`)?.value.trim() || null;
+  try {
+    await api(`/connect/admin/payout-requests/${payoutRequestId}/${approve ? 'mark-paid' : 'reject'}`, {
+      method: 'POST',
+      body: JSON.stringify({ mpesa_receipt, admin_note }),
+    });
+    toast(approve ? 'Marked as paid' : 'Payout request rejected', 'success');
+    const activeFilter = ['pending', 'paid', 'rejected', 'all'].find(s => document.getElementById(`cnPayoutFilter-${s}`)?.classList.contains('active')) || 'pending';
+    _cnLoadAdminPayouts(activeFilter);
+    _cnLoadAdminStats();
+  } catch (e) {
+    toast(e.message || 'Could not update payout request', 'error');
+  }
+}
+
+async function _cnLoadAdminStats() {
+  const el = document.getElementById('cnAdminStats');
+  try {
+    const s = await api('/connect/admin/stats');
+    const cards = [
+      ['Total Campaigns', s.total_campaigns],
+      ['Completed (Gross)', fmtKES(s.gross_completed_kes)],
+      ['Platform Fee Earned', fmtKES(s.platform_fee_kes_est)],
+      ['Open Disputes', s.open_disputes],
+      ['Frozen Campaigns', s.frozen_campaigns],
+      ['Verified Creators', s.verified_creators],
+      ['Suspended Creators', s.suspended_creators],
+      ['Suspended Businesses', s.suspended_businesses],
+      ['Pending Invites', s.pending_invites],
+    ];
+    el.innerHTML = cards.map(([label, val]) => `
+      <div class="cn-card" style="cursor:default;text-align:center;padding:14px 10px;">
+        <div style="font-size:17px;font-weight:800;color:var(--white);">${val}</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:4px;">${esc(label)}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="cn-empty">${esc(e.message || "Couldn't load stats.")}</div>`;
+  }
+}
+
+async function _cnLoadAdminDisputes() {
+  const el = document.getElementById('cnAdminDisputes');
+  try {
+    const disputes = await api('/connect/admin/disputes?status=open');
+    if (!disputes.length) {
+      el.innerHTML = `<div class="cn-empty">No open disputes 🎉</div>`;
+      return;
+    }
+    el.innerHTML = disputes.map(d => `
+      <div class="cn-app-row">
+        <div class="cn-app-top">
+          <span style="font-size:12.5px;font-weight:800;color:var(--white);">Campaign ${esc(d.campaign_id.slice(0, 8))}…</span>
+          ${_cnStatusPillGeneric(d.status)}
+        </div>
+        <div style="font-size:12px;color:var(--white);margin-bottom:8px;">${esc(d.reason)}</div>
+        <input type="text" id="cnDisputeNote-${d.id}" placeholder="Resolution note (optional)" style="width:100%;margin-bottom:8px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:11.5px;">
+        <div class="cn-app-actions">
+          <button class="cn-btn-sm cn-btn-accept" onclick="_cnAdminResolveDispute('${d.id}','release_to_creator')">Release to Creator</button>
+          <button class="cn-btn-sm cn-btn-reject" onclick="_cnAdminResolveDispute('${d.id}','refund_to_business')">Refund Business</button>
+        </div>
+        <button class="btn-secondary" style="width:100%;margin-top:8px;" onclick="_cnOpenCampaign('${d.campaign_id}')">View Campaign</button>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="cn-empty">${esc(e.message || "Couldn't load disputes.")}</div>`;
+  }
+}
+
+async function _cnAdminResolveDispute(disputeId, resolution) {
+  const note = document.getElementById(`cnDisputeNote-${disputeId}`)?.value.trim() || null;
+  try {
+    await api(`/connect/admin/disputes/${disputeId}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ resolution, resolution_note: note }),
+    });
+    toast('Dispute resolved', 'success');
+    _cnLoadAdminDisputes();
+    _cnLoadAdminStats();
+  } catch (e) {
+    toast(e.message || 'Could not resolve dispute', 'error');
+  }
+}
+
+async function _cnLoadAdminFrozen() {
+  const el = document.getElementById('cnAdminFrozen');
+  try {
+    const campaigns = await api('/connect/admin/campaigns?frozen_only=true');
+    if (!campaigns.length) {
+      el.innerHTML = `<div class="cn-empty">No frozen campaigns.</div>`;
+      return;
+    }
+    el.innerHTML = campaigns.map(c => `
+      <div class="cn-app-row">
+        <div class="cn-app-top">
+          <span style="font-size:12.5px;font-weight:800;color:var(--white);">${esc(c.title)}</span>
+          ${_cnStatusPill(c.status)}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">${c.frozen_reason ? esc(c.frozen_reason) : 'No reason given'}</div>
+        <button class="cn-btn-sm cn-btn-accept" onclick="_cnAdminUnfreeze('${c.id}')">Unfreeze</button>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="cn-empty">${esc(e.message || "Couldn't load frozen campaigns.")}</div>`;
+  }
+}
+
+async function _cnAdminFreeze() {
+  const id = document.getElementById('cnAdminFreezeId').value.trim();
+  const reason = document.getElementById('cnAdminFreezeReason').value.trim() || null;
+  if (!id) { toast('Enter a campaign ID', 'error'); return; }
+  try {
+    await api(`/connect/admin/campaigns/${id}/freeze`, { method: 'POST', body: JSON.stringify({ reason }) });
+    toast('Campaign frozen', 'success');
+    document.getElementById('cnAdminFreezeId').value = '';
+    document.getElementById('cnAdminFreezeReason').value = '';
+    _cnLoadAdminFrozen();
+    _cnLoadAdminStats();
+  } catch (e) {
+    toast(e.message || 'Could not freeze campaign', 'error');
+  }
+}
+
+async function _cnAdminUnfreeze(campaignId) {
+  try {
+    await api(`/connect/admin/campaigns/${campaignId}/unfreeze`, { method: 'POST' });
+    toast('Campaign unfrozen', 'success');
+    _cnLoadAdminFrozen();
+    _cnLoadAdminStats();
+  } catch (e) {
+    toast(e.message || 'Could not unfreeze campaign', 'error');
+  }
+}
+
+async function _cnAdminVerify(verify) {
+  const userId = document.getElementById('cnAdminUserId').value.trim();
+  if (!userId) { toast('Enter a user ID', 'error'); return; }
+  try {
+    await api(`/connect/admin/creators/${userId}/${verify ? 'verify' : 'unverify'}`, { method: 'POST' });
+    toast(verify ? 'Creator verified' : 'Creator unverified', 'success');
+    _cnLoadAdminStats();
+  } catch (e) {
+    toast(e.message || 'Could not update verification', 'error');
+  }
+}
+
+async function _cnAdminSuspend(suspend) {
+  const userId = document.getElementById('cnAdminUserId').value.trim();
+  const role = document.getElementById('cnAdminUserRole').value;
+  const reason = document.getElementById('cnAdminSuspendReason').value.trim() || null;
+  if (!userId) { toast('Enter a user ID', 'error'); return; }
+  try {
+    const path = `/connect/admin/users/${userId}/${suspend ? 'suspend' : 'unsuspend'}?role=${role}`;
+    await api(path, { method: 'POST', body: suspend ? JSON.stringify({ reason }) : undefined });
+    toast(suspend ? 'User suspended' : 'User unsuspended', 'success');
+    _cnLoadAdminStats();
+  } catch (e) {
+    toast(e.message || 'Could not update suspension', 'error');
   }
 }

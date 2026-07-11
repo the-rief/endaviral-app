@@ -3689,8 +3689,21 @@ async function _maybeHideAffBanner() {
     <div id="cnCreateModalBody"></div>
   </div>
 </div>
+<div class="modal-overlay" id="cnInviteModal">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" onclick="_cnCloseInviteModal()">✕</button>
+    <div id="cnInviteModalBody"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="cnTosModal">
+  <div class="modal" style="max-width:640px;">
+    <button class="modal-close" onclick="_cnCloseTos()">✕</button>
+    <div id="cnTosModalBody"></div>
+  </div>
+</div>
 
 <script src="academy.js"></script>
+<script src="connect-tos.js"></script>
 <script src="connect.js"></script>
 
 </body>
