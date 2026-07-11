@@ -157,7 +157,9 @@ function _cnRenderShell(sec) {
   sec.innerHTML = `
     <div class="cn-hero">
       <div class="cn-hero-title">🤝 EndaViral Marketplace</div>
-      <div class="cn-hero-sub">Businesses fund campaigns through secure escrow · creators get paid the moment work is approved · EndaViral takes a 15% fee only when a deal completes.</div>
+      <div class="cn-hero-sub">EndaViral Marketplace connects independent creators with businesses. EndaViral charges a marketplace service fee that covers secure payments, 
+      campaign management, creator discovery, messaging, and dispute resolutionBusinesses fund campaigns, 
+      Endaviral keeps the funds as creator does the job, after completion Creators get paid the moment work is approved · EndaViral takes a 15% fee only when a deal completes.</div>
     </div>
     <div class="cn-role-toggle">
       <button class="cn-role-btn ${_cnRole === 'creator' ? 'active' : ''}" onclick="_cnSetRole('creator')">🎬 I'm a Creator</button>
