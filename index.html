@@ -1862,7 +1862,12 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-stats">
           <div class="sec-hd" style="margin-bottom:20px;">
             <div><div class="sec-title">PLATFORM STATS</div><div class="sec-sub">Live overview of your EndaViral platform</div></div>
-            <button class="btn-secondary" onclick="loadAdminStats(true); loadAdminRevenue(true);">↻ Refresh</button>
+            <button class="btn-secondary" onclick="loadExecutiveSnapshot(true); loadAdminStats(true); loadAdminRevenue(true);">↻ Refresh</button>
+          </div>
+          <!-- Executive Snapshot: the 8 headline numbers, always at a glance -->
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">📊 Executive Snapshot</div>
+            <div class="stats-grid" id="execSnapshotGrid"><div class="loading-spinner"><div class="spinner"></div><span>Loading snapshot…</span></div></div>
           </div>
           <div class="stats-grid" id="adminStatsGrid"><div class="loading-spinner"><div class="spinner"></div><span>Loading stats…</span></div></div>
           <!-- Revenue: Weekly/Monthly + Affiliate Net + Insights Panel (NEW) -->
@@ -2543,6 +2548,7 @@ function navTo(page) {
   if (page === 'wallet') loadWalletPage();
   if (page === 'admin') {
     loadAdminUsers();
+    loadExecutiveSnapshot().catch(()=>{});
     loadAdminStats().catch(()=>{});
     loadAdminSupport().catch(()=>{});
     // Auto-refresh balance every 3 min while admin panel is open.
@@ -2553,6 +2559,7 @@ function navTo(page) {
     if (window._adminStatsTimer) clearInterval(window._adminStatsTimer);
     window._adminStatsTimer = setInterval(() => {
       if (document.getElementById('sec-admin').classList.contains('active')) {
+        loadExecutiveSnapshot().catch(()=>{});
         loadAdminStats().catch(()=>{});
       } else {
         clearInterval(window._adminStatsTimer);

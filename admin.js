@@ -23,7 +23,7 @@ function adminTab(tab, el) {
   if (tab === 'users') loadAdminUsers();
   if (tab === 'allorders') loadAdminOrders();
   if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); }
-  if (tab === 'stats') { loadAdminStats(); loadAdminRevenue(); loadAdminTrends(); loadAdminEngagement(); }
+  if (tab === 'stats') { loadExecutiveSnapshot(); loadAdminStats(); loadAdminRevenue(); loadAdminTrends(); loadAdminEngagement(); }
   if (tab === 'providers') loadAdminProviders();
   if (tab === 'support') loadAdminSupport();
   if (tab === 'create-order') initAdminCreateOrder();
@@ -208,6 +208,46 @@ function renderAdminServices() {
     ${hiddenByRate.length ? `<div style="margin-top:10px;padding:12px 16px;background:rgba(33,150,243,.06);border:1px solid rgba(33,150,243,.2);border-radius:10px;font-size:12px;color:var(--blue);">
       ℹ️ ${hiddenByRate.length} services hidden — rate is outside KES ${minRateKes}–${maxRateKes} per 1000. Adjust MIN/MAX RATE above to change.
     </div>` : ''}`;
+}
+
+/* ══════════════════ EXECUTIVE SNAPSHOT (8-metric strip) ══════════════════
+ * One call to GET /admin/stats/snapshot, one row of cards, always visible
+ * at the top of Platform Stats regardless of which section below it a
+ * stakeholder scrolls to. Deliberately separate from loadAdminStats() /
+ * loadAdminRevenue() / etc — those own their own deeper drill-down views;
+ * this is just the "8 numbers at a glance" summary. */
+let _adminSnapshotCacheTs = 0;
+const ADMIN_SNAPSHOT_TTL = 180 * 1000; // matches the stats auto-refresh interval
+
+async function loadExecutiveSnapshot(force = false) {
+  const now = Date.now();
+  if (!force && _adminSnapshotCacheTs > 0 && (now - _adminSnapshotCacheTs) < ADMIN_SNAPSHOT_TTL) return;
+  const el = document.getElementById('execSnapshotGrid');
+  if (!el) return;
+  try {
+    const s = await api('/admin/stats/snapshot');
+    _adminSnapshotCacheTs = Date.now();
+
+    const cacVal = s.cac_kes === null || s.cac_kes === undefined
+      ? '—'
+      : fmtKES(s.cac_kes);
+    const cacSub = s.cac_kes === null || s.cac_kes === undefined
+      ? 'no new payers this month'
+      : `${(s.cac_inputs?.new_paying_customers_this_month ?? 0)} new payer${(s.cac_inputs?.new_paying_customers_this_month === 1) ? '' : 's'} this month`;
+
+    el.innerHTML = `
+      <div class="stat-card green"><div class="stat-icon">📅</div><div class="stat-label">Today's Revenue</div><div class="stat-val">${fmtKES(s.today_revenue_kes)}</div><div class="stat-sub">profit booked today</div></div>
+      <div class="stat-card green" style="border-color:rgba(61,212,74,.6);"><div class="stat-icon">💰</div><div class="stat-label">Gross Profit</div><div class="stat-val">${fmtKES(s.gross_profit_kes)}</div><div class="stat-sub">all-time, ${s.markup_percent_used ? Math.round(s.markup_percent_used*100)+'% markup' : ''}</div></div>
+      <div class="stat-card orange"><div class="stat-icon">🏭</div><div class="stat-label">Provider Cost</div><div class="stat-val">${fmtKES(s.provider_cost_kes)}</div><div class="stat-sub">all-time, paid to provider</div></div>
+      <div class="stat-card blue"><div class="stat-icon">📐</div><div class="stat-label">Net Margin</div><div class="stat-val">${s.net_margin_pct}%</div><div class="stat-sub">profit ÷ sales</div></div>
+      <div class="stat-card blue"><div class="stat-icon">🔁</div><div class="stat-label">Repeat Customers</div><div class="stat-val">${s.repeat_rate_pct}%</div><div class="stat-sub">ordered 2+ times</div></div>
+      <div class="stat-card green"><div class="stat-icon">🧾</div><div class="stat-label">Avg. Order</div><div class="stat-val">${fmtKES(s.avg_order_value_kes)}</div><div class="stat-sub">all-time sales ÷ orders</div></div>
+      <div class="stat-card blue" title="ARPPU — spend-to-date per paying customer, not a projected forward LTV"><div class="stat-icon">💎</div><div class="stat-label">CLV</div><div class="stat-val">${fmtKES(s.clv_kes)}</div><div class="stat-sub">spend-to-date per payer</div></div>
+      <div class="stat-card orange" title="Affiliate commission accrued this month ÷ customers acquired this month — the only real acquisition cost tracked today"><div class="stat-icon">🎯</div><div class="stat-label">CAC</div><div class="stat-val">${cacVal}</div><div class="stat-sub">${cacSub}</div></div>`;
+  } catch (e) {
+    console.error('Executive snapshot load failed:', e);
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><p>Couldn't load the executive snapshot. <button class="action-btn" onclick="loadExecutiveSnapshot(true)">Retry</button></p></div>`;
+  }
 }
 
 let _adminStatsCacheTs = 0;
