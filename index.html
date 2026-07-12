@@ -295,6 +295,54 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 .lp-ticker-text{font-size:12.5px;color:#a9bfd4;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 .lp-ticker-text b{color:#e8f4ea;font-weight:700;}
 
+/* ── Dedicated Marketplace section: For Businesses / For Creators ── */
+.lp-mp-section{padding:120px 6%;background:linear-gradient(180deg,#fff 0%,#f8faff 100%);position:relative;overflow:hidden;}
+.lp-mp-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;max-width:1080px;margin:56px auto 0;}
+.lp-mp-card{position:relative;border-radius:26px;padding:44px 36px 38px;overflow:hidden;color:#fff;isolation:isolate;transition:transform .4s cubic-bezier(.2,.8,.2,1),box-shadow .4s;}
+.lp-mp-card:hover{transform:translateY(-8px);box-shadow:0 30px 70px rgba(0,0,0,.28);}
+.lp-mp-card::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 88% -10%,rgba(255,255,255,.16),transparent 55%);pointer-events:none;z-index:0;}
+.lp-mp-biz{background:linear-gradient(160deg,#0c2340 0%,#123a5c 45%,#08182c 100%);}
+.lp-mp-creator{background:linear-gradient(160deg,#3a2506 0%,#5c3f0a 45%,#2c1e05 100%);}
+.lp-mp-badge{position:relative;z-index:1;display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;padding:6px 14px;border-radius:30px;margin-bottom:20px;border:1px solid;}
+.lp-mp-biz .lp-mp-badge{background:rgba(33,150,243,.16);border-color:rgba(33,150,243,.38);color:#7ec4fb;}
+.lp-mp-creator .lp-mp-badge{background:rgba(255,176,32,.16);border-color:rgba(255,176,32,.38);color:#ffd166;}
+.lp-mp-card h3{position:relative;z-index:1;font-family:var(--font-display);font-size:23px;font-weight:900;letter-spacing:-.5px;line-height:1.18;margin-bottom:12px;}
+.lp-mp-desc{position:relative;z-index:1;font-size:14.5px;line-height:1.75;color:rgba(255,255,255,.75);margin-bottom:26px;}
+.lp-mp-list{position:relative;z-index:1;list-style:none;margin:0 0 30px;padding:0;display:flex;flex-direction:column;gap:13px;counter-reset:mp;}
+.lp-mp-list li{display:flex;align-items:center;gap:12px;font-size:13.5px;font-weight:600;color:rgba(255,255,255,.9);}
+.lp-mp-step-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);}
+.lp-mp-btn{position:relative;z-index:1;display:inline-flex;align-items:center;gap:8px;width:100%;justify-content:center;padding:14px 20px;border-radius:11px;font-size:14px;font-weight:700;text-decoration:none;transition:all .25s;font-family:'Montserrat',sans-serif;}
+.lp-mp-btn:hover{transform:translateY(-2px);filter:brightness(1.08);}
+.lp-mp-btn-biz{background:linear-gradient(135deg,#2196f3,#1467b3);color:#fff;box-shadow:0 8px 22px rgba(33,150,243,.3);}
+.lp-mp-btn-creator{background:linear-gradient(135deg,#ffb020,#f2891a);color:#1a1204;box-shadow:0 8px 22px rgba(255,176,32,.32);}
+.lp-mp-note{position:relative;z-index:1;text-align:center;max-width:640px;margin:44px auto 0;color:#8a99b3;font-size:13.5px;line-height:1.7;}
+@media(max-width:900px){.lp-mp-grid{grid-template-columns:1fr;}}
+
+.lp-mp-stats{position:relative;z-index:1;display:flex;justify-content:center;flex-wrap:wrap;max-width:900px;margin:44px auto 0;padding:24px 10px;background:#fff;border:1px solid #e8edf3;border-radius:20px;box-shadow:0 10px 40px rgba(20,30,50,.05);}
+.lp-mp-stat{flex:1;min-width:150px;text-align:center;padding:6px 14px;border-right:1px solid #e8edf3;}
+.lp-mp-stat:last-child{border-right:none;}
+.lp-mp-stat-num{font-family:var(--font-display);font-size:clamp(20px,2.2vw,28px);font-weight:900;color:#131b27;letter-spacing:-1px;}
+.lp-mp-stat-num span{color:#3dd44a;}
+.lp-mp-stat-label{font-size:11.5px;color:#6b7a99;margin-top:4px;font-weight:600;}
+@media(max-width:700px){.lp-mp-stat{flex:1 1 45%;border-right:none;border-bottom:1px solid #e8edf3;padding:14px;}.lp-mp-stat:last-child{border-bottom:none;}}
+
+/* ── Success Stories ── */
+.lp-stories-section{background:linear-gradient(160deg,#0a1628,#0d2218);padding:110px 6%;position:relative;overflow:hidden;}
+.lp-stories-section::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(61,212,74,.05) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+.lp-stories-section .lp-section-center h2{color:#fff;}
+.lp-stories-section .lp-section-center p{color:#7a9aad;}
+.lp-stories-section .lp-section-eyebrow{background:rgba(61,212,74,.12);color:#6efb7a;}
+.lp-stories-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1160px;margin:0 auto;}
+.lp-story-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:32px 28px;backdrop-filter:blur(4px);transition:transform .3s,border-color .3s;}
+.lp-story-card:hover{transform:translateY(-6px);border-color:rgba(61,212,74,.3);}
+.lp-story-quote{font-size:14px;line-height:1.75;color:#dce8f0;margin-bottom:22px;}
+.lp-story-person{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.lp-story-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+.lp-story-name{font-size:14px;font-weight:800;color:#fff;}
+.lp-story-role{font-size:12px;color:#7a9aad;}
+.lp-story-stat{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#6efb7a;background:rgba(61,212,74,.1);border:1px solid rgba(61,212,74,.25);padding:6px 12px;border-radius:20px;}
+@media(max-width:900px){.lp-stories-grid{grid-template-columns:1fr;}}
+
 .lp-faq{padding:100px 6%;background:#fff;}
 .lp-faq .lp-section-center h2{color:#0d1117;}
 .lp-faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:960px;margin:0 auto;}
@@ -1075,6 +1123,7 @@ tbody td{padding:13px 16px;font-size:14px;}
     <div class="lp-hero-inner">
       <div class="lp-hero-text">
         <h1 class="lp-hero-h1">Grow. Learn. <em>Earn</em> with <em>EndaViral</em></h1>
+
         <p class="lp-hero-sub">EndaViral is Kenya's Creator Growth Platform. Grow your social media, master in-demand skills at Creator Academy, and get hired through our Marketplace — all in one place, all paid via M-Pesa.</p>
         <div class="lp-auth-card" id="loginBox">
           <div class="lp-auth-card-header">
@@ -1235,7 +1284,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       </div>
 
       <!-- EARN -->
-      <div class="lp-pillar-card lp-pillar-earn lp-reveal" id="marketplace">
+      <div class="lp-pillar-card lp-pillar-earn lp-reveal" id="marketplace-pillar">
         <span class="lp-pillar-ghost-num">03</span>
         <div class="lp-pillar-corner"></div>
         <span class="lp-pillar-badge">Earn</span>
@@ -1326,6 +1375,89 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="lp-feature-card"><div class="lp-feature-icon">📱</div><div class="lp-feature-tag">Local Payments</div><h3>Pay via M-Pesa</h3><p>Pay easily through your M-Pesa. No international cards needed.</p></div>
       <div class="lp-feature-card"><div class="lp-feature-icon">💰</div><div class="lp-feature-tag">Best Value</div><h3>Very Low Prices</h3><p>Get premium social growth without breaking the bank.</p></div>
       <div class="lp-feature-card"><div class="lp-feature-icon">⚡</div><div class="lp-feature-tag">Automated</div><h3>Instant Delivery</h3><p>Place an order and watch results start coming in within minutes.</p></div>
+    </div>
+  </section>
+
+  <!-- ════════════ DEDICATED MARKETPLACE SECTION: BUSINESSES + CREATORS ════════════ -->
+  <section class="lp-mp-section" id="marketplace">
+    <div class="lp-section-center lp-reveal">
+      <span class="lp-section-eyebrow">The Creator Marketplace</span>
+      <h2>Where Kenyan brands meet Kenyan creators</h2>
+      <p>Marketplace isn't a side feature — it's where growth and skills turn into real income. Businesses find creators who are already growing, creators find paid work, and every payment moves through M-Pesa.</p>
+    </div>
+
+    <!-- PLACEHOLDER FIGURES — replace with real, verified numbers before launch -->
+    <div class="lp-mp-stats lp-reveal">
+      <div class="lp-mp-stat"><div class="lp-mp-stat-num">KES 2.4M<span>+</span></div><div class="lp-mp-stat-label">Paid to Creators</div></div>
+      <div class="lp-mp-stat"><div class="lp-mp-stat-num">300<span>+</span></div><div class="lp-mp-stat-label">Campaigns Completed</div></div>
+      <div class="lp-mp-stat"><div class="lp-mp-stat-num">120<span>+</span></div><div class="lp-mp-stat-label">Businesses Hiring</div></div>
+      <div class="lp-mp-stat"><div class="lp-mp-stat-num">KES 8,500</div><div class="lp-mp-stat-label">Avg. Creator Payout</div></div>
+    </div>
+
+    <div class="lp-mp-grid">
+      <div class="lp-mp-card lp-mp-biz lp-reveal">
+        <span class="lp-mp-badge">For Businesses</span>
+        <h3>Hire creators who already have the numbers</h3>
+        <p class="lp-mp-desc">Post a campaign once and reach creators actively growing on the platforms your customers use — no agency, no back-and-forth.</p>
+        <ol class="lp-mp-list">
+          <li><span class="lp-mp-step-num">1</span>Post your campaign &amp; budget</li>
+          <li><span class="lp-mp-step-num">2</span>Review creator applications</li>
+          <li><span class="lp-mp-step-num">3</span>Approve the work you receive</li>
+          <li><span class="lp-mp-step-num">4</span>Pay securely via M-Pesa</li>
+        </ol>
+        <a href="#" class="lp-mp-btn lp-mp-btn-biz" onclick="showReg();document.getElementById('regBox').scrollIntoView({behavior:'smooth'});return false;">Post a Campaign →</a>
+      </div>
+
+      <div class="lp-mp-card lp-mp-creator lp-reveal">
+        <span class="lp-mp-badge">For Creators</span>
+        <h3>Turn your following into income</h3>
+        <p class="lp-mp-desc">Build a profile, apply to live campaigns from Kenyan businesses, and get paid the moment your work is approved.</p>
+        <ol class="lp-mp-list">
+          <li><span class="lp-mp-step-num">1</span>Build your creator profile</li>
+          <li><span class="lp-mp-step-num">2</span>Apply to open campaigns</li>
+          <li><span class="lp-mp-step-num">3</span>Submit your content</li>
+          <li><span class="lp-mp-step-num">4</span>Get paid straight to M-Pesa</li>
+        </ol>
+        <a href="#" class="lp-mp-btn lp-mp-btn-creator" onclick="showReg();document.getElementById('regBox').scrollIntoView({behavior:'smooth'});return false;">Browse Campaigns →</a>
+      </div>
+    </div>
+
+    <p class="lp-mp-note">Open to Kenyan businesses of any size — from independent brands to established companies — and to any creator ready to work professionally.</p>
+  </section>
+
+  <!-- ════════════ SUCCESS STORIES ════════════ -->
+  <!-- PLACEHOLDER TESTIMONIALS — replace names, avatars and figures with real, verifiable creator/business stories before launch -->
+  <section class="lp-stories-section" id="stories">
+    <div class="lp-section-center lp-reveal">
+      <span class="lp-section-eyebrow">Success Stories</span>
+      <h2>Real creators, real earnings</h2>
+      <p>Illustrative examples of the journey EndaViral is built around — swap in your own creators' verified stories before launch.</p>
+    </div>
+    <div class="lp-stories-grid">
+      <div class="lp-story-card lp-reveal">
+        <p class="lp-story-quote">"I started with under a thousand followers. Creator Academy taught me what actually works, and within two months I had my first paid campaign."</p>
+        <div class="lp-story-person">
+          <div class="lp-story-avatar" style="background:linear-gradient(135deg,#3dd44a,#1a6b23);">M</div>
+          <div><div class="lp-story-name">Mary, Nairobi</div><div class="lp-story-role">TikTok Creator</div></div>
+        </div>
+        <span class="lp-story-stat">💰 Earned KES 12,000</span>
+      </div>
+      <div class="lp-story-card lp-reveal">
+        <p class="lp-story-quote">"Growth services got me to 20K followers fast. Once I had the numbers, brands started reaching out through the Marketplace on their own."</p>
+        <div class="lp-story-person">
+          <div class="lp-story-avatar" style="background:linear-gradient(135deg,#2196f3,#1467b3);">J</div>
+          <div><div class="lp-story-name">John, Mombasa</div><div class="lp-story-role">Instagram Creator</div></div>
+        </div>
+        <span class="lp-story-stat">💰 Earned KES 35,000</span>
+      </div>
+      <div class="lp-story-card lp-reveal">
+        <p class="lp-story-quote">"We posted one campaign and had qualified creator applications within a day. Approvals and payments all happen from one dashboard."</p>
+        <div class="lp-story-person">
+          <div class="lp-story-avatar" style="background:linear-gradient(135deg,#ffb020,#f2891a);">A</div>
+          <div><div class="lp-story-name">Amina's Boutique</div><div class="lp-story-role">Business, Nakuru</div></div>
+        </div>
+        <span class="lp-story-stat">💼 8 Campaigns Completed</span>
+      </div>
     </div>
   </section>
 
