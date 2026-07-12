@@ -506,14 +506,20 @@ function _cnInjectStyles() {
     /* ── Join / onboarding screen ─────────────────────────────────────── */
     .cn-join-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px;}
     .cn-join-badge{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--cn-accent);margin-bottom:10px;}
-    .cn-join-check{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--white);margin-bottom:11px;cursor:pointer;line-height:1.5;}
-    .cn-join-check input{margin-top:3px;flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:var(--cn-accent);}
+    .cn-join-check{display:flex;gap:11px;align-items:center;font-size:12px;color:var(--white);margin-bottom:11px;cursor:pointer;line-height:1.5;padding:11px 14px;border-radius:12px;background:var(--navy);border:1px solid var(--border);transition:all .15s;}
+    .cn-join-check:hover{border-color:rgba(255,255,255,.25);}
+    .cn-join-check.checked{background:var(--cn-accent-soft);border-color:var(--cn-accent);}
+    .cn-join-check input{position:absolute;opacity:0;width:0;height:0;}
     .cn-join-check a{color:var(--cn-accent);text-decoration:underline;}
-    .cn-join-item{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:var(--navy);margin-bottom:8px;cursor:pointer;transition:border-color .15s;border:1px solid transparent;}
-    .cn-join-item:hover{border-color:var(--border);}
-    .cn-join-item input{margin-top:3px;flex-shrink:0;width:16px;height:16px;cursor:pointer;accent-color:var(--cn-accent);}
-    .cn-join-item span{font-size:12px;color:var(--white);line-height:1.5;}
-    .cn-join-icon{font-size:14px;line-height:1.4;margin-top:1px;flex-shrink:0;}
+    .cn-join-item{position:relative;display:flex;gap:12px;align-items:center;padding:13px 14px;border-radius:12px;background:var(--navy);margin-bottom:8px;cursor:pointer;transition:all .15s;border:1px solid var(--border);}
+    .cn-join-item:hover{border-color:rgba(255,255,255,.25);}
+    .cn-join-item.checked{background:var(--cn-accent-soft);border-color:var(--cn-accent);}
+    .cn-join-item input{position:absolute;opacity:0;width:0;height:0;}
+    .cn-join-tick{width:19px;height:19px;flex-shrink:0;border-radius:6px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:transparent;background:var(--card);transition:all .15s;}
+    .cn-join-item.checked .cn-join-tick,.cn-join-check.checked .cn-join-tick{background:var(--cn-accent);border-color:var(--cn-accent);color:#fff;}
+    .cn-join-icon-badge{width:30px;height:30px;flex-shrink:0;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(255,255,255,.05);border:1px solid var(--border);transition:all .15s;}
+    .cn-join-item.checked .cn-join-icon-badge{background:rgba(255,255,255,.1);border-color:var(--cn-accent);}
+    .cn-join-text{font-size:12px;color:var(--white);line-height:1.5;}
     .cn-tos-body{font-size:12px;line-height:1.7;color:var(--muted);max-height:56vh;overflow-y:auto;padding-right:8px;margin-bottom:16px;}
     .cn-tos-body h4{color:var(--white);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 6px;}
     .cn-tos-body h4:first-child{margin-top:0;}
@@ -1006,15 +1012,17 @@ function _cnRenderJoinScreen(target, role) {
       <div class="cn-tos-check-summary">
         ${roleChecks.map(c => `
           <label class="cn-join-item">
-            <input type="checkbox" class="cn-join-check-box cn-join-role-check" data-key="${c.key}" onchange="_cnUpdateJoinBtn()">
-            <span class="cn-join-icon">${iconFor(c.key)}</span>
-            <span>${esc(c.text)}</span>
+            <input type="checkbox" class="cn-join-check-box cn-join-role-check" data-key="${c.key}" onchange="_cnUpdateJoinBtn(this)">
+            <span class="cn-join-tick">✓</span>
+            <span class="cn-join-icon-badge">${iconFor(c.key)}</span>
+            <span class="cn-join-text">${esc(c.text)}</span>
           </label>
         `).join('')}
       </div>
 
       <label class="cn-join-check" style="margin-top:6px;">
-        <input type="checkbox" class="cn-join-check-box" id="cnJoinTos" onchange="_cnUpdateJoinBtn()">
+        <input type="checkbox" class="cn-join-check-box" id="cnJoinTos" onchange="_cnUpdateJoinBtn(this)">
+        <span class="cn-join-tick">✓</span>
         <span>I have read and agree to the <a href="#" onclick="return _cnOpenTos()">EndaViral Connect Marketplace Terms of Service</a>, and confirm I am at least 18 years old or have legal authority to enter into this agreement.</span>
       </label>
 
@@ -1025,7 +1033,11 @@ function _cnRenderJoinScreen(target, role) {
 
 // Enables the Join button only once every ToS + role-specific checkbox on
 // the join screen is ticked.
-function _cnUpdateJoinBtn() {
+function _cnUpdateJoinBtn(changedInput) {
+  if (changedInput) {
+    const row = changedInput.closest('.cn-join-item, .cn-join-check');
+    if (row) row.classList.toggle('checked', changedInput.checked);
+  }
   const btn = document.getElementById('cnJoinBtn');
   if (!btn) return;
   const boxes = document.querySelectorAll('.cn-join-check-box');
