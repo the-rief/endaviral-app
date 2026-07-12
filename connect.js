@@ -70,6 +70,7 @@ let _cnCreatorProfile = null;
 let _cnBusinessProfile = null;
 let _cnFundPollTimer = null;
 let _cnMsgThreadCreatorId = null;  // which creator's thread is open in the campaign modal (business side, when unassigned)
+let _cnActiveNegotiationApp = null; // the CampaignApplication behind the currently open thread, if any (drives the negotiation banner/propose/fund controls)
 let _cnJoinedRoles = { creator: false, business: false };  // which side(s) this user has actually joined — drives whether the role toggle shows at all
 let _cnRolesResolved = false;      // becomes true once _cnDetectJoinedRoles() has checked the server
 
@@ -185,11 +186,17 @@ const CN_STATUS_LABELS = {
   draft: 'Draft', published: 'Published', awaiting_fund: 'Awaiting Funding',
   funded: 'Funded', submitted: 'Submitted', under_review: 'Under Review',
   disputed: 'Disputed', completed: 'Completed', cancelled: 'Cancelled', archived: 'Archived',
+  // CampaignApplication statuses — shares this pill/map since applications
+  // render right alongside campaigns in several places.
+  pending: 'Pending', accepted: 'Negotiating', rejected: 'Declined',
+  withdrawn: 'Withdrawn', hired: 'Hired!', not_selected: 'Not Selected',
 };
 const CN_STATUS_COLORS = {
   draft: '#7a8fad', published: '#2196f3', awaiting_fund: '#ff7043', funded: '#3dd44a',
   submitted: '#2196f3', under_review: '#2196f3', disputed: '#e53935', completed: '#3dd44a',
   cancelled: '#e53935', archived: '#7a8fad',
+  pending: '#7a8fad', accepted: '#ff7043', rejected: '#e53935',
+  withdrawn: '#7a8fad', hired: '#3dd44a', not_selected: '#e53935',
 };
 
 function _cnStatusPill(status) {
@@ -311,6 +318,35 @@ function _cnInjectStyles() {
     .cn-msg.mine{margin-left:auto;text-align:right;}
     .cn-msg.mine .bubble{background:var(--cn-accent-soft);border-color:var(--cn-accent);}
     .cn-msg .who{font-size:10px;color:var(--muted);margin-bottom:3px;}
+
+    /* ── Negotiation banner — sticky context strip above the chat, replaces
+       the old separate "NEGOTIATE PRICE" box duplicating info the chat
+       bubbles already show ─────────────────────────────────────────────*/
+    .cn-neg-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:rgba(76,175,80,.08);border:1px solid rgba(76,175,80,.3);border-radius:12px;padding:10px 14px;margin-bottom:10px;}
+    .cn-neg-banner-who{font-size:12px;font-weight:800;color:var(--white);}
+    .cn-neg-banner-who .sub{display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-top:1px;}
+    .cn-neg-banner-amt{font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;color:var(--green);white-space:nowrap;}
+    .cn-neg-banner-orig{font-size:10.5px;color:var(--muted);font-weight:600;}
+
+    /* ── Not-selected / declined banner ──────────────────────────────────*/
+    .cn-lost-banner{display:flex;align-items:center;gap:9px;background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.25);border-radius:12px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#ff8a80;}
+
+    /* ── Message input row w/ inline price-offer toggle ─────────────────*/
+    .cn-msg-input-row{display:flex;gap:8px;align-items:flex-end;}
+    .cn-msg-input-row input[type=text]{flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;font-family:inherit;}
+    .cn-propose-toggle{background:var(--navy);border:1px solid var(--border);border-radius:10px;width:38px;height:38px;flex-shrink:0;font-size:15px;cursor:pointer;color:var(--muted);transition:all .15s;}
+    .cn-propose-toggle:hover,.cn-propose-toggle.active{border-color:var(--green);color:var(--green);background:rgba(76,175,80,.08);}
+    .cn-propose-row{display:none;gap:8px;margin-bottom:8px;}
+    .cn-propose-row.open{display:flex;}
+    .cn-propose-row input{flex:1;background:var(--navy);border:1px solid var(--green);border-radius:10px;padding:9px 12px;color:var(--white);font-size:12.5px;font-family:inherit;}
+
+    /* ── Applications list — pending bids + active (accepted) negotiations
+       shown as distinct, clickable rows on the business side ───────────*/
+    .cn-neg-row{background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:11px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:border-color .15s;}
+    .cn-neg-row:hover{border-color:var(--cn-accent);}
+    .cn-neg-row-name{font-size:12.5px;font-weight:800;color:var(--white);}
+    .cn-neg-row-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+    .cn-neg-row-amt{font-family:'Montserrat',sans-serif;font-weight:800;color:var(--green);font-size:13.5px;white-space:nowrap;}
     .cn-stars{display:flex;gap:6px;font-size:24px;margin-bottom:10px;}
     .cn-star{cursor:pointer;opacity:.3;transition:opacity .1s;}
     .cn-star.on{opacity:1;}
@@ -1061,7 +1097,9 @@ async function _cnOpenCampaign(campaignId) {
   }
   _cnCurrentCampaign = campaign;
 
-  // Business viewing their own published campaign also needs applications
+  // Business viewing their own still-open campaign also needs applications
+  // — a campaign can have several PENDING bids and several ACCEPTED
+  // (parallel-negotiating) applications at once, all shown here.
   const isBusinessOwner = currentUser && currentUser.id === campaign.business_user_id;
   if (isBusinessOwner && campaign.status === 'published') {
     try { _cnCurrentApplications = await api(`/connect/campaigns/${campaignId}/applications`); }
@@ -1069,6 +1107,7 @@ async function _cnOpenCampaign(campaignId) {
   } else {
     _cnCurrentApplications = [];
   }
+  _cnActiveNegotiationApp = null;
 
   _cnRenderCampaignModal();
 }
@@ -1117,36 +1156,62 @@ function _cnRenderCampaignModal() {
   }
 
   if (isBusinessOwner && c.status === 'published') {
+    // A campaign can have several bids AND several parallel accepted
+    // negotiations at once — the campaign stays on Discover throughout and
+    // ONLY comes off once one of these is actually funded. Group them so
+    // it reads like a business inbox: active talks first, fresh bids below.
+    const _cnActiveApps = _cnCurrentApplications.filter(a => a.status === 'accepted');
+    const _cnPendingApps = _cnCurrentApplications.filter(a => a.status === 'pending');
     html += `<div class="cn-section-lbl">Applications (${_cnCurrentApplications.length})</div>`;
     if (!_cnCurrentApplications.length) {
       html += `<div style="font-size:12px;color:var(--muted);">No applications yet — check back soon.</div>`;
     } else {
-      html += _cnCurrentApplications.map(a => `
-        <div class="cn-app-row">
-          <div class="cn-app-top"><span class="cn-app-bid">${fmtKES(a.bid_amount_kes)}</span>${_cnStatusPill(a.status)}</div>
-          <div style="font-size:11.5px;color:var(--muted);">Delivery in ${a.delivery_days} day${a.delivery_days == 1 ? '' : 's'}</div>
-          ${a.proposal ? `<div style="font-size:12px;color:var(--white);margin-top:6px;">${esc(a.proposal)}</div>` : ''}
-          ${a.status === 'pending' ? `
-          <div class="cn-app-actions">
-            <button class="cn-btn-sm cn-btn-accept" onclick="_cnAcceptApplication('${c.id}','${a.id}')">Accept</button>
-            <button class="cn-btn-sm cn-btn-reject" onclick="_cnRejectApplication('${c.id}','${a.id}')">Reject</button>
-          </div>` : ''}
-        </div>
-      `).join('');
+      if (_cnActiveApps.length) {
+        html += `<div style="font-size:10.5px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">In Negotiation</div>`;
+        html += _cnActiveApps.map(a => `
+          <div class="cn-neg-row" onclick="_cnOpenNegotiationThread('${c.id}','${a.id}')">
+            <div>
+              <div class="cn-neg-row-name">${esc(a.creator_display_name || 'Creator')}</div>
+              <div class="cn-neg-row-sub">💬 Tap to open the conversation</div>
+            </div>
+            <div class="cn-neg-row-amt">${fmtKES(a.fund_amount_kes)}</div>
+          </div>
+        `).join('');
+      }
+      if (_cnPendingApps.length) {
+        html += `<div style="font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:${_cnActiveApps.length ? '14px' : '0'} 0 6px;">New Bids</div>`;
+        html += _cnPendingApps.map(a => `
+          <div class="cn-app-row">
+            <div class="cn-app-top"><span class="cn-app-bid">${fmtKES(a.bid_amount_kes)}</span>${_cnStatusPill(a.status)}</div>
+            <div style="font-size:11.5px;color:var(--muted);">${esc(a.creator_display_name || 'Creator')} · delivery in ${a.delivery_days} day${a.delivery_days == 1 ? '' : 's'}</div>
+            ${a.proposal ? `<div style="font-size:12px;color:var(--white);margin-top:6px;">${esc(a.proposal)}</div>` : ''}
+            <div class="cn-app-actions">
+              <button class="cn-btn-sm cn-btn-accept" onclick="_cnAcceptApplication('${c.id}','${a.id}')">Accept</button>
+              <button class="cn-btn-sm cn-btn-reject" onclick="_cnRejectApplication('${c.id}','${a.id}')">Reject</button>
+            </div>
+          </div>
+        `).join('');
+      }
     }
     html += `<button class="btn-secondary" style="width:100%;margin-top:10px;" onclick="_cnOpenInviteModal(null,null,'${c.id}')">✉️ Invite a Creator Directly</button>`;
   }
 
-  // Negotiate Price — either side can propose a new number once the bid is
-  // accepted; the other side accepts it, right in the chat panel below.
-  if ((isBusinessOwner || isAssignedCreator) && c.status === 'awaiting_fund') {
-    actionHtml += _cnNegotiateFormHtml(c);
+  // Negotiate Price — lives inline in the chat panel below (a sticky
+  // banner + the 💰 toggle by the message box), never a separate box that
+  // duplicates what the chat already shows. The BUSINESS side of this is
+  // resolved dynamically once a specific creator's thread is opened — see
+  // _cnRenderActionCard/_cnOpenNegotiationThread further down, because a
+  // business can have several parallel negotiations open and only knows
+  // which one it's looking at once a thread is picked. A creator only ever
+  // has one (unambiguous) application/thread, so it's handled here directly.
+  if (!isBusinessOwner && c.status === 'published' && c.my_application_status === 'accepted') {
+    actionHtml += _cnNegotiationBannerHtml({ fundAmount: c.fund_amount_kes, bidAmount: c.accepted_bid_kes, agreedAmount: c.agreed_amount_kes });
   }
-
-  // Pay Now — lives in the chat panel below, right where the business
-  // and creator agreed the work would happen.
-  if (isBusinessOwner && c.status === 'awaiting_fund') {
-    actionHtml += _cnFundFormHtml(c);
+  if (!isBusinessOwner && c.my_application_status === 'not_selected') {
+    actionHtml += `<div class="cn-lost-banner">😔 This campaign was funded to another creator. Check Discover for other open campaigns.</div>`;
+  }
+  if (!isBusinessOwner && c.my_application_status === 'rejected') {
+    actionHtml += `<div class="cn-lost-banner">This negotiation was declined by the business.</div>`;
   }
 
   // Submit for Review — the creator's N-video batch + self-check, in-chat.
@@ -1191,23 +1256,20 @@ function _cnRenderCampaignModal() {
     html += `<div class="cn-section-lbl">Messages</div>`;
     if (isBusinessOwner && !c.creator_user_id) {
       // No creator assigned yet — the business may be hearing from several
-      // interested creators, so show a thread picker first.
+      // interested creators, so show a thread picker first. Picking one
+      // (or clicking a row in "In Negotiation" above) opens that specific
+      // conversation, with its own negotiate/fund controls.
       html += `<div id="cnMsgThreads"><div style="color:var(--muted);font-size:12px;">Loading conversations…</div></div>`;
+      html += `<div id="cnMsgBackLink" style="display:none;margin-bottom:8px;"><a href="#" style="font-size:11.5px;color:var(--cn-accent);text-decoration:none;font-weight:700;" onclick="event.preventDefault();_cnShowMsgThreadPicker('${c.id}')">← All conversations</a></div>`;
       html += `<div class="cn-msgs" id="cnMsgList" style="display:none;"></div>
         <div id="cnMsgActionCard"></div>
-        <div id="cnMsgInputRow" style="display:none;gap:8px;">
-          <input type="text" id="cnMsgInput" placeholder="Type a message…" style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" onkeydown="if(event.key==='Enter')_cnSendMessage('${c.id}')">
-          <button class="btn-secondary" onclick="_cnSendMessage('${c.id}')">Send</button>
-        </div>`;
+        <div id="cnMsgInputRow" style="display:none;"></div>`;
     } else {
       _cnMsgThreadCreatorId = isBusinessOwner ? c.creator_user_id : currentUser.id;
       html += `
         <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>
         <div id="cnMsgActionCard">${actionHtml}</div>
-        <div style="display:flex;gap:8px;">
-          <input type="text" id="cnMsgInput" placeholder="Type a message…" style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" onkeydown="if(event.key==='Enter')_cnSendMessage('${c.id}')">
-          <button class="btn-secondary" onclick="_cnSendMessage('${c.id}')">Send</button>
-        </div>
+        <div id="cnMsgInputRow"></div>
       `;
     }
   } else if (actionHtml) {
@@ -1222,6 +1284,7 @@ function _cnRenderCampaignModal() {
   if (isBusinessOwner && !c.creator_user_id) {
     _cnLoadMessageThreads(c.id);
   } else if (isBusinessOwner || creatorCanMessage) {
+    _cnRenderMsgInputRow(c.id);
     _cnLoadMessages(c.id, _cnMsgThreadCreatorId);
   }
   if (isBusinessOwner && c.status === 'submitted') _cnLoadDeliverableForReview(c.id);
@@ -1298,20 +1361,65 @@ async function _cnRejectApplication(campaignId, applicationId) {
   }
 }
 
-// ─── Negotiate price (either party, post-accept) ───────────────────────────────
-function _cnNegotiateFormHtml(c) {
-  const amount = c.fund_amount_kes != null ? c.fund_amount_kes : c.budget_kes;
+// ─── Negotiate price (either party, post-accept) — lives INLINE in the chat:
+// a sticky banner shows the current agreed number, and a 💰 toggle by the
+// message box reveals a one-line "propose an amount" row so making an offer
+// feels like sending a chat message, not filling out a separate form.
+function _cnNegotiationBannerHtml(ctx) {
+  const changed = ctx.agreedAmount != null && ctx.bidAmount != null && Number(ctx.agreedAmount) !== Number(ctx.bidAmount);
   return `
-    <div class="cn-section-lbl">Negotiate Price</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
-      Current agreed amount: <span style="color:var(--green);font-weight:700;">${fmtKES(amount)}</span>
-      ${c.agreed_amount_kes != null && c.accepted_bid_kes != null && c.agreed_amount_kes !== c.accepted_bid_kes ? ` <span style="color:var(--muted);">(originally ${fmtKES(c.accepted_bid_kes)})</span>` : ''}
-    </div>
-    <div style="display:flex;gap:8px;">
-      <input type="number" id="cnNegotiateAmount" min="1" placeholder="Propose a new amount (KES)" style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;">
-      <button class="btn-secondary" id="cnNegotiateBtn" onclick="_cnProposePrice('${c.id}')">Propose</button>
+    <div class="cn-neg-banner">
+      <div class="cn-neg-banner-who">🤝 Negotiating this campaign<span class="sub">Chat below to agree on a price, then fund when ready</span></div>
+      <div style="text-align:right;">
+        <div class="cn-neg-banner-amt">${fmtKES(ctx.fundAmount)}</div>
+        ${changed ? `<div class="cn-neg-banner-orig">was ${fmtKES(ctx.bidAmount)}</div>` : ''}
+      </div>
     </div>
   `;
+}
+
+// Whether the CURRENT viewer, in whatever thread is currently open, is
+// allowed to propose a price right now — business resolves this against
+// whichever accepted application's thread it has open (_cnActiveNegotiationApp);
+// a creator only ever has their own single application to check.
+function _cnCanNegotiateNow() {
+  const c = _cnCurrentCampaign;
+  if (!c || c.status !== 'published') return false;
+  const isBusinessOwner = currentUser && currentUser.id === c.business_user_id;
+  if (isBusinessOwner) return !!(_cnActiveNegotiationApp && _cnActiveNegotiationApp.status === 'accepted');
+  return c.my_application_status === 'accepted';
+}
+
+// (Re)builds the message input row — plain text box + Send, plus (only when
+// this viewer can actually negotiate right now) a 💰 toggle that reveals an
+// inline "propose an amount" row above it. Called whenever the open thread
+// changes, since that changes whether negotiating is currently possible.
+function _cnRenderMsgInputRow(campaignId) {
+  const row = document.getElementById('cnMsgInputRow');
+  if (!row) return;
+  const canNegotiate = _cnCanNegotiateNow();
+  row.innerHTML = `
+    ${canNegotiate ? `
+    <div class="cn-propose-row" id="cnProposeRow">
+      <input type="number" min="1" id="cnNegotiateAmount" placeholder="Propose an amount (KES)">
+      <button class="btn-secondary" id="cnNegotiateBtn" onclick="_cnProposePrice('${campaignId}')">Send Offer</button>
+    </div>` : ''}
+    <div class="cn-msg-input-row">
+      ${canNegotiate ? `<button class="cn-propose-toggle" id="cnProposeToggle" title="Propose a price" onclick="_cnToggleProposeRow()">💰</button>` : ''}
+      <input type="text" id="cnMsgInput" placeholder="Type a message…" onkeydown="if(event.key==='Enter')_cnSendMessage('${campaignId}')">
+      <button class="btn-secondary" onclick="_cnSendMessage('${campaignId}')">Send</button>
+    </div>
+  `;
+  row.style.display = '';
+}
+
+function _cnToggleProposeRow() {
+  const el = document.getElementById('cnProposeRow');
+  const btn = document.getElementById('cnProposeToggle');
+  if (!el) return;
+  el.classList.toggle('open');
+  if (btn) btn.classList.toggle('active');
+  if (el.classList.contains('open')) document.getElementById('cnNegotiateAmount')?.focus();
 }
 
 async function _cnProposePrice(campaignId) {
@@ -1322,23 +1430,28 @@ async function _cnProposePrice(campaignId) {
   const btn = document.getElementById('cnNegotiateBtn');
   btn.disabled = true; btn.textContent = 'Sending…';
   try {
+    const body = { amount_kes };
+    if (_cnActiveNegotiationApp) body.application_id = _cnActiveNegotiationApp.id;
     await api(`/connect/campaigns/${campaignId}/negotiate/offer`, {
       method: 'POST',
-      body: JSON.stringify({ amount_kes }),
+      body: JSON.stringify(body),
     });
     input.value = '';
+    _cnToggleProposeRow();
     toast('Offer sent', 'success');
     _cnLoadMessages(campaignId, _cnMsgThreadCreatorId);
   } catch (e) {
     toast(e.message || 'Could not send offer', 'error');
   } finally {
-    btn.disabled = false; btn.textContent = 'Propose';
+    btn.disabled = false; btn.textContent = 'Send Offer';
   }
 }
 
 async function _cnAcceptOffer(campaignId) {
   try {
-    await api(`/connect/campaigns/${campaignId}/negotiate/accept`, { method: 'POST' });
+    const body = {};
+    if (_cnActiveNegotiationApp) body.application_id = _cnActiveNegotiationApp.id;
+    await api(`/connect/campaigns/${campaignId}/negotiate/accept`, { method: 'POST', body: JSON.stringify(body) });
     toast('Price agreed!', 'success');
     _cnOpenCampaign(campaignId);
   } catch (e) {
@@ -1346,16 +1459,17 @@ async function _cnAcceptOffer(campaignId) {
   }
 }
 
-// ─── Fund escrow (business, STK push) ─────────────────────────────────────────
-function _cnFundFormHtml(c) {
+// ─── Fund escrow (business, STK push) — always tied to a specific
+// accepted application, since a campaign may have several parallel
+// negotiations and only ONE of them is the one being funded. ─────────────
+function _cnFundFormHtml(applicationId, fundAmount) {
   const phone = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
-  const amount = c.fund_amount_kes != null ? c.fund_amount_kes : c.budget_kes;
   return `
-    <div class="cn-section-lbl">Fund Campaign to Start</div>
+    <div class="cn-section-lbl">💸 Fund This Creator</div>
     <div id="cnFundForm">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Amount to fund: <span style="color:var(--green);font-weight:700;">${fmtKES(amount)}</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Amount to fund: <span style="color:var(--green);font-weight:700;">${fmtKES(fundAmount)}</span></div>
       <div class="cn-field"><label>M-Pesa Phone Number</label><input type="text" id="cnFundPhone" value="${esc(phone)}" placeholder="07XXXXXXXX"></div>
-      <button class="btn-primary" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}')">📱 Send STK Push</button>
+      <button class="btn-primary" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}','${applicationId}')">📱 Send STK Push</button>
     </div>
     <div id="cnFundStatus" style="display:none;text-align:center;padding:20px 0;">
       <div style="font-size:32px;margin-bottom:8px;" id="cnFundIcon">📱</div>
@@ -1365,7 +1479,7 @@ function _cnFundFormHtml(c) {
   `;
 }
 
-async function _cnSubmitFund(campaignId) {
+async function _cnSubmitFund(campaignId, applicationId) {
   const phone = document.getElementById('cnFundPhone').value.trim();
   if (!phone) { toast('Enter your M-Pesa number', 'error'); return; }
 
@@ -1376,7 +1490,7 @@ async function _cnSubmitFund(campaignId) {
   try {
     data = await api(`/connect/campaigns/${campaignId}/fund`, {
       method: 'POST',
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify({ phone, application_id: applicationId }),
     });
   } catch (e) {
     toast(e.message || 'Could not start payment', 'error');
@@ -1706,26 +1820,84 @@ async function _cnLoadMessageThreads(campaignId) {
     wrap.innerHTML = `<div style="color:var(--muted);font-size:12px;">No creators have messaged about this campaign yet.</div>`;
     return;
   }
-  wrap.innerHTML = threads.map(t => `
+  wrap.innerHTML = threads.map(t => {
+    const app = _cnCurrentApplications.find(a => a.creator_user_id === t.creator_user_id);
+    const negTag = app && app.status === 'accepted' ? `<span style="color:var(--green);font-weight:800;margin-left:6px;">· Negotiating</span>` : '';
+    return `
     <div class="cn-thread-row" onclick="_cnOpenMsgThread('${campaignId}','${t.creator_user_id}')" style="cursor:pointer;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <div style="font-size:12.5px;color:var(--white);font-weight:700;">${esc(t.display_name || 'Creator')}</div>
+        <div style="font-size:12.5px;color:var(--white);font-weight:700;">${esc(t.display_name || 'Creator')}${negTag}</div>
         <div style="font-size:11px;color:var(--muted);">${esc(t.last_message || '')}</div>
       </div>
       ${t.unread_count ? `<span style="background:#2196f3;color:#fff;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;">${t.unread_count}</span>` : ''}
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
+// Opens a thread from a plain click in the picker list — resolves whether
+// this creator currently has an ACCEPTED (in-negotiation) application so the
+// banner/propose-toggle/fund-form know whether to appear.
 function _cnOpenMsgThread(campaignId, creatorUserId) {
+  _cnActiveNegotiationApp = _cnCurrentApplications.find(a => a.creator_user_id === creatorUserId && a.status === 'accepted') || null;
+  _cnOpenMsgThreadInternal(campaignId, creatorUserId);
+}
+
+// Opens a thread from clicking a specific row in the "In Negotiation" list
+// above — we already know exactly which application this is.
+function _cnOpenNegotiationThread(campaignId, applicationId) {
+  const app = _cnCurrentApplications.find(a => a.id === applicationId);
+  if (!app) return;
+  _cnActiveNegotiationApp = app;
+  _cnOpenMsgThreadInternal(campaignId, app.creator_user_id);
+}
+
+function _cnOpenMsgThreadInternal(campaignId, creatorUserId) {
   _cnMsgThreadCreatorId = creatorUserId;
   const threadsEl = document.getElementById('cnMsgThreads');
   const listEl = document.getElementById('cnMsgList');
-  const inputRow = document.getElementById('cnMsgInputRow');
+  const backEl = document.getElementById('cnMsgBackLink');
   if (threadsEl) threadsEl.style.display = 'none';
   if (listEl) listEl.style.display = 'block';
-  if (inputRow) inputRow.style.display = 'flex';
+  if (backEl) backEl.style.display = 'block';
+  _cnRenderActionCard();
+  _cnRenderMsgInputRow(campaignId);
   _cnLoadMessages(campaignId, creatorUserId);
+}
+
+// Back out of a specific conversation to the "who's messaged" picker —
+// businesses juggling several parallel negotiations need this to switch.
+function _cnShowMsgThreadPicker(campaignId) {
+  _cnActiveNegotiationApp = null;
+  _cnMsgThreadCreatorId = null;
+  const threadsEl = document.getElementById('cnMsgThreads');
+  const listEl = document.getElementById('cnMsgList');
+  const backEl = document.getElementById('cnMsgBackLink');
+  const actionEl = document.getElementById('cnMsgActionCard');
+  const inputRow = document.getElementById('cnMsgInputRow');
+  if (threadsEl) threadsEl.style.display = 'block';
+  if (listEl) listEl.style.display = 'none';
+  if (backEl) backEl.style.display = 'none';
+  if (actionEl) actionEl.innerHTML = '';
+  if (inputRow) { inputRow.innerHTML = ''; inputRow.style.display = 'none'; }
+  _cnLoadMessageThreads(campaignId);
+}
+
+// Builds the business-side action card (negotiation banner + fund form) for
+// whichever thread is currently open. Only meaningful pre-funding, while the
+// campaign is still 'published' and the open thread's application is still
+// 'accepted' — once funded/rejected/not_selected there's nothing to show
+// here (the chat's system messages already tell that story).
+function _cnRenderActionCard() {
+  const el = document.getElementById('cnMsgActionCard');
+  if (!el) return;
+  const c = _cnCurrentCampaign;
+  const app = _cnActiveNegotiationApp;
+  let html = '';
+  if (app && app.status === 'accepted' && c.status === 'published') {
+    html += _cnNegotiationBannerHtml({ fundAmount: app.fund_amount_kes, bidAmount: app.bid_amount_kes, agreedAmount: app.agreed_amount_kes });
+    html += _cnFundFormHtml(app.id, app.fund_amount_kes);
+  }
+  el.innerHTML = html;
 }
 
 async function _cnLoadMessages(campaignId, threadCreatorId) {
@@ -1741,17 +1913,31 @@ async function _cnLoadMessages(campaignId, threadCreatorId) {
     list.innerHTML = `<div style="color:var(--muted);font-size:12px;">No messages yet — say hello!</div>`;
     return;
   }
+  const isBusinessOwner = currentUser && currentUser.id === _cnCurrentCampaign.business_user_id;
+  const appStillActive = isBusinessOwner
+    ? !!(_cnActiveNegotiationApp && _cnActiveNegotiationApp.status === 'accepted')
+    : _cnCurrentCampaign.my_application_status === 'accepted';
   const lastMsg = messages[messages.length - 1];
   list.innerHTML = messages.map(m => {
     if (m.kind === 'price_offer') {
       const amt = m.action_payload && m.action_payload.amount_kes;
       const mine = currentUser && m.sender_user_id === currentUser.id;
       const proposerLabel = m.sender_user_id === _cnCurrentCampaign.business_user_id ? 'Business' : 'Creator';
-      const canAccept = m === lastMsg && !mine && _cnCurrentCampaign.status === 'awaiting_fund';
+      const canAccept = m === lastMsg && !mine && _cnCurrentCampaign.status === 'published' && appStillActive;
       return `<div class="cn-msg-system" style="text-align:center;margin:10px 0;">
         <div style="display:inline-block;background:rgba(76,175,80,.08);border:1px solid rgba(76,175,80,.3);border-radius:10px;padding:10px 14px;font-size:11.5px;color:var(--white);max-width:90%;">
           <div style="font-weight:700;margin-bottom:${canAccept ? '6px' : '0'};">💬 ${mine ? 'You' : proposerLabel} proposed ${fmtKES(amt)}</div>
           ${canAccept ? `<button class="cn-btn-sm cn-btn-accept" onclick="_cnAcceptOffer('${campaignId}')">Accept ${fmtKES(amt)}</button>` : ''}
+        </div>
+      </div>`;
+    }
+    if (m.kind === 'fund_prompt') {
+      const amt = m.action_payload && m.action_payload.amount_kes;
+      const canFund = isBusinessOwner && appStillActive;
+      return `<div class="cn-msg-system" style="text-align:center;margin:10px 0;">
+        <div style="display:inline-block;background:rgba(76,175,80,.08);border:1px solid rgba(76,175,80,.3);border-radius:10px;padding:10px 14px;font-size:11.5px;color:var(--white);max-width:90%;">
+          <div style="font-weight:700;margin-bottom:${canFund ? '6px' : '0'};">✅ Agreed on ${fmtKES(amt)}</div>
+          ${canFund ? `<button class="cn-btn-sm cn-btn-accept" onclick="document.getElementById('cnFundPhone')?.scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('cnFundPhone')?.focus();">Fund Now</button>` : ''}
         </div>
       </div>`;
     }
