@@ -70,6 +70,8 @@ let _cnCreatorProfile = null;
 let _cnBusinessProfile = null;
 let _cnFundPollTimer = null;
 let _cnMsgThreadCreatorId = null;  // which creator's thread is open in the campaign modal (business side, when unassigned)
+let _cnJoinedRoles = { creator: false, business: false };  // which side(s) this user has actually joined — drives whether the role toggle shows at all
+let _cnRolesResolved = false;      // becomes true once _cnDetectJoinedRoles() has checked the server
 
 const CONNECT_COMMISSION_RATE = 0.15;   // display-only — server (connect_service.py) is the source of truth
 const CONNECT_PLATFORMS = [
@@ -82,6 +84,96 @@ const CONNECT_PLATFORMS = [
 function _cnPlatformDef(key) {
   return CONNECT_PLATFORMS.find(p => p.key === key) || { key, label: key || '—', emoji: '📱' };
 }
+
+// Niches a creator (or a business, when describing who they're after) can
+// fall into — a creator/business can tick more than one.
+const CONNECT_NICHES = [
+  { key: 'comedy',      label: 'Comedy',       emoji: '😂' },
+  { key: 'fashion',     label: 'Fashion',      emoji: '👗' },
+  { key: 'beauty',      label: 'Beauty',       emoji: '💄' },
+  { key: 'fitness',     label: 'Fitness',      emoji: '💪' },
+  { key: 'food',        label: 'Food',         emoji: '🍲' },
+  { key: 'travel',      label: 'Travel',       emoji: '✈️' },
+  { key: 'tech',        label: 'Tech',         emoji: '💻' },
+  { key: 'gaming',      label: 'Gaming',       emoji: '🎮' },
+  { key: 'music',       label: 'Music',        emoji: '🎶' },
+  { key: 'lifestyle',   label: 'Lifestyle',    emoji: '🌿' },
+  { key: 'business',    label: 'Business/Finance', emoji: '💼' },
+  { key: 'education',   label: 'Education',    emoji: '📚' },
+  { key: 'parenting',   label: 'Parenting/Family', emoji: '👨‍👩‍👧' },
+  { key: 'sports',      label: 'Sports',       emoji: '⚽' },
+  { key: 'beauty_hair', label: 'Hair & Skincare', emoji: '💇' },
+  { key: 'art',         label: 'Art & Design', emoji: '🎨' },
+];
+
+function _cnNicheDef(key) {
+  return CONNECT_NICHES.find(n => n.key === key) || { key, label: key || '—', emoji: '🏷️' };
+}
+
+// ─── Generic multi-select-with-ticks dropdown ──────────────────────────────
+// Used for Niches / Platforms on the creator profile: a small button that
+// opens a checkbox list so a creator (or business) can tick every category
+// they fall into, instead of typing a fragile comma-separated string.
+let _cnMultiState = {};   // dropdownId -> array of selected keys (source of truth while form is open)
+
+function _cnMultiSelectHtml(id, options, selected) {
+  _cnMultiState[id] = Array.isArray(selected) ? [...selected] : [];
+  return `
+    <div class="cn-msdrop" id="${id}">
+      <button type="button" class="cn-msdrop-trigger" onclick="_cnMsToggleOpen('${id}')">
+        <span class="cn-msdrop-label" id="${id}-label">${esc(_cnMsLabel(id, options))}</span>
+        <span class="cn-msdrop-caret">▾</span>
+      </button>
+      <div class="cn-msdrop-panel" id="${id}-panel">
+        ${options.map(o => `
+          <label class="cn-msdrop-opt">
+            <input type="checkbox" value="${esc(o.key)}" ${_cnMultiState[id].includes(o.key) ? 'checked' : ''} onchange="_cnMsOptionChange('${id}', '${o.key}', this.checked)">
+            <span class="cn-msdrop-tick">✓</span>
+            <span>${o.emoji ? o.emoji + ' ' : ''}${esc(o.label)}</span>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function _cnMsLabel(id, options) {
+  const sel = _cnMultiState[id] || [];
+  if (!sel.length) return 'Select…';
+  if (sel.length <= 2) return sel.map(k => (options.find(o => o.key === k) || {}).label || k).join(', ');
+  return `${sel.length} selected`;
+}
+
+function _cnMsOptionChange(id, key, checked) {
+  const sel = _cnMultiState[id] || (_cnMultiState[id] = []);
+  const i = sel.indexOf(key);
+  if (checked && i === -1) sel.push(key);
+  if (!checked && i !== -1) sel.splice(i, 1);
+  const labelEl = document.getElementById(`${id}-label`);
+  if (labelEl) {
+    const options = id.includes('Niches') ? CONNECT_NICHES : CONNECT_PLATFORMS;
+    labelEl.textContent = _cnMsLabel(id, options);
+  }
+}
+
+function _cnMsToggleOpen(id) {
+  const panel = document.getElementById(`${id}-panel`);
+  if (!panel) return;
+  const willOpen = !panel.classList.contains('open');
+  // Close every other open dropdown first.
+  document.querySelectorAll('.cn-msdrop-panel.open').forEach(p => p.classList.remove('open'));
+  if (willOpen) panel.classList.add('open');
+}
+
+function _cnMultiSelectValue(id) {
+  return (_cnMultiState[id] || []).join(',');
+}
+
+// Close any open multi-select dropdown when clicking elsewhere on the page.
+document.addEventListener('click', (e) => {
+  if (e.target.closest && e.target.closest('.cn-msdrop')) return;
+  document.querySelectorAll('.cn-msdrop-panel.open').forEach(p => p.classList.remove('open'));
+});
 
 // ─── Terms of Service ───────────────────────────────────────────────────────
 // The ToS text, checkbox definitions (CONNECT_CREATOR_TOS_CHECKS /
@@ -127,12 +219,21 @@ function _cnInjectStyles() {
     .cn-hero-badges{display:flex;gap:8px;flex-wrap:wrap;position:relative;}
     .cn-hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:10.5px;font-weight:700;color:#c3d3e0;}
 
-    /* ── Role toggle (segmented control) ─────────────────────────────────*/
+    /* ── Role toggle (segmented control) — only shown once both sides are
+       joined, or before either is chosen ────────────────────────────────*/
     .cn-role-toggle{display:flex;gap:4px;margin:16px 0 16px;background:var(--navy);border:1px solid var(--border);border-radius:14px;padding:4px;}
     .cn-role-btn{flex:1;padding:12px;border-radius:10px;background:transparent;border:none;color:var(--muted);font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:800;cursor:pointer;transition:all .18s;text-align:center;}
     .cn-role-btn:hover:not(.active){color:var(--white);}
     .cn-role-btn.active[data-role="creator"]{background:linear-gradient(135deg,#2196f3,#1670c2);color:#fff;box-shadow:0 4px 14px rgba(33,150,243,.3);}
     .cn-role-btn.active[data-role="business"]{background:linear-gradient(135deg,#ff7043,#e0562b);color:#fff;box-shadow:0 4px 14px rgba(255,112,67,.3);}
+
+    /* ── Single-role identity row — replaces the toggle once a user has
+       joined exactly one side, so they only ever see their own profile
+       plus a quiet, explicit opt-in for the other side ──────────────────*/
+    .cn-addrole-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:16px 0 16px;padding:10px 14px;background:var(--navy);border:1px solid var(--border);border-radius:14px;}
+    .cn-addrole-current{font-size:12px;font-weight:800;color:var(--white);}
+    .cn-addrole-btn{background:transparent;border:1px solid var(--cn-accent);color:var(--cn-accent);border-radius:10px;padding:8px 14px;font-size:11.5px;font-weight:800;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .15s;white-space:nowrap;}
+    .cn-addrole-btn:hover{background:var(--cn-accent-soft);}
 
     /* ── "How it works" journey guide — short, literal step-by-step ─────*/
     .cn-guide-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
@@ -190,6 +291,20 @@ function _cnInjectStyles() {
     .cn-field input,.cn-field textarea,.cn-field select{width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--white);font-size:13px;font-family:inherit;transition:border-color .15s;}
     .cn-field input:focus,.cn-field textarea:focus,.cn-field select:focus{outline:none;border-color:var(--cn-accent);}
     .cn-field textarea{resize:vertical;min-height:70px;}
+
+    /* ── Multi-select-with-ticks dropdown (Niches / Platforms) ─────────*/
+    .cn-msdrop{position:relative;}
+    .cn-msdrop-trigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--white);font-size:13px;font-family:inherit;cursor:pointer;text-align:left;}
+    .cn-msdrop-trigger:hover{border-color:rgba(255,255,255,.3);}
+    .cn-msdrop-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--white);}
+    .cn-msdrop-caret{color:var(--muted);flex-shrink:0;}
+    .cn-msdrop-panel{display:none;position:absolute;z-index:40;top:calc(100% + 6px);left:0;right:0;max-height:240px;overflow-y:auto;background:var(--card2,var(--card));border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 14px 30px rgba(0,0,0,.4);}
+    .cn-msdrop-panel.open{display:block;}
+    .cn-msdrop-opt{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:8px;font-size:12.5px;color:var(--white);cursor:pointer;}
+    .cn-msdrop-opt:hover{background:rgba(255,255,255,.05);}
+    .cn-msdrop-opt input{position:absolute;opacity:0;width:0;height:0;}
+    .cn-msdrop-tick{width:16px;height:16px;flex-shrink:0;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10.5px;color:transparent;background:var(--navy);}
+    .cn-msdrop-opt input:checked ~ .cn-msdrop-tick{background:var(--cn-accent);border-color:var(--cn-accent);color:#fff;}
     .cn-msgs{max-height:260px;overflow-y:auto;background:var(--navy);border-radius:12px;padding:12px;margin-bottom:10px;}
     .cn-msg{margin-bottom:10px;max-width:80%;}
     .cn-msg .bubble{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px 12px;font-size:12.5px;color:var(--white);}
@@ -268,11 +383,54 @@ function _cnToggleGuide() {
   if (btn) btn.textContent = collapsed ? 'Show guide ▾' : 'Hide guide ▴';
 }
 
+// ─── Which side(s) has this user actually joined? ──────────────────────────
+// Drives the whole "one identity by default" journey: a brand-new visitor
+// still gets the full creator/business toggle to make their first choice,
+// but the moment they've joined exactly one side, that toggle disappears —
+// they just see their own dashboard, with a small opt-in link if they ever
+// want the other side too. Only once they've joined *both* does the toggle
+// come back, now genuinely switching between two live profiles.
+async function _cnDetectJoinedRoles() {
+  const [creatorProfile, businessProfile] = await Promise.all([
+    api('/connect/profile/creator/me').catch(() => null),
+    api(`/connect/profile/business/${currentUser.id}`).catch(() => null),
+  ]);
+  if (creatorProfile) _cnCreatorProfile = creatorProfile;
+  if (businessProfile) _cnBusinessProfile = businessProfile;
+  _cnJoinedRoles = {
+    creator: !!(creatorProfile && creatorProfile.joined_at),
+    business: !!(businessProfile && businessProfile.joined_at),
+  };
+  _cnRolesResolved = true;
+}
+
+function _cnGetLastRole() {
+  try { return localStorage.getItem('cnLastRole'); } catch (_) { return null; }
+}
+function _cnSetLastRole(role) {
+  try { localStorage.setItem('cnLastRole', role); } catch (_) { /* ignore */ }
+}
+
 // ─── Page init ───────────────────────────────────────────────────────────────
 async function initConnectPage() {
   _cnInjectStyles();
   const sec = document.getElementById('sec-connect');
   if (!sec) return;
+  await _cnDetectJoinedRoles();
+
+  // Land the user on the side they actually belong to. Only when they've
+  // joined both (or neither, i.e. haven't chosen yet) do we fall back to
+  // whichever they last used / the default.
+  if (_cnJoinedRoles.creator && !_cnJoinedRoles.business) {
+    _cnRole = 'creator';
+  } else if (_cnJoinedRoles.business && !_cnJoinedRoles.creator) {
+    _cnRole = 'business';
+  } else {
+    const last = _cnGetLastRole();
+    _cnRole = (last === 'creator' || last === 'business') ? last : 'creator';
+  }
+  _cnTab = _cnRole === 'creator' ? 'discover' : 'campaigns';
+
   _cnRenderShell(sec);
   await _cnPollUnread();
   await _cnLoadActiveTab();
@@ -331,6 +489,33 @@ function _cnRenderShell(sec) {
   const hero = _cnHeroCopy(_cnRole);
   const steps = _cnJourneySteps(_cnRole);
   const collapsed = _cnGuideCollapsed();
+  // Show the full switcher only when there's genuinely something to switch
+  // between (both sides joined) or nothing chosen yet (first-time visitor
+  // picking a side). Someone who's only ever joined as a Creator should not
+  // see a "I'm a Business" tab at all — just their own profile, plus a
+  // one-tap way to add the other side if they want it later.
+  const joinedCount = (_cnJoinedRoles.creator ? 1 : 0) + (_cnJoinedRoles.business ? 1 : 0);
+  const dual = joinedCount === 2;
+  const neither = joinedCount === 0;
+  const singleJoinedRole = _cnJoinedRoles.creator ? 'creator' : (_cnJoinedRoles.business ? 'business' : null);
+  const showToggle = dual || neither;
+  // True while a single-role user is mid-flow adding their second role
+  // (clicked "+ Also set up a Business profile" but hasn't joined it yet).
+  const onboardingSecondRole = !showToggle && singleJoinedRole && _cnRole !== singleJoinedRole;
+  const roleLabel = (r) => r === 'creator' ? '🎬 Creator' : '🏢 Business';
+  const otherRole = _cnRole === 'creator' ? 'business' : 'creator';
+  let identityRowHtml = '';
+  if (!showToggle) {
+    identityRowHtml = onboardingSecondRole ? `
+    <div class="cn-addrole-row">
+      <span class="cn-addrole-current">Setting up your ${roleLabel(_cnRole)} profile…</span>
+      <button class="cn-addrole-btn" onclick="_cnAddOtherRole('${singleJoinedRole}')">← Back to my ${roleLabel(singleJoinedRole)} account</button>
+    </div>` : `
+    <div class="cn-addrole-row">
+      <span class="cn-addrole-current">${roleLabel(singleJoinedRole)} account</span>
+      <button class="cn-addrole-btn" onclick="_cnAddOtherRole('${otherRole}')">+ Also ${otherRole === 'creator' ? 'become a Creator' : 'set up a Business profile'}</button>
+    </div>`;
+  }
   sec.innerHTML = `
     <div class="cn-hero">
       <div class="cn-hero-eyebrow">${hero.eyebrow} · EndaViral Marketplace</div>
@@ -343,10 +528,11 @@ function _cnRenderShell(sec) {
         <span class="cn-hero-badge">⭐ Rated by both sides</span>
       </div>
     </div>
+    ${showToggle ? `
     <div class="cn-role-toggle">
       <button class="cn-role-btn ${_cnRole === 'creator' ? 'active' : ''}" data-role="creator" onclick="_cnSetRole('creator')">🎬 I'm a Creator</button>
       <button class="cn-role-btn ${_cnRole === 'business' ? 'active' : ''}" data-role="business" onclick="_cnSetRole('business')">🏢 I'm a Business</button>
-    </div>
+    </div>` : identityRowHtml}
     <div class="cn-guide-head">
       <span class="cn-guide-title">How EndaViral Connect works</span>
       <button class="cn-guide-toggle-btn" id="cnGuideToggleBtn" onclick="_cnToggleGuide()">${collapsed ? 'Show guide ▾' : 'Hide guide ▴'}</button>
@@ -382,6 +568,21 @@ function _cnRenderTabs() {
 
 function _cnSetRole(role) {
   if (_cnRole === role) return;
+  _cnRole = role;
+  _cnTab = role === 'creator' ? 'discover' : 'campaigns';
+  // Only meaningful to "remember" once both sides are joined — that's the
+  // only state where this toggle is even visible to switch back and forth.
+  if (_cnJoinedRoles.creator && _cnJoinedRoles.business) _cnSetLastRole(role);
+  const sec = document.getElementById('sec-connect');
+  _cnRenderShell(sec);
+  _cnLoadActiveTab();
+}
+
+// Opt-in entry point for a single-role user who wants the other side too —
+// e.g. a Creator clicking "+ Also set up a Business profile". Just switches
+// into that role; since they haven't joined it yet, the join gate takes
+// over and shows the normal join screen for it.
+function _cnAddOtherRole(role) {
   _cnRole = role;
   _cnTab = role === 'creator' ? 'discover' : 'campaigns';
   const sec = document.getElementById('sec-connect');
@@ -451,6 +652,7 @@ async function _cnApplyJoinGate(target) {
   if (role === 'creator') _cnCreatorProfile = profile; else _cnBusinessProfile = profile;
 
   const joined = !!(profile && profile.joined_at);
+  _cnJoinedRoles[role] = joined; // defensive — keeps toggle/pill state accurate even if init detection missed this
   if (!joined) {
     _cnRenderJoinScreen(target, role);
     return true;
@@ -546,6 +748,10 @@ async function _cnSubmitJoin(role) {
       body: JSON.stringify({ tos_accepted: true, tos_acknowledgements: acknowledgements }),
     });
     toast('Welcome to EndaViral Connect!', 'success');
+    _cnJoinedRoles[role] = true;
+    if (_cnJoinedRoles.creator && _cnJoinedRoles.business) _cnSetLastRole(role);
+    const sec = document.getElementById('sec-connect');
+    if (sec) _cnRenderShell(sec); // toggle/add-role pill needs to reflect the new state immediately
     _cnSetTab('profile');
   } catch (e) {
     toast(e.message || 'Could not join', 'error');
@@ -670,7 +876,10 @@ function _cnRenderCreateForm(target) {
     </div>
     <div class="cn-field">
       <label>Required Niche (optional)</label>
-      <input type="text" id="cnNewNiche" placeholder="e.g. fashion, comedy, tech">
+      <select id="cnNewNiche">
+        <option value="">Any niche</option>
+        ${CONNECT_NICHES.map(n => `<option value="${n.key}">${n.emoji} ${n.label}</option>`).join('')}
+      </select>
     </div>
     <div class="cn-field">
       <label>Content Guidelines (optional)</label>
@@ -735,8 +944,8 @@ async function _cnRenderCreatorProfileForm(target) {
     <div class="cn-field"><label>Profile Photo URL</label><input type="text" id="cnCpAvatar" value="${esc(profile?.avatar_url || '')}" placeholder="https://..."></div>
     <div class="cn-field"><label>Bio</label><textarea id="cnCpBio">${esc(profile?.bio || '')}</textarea></div>
     <div class="cn-field"><label>Location</label><input type="text" id="cnCpLocation" value="${esc(profile?.location || '')}" placeholder="e.g. Nairobi, Kenya"></div>
-    <div class="cn-field"><label>Niches (comma-separated)</label><input type="text" id="cnCpNiches" value="${esc(profile?.niches || '')}" placeholder="e.g. comedy, fashion"></div>
-    <div class="cn-field"><label>Platforms (comma-separated)</label><input type="text" id="cnCpPlatforms" value="${esc(profile?.platforms || '')}" placeholder="e.g. tiktok, instagram"></div>
+    <div class="cn-field"><label>Niches</label>${_cnMultiSelectHtml('cnCpNiches', CONNECT_NICHES, (profile?.niches || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean))}</div>
+    <div class="cn-field"><label>Platforms</label>${_cnMultiSelectHtml('cnCpPlatforms', CONNECT_PLATFORMS, (profile?.platforms || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean))}</div>
     <div class="cn-field"><label>Follower Count</label><input type="number" id="cnCpFollowers" value="${profile?.followers_count || 0}" min="0"></div>
     <div class="cn-section-lbl">Payment Details</div>
     <div class="cn-tip">🔒 Required before you can apply to campaigns. Your phone number is only ever visible to EndaViral — businesses never see it — and it's what your payout tickets pay out to.</div>
@@ -774,8 +983,8 @@ async function _cnSaveCreatorProfile() {
     avatar_url: document.getElementById('cnCpAvatar').value.trim() || null,
     bio: document.getElementById('cnCpBio').value.trim() || null,
     location: document.getElementById('cnCpLocation').value.trim() || null,
-    niches: document.getElementById('cnCpNiches').value.trim() || null,
-    platforms: document.getElementById('cnCpPlatforms').value.trim() || null,
+    niches: _cnMultiSelectValue('cnCpNiches') || null,
+    platforms: _cnMultiSelectValue('cnCpPlatforms') || null,
     followers_count: parseInt(document.getElementById('cnCpFollowers').value) || 0,
     email: document.getElementById('cnCpEmail').value.trim() || null,
     phone: document.getElementById('cnCpPhone').value.trim() || null,
@@ -786,6 +995,9 @@ async function _cnSaveCreatorProfile() {
   try {
     await api('/connect/profile/creator', { method: 'POST', body: JSON.stringify(payload) });
     toast('Profile saved!', 'success');
+    // Send the creator straight into Discover so they can start applying.
+    _cnSetTab('discover');
+    return;
   } catch (e) {
     toast(e.message || 'Could not save profile', 'error');
   }
@@ -823,6 +1035,9 @@ async function _cnSaveBusinessProfile() {
   try {
     await api('/connect/profile/business', { method: 'POST', body: JSON.stringify(payload) });
     toast('Business profile saved!', 'success');
+    // Send the business straight into campaign creation next.
+    _cnSetTab('create');
+    return;
   } catch (e) {
     toast(e.message || 'Could not save profile', 'error');
   }
