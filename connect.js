@@ -525,6 +525,30 @@ function _cnInjectStyles() {
     .cn-join-check a{color:var(--cn-accent);text-decoration:underline;}
     .cn-select{width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--white);font-size:13px;font-family:inherit;transition:border-color .15s;}
     .cn-select:focus{outline:none;border-color:var(--cn-accent);}
+
+    /* ── Form cards — groups related fields (profile forms, campaign
+       create form) into distinct, bordered sections with an icon+title
+       head, instead of one long undifferentiated stack of .cn-field
+       rows ─────────────────────────────────────────────────────────── */
+    .cn-form-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 22px;margin-bottom:16px;}
+    .cn-form-card-head{display:flex;align-items:center;gap:11px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+    .cn-form-card-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--cn-accent-soft);border:1px solid var(--cn-accent);flex-shrink:0;}
+    .cn-form-card-title{font-size:13.5px;font-weight:800;color:var(--white);}
+    .cn-form-card-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+    .cn-form-card .cn-field:last-child{margin-bottom:0;}
+
+    .cn-profile-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px;}
+    .cn-profile-stat{background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:12px 10px;text-align:center;}
+    .cn-profile-stat-val{font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;color:var(--white);}
+    .cn-profile-stat-lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:3px;}
+
+    /* ── Compact inputs — dense inline rows in admin tools (outreach log,
+       payout receipt entry, dispute notes) where a full-size .cn-field
+       would be too tall, but still needs a real focus state + consistent
+       radius instead of raw one-off inline CSS ──────────────────────── */
+    .cn-input-compact{background:var(--navy);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--white);font-size:11.5px;font-family:inherit;transition:border-color .15s;}
+    .cn-input-compact:focus{outline:none;border-color:var(--cn-accent);}
+    select.cn-input-compact{cursor:pointer;}
     .cn-join-item{position:relative;display:flex;gap:12px;align-items:center;padding:13px 14px;border-radius:12px;background:var(--navy);margin-bottom:8px;cursor:pointer;transition:all .15s;border:1px solid var(--border);}
     .cn-join-item:hover{border-color:rgba(255,255,255,.25);}
     .cn-join-item.checked{background:var(--cn-accent-soft);border-color:var(--cn-accent);}
@@ -1179,43 +1203,71 @@ async function _cnRenderMyCampaigns(target) {
 function _cnRenderCreateForm(target) {
   target.innerHTML = `
     <div class="cn-tip">💡 Once you publish, this goes live to every creator on EndaViral — you can invite someone directly from here too, right after it's posted.</div>
-    <div class="cn-field">
-      <label>Campaign Title</label>
-      <input type="text" id="cnNewTitle" placeholder="e.g. TikTok Reel for Our New Product Launch" maxlength="200">
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">📋</div>
+        <div><div class="cn-form-card-title">Campaign Basics</div></div>
+      </div>
+      <div class="cn-field">
+        <label>Campaign Title</label>
+        <input type="text" id="cnNewTitle" placeholder="e.g. TikTok Reel for Our New Product Launch" maxlength="200">
+      </div>
+      <div class="cn-field">
+        <label>Description</label>
+        <textarea id="cnNewDesc" placeholder="What's the campaign about? What should the creator know?"></textarea>
+      </div>
+      <div class="cn-field">
+        <label>Platform</label>
+        <select id="cnNewPlatform">
+          ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}">${p.emoji} ${p.label}</option>`).join('')}
+        </select>
+      </div>
     </div>
-    <div class="cn-field">
-      <label>Description</label>
-      <textarea id="cnNewDesc" placeholder="What's the campaign about? What should the creator know?"></textarea>
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">💰</div>
+        <div><div class="cn-form-card-title">Budget & Deliverables</div></div>
+      </div>
+      <div class="cn-field">
+        <label>Budget (KES) — this funds the campaign once a creator is accepted</label>
+        <input type="number" id="cnNewBudget" min="1" placeholder="e.g. 3000">
+      </div>
+      <div class="cn-field">
+        <label>Deliverables</label>
+        <input type="text" id="cnNewDeliverables" placeholder="e.g. 1 Reel, 2 TikToks">
+      </div>
     </div>
-    <div class="cn-field">
-      <label>Platform</label>
-      <select id="cnNewPlatform">
-        ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}">${p.emoji} ${p.label}</option>`).join('')}
-      </select>
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">🎯</div>
+        <div><div class="cn-form-card-title">Targeting (optional)</div></div>
+      </div>
+      <div class="cn-field">
+        <label>Minimum Followers</label>
+        <input type="number" id="cnNewMinFollowers" min="0" placeholder="e.g. 5000">
+      </div>
+      <div class="cn-field">
+        <label>Required Niche</label>
+        <select id="cnNewNiche">
+          <option value="">Any niche</option>
+          ${CONNECT_NICHES.map(n => `<option value="${n.key}">${n.emoji} ${n.label}</option>`).join('')}
+        </select>
+      </div>
     </div>
-    <div class="cn-field">
-      <label>Budget (KES) — this funds the campaign once a creator is accepted</label>
-      <input type="number" id="cnNewBudget" min="1" placeholder="e.g. 3000">
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">📝</div>
+        <div><div class="cn-form-card-title">Content Guidelines (optional)</div></div>
+      </div>
+      <div class="cn-field">
+        <textarea id="cnNewGuidelines" placeholder="Tone, must-mention points, hashtags, etc."></textarea>
+      </div>
     </div>
-    <div class="cn-field">
-      <label>Deliverables</label>
-      <input type="text" id="cnNewDeliverables" placeholder="e.g. 1 Reel, 2 TikToks">
-    </div>
-    <div class="cn-field">
-      <label>Minimum Followers (optional)</label>
-      <input type="number" id="cnNewMinFollowers" min="0" placeholder="e.g. 5000">
-    </div>
-    <div class="cn-field">
-      <label>Required Niche (optional)</label>
-      <select id="cnNewNiche">
-        <option value="">Any niche</option>
-        ${CONNECT_NICHES.map(n => `<option value="${n.key}">${n.emoji} ${n.label}</option>`).join('')}
-      </select>
-    </div>
-    <div class="cn-field">
-      <label>Content Guidelines (optional)</label>
-      <textarea id="cnNewGuidelines" placeholder="Tone, must-mention points, hashtags, etc."></textarea>
-    </div>
+
     <button class="btn-primary" id="cnNewSubmitBtn" onclick="_cnSubmitCreateCampaign()">Create Campaign (Draft)</button>
   `;
 }
@@ -1275,40 +1327,78 @@ async function _cnRenderCreatorProfileForm(target) {
 
   target.innerHTML = `
     ${profile?.joined_at ? `<div class="cn-hero-badge" style="display:inline-flex;margin-bottom:14px;">✅ Joined EndaViral Connect on ${new Date(profile.joined_at).toLocaleDateString()}</div>` : ''}
-    <div class="cn-field"><label>Display Name</label><input type="text" id="cnCpName" value="${esc(profile?.display_name || '')}"></div>
-    <div class="cn-field"><label>Bio</label><textarea id="cnCpBio">${esc(profile?.bio || '')}</textarea></div>
-    <div class="cn-field"><label>Location</label><input type="text" id="cnCpLocation" value="${esc(profile?.location || '')}" placeholder="e.g. Nairobi, Kenya"></div>
-    <div class="cn-field"><label>Niches</label>${_cnMultiSelectHtml('cnCpNiches', CONNECT_NICHES, (profile?.niches || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean))}</div>
-    <div class="cn-field">
-      <label>Which platforms are you on?</label>
-      <div class="cn-tip" style="margin-bottom:8px;">Select all that apply — only those platforms will ask for a follower/subscriber count below. Not on all four? No problem, just pick the ones you're actually active on.</div>
-      ${_cnMultiSelectHtml('cnCpPlatforms', CONNECT_PLATFORMS, (profile?.platforms || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean))}
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">🎬</div>
+        <div><div class="cn-form-card-title">Your Creator Profile</div><div class="cn-form-card-sub">How businesses see you in the marketplace</div></div>
+      </div>
+      <div class="cn-field"><label>Display Name</label><input type="text" id="cnCpName" value="${esc(profile?.display_name || '')}"></div>
+      <div class="cn-field"><label>Bio</label><textarea id="cnCpBio">${esc(profile?.bio || '')}</textarea></div>
+      <div class="cn-field"><label>Location</label><input type="text" id="cnCpLocation" value="${esc(profile?.location || '')}" placeholder="e.g. Nairobi, Kenya"></div>
+      <div class="cn-field"><label>Niches</label>${_cnMultiSelectHtml('cnCpNiches', CONNECT_NICHES, (profile?.niches || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean))}</div>
     </div>
-    <div id="cnCpFollowersWrap"></div>
-    <div class="cn-section-lbl">Payment Details</div>
-    <div class="cn-tip">🔒 Required before you can apply to campaigns. Your phone number is only ever visible to EndaViral — businesses never see it — and it's what your payout tickets pay out to.</div>
-    <div class="cn-field"><label>Email</label><input type="email" id="cnCpEmail" value="${esc(profile?.email || '')}" placeholder="you@example.com"></div>
-    <div class="cn-field"><label>M-Pesa Phone Number</label><input type="text" id="cnCpPhone" value="${esc(profile?.phone || '')}" placeholder="07XXXXXXXX"></div>
-    <div class="cn-section-lbl">Pricing (KES, optional)</div>
-    <div class="cn-field"><label>Short Video</label><input type="number" id="cnCpPriceVideo" value="${profile?.prices_kes?.short_video || ''}" min="0"></div>
-    <div class="cn-field"><label>Instagram Reel</label><input type="number" id="cnCpPriceReel" value="${profile?.prices_kes?.ig_reel || ''}" min="0"></div>
-    <div class="cn-field"><label>TikTok</label><input type="number" id="cnCpPriceTiktok" value="${profile?.prices_kes?.tiktok || ''}" min="0"></div>
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">📱</div>
+        <div><div class="cn-form-card-title">Platforms & Audience</div><div class="cn-form-card-sub">Only platforms you select below ask for a follower count</div></div>
+      </div>
+      <div class="cn-field">
+        <label>Which platforms are you on?</label>
+        ${_cnMultiSelectHtml('cnCpPlatforms', CONNECT_PLATFORMS, (profile?.platforms || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean))}
+      </div>
+      <div id="cnCpFollowersWrap"></div>
+    </div>
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">🔒</div>
+        <div><div class="cn-form-card-title">Payment Details</div><div class="cn-form-card-sub">Required before you can apply to campaigns</div></div>
+      </div>
+      <div class="cn-tip">🔒 Your phone number is only ever visible to EndaViral — businesses never see it — and it's what your payout tickets pay out to.</div>
+      <div class="cn-field"><label>Email</label><input type="email" id="cnCpEmail" value="${esc(profile?.email || '')}" placeholder="you@example.com"></div>
+      <div class="cn-field"><label>M-Pesa Phone Number</label><input type="text" id="cnCpPhone" value="${esc(profile?.phone || '')}" placeholder="07XXXXXXXX"></div>
+    </div>
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">💰</div>
+        <div><div class="cn-form-card-title">Pricing (optional)</div><div class="cn-form-card-sub">Suggested starting rates — you can always negotiate per campaign</div></div>
+      </div>
+      <div class="cn-field"><label>Short Video</label><input type="number" id="cnCpPriceVideo" value="${profile?.prices_kes?.short_video || ''}" min="0"></div>
+      <div class="cn-field"><label>Instagram Reel</label><input type="number" id="cnCpPriceReel" value="${profile?.prices_kes?.ig_reel || ''}" min="0"></div>
+      <div class="cn-field"><label>TikTok</label><input type="number" id="cnCpPriceTiktok" value="${profile?.prices_kes?.tiktok || ''}" min="0"></div>
+    </div>
+
     <button class="btn-primary" id="cnCpSaveBtn" onclick="_cnSaveCreatorProfile()">Save Profile</button>
+
     ${profile ? `
-    <div style="margin-top:16px;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--muted);">
-      ${profile.is_verified ? `<span style="color:#3dd44a;">✓ Verified</span>` : ''}
-      ${profile.is_suspended ? `<span style="color:#e53935;">⛔ Suspended${profile.suspend_reason ? ': ' + esc(profile.suspend_reason) : ''}</span>` : ''}
-      <span>⭐ ${profile.rating_avg || 0} (${profile.rating_count || 0})</span>
-      <span>✅ ${profile.jobs_completed || 0} jobs completed</span>
-      <span>📈 ${profile.success_rate_pct || 0}% success rate</span>
-      ${profile.response_time_hours != null ? `<span>⏱ ~${profile.response_time_hours}h response time</span>` : ''}
+    <div class="cn-form-card" style="margin-top:16px;">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">📊</div>
+        <div><div class="cn-form-card-title">Your Track Record</div></div>
+      </div>
+      <div class="cn-profile-stats">
+        ${profile.is_verified ? `<div class="cn-profile-stat"><div class="cn-profile-stat-val" style="color:#3dd44a;">✓</div><div class="cn-profile-stat-lbl">Verified</div></div>` : ''}
+        <div class="cn-profile-stat"><div class="cn-profile-stat-val">⭐ ${profile.rating_avg || 0}</div><div class="cn-profile-stat-lbl">${profile.rating_count || 0} ratings</div></div>
+        <div class="cn-profile-stat"><div class="cn-profile-stat-val">${profile.jobs_completed || 0}</div><div class="cn-profile-stat-lbl">Jobs done</div></div>
+        <div class="cn-profile-stat"><div class="cn-profile-stat-val">${profile.success_rate_pct || 0}%</div><div class="cn-profile-stat-lbl">Success rate</div></div>
+        ${profile.response_time_hours != null ? `<div class="cn-profile-stat"><div class="cn-profile-stat-val">~${profile.response_time_hours}h</div><div class="cn-profile-stat-lbl">Response time</div></div>` : ''}
+        ${profile.academy ? `<div class="cn-profile-stat"><div class="cn-profile-stat-val">🎓 ${profile.academy.modules_completed || 0}</div><div class="cn-profile-stat-lbl">Academy modules</div></div>` : ''}
+      </div>
+      ${profile.is_suspended ? `<div class="cn-lost-banner" style="margin-top:12px;margin-bottom:0;">⛔ Suspended${profile.suspend_reason ? ': ' + esc(profile.suspend_reason) : ''}</div>` : ''}
     </div>
-    ${profile.academy ? `<div style="margin-top:10px;font-size:12px;color:var(--muted);">🎓 Creator Academy: ${profile.academy.modules_completed || 0} modules completed</div>` : ''}
     ${profile.portfolio && profile.portfolio.length ? `
-    <div class="cn-section-lbl">Portfolio — Past Campaigns</div>
-    ${profile.portfolio.map(pf => `
-      <div class="cn-row"><span class="k">${esc(pf.title)} · ${esc(pf.business_name)}</span><span class="v" style="font-weight:400;">${pf.completed_at ? new Date(pf.completed_at).toLocaleDateString() : ''}</span></div>
-    `).join('')}` : ''}
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">🏆</div>
+        <div><div class="cn-form-card-title">Portfolio — Past Campaigns</div></div>
+      </div>
+      ${profile.portfolio.map(pf => `
+        <div class="cn-row"><span class="k">${esc(pf.title)} · ${esc(pf.business_name)}</span><span class="v" style="font-weight:400;">${pf.completed_at ? new Date(pf.completed_at).toLocaleDateString() : ''}</span></div>
+      `).join('')}
+    </div>` : ''}
     ` : ''}
   `;
 
@@ -1401,14 +1491,31 @@ async function _cnRenderBusinessProfileForm(target) {
   _cnBusinessProfile = profile;
 
   target.innerHTML = `
-    <div class="cn-field"><label>Company Name</label><input type="text" id="cnBpName" value="${esc(profile?.company_name || '')}"></div>
-    <div class="cn-field"><label>Industry</label><input type="text" id="cnBpIndustry" value="${esc(profile?.industry || '')}" placeholder="e.g. E-commerce, Restaurant, Fintech"></div>
-    <div class="cn-field"><label>Website</label><input type="text" id="cnBpWebsite" value="${esc(profile?.website || '')}" placeholder="https://..."></div>
+    ${profile?.joined_at ? `<div class="cn-hero-badge" style="display:inline-flex;margin-bottom:14px;">✅ Joined EndaViral Connect on ${new Date(profile.joined_at).toLocaleDateString()}</div>` : ''}
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">🏢</div>
+        <div><div class="cn-form-card-title">Your Business Profile</div><div class="cn-form-card-sub">How creators see you when they apply or get invited</div></div>
+      </div>
+      <div class="cn-field"><label>Company Name</label><input type="text" id="cnBpName" value="${esc(profile?.company_name || '')}"></div>
+      <div class="cn-field"><label>Industry</label><input type="text" id="cnBpIndustry" value="${esc(profile?.industry || '')}" placeholder="e.g. E-commerce, Restaurant, Fintech"></div>
+      <div class="cn-field"><label>Website</label><input type="text" id="cnBpWebsite" value="${esc(profile?.website || '')}" placeholder="https://..."></div>
+    </div>
+
     <button class="btn-primary" id="cnBpSaveBtn" onclick="_cnSaveBusinessProfile()">Save Profile</button>
-    ${profile ? `<div style="margin-top:16px;display:flex;gap:20px;font-size:12px;color:var(--muted);">
-      <span>⭐ ${profile.rating_avg || 0} (${profile.rating_count || 0})</span>
-      <span>📋 ${profile.campaigns_posted || 0} posted</span>
-      <span>✅ ${profile.campaigns_completed || 0} completed</span>
+
+    ${profile ? `
+    <div class="cn-form-card" style="margin-top:16px;">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">📊</div>
+        <div><div class="cn-form-card-title">Your Track Record</div></div>
+      </div>
+      <div class="cn-profile-stats">
+        <div class="cn-profile-stat"><div class="cn-profile-stat-val">⭐ ${profile.rating_avg || 0}</div><div class="cn-profile-stat-lbl">${profile.rating_count || 0} ratings</div></div>
+        <div class="cn-profile-stat"><div class="cn-profile-stat-val">${profile.campaigns_posted || 0}</div><div class="cn-profile-stat-lbl">Posted</div></div>
+        <div class="cn-profile-stat"><div class="cn-profile-stat-val">${profile.campaigns_completed || 0}</div><div class="cn-profile-stat-lbl">Completed</div></div>
+      </div>
     </div>` : ''}
   `;
 }
@@ -2493,7 +2600,7 @@ function _cnCloseCreate() {
 async function _cnRenderInvites(target) {
   const invites = await api('/connect/invites/mine');
   if (!invites.length) {
-    target.innerHTML = `<div class="cn-empty">No invites yet — businesses can invite you directly once you have a creator profile.</div>`;
+    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">✉️</span><div class="cn-empty-title">No invites yet</div>Businesses can invite you directly once you have a creator profile.</div>`;
     return;
   }
   target.innerHTML = invites.map(i => {
@@ -2727,48 +2834,78 @@ async function _cnSubmitInvite() {
 // ══════════════════════════════════════════════════════════════════════════
 async function _cnRenderAdmin(target) {
   target.innerHTML = `
-    <div class="cn-section-lbl">Marketplace Stats</div>
-    <div id="cnAdminStats" class="cn-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:6px;"><div class="cn-empty">Loading…</div></div>
-
-    <div class="cn-section-lbl">Payout Requests</div>
-    <div style="display:flex;gap:6px;margin-bottom:10px;">
-      ${['pending', 'paid', 'rejected', 'all'].map(s => `<button class="cn-tab ${s === 'pending' ? 'active' : ''}" id="cnPayoutFilter-${s}" onclick="_cnLoadAdminPayouts('${s}')" style="padding:6px 12px;font-size:11.5px;">${s[0].toUpperCase()}${s.slice(1)}</button>`).join('')}
-    </div>
-    <div id="cnAdminPayouts"><div class="cn-empty">Loading…</div></div>
-
-    <div class="cn-section-lbl">Business Not Responding (48h Review Window)</div>
-    <div id="cnAdminOverdue"><div class="cn-empty">Loading…</div></div>
-
-    <div class="cn-section-lbl">Open Disputes</div>
-    <div id="cnAdminDisputes"><div class="cn-empty">Loading…</div></div>
-
-    <div class="cn-section-lbl">Frozen Campaigns</div>
-    <div id="cnAdminFrozen"><div class="cn-empty">Loading…</div></div>
-    <div class="cn-field" style="display:flex;gap:8px;align-items:flex-end;margin-top:10px;">
-      <div style="flex:2;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Campaign ID to freeze</label>
-        <input type="text" id="cnAdminFreezeId" placeholder="campaign id" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
-      <div style="flex:2;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Reason</label>
-        <input type="text" id="cnAdminFreezeReason" placeholder="reason (optional)" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
-      <button class="btn-secondary" onclick="_cnAdminFreeze()">🧊 Freeze</button>
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">📊</div>
+        <div><div class="cn-form-card-title">Marketplace Stats</div></div>
+      </div>
+      <div id="cnAdminStats" class="cn-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));"><div class="cn-empty">Loading…</div></div>
     </div>
 
-    <div class="cn-section-lbl">Verify / Suspend a User</div>
-    <div class="cn-field" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
-      <div style="flex:2;min-width:160px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">User ID</label>
-        <input type="text" id="cnAdminUserId" placeholder="user id" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
-      <div style="flex:1;min-width:120px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Role</label>
-        <select id="cnAdminUserRole" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;">
-          <option value="creator">Creator</option>
-          <option value="business">Business</option>
-        </select></div>
-      <div style="flex:2;min-width:160px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Reason (for suspend)</label>
-        <input type="text" id="cnAdminSuspendReason" placeholder="reason (optional)" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">💸</div>
+        <div><div class="cn-form-card-title">Payout Requests</div></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        ${['pending', 'paid', 'rejected', 'all'].map(s => `<button class="cn-tab ${s === 'pending' ? 'active' : ''}" id="cnPayoutFilter-${s}" onclick="_cnLoadAdminPayouts('${s}')" style="padding:6px 12px;font-size:11.5px;">${s[0].toUpperCase()}${s.slice(1)}</button>`).join('')}
+      </div>
+      <div id="cnAdminPayouts"><div class="cn-empty">Loading…</div></div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
-      <button class="cn-btn-sm cn-btn-accept" style="flex:none;padding:9px 14px;" onclick="_cnAdminVerify(true)">✔️ Verify Creator</button>
-      <button class="btn-secondary" onclick="_cnAdminVerify(false)">Unverify Creator</button>
-      <button class="cn-btn-sm cn-btn-reject" style="flex:none;padding:9px 14px;" onclick="_cnAdminSuspend(true)">🚫 Suspend</button>
-      <button class="btn-secondary" onclick="_cnAdminSuspend(false)">Unsuspend</button>
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">⏱️</div>
+        <div><div class="cn-form-card-title">Business Not Responding</div><div class="cn-form-card-sub">48-hour review window</div></div>
+      </div>
+      <div id="cnAdminOverdue"><div class="cn-empty">Loading…</div></div>
+    </div>
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">⚠️</div>
+        <div><div class="cn-form-card-title">Open Disputes</div></div>
+      </div>
+      <div id="cnAdminDisputes"><div class="cn-empty">Loading…</div></div>
+    </div>
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">🧊</div>
+        <div><div class="cn-form-card-title">Frozen Campaigns</div></div>
+      </div>
+      <div id="cnAdminFrozen"><div class="cn-empty">Loading…</div></div>
+      <div style="display:flex;gap:10px;align-items:flex-end;margin-top:14px;flex-wrap:wrap;">
+        <div class="cn-field" style="flex:2;min-width:160px;margin-bottom:0;"><label>Campaign ID to freeze</label>
+          <input type="text" id="cnAdminFreezeId" placeholder="campaign id"></div>
+        <div class="cn-field" style="flex:2;min-width:160px;margin-bottom:0;"><label>Reason</label>
+          <input type="text" id="cnAdminFreezeReason" placeholder="reason (optional)"></div>
+        <button class="btn-secondary" onclick="_cnAdminFreeze()">🧊 Freeze</button>
+      </div>
+    </div>
+
+    <div class="cn-form-card">
+      <div class="cn-form-card-head">
+        <div class="cn-form-card-icon">🛡️</div>
+        <div><div class="cn-form-card-title">Verify / Suspend a User</div></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="cn-field" style="flex:2;min-width:160px;"><label>User ID</label>
+          <input type="text" id="cnAdminUserId" placeholder="user id"></div>
+        <div class="cn-field" style="flex:1;min-width:120px;"><label>Role</label>
+          <select id="cnAdminUserRole">
+            <option value="creator">Creator</option>
+            <option value="business">Business</option>
+          </select></div>
+        <div class="cn-field" style="flex:2;min-width:160px;"><label>Reason (for suspend)</label>
+          <input type="text" id="cnAdminSuspendReason" placeholder="reason (optional)"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="cn-btn-sm cn-btn-accept" style="flex:none;padding:9px 14px;" onclick="_cnAdminVerify(true)">✔️ Verify Creator</button>
+        <button class="btn-secondary" onclick="_cnAdminVerify(false)">Unverify Creator</button>
+        <button class="cn-btn-sm cn-btn-reject" style="flex:none;padding:9px 14px;" onclick="_cnAdminSuspend(true)">🚫 Suspend</button>
+        <button class="btn-secondary" onclick="_cnAdminSuspend(false)">Unsuspend</button>
+      </div>
     </div>
   `;
   await Promise.all([_cnLoadAdminStats(), _cnLoadAdminPayouts('pending'), _cnLoadAdminDisputes(), _cnLoadAdminFrozen(), _cnLoadAdminOverdue()]);
@@ -2795,13 +2932,13 @@ async function _cnLoadAdminOverdue() {
       </div>
       <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Campaign ${c.id} — ${fmtKES(c.budget_kes)}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-        <select id="cnOutreachChannel-${c.id}" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--white);font-size:11.5px;">
+        <select id="cnOutreachChannel-${c.id}" class="cn-input-compact">
           <option value="phone">Phone</option><option value="sms">SMS</option><option value="email">Email</option>
         </select>
-        <select id="cnOutreachOutcome-${c.id}" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--white);font-size:11.5px;">
+        <select id="cnOutreachOutcome-${c.id}" class="cn-input-compact">
           <option value="no_answer">No answer</option><option value="answered">Answered</option><option value="unreachable">Unreachable</option>
         </select>
-        <input type="text" id="cnOutreachNote-${c.id}" placeholder="note (optional)" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--white);font-size:11.5px;">
+        <input type="text" id="cnOutreachNote-${c.id}" placeholder="note (optional)" class="cn-input-compact" style="flex:1;min-width:120px;">
         <button class="btn-secondary" style="padding:6px 10px;font-size:11.5px;" onclick="_cnAdminLogOutreach('${c.id}')">📞 Log Attempt</button>
       </div>
       <button class="cn-btn-sm cn-btn-reject" style="width:100%;" ${c.admin_can_force_release ? '' : 'disabled'} onclick="_cnAdminForceRelease('${c.id}')">
@@ -2862,8 +2999,8 @@ async function _cnLoadAdminPayouts(status) {
         ${t.status !== 'pending' ? `
           <div style="font-size:11.5px;color:var(--muted);">${t.mpesa_receipt ? `M-Pesa ref: ${esc(t.mpesa_receipt)}` : ''}${t.admin_note ? ` — ${esc(t.admin_note)}` : ''}</div>
         ` : `
-          <input type="text" id="cnPayoutReceipt-${t.id}" placeholder="M-Pesa receipt code (optional)" style="width:100%;margin:8px 0 6px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:11.5px;">
-          <input type="text" id="cnPayoutNote-${t.id}" placeholder="Note (optional, e.g. reason for rejection)" style="width:100%;margin-bottom:8px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:11.5px;">
+          <input type="text" id="cnPayoutReceipt-${t.id}" placeholder="M-Pesa receipt code (optional)" class="cn-input-compact" style="width:100%;margin:8px 0 6px;">
+          <input type="text" id="cnPayoutNote-${t.id}" placeholder="Note (optional, e.g. reason for rejection)" class="cn-input-compact" style="width:100%;margin-bottom:8px;">
           <div class="cn-app-actions">
             <button class="cn-btn-sm cn-btn-accept" onclick="_cnAdminResolvePayout('${t.id}', true)">✅ Mark Paid</button>
             <button class="cn-btn-sm cn-btn-reject" onclick="_cnAdminResolvePayout('${t.id}', false)">Reject</button>
@@ -2939,7 +3076,7 @@ async function _cnLoadAdminDisputes() {
             ${d.deliverable_links.map(v => `<a href="${esc(v.content_url)}" target="_blank" rel="noopener" style="color:#2196f3;margin-right:8px;">🔗 ${esc(v.platform_posted_to || 'link')}${v.creator_confirmed_posted ? '' : ' ⚠️ not confirmed posted'}</a>`).join('')}
           </div>` : ''}
         ${d.evidence_url ? `<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Evidence: <a href="${esc(d.evidence_url)}" target="_blank" rel="noopener" style="color:#2196f3;">🔗 View evidence</a></div>` : ''}
-        <input type="text" id="cnDisputeNote-${d.id}" placeholder="Resolution note (optional)" style="width:100%;margin-bottom:8px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:11.5px;">
+        <input type="text" id="cnDisputeNote-${d.id}" placeholder="Resolution note (optional)" class="cn-input-compact" style="width:100%;margin-bottom:8px;">
         <div class="cn-app-actions">
           <button class="cn-btn-sm cn-btn-accept" onclick="_cnAdminResolveDispute('${d.id}','release_to_creator')">Release to Creator</button>
           <button class="cn-btn-sm cn-btn-reject" onclick="_cnAdminResolveDispute('${d.id}','refund_to_business')">Refund Business</button>
