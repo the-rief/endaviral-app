@@ -62,6 +62,7 @@
 let _cnRole = 'creator';          // 'creator' | 'business'
 let _cnLandingPicked = false;     // true once a first-time visitor has picked a side this session
 let _cnUnreadByCampaign = {};     // campaign_id -> unread_count, refreshed by _cnPollUnread
+let _cnLastUnreadSnapshot = null; // JSON snapshot of the last poll's unread data — lets _cnPollUnread skip re-rendering when nothing actually changed
 let _cnUnreadPollTimer = null;
 let _cnTab  = 'discover';         // active sub-tab
 let _cnCampaigns = [];            // last-loaded list for the active tab
@@ -72,6 +73,18 @@ let _cnBusinessProfile = null;
 let _cnFundPollTimer = null;
 let _cnMsgThreadCreatorId = null;  // which creator's thread is open in the campaign modal (business side, when unassigned)
 let _cnActiveNegotiationApp = null; // the CampaignApplication behind the currently open thread, if any (drives the negotiation banner/propose/fund controls)
+
+// Bids inbox (business, published campaign, not yet assigned) — a campaign
+// can get hundreds/thousands of bids, so these live in their own paginated
+// screen instead of being fetched/rendered all at once inside the campaign
+// modal. See _cnOpenBidsInbox / _cnOpenBidChat / _cnOpenPaySheet below.
+let _cnBidsCampaignId = null;
+let _cnBidsTab = 'pending';           // 'pending' | 'accepted' | 'closed' — maps to ApplicationStatus filter(s)
+let _cnBidsOffset = 0;
+const _cnBidsPageSize = 20;
+let _cnBidsTotalLoaded = [];          // rows loaded so far for the active tab (appended on "Load more")
+let _cnBidsHasMore = false;
+let _cnBidsCounts = {};               // status -> count, from /applications/counts
 let _cnJoinedRoles = { creator: false, business: false };  // which side(s) this user has actually joined — drives whether the role toggle shows at all
 let _cnRolesResolved = false;      // becomes true once _cnDetectJoinedRoles() has checked the server
 
@@ -587,6 +600,42 @@ function _cnInjectStyles() {
     .cn-tos-updated{font-size:10.5px;color:var(--muted);margin-bottom:10px;}
     .cn-tos-example{background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:11.5px;}
     .cn-tos-check-summary{background:transparent;border:none;padding:0;margin-top:4px;}
+
+    /* ── Bids inbox (business, published campaign) ───────────────────── */
+    .cn-bids-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--navy);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:4px;}
+    .cn-bids-summary-count{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:900;color:var(--white);}
+    .cn-bids-summary-lbl{font-size:11px;color:var(--muted);margin-top:1px;}
+    .cn-bid-tabs{display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--border);}
+    .cn-bid-tab{background:none;border:none;color:var(--muted);font-size:12px;font-weight:700;font-family:inherit;padding:9px 4px 11px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:6px;}
+    .cn-bid-tab:not(:first-child){margin-left:10px;}
+    .cn-bid-tab.active{color:var(--white);border-bottom-color:var(--cn-accent);}
+    .cn-bid-tab-count{background:var(--card);color:var(--muted);border-radius:10px;padding:1px 7px;font-size:10.5px;}
+    .cn-bid-tab.active .cn-bid-tab-count{background:var(--cn-accent-soft);color:var(--cn-accent);}
+    .cn-bid-row{background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+    .cn-bid-row:hover{border-color:var(--cn-accent);}
+    .cn-bid-row-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .cn-bid-row-name{font-size:12.5px;font-weight:800;color:var(--white);}
+    .cn-bid-row-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+    .cn-bid-row-amt{font-family:'Montserrat',sans-serif;font-weight:800;color:var(--green);font-size:13.5px;white-space:nowrap;}
+    .cn-bid-row-proposal{font-size:12px;color:var(--white);margin-top:8px;}
+    .cn-bid-row-actions{display:flex;gap:8px;margin-top:10px;}
+    .cn-bids-loadmore{width:100%;margin-top:4px;}
+    .cn-bids-empty{font-size:12px;color:var(--muted);text-align:center;padding:24px 0;}
+
+    /* ── Bid chat modal (one creator's thread) ────────────────────────── */
+    .cn-bidchat-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+    .cn-bidchat-back{background:var(--navy);border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    .cn-bidchat-back:hover{color:var(--white);border-color:var(--cn-accent);}
+    .cn-bidchat-title{font-size:14px;font-weight:800;color:var(--white);}
+    .cn-bidchat-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+    .cn-pay-btn{width:100%;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Montserrat',sans-serif;margin-bottom:10px;}
+
+    /* ── Pay sheet (final confirm step, opened only on Pay tap) ───────── */
+    .cn-paysheet-amt{text-align:center;padding:6px 0 18px;}
+    .cn-paysheet-amt-val{font-family:'Montserrat',sans-serif;font-size:30px;font-weight:900;color:var(--green);}
+    .cn-paysheet-amt-lbl{font-size:11.5px;color:var(--muted);margin-top:4px;}
+    .cn-paysheet-field{margin-bottom:14px;}
+    .cn-paysheet-field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
   `;
   document.head.appendChild(style);
 }
@@ -839,10 +888,21 @@ async function _cnPollUnread() {
 
     // Only re-render the card grid if we're actually looking at one and no
     // modal is open — avoids yanking a form or open chat out from under
-    // whoever's mid-action every 25s.
-    if ((_cnTab === 'campaigns' || _cnTab === 'work') && !_cnCurrentCampaign) {
+    // whoever's mid-action every 25s. On top of that, only re-render when
+    // the unread snapshot actually changed since the last poll — most
+    // 25s ticks find nothing new, and re-painting the whole grid anyway
+    // was what made the page feel like it kept refreshing itself while
+    // someone was just reading or about to click something on it.
+    const snapshot = JSON.stringify(_cnUnreadByCampaign);
+    const changed = snapshot !== _cnLastUnreadSnapshot;
+    _cnLastUnreadSnapshot = snapshot;
+    if (changed && (_cnTab === 'campaigns' || _cnTab === 'work') && !_cnCurrentCampaign) {
       const target = document.getElementById('cnTabContent');
-      if (target) await _cnLoadActiveTab();
+      if (target) {
+        const scrollY = window.scrollY;
+        await _cnLoadActiveTab();
+        window.scrollTo(0, scrollY);
+      }
     }
   } catch (e) {
     // Silent — background convenience poll, not user-initiated.
@@ -1575,16 +1635,18 @@ async function _cnOpenCampaign(campaignId) {
   }
   _cnCurrentCampaign = campaign;
 
-  // Business viewing their own still-open campaign also needs applications
-  // — a campaign can have several PENDING bids and several ACCEPTED
-  // (parallel-negotiating) applications at once, all shown here.
+  // Business viewing their own still-open campaign only needs the COUNTS
+  // here — a campaign can have hundreds or thousands of bids, so the full
+  // list is loaded lazily, a page at a time, only once the business opens
+  // the Bids Inbox screen (see _cnOpenBidsInbox).
   const isBusinessOwner = currentUser && currentUser.id === campaign.business_user_id;
   if (isBusinessOwner && campaign.status === 'published') {
-    try { _cnCurrentApplications = await api(`/connect/campaigns/${campaignId}/applications`); }
-    catch (_) { _cnCurrentApplications = []; }
+    try { _cnBidsCounts = await api(`/connect/campaigns/${campaignId}/applications/counts`); }
+    catch (_) { _cnBidsCounts = {}; }
   } else {
-    _cnCurrentApplications = [];
+    _cnBidsCounts = {};
   }
+  _cnCurrentApplications = [];
   _cnActiveNegotiationApp = null;
 
   _cnRenderCampaignModal();
@@ -1638,7 +1700,7 @@ function _cnRenderCampaignModal() {
   let actionHtml = '';
   if (!c.is_frozen) {
   if (!isBusinessOwner && c.status === 'published' && _cnRole === 'creator') {
-    html += _cnApplyFormHtml();
+    html += c.my_application_status ? _cnMyApplicationSummaryHtml(c) : _cnApplyFormHtml();
   }
 
   if (isBusinessOwner && c.status === 'draft') {
@@ -1646,46 +1708,24 @@ function _cnRenderCampaignModal() {
   }
 
   if (isBusinessOwner && c.status === 'published') {
-    // A campaign can have several bids AND several parallel accepted
-    // negotiations at once — the campaign stays on Discover throughout and
-    // ONLY comes off once one of these is actually funded. Group them so
-    // it reads like a business inbox: active talks first, fresh bids below.
-    const _cnActiveApps = _cnCurrentApplications.filter(a => a.status === 'accepted');
-    const _cnPendingApps = _cnCurrentApplications.filter(a => a.status === 'pending');
-    html += `<div class="cn-card-header"><span>📥 Applications</span><span class="cn-card-header-count">${_cnCurrentApplications.length}</span></div>`;
-    html += `<div class="cn-apps-card">`;
-    if (!_cnCurrentApplications.length) {
-      html += `<div style="font-size:12px;color:var(--muted);text-align:center;padding:6px 0;">No applications yet — check back soon, or invite a creator directly.</div>`;
-    } else {
-      if (_cnActiveApps.length) {
-        html += `<div class="cn-apps-subhead cn-apps-subhead-active">In Negotiation · ${_cnActiveApps.length}</div>`;
-        html += _cnActiveApps.map(a => `
-          <div class="cn-neg-row" onclick="_cnOpenNegotiationThread('${c.id}','${a.id}')">
-            <div>
-              <div class="cn-neg-row-name">${esc(a.creator_display_name || 'Creator')}</div>
-              <div class="cn-neg-row-sub">💬 Tap to open the conversation</div>
-            </div>
-            <div class="cn-neg-row-amt">${fmtKES(a.fund_amount_kes)}</div>
-          </div>
-        `).join('');
-      }
-      if (_cnPendingApps.length) {
-        html += `<div class="cn-apps-subhead" style="margin-top:${_cnActiveApps.length ? '12px' : '0'};">New Bids · ${_cnPendingApps.length}</div>`;
-        html += _cnPendingApps.map(a => `
-          <div class="cn-app-row">
-            <div class="cn-app-top"><span class="cn-app-bid">${fmtKES(a.bid_amount_kes)}</span>${_cnStatusPill(a.status)}</div>
-            <div style="font-size:11.5px;color:var(--muted);">${esc(a.creator_display_name || 'Creator')} · delivery in ${a.delivery_days} day${a.delivery_days == 1 ? '' : 's'}</div>
-            ${a.proposal ? `<div style="font-size:12px;color:var(--white);margin-top:6px;">${esc(a.proposal)}</div>` : ''}
-            <div class="cn-app-actions">
-              <button class="cn-btn-sm cn-btn-accept" onclick="_cnAcceptApplication('${c.id}','${a.id}')">Accept</button>
-              <button class="cn-btn-sm cn-btn-reject" onclick="_cnRejectApplication('${c.id}','${a.id}')">Reject</button>
-            </div>
-          </div>
-        `).join('');
-      }
-    }
-    html += `<button class="btn-secondary" style="width:100%;margin-top:${_cnCurrentApplications.length ? '10px' : '0'};" onclick="_cnOpenInviteModal(null,null,'${c.id}')">✉️ Invite a Creator Directly</button>`;
-    html += `</div>`;
+    // A campaign can get anywhere from zero to thousands of bids, plus
+    // several parallel accepted negotiations — that no longer renders
+    // here. This is just a summary + entry point; the actual list lives in
+    // its own paginated screen (_cnOpenBidsInbox), and each bid gets its
+    // own chat screen (_cnOpenBidChat) instead of every conversation being
+    // stacked into this one modal.
+    const counts = _cnBidsCounts || {};
+    const totalBids = Object.values(counts).reduce((s, n) => s + n, 0);
+    const inTalks = counts.accepted || 0;
+    html += `<div class="cn-card-header"><span>📥 Bids</span></div>`;
+    html += `<div class="cn-bids-summary">
+      <div>
+        <div class="cn-bids-summary-count">${totalBids}</div>
+        <div class="cn-bids-summary-lbl">${totalBids === 1 ? 'bid received' : 'bids received'}${inTalks ? ` · ${inTalks} in talks` : ''}</div>
+      </div>
+      <button class="btn-primary" onclick="_cnOpenBidsInbox('${c.id}')">Open Bids Inbox</button>
+    </div>`;
+    html += `<button class="btn-secondary" style="width:100%;margin-top:10px;" onclick="_cnOpenInviteModal(null,null,'${c.id}')">✉️ Invite a Creator Directly</button>`;
   }
 
   // Negotiate Price — lives inline in the chat panel below (a sticky
@@ -1743,31 +1783,24 @@ function _cnRenderCampaignModal() {
   const creatorCanMessage = _cnRole === 'creator' && !isBusinessOwner
     && (isAssignedCreator || c.status === 'published');
 
+  // Business viewing a still-unassigned campaign no longer gets a chat card
+  // here at all — every bid's conversation now lives in its own screen (the
+  // Bids Inbox → Bid Chat), opened via the summary card above. A single
+  // conversation only renders inline here once there's exactly one thread
+  // that matters: an assigned creator (business side, post-funding stages)
+  // or the creator's own thread with the business (creator side).
+  const showsSingleThreadHere = (isBusinessOwner && !!c.creator_user_id) || (!isBusinessOwner && creatorCanMessage);
+
   _cnMsgThreadCreatorId = null;
-  if (isBusinessOwner || creatorCanMessage) {
-    if (isBusinessOwner && !c.creator_user_id) {
-      // No creator assigned yet — the business may be hearing from several
-      // interested creators, so show a thread picker first. Picking one
-      // (or clicking a row in "In Negotiation" above) opens that specific
-      // conversation, with its own negotiate/fund controls.
-      html += `<div class="cn-chat-card">
-        <div class="cn-chat-card-head" id="cnChatCardHead">💬 Conversations</div>
-        <div id="cnMsgThreads"><div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center;">Loading conversations…</div></div>
-        <div id="cnMsgBackLink" style="display:none;margin-bottom:8px;"><a href="#" style="font-size:11.5px;color:var(--cn-accent);text-decoration:none;font-weight:700;" onclick="event.preventDefault();_cnShowMsgThreadPicker('${c.id}')">← All conversations</a></div>
-        <div class="cn-msgs" id="cnMsgList" style="display:none;"></div>
-        <div id="cnMsgActionCard"></div>
-        <div id="cnMsgInputRow" style="display:none;"></div>
-      </div>`;
-    } else {
-      _cnMsgThreadCreatorId = isBusinessOwner ? c.creator_user_id : currentUser.id;
-      const chatHeadName = isBusinessOwner ? esc(c.creator_display_name || 'Creator') : 'Business';
-      html += `<div class="cn-chat-card">
-        <div class="cn-chat-card-head">💬 Conversation with ${chatHeadName}</div>
-        <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center;">Loading…</div></div>
-        <div id="cnMsgActionCard">${actionHtml}</div>
-        <div id="cnMsgInputRow"></div>
-      </div>`;
-    }
+  if (showsSingleThreadHere) {
+    _cnMsgThreadCreatorId = isBusinessOwner ? c.creator_user_id : currentUser.id;
+    const chatHeadName = isBusinessOwner ? esc(c.creator_display_name || 'Creator') : 'Business';
+    html += `<div class="cn-chat-card">
+      <div class="cn-chat-card-head">💬 Conversation with ${chatHeadName}</div>
+      <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center;">Loading…</div></div>
+      <div id="cnMsgActionCard">${actionHtml}</div>
+      <div id="cnMsgInputRow"></div>
+    </div>`;
   } else if (actionHtml) {
     // No chat access for this viewer (shouldn't normally happen for the
     // two parties) — fall back to showing the action card standalone so
@@ -1777,9 +1810,7 @@ function _cnRenderCampaignModal() {
 
   body.innerHTML = html;
 
-  if (isBusinessOwner && !c.creator_user_id) {
-    _cnLoadMessageThreads(c.id);
-  } else if (isBusinessOwner || creatorCanMessage) {
+  if (showsSingleThreadHere) {
     _cnRenderMsgInputRow(c.id);
     _cnLoadMessages(c.id, _cnMsgThreadCreatorId);
   }
@@ -1813,6 +1844,22 @@ function _cnApplyFormHtml() {
   `;
 }
 
+// Shown instead of the blank apply form once the creator already has an
+// application on this campaign — reopening a campaign from My Applications
+// used to re-render an empty form (as if they'd never bid), which just
+// invited a confusing "already applied" error on resubmit. This shows what
+// they actually bid, whatever the application's current status.
+function _cnMyApplicationSummaryHtml(c) {
+  return `
+    <div class="cn-section-lbl">Your Application</div>
+    <div class="cn-app-row">
+      <div class="cn-app-top"><span class="cn-app-bid">${fmtKES(c.accepted_bid_kes)}</span>${_cnStatusPill(c.my_application_status)}</div>
+      <div style="font-size:11.5px;color:var(--muted);">Delivery in ${c.my_application_delivery_days} day${c.my_application_delivery_days == 1 ? '' : 's'}</div>
+      ${c.my_application_proposal ? `<div style="font-size:12px;color:var(--white);margin-top:6px;">${esc(c.my_application_proposal)}</div>` : ''}
+    </div>
+  `;
+}
+
 async function _cnSubmitApplication(campaignId) {
   const bid_amount_kes = parseFloat(document.getElementById('cnApplyBid').value);
   const delivery_days = parseInt(document.getElementById('cnApplyDays').value);
@@ -1838,24 +1885,34 @@ async function _cnSubmitApplication(campaignId) {
 }
 
 // ─── Accept / reject application (business) ──────────────────────────────────
+// Called from a bid row in the Bids Inbox — accepting opens a negotiation
+// with just that creator, so on success we just refresh the inbox tabs
+// (the bid moves from "New" to "In talks") rather than closing the screen.
 async function _cnAcceptApplication(campaignId, applicationId) {
   try {
     await api(`/connect/campaigns/${campaignId}/applications/${applicationId}/accept`, { method: 'POST' });
-    toast('Application accepted — fund campaign next to get started!', 'success');
-    _cnOpenCampaign(campaignId);
+    toast('Bid accepted — negotiate a price in chat, then fund when ready', 'success');
+    await _cnRefreshBidsCounts(campaignId);
+    _cnSwitchBidsTab('accepted');
   } catch (e) {
-    toast(e.message || 'Could not accept application', 'error');
+    toast(e.message || 'Could not accept bid', 'error');
   }
 }
 
 async function _cnRejectApplication(campaignId, applicationId) {
   try {
     await api(`/connect/campaigns/${campaignId}/applications/${applicationId}/reject`, { method: 'POST' });
-    toast('Application rejected', 'info');
-    _cnOpenCampaign(campaignId);
+    toast('Bid rejected', 'info');
+    await _cnRefreshBidsCounts(campaignId);
+    _cnLoadBidsPage(true);
   } catch (e) {
-    toast(e.message || 'Could not reject application', 'error');
+    toast(e.message || 'Could not reject bid', 'error');
   }
+}
+
+async function _cnRefreshBidsCounts(campaignId) {
+  try { _cnBidsCounts = await api(`/connect/campaigns/${campaignId}/applications/counts`); }
+  catch (_) { /* stale counts are fine, not worth surfacing an error for */ }
 }
 
 // ─── Negotiate price (either party, post-accept) — lives INLINE in the chat:
@@ -1970,8 +2027,57 @@ function _cnPlatformProcessingFee(amountKes) {
   return 100;
 }
 
-function _cnFundFormHtml(applicationId, fundAmount) {
+// ─── Pay Sheet — the ONLY place the KES breakdown is shown, and only after
+// the business taps Pay in a bid's chat. Two steps in the same modal:
+//  1. Confirm — the amount is shown read-only (it's whatever was agreed in
+//     chat; the client is never trusted to supply/override it — the server
+//     always funds coalesce(agreed_amount_kes, bid_amount_kes)), plus the
+//     M-Pesa number to pay from.
+//  2. Breakdown + Pay — budget/fee/total appears only once step 1 is
+//     confirmed, then the STK push goes out. ──────────────────────────────
+function _cnOpenPaySheet(campaignId, applicationId) {
+  const app = (_cnActiveNegotiationApp && _cnActiveNegotiationApp.id === applicationId)
+    ? _cnActiveNegotiationApp
+    : _cnBidsTotalLoaded.find(a => a.id === applicationId);
+  if (!app) return;
+  const modal = document.getElementById('cnPaySheetModal');
+  const body = document.getElementById('cnPaySheetModalBody');
+  if (!modal || !body) return;
   const phone = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
+  body.innerHTML = `
+    <div class="modal-title" style="margin-bottom:2px;">Confirm &amp; pay</div>
+    <div class="modal-sub" style="margin-bottom:4px;">${esc(app.creator_display_name || 'Creator')}</div>
+    <div class="cn-paysheet-amt">
+      <div class="cn-paysheet-amt-val">${fmtKES(app.fund_amount_kes)}</div>
+      <div class="cn-paysheet-amt-lbl">Final amount agreed in chat</div>
+    </div>
+    <div class="cn-paysheet-field">
+      <label>M-Pesa number to pay from</label>
+      <input type="text" id="cnPayPhone" class="cn-fund-phone" style="width:100%;" value="${esc(phone)}" placeholder="07XXXXXXXX">
+    </div>
+    <button class="btn-primary" style="width:100%;" onclick="_cnContinuePaySheet('${campaignId}','${applicationId}')">Continue</button>
+  `;
+  modal.classList.add('show');
+}
+
+function _cnContinuePaySheet(campaignId, applicationId) {
+  const phoneInput = document.getElementById('cnPayPhone');
+  const phone = phoneInput ? phoneInput.value.trim() : '';
+  if (!phone) { toast('Enter your M-Pesa number', 'error'); return; }
+  const app = (_cnActiveNegotiationApp && _cnActiveNegotiationApp.id === applicationId)
+    ? _cnActiveNegotiationApp
+    : _cnBidsTotalLoaded.find(a => a.id === applicationId);
+  if (!app) return;
+  const body = document.getElementById('cnPaySheetModalBody');
+  if (body) body.innerHTML = _cnFundFormHtml(applicationId, app.fund_amount_kes, phone);
+}
+
+function _cnClosePaySheet() {
+  document.getElementById('cnPaySheetModal').classList.remove('show');
+  if (_cnFundPollTimer) { clearInterval(_cnFundPollTimer); _cnFundPollTimer = null; }
+}
+
+function _cnFundFormHtml(applicationId, fundAmount, phone) {
   const fee = _cnPlatformProcessingFee(fundAmount);
   const total = fundAmount + fee;
   return `
@@ -1991,7 +2097,7 @@ function _cnFundFormHtml(applicationId, fundAmount) {
       </div>
     </div>
     <div id="cnFundForm" class="cn-fund-row">
-      <input type="text" id="cnFundPhone" class="cn-fund-phone" value="${esc(phone)}" placeholder="07XXXXXXXX">
+      <input type="text" id="cnFundPhone" class="cn-fund-phone" value="${esc(phone || '')}" placeholder="07XXXXXXXX">
       <button class="cn-fund-btn" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}','${applicationId}')">📱 Pay ${fmtKES(total)}</button>
     </div>
     <div id="cnFundStatus" style="display:none;text-align:center;padding:16px 0 6px;">
@@ -2063,13 +2169,26 @@ function _cnPollFunding(campaignId, checkoutRequestId) {
         statusEl.appendChild(btn);
       }
       toast('🎉 Campaign funded!', 'success');
-      setTimeout(() => _cnOpenCampaign(campaignId), 2400);
+      setTimeout(() => {
+        _cnClosePaySheet();
+        const chatModal = document.getElementById('cnBidChatModal');
+        if (chatModal) chatModal.classList.remove('show');
+        _cnCloseBidsInbox();
+        _cnOpenCampaign(campaignId);
+      }, 2400);
     } else if (data.status === 'failed' || data.status === 'cancelled') {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
       if (icon) icon.textContent = '❌';
       if (title) title.textContent = data.status === 'cancelled' ? 'PAYMENT CANCELLED' : 'PAYMENT FAILED';
       if (desc) desc.textContent = 'You can try again.';
-      setTimeout(() => _cnOpenCampaign(campaignId), 1800);
+      const retryForm = document.getElementById('cnFundForm');
+      const statusEl = document.getElementById('cnFundStatus');
+      setTimeout(() => {
+        if (retryForm) retryForm.style.display = '';
+        if (statusEl) statusEl.style.display = 'none';
+        const btn = document.getElementById('cnFundBtn');
+        if (btn) { btn.disabled = false; }
+      }, 1800);
     } else if (attempts >= maxAttempts) {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
       if (desc) desc.textContent = 'Still waiting — check your phone, or close and try again.';
@@ -2401,86 +2520,162 @@ async function _cnRequestPayout(campaignId) {
   }
 }
 
-// ─── Messages ──────────────────────────────────────────────────────────────────
-async function _cnLoadMessageThreads(campaignId) {
-  const wrap = document.getElementById('cnMsgThreads');
-  if (!wrap) return;
-  let threads;
-  try { threads = await api(`/connect/campaigns/${campaignId}/message-threads`); }
-  catch (e) { wrap.innerHTML = `<div style="color:var(--muted);font-size:12px;">Couldn't load conversations.</div>`; return; }
+// ─── Bids Inbox (business, published campaign, not yet assigned) ──────────
+// One paginated screen for every bid on the campaign — separate from the
+// campaign modal itself, so it stays fast whether there are 3 bids or
+// 3,000. Rows link out to their own Bid Chat screen; nothing here shows a
+// price breakdown, only the agreed/bid amount as a plain figure.
+async function _cnOpenBidsInbox(campaignId) {
+  _cnBidsCampaignId = campaignId;
+  _cnBidsTab = (_cnBidsCounts && _cnBidsCounts.accepted) ? 'accepted' : 'pending';
+  _cnBidsOffset = 0;
+  _cnBidsTotalLoaded = [];
+  _cnBidsHasMore = false;
+  const modal = document.getElementById('cnBidsInboxModal');
+  if (!modal) return;
+  modal.classList.add('show');
+  await _cnLoadBidsPage(true);
+}
 
-  if (!threads.length) {
-    wrap.innerHTML = `<div style="color:var(--muted);font-size:12px;">No creators have messaged about this campaign yet.</div>`;
+function _cnCloseBidsInbox() {
+  document.getElementById('cnBidsInboxModal').classList.remove('show');
+}
+
+function _cnBidsStatusParam(tab) {
+  if (tab === 'pending') return 'pending';
+  if (tab === 'accepted') return 'accepted';
+  return 'rejected,withdrawn,not_selected';   // "Closed" tab, merged
+}
+
+function _cnSwitchBidsTab(tab) {
+  _cnBidsTab = tab;
+  _cnBidsOffset = 0;
+  _cnBidsTotalLoaded = [];
+  _cnLoadBidsPage(true);
+}
+
+async function _cnLoadBidsPage(reset) {
+  if (reset) _cnRenderBidsInboxShell();
+  const listEl = document.getElementById('cnBidsList');
+  if (reset && listEl) listEl.innerHTML = `<div class="cn-bids-empty">Loading…</div>`;
+
+  let data;
+  try {
+    data = await api(`/connect/campaigns/${_cnBidsCampaignId}/applications?status=${_cnBidsStatusParam(_cnBidsTab)}&limit=${_cnBidsPageSize}&offset=${_cnBidsOffset}`);
+  } catch (e) {
+    if (listEl) listEl.innerHTML = `<div class="cn-bids-empty">Couldn't load bids.</div>`;
     return;
   }
-  wrap.innerHTML = threads.map(t => {
-    const app = _cnCurrentApplications.find(a => a.creator_user_id === t.creator_user_id);
-    const negTag = app && app.status === 'accepted' ? `<span style="color:var(--green);font-weight:800;margin-left:6px;">· Negotiating</span>` : '';
-    return `
-    <div class="cn-thread-row" onclick="_cnOpenMsgThread('${campaignId}','${t.creator_user_id}')" style="cursor:pointer;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
-      <div>
-        <div style="font-size:12.5px;color:var(--white);font-weight:700;">${esc(t.display_name || 'Creator')}${negTag}</div>
-        <div style="font-size:11px;color:var(--muted);">${esc(t.last_message || '')}</div>
+  _cnBidsTotalLoaded = reset ? data.applications : _cnBidsTotalLoaded.concat(data.applications);
+  _cnBidsOffset += data.applications.length;
+  _cnBidsHasMore = _cnBidsOffset < data.total;
+  _cnRenderBidsList();
+}
+
+function _cnRenderBidsInboxShell() {
+  const body = document.getElementById('cnBidsInboxModalBody');
+  if (!body) return;
+  const counts = _cnBidsCounts || {};
+  const pendingN = counts.pending || 0;
+  const acceptedN = counts.accepted || 0;
+  const closedN = (counts.rejected || 0) + (counts.withdrawn || 0) + (counts.not_selected || 0);
+  body.innerHTML = `
+    <div class="modal-title" style="margin-bottom:2px;">📥 Bids Inbox</div>
+    <div class="modal-sub" style="margin-bottom:16px;">${esc(_cnCurrentCampaign ? _cnCurrentCampaign.title : '')}</div>
+    <div class="cn-bid-tabs">
+      <button class="cn-bid-tab ${_cnBidsTab === 'pending' ? 'active' : ''}" onclick="_cnSwitchBidsTab('pending')">New <span class="cn-bid-tab-count">${pendingN}</span></button>
+      <button class="cn-bid-tab ${_cnBidsTab === 'accepted' ? 'active' : ''}" onclick="_cnSwitchBidsTab('accepted')">In talks <span class="cn-bid-tab-count">${acceptedN}</span></button>
+      <button class="cn-bid-tab ${_cnBidsTab === 'closed' ? 'active' : ''}" onclick="_cnSwitchBidsTab('closed')">Closed <span class="cn-bid-tab-count">${closedN}</span></button>
+    </div>
+    <div id="cnBidsList"></div>
+    <button class="btn-secondary cn-bids-loadmore" id="cnBidsLoadMore" style="display:none;" onclick="_cnLoadBidsPage(false)">Load more</button>
+  `;
+}
+
+function _cnRenderBidsList() {
+  const listEl = document.getElementById('cnBidsList');
+  const moreBtn = document.getElementById('cnBidsLoadMore');
+  if (!listEl) return;
+  if (!_cnBidsTotalLoaded.length) {
+    const emptyMsg = _cnBidsTab === 'pending' ? 'No new bids yet — check back soon, or invite a creator directly.'
+      : _cnBidsTab === 'accepted' ? 'No active negotiations right now.'
+      : 'Nothing here yet.';
+    listEl.innerHTML = `<div class="cn-bids-empty">${emptyMsg}</div>`;
+  } else {
+    listEl.innerHTML = _cnBidsTotalLoaded.map(a => `
+      <div class="cn-bid-row" onclick="_cnOpenBidChat('${a.campaign_id}','${a.id}')">
+        <div class="cn-bid-row-top">
+          <div>
+            <div class="cn-bid-row-name">${esc(a.creator_display_name || 'Creator')}</div>
+            <div class="cn-bid-row-sub">delivery in ${a.delivery_days} day${a.delivery_days == 1 ? '' : 's'}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="cn-bid-row-amt">${fmtKES(a.fund_amount_kes)}</div>
+            <div style="margin-top:4px;">${_cnStatusPill(a.status)}</div>
+          </div>
+        </div>
+        ${a.proposal ? `<div class="cn-bid-row-proposal">${esc(a.proposal)}</div>` : ''}
+        ${a.status === 'pending' ? `
+        <div class="cn-bid-row-actions">
+          <button class="cn-btn-sm cn-btn-accept" onclick="event.stopPropagation();_cnAcceptApplication('${a.campaign_id}','${a.id}')">Accept</button>
+          <button class="cn-btn-sm cn-btn-reject" onclick="event.stopPropagation();_cnRejectApplication('${a.campaign_id}','${a.id}')">Reject</button>
+        </div>` : ''}
       </div>
-      ${t.unread_count ? `<span style="background:#2196f3;color:#fff;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;">${t.unread_count}</span>` : ''}
-    </div>`;
-  }).join('');
+    `).join('');
+  }
+  if (moreBtn) moreBtn.style.display = _cnBidsHasMore ? '' : 'none';
 }
 
-// Opens a thread from a plain click in the picker list — resolves whether
-// this creator currently has an ACCEPTED (in-negotiation) application so the
-// banner/propose-toggle/fund-form know whether to appear.
-function _cnOpenMsgThread(campaignId, creatorUserId) {
-  _cnActiveNegotiationApp = _cnCurrentApplications.find(a => a.creator_user_id === creatorUserId && a.status === 'accepted') || null;
-  _cnOpenMsgThreadInternal(campaignId, creatorUserId);
-}
-
-// Opens a thread from clicking a specific row in the "In Negotiation" list
-// above — we already know exactly which application this is.
-function _cnOpenNegotiationThread(campaignId, applicationId) {
-  const app = _cnCurrentApplications.find(a => a.id === applicationId);
+// ─── Bid chat (one screen per bid) ──────────────────────────────────────────
+// Reuses the same #cnMsgList / #cnMsgActionCard / #cnMsgInputRow ids the
+// single-thread chat inside the campaign modal uses — safe because this
+// modal only ever opens from the Bids Inbox, i.e. while the campaign has no
+// assigned creator yet, which is exactly when the campaign modal itself has
+// no chat card of its own to collide with.
+function _cnOpenBidChat(campaignId, applicationId) {
+  const app = _cnBidsTotalLoaded.find(a => a.id === applicationId);
   if (!app) return;
   _cnActiveNegotiationApp = app;
-  _cnOpenMsgThreadInternal(campaignId, app.creator_user_id);
-}
+  _cnMsgThreadCreatorId = app.creator_user_id;
 
-function _cnOpenMsgThreadInternal(campaignId, creatorUserId) {
-  _cnMsgThreadCreatorId = creatorUserId;
-  const threadsEl = document.getElementById('cnMsgThreads');
-  const listEl = document.getElementById('cnMsgList');
-  const backEl = document.getElementById('cnMsgBackLink');
-  if (threadsEl) threadsEl.style.display = 'none';
-  if (listEl) listEl.style.display = 'block';
-  if (backEl) backEl.style.display = 'block';
-  _cnRenderActionCard();
+  const modal = document.getElementById('cnBidChatModal');
+  const body = document.getElementById('cnBidChatModalBody');
+  if (!modal || !body) return;
+  body.innerHTML = `
+    <div class="cn-bidchat-head">
+      <button class="cn-bidchat-back" onclick="_cnCloseBidChat()" aria-label="Back to bids inbox">←</button>
+      <div>
+        <div class="cn-bidchat-title">${esc(app.creator_display_name || 'Creator')}</div>
+        <div class="cn-bidchat-sub">${_cnStatusPill(app.status)}</div>
+      </div>
+    </div>
+    <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center;">Loading…</div></div>
+    <div id="cnMsgActionCard"></div>
+    <div id="cnMsgInputRow"></div>
+  `;
+  modal.classList.add('show');
+  _cnRenderBidChatActionCard();
   _cnRenderMsgInputRow(campaignId);
-  _cnLoadMessages(campaignId, creatorUserId);
+  _cnLoadMessages(campaignId, app.creator_user_id);
 }
 
-// Back out of a specific conversation to the "who's messaged" picker —
-// businesses juggling several parallel negotiations need this to switch.
-function _cnShowMsgThreadPicker(campaignId) {
+function _cnCloseBidChat() {
+  document.getElementById('cnBidChatModal').classList.remove('show');
   _cnActiveNegotiationApp = null;
   _cnMsgThreadCreatorId = null;
-  const threadsEl = document.getElementById('cnMsgThreads');
-  const listEl = document.getElementById('cnMsgList');
-  const backEl = document.getElementById('cnMsgBackLink');
-  const actionEl = document.getElementById('cnMsgActionCard');
-  const inputRow = document.getElementById('cnMsgInputRow');
-  if (threadsEl) threadsEl.style.display = 'block';
-  if (listEl) listEl.style.display = 'none';
-  if (backEl) backEl.style.display = 'none';
-  if (actionEl) actionEl.innerHTML = '';
-  if (inputRow) { inputRow.innerHTML = ''; inputRow.style.display = 'none'; }
-  _cnLoadMessageThreads(campaignId);
+  // The bid may have moved tabs (e.g. price changed) — refresh the list
+  // and counts behind it so the inbox reflects the latest state.
+  if (_cnBidsCampaignId) {
+    _cnRefreshBidsCounts(_cnBidsCampaignId);
+    _cnLoadBidsPage(true);
+  }
 }
 
-// Builds the business-side action card (negotiation banner + fund form) for
-// whichever thread is currently open. Only meaningful pre-funding, while the
-// campaign is still 'published' and the open thread's application is still
-// 'accepted' — once funded/rejected/not_selected there's nothing to show
-// here (the chat's system messages already tell that story).
-function _cnRenderActionCard() {
+// The action card for a bid's own chat: the negotiation banner (current
+// agreed figure, for context) plus a single Pay button. No amount
+// breakdown here — that only appears once Pay is tapped (see
+// _cnOpenPaySheet), never just from having the chat open.
+function _cnRenderBidChatActionCard() {
   const el = document.getElementById('cnMsgActionCard');
   if (!el) return;
   const c = _cnCurrentCampaign;
@@ -2488,12 +2683,16 @@ function _cnRenderActionCard() {
   let html = '';
   if (app && app.status === 'accepted' && c.status === 'published') {
     html += `<div class="cn-deal-panel">`
-      + _cnNegotiationBannerHtml({ fundAmount: app.fund_amount_kes, bidAmount: app.bid_amount_kes, agreedAmount: app.agreed_amount_kes })
-      + _cnFundFormHtml(app.id, app.fund_amount_kes)
-      + `</div>`;
+      + _cnNegotiationBannerHtml({ fundAmount: app.fund_amount_kes, bidAmount: app.bid_amount_kes, agreedAmount: app.agreed_amount_kes });
+    html += `<div style="padding:10px 12px;"><button class="cn-pay-btn" style="margin-bottom:0;" onclick="_cnOpenPaySheet('${c.id}','${app.id}')">💳 Pay</button></div>`;
+    html += `</div>`;
   }
   el.innerHTML = html;
 }
+
+// Kept for backward compatibility with any external caller — new code
+// should call _cnRenderBidChatActionCard directly.
+function _cnRenderActionCard() { _cnRenderBidChatActionCard(); }
 
 async function _cnLoadMessages(campaignId, threadCreatorId) {
   const list = document.getElementById('cnMsgList');
