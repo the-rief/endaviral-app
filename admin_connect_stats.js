@@ -1,7 +1,21 @@
 /* ════════════════════════════════════════════════════════════════════
- * ENDAVIRAL — ADMIN CONNECT MARKETPLACE VISIBILITY & ANALYTICS  v1.1
+ * ENDAVIRAL — ADMIN CONNECT MARKETPLACE VISIBILITY & ANALYTICS  v1.2
  *
- * Sub-tabs: Overview | Funnel | Revenue | Leaderboard | Payouts
+ * Sub-tabs: Overview | Funnel | Revenue | Leaderboard | Payouts | Moderation
+ *
+ * Moderation (v1.2) surfaces the same actions previously only reachable
+ * from the Connect page's own internal admin tab (_cnRenderAdmin in
+ * connect.js — still there and still works; this is a second, parallel
+ * entry point into the same endpoints, not a replacement):
+ *   GET  /connect/admin/campaigns/awaiting-review     — 48h review queue
+ *   POST /connect/admin/campaigns/{id}/outreach-attempts
+ *   POST /connect/admin/campaigns/{id}/force-release
+ *   GET  /connect/admin/disputes?status=open
+ *   POST /connect/admin/disputes/{id}/resolve
+ *   GET  /connect/admin/campaigns?frozen_only=true
+ *   POST /connect/admin/campaigns/{id}/freeze | /unfreeze
+ *   POST /connect/admin/creators/{id}/verify | /unverify
+ *   POST /connect/admin/users/{id}/suspend | /unsuspend
  *
  * Depends on: api(), toast(), fmtKES(), esc()  — globals from index.html /
  * admin.js (same dependencies as admin_academy_stats.js — this file is
@@ -75,12 +89,14 @@
  *     <button id="cnSubTab-revenue"     onclick="cnAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
  *     <button id="cnSubTab-leaderboard" onclick="cnAdminSubTab('leaderboard')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Leaderboard</button>
  *     <button id="cnSubTab-payouts"     onclick="cnAdminSubTab('payouts')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">💸 Payouts</button>
+ *     <button id="cnSubTab-moderation"  onclick="cnAdminSubTab('moderation')"  style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">🛡️ Moderation</button>
  *   </div>
  *   <div id="cnAdminPane-overview"><div id="adminConnectOverview"></div></div>
  *   <div id="cnAdminPane-funnel" style="display:none;"><div id="adminConnectFunnel"></div></div>
  *   <div id="cnAdminPane-revenue" style="display:none;"><div id="adminConnectRevenue"></div></div>
  *   <div id="cnAdminPane-leaderboard" style="display:none;"><div id="adminConnectLeaderboard"></div></div>
  *   <div id="cnAdminPane-payouts" style="display:none;"><div id="adminConnectPayouts"></div></div>
+ *   <div id="cnAdminPane-moderation" style="display:none;"><div id="adminConnectModeration"></div></div>
  * </div>
  *
  * ★MODAL
@@ -105,7 +121,7 @@ let _cnAdminCurrentSubTab = 'overview';
 function cnAdminSubTab(tab) {
   _cnAdminCurrentSubTab = tab;
 
-  ['overview', 'funnel', 'revenue', 'leaderboard', 'payouts'].forEach(t => {
+  ['overview', 'funnel', 'revenue', 'leaderboard', 'payouts', 'moderation'].forEach(t => {
     const el = document.getElementById('cnSubTab-' + t);
     if (!el) return;
     el.style.borderBottomColor = t === tab ? 'var(--green)' : 'transparent';
@@ -113,7 +129,7 @@ function cnAdminSubTab(tab) {
     el.style.fontWeight        = t === tab ? '800' : '700';
   });
 
-  ['overview', 'funnel', 'revenue', 'leaderboard', 'payouts'].forEach(t => {
+  ['overview', 'funnel', 'revenue', 'leaderboard', 'payouts', 'moderation'].forEach(t => {
     const p = document.getElementById('cnAdminPane-' + t);
     if (p) p.style.display = t === tab ? '' : 'none';
   });
@@ -128,6 +144,7 @@ function cnAdminSubTab(tab) {
     revenue:     { title: '💰 CONNECT REVENUE',      sub: 'Escrow funding, commission earned & payout queue',          fn: adminLoadConnectRevenue },
     leaderboard: { title: '🏆 CONNECT LEADERBOARD',  sub: 'Top creators & top businesses',                             fn: adminLoadConnectLeaderboard },
     payouts:     { title: '💸 CREATOR PAYOUTS',      sub: 'Approve or reject M-Pesa payout tickets, view conversations', fn: () => adminLoadConnectPayouts('pending') },
+    moderation:  { title: '🛡️ CONNECT MODERATION',   sub: 'Overdue reviews, disputes, frozen campaigns & user status', fn: adminLoadConnectModeration },
   }[tab];
 
   if (titleEl) titleEl.textContent = meta.title;
@@ -619,4 +636,247 @@ function cnCloseConversation() {
   setTimeout(() => { modal.style.display = 'none'; }, 200);
   _cnConvCampaignId = null;
   _cnConvCreatorId  = null;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB 6: MODERATION — same actions previously only reachable from the Connect
+// page's own admin tab (_cnRenderAdmin in connect.js), now also surfaced here
+// so day-to-day moderation doesn't require leaving the main Admin Panel.
+// Deliberately self-contained (own pill/status helpers, own element IDs —
+// "Admin" prefix "cnA") so this keeps working whether or not connect.js
+// happens to be loaded on the same page.
+// ══════════════════════════════════════════════════════════════════════════════
+
+function _cnaPill(status, colorMap, labelMap) {
+  const c = colorMap[status] || 'var(--muted)';
+  const l = (labelMap && labelMap[status]) || (status || '').replace(/_/g, ' ');
+  return `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:10px;background:${c}20;color:${c};text-transform:capitalize;">${esc(l)}</span>`;
+}
+
+const _CNA_DISPUTE_COLORS = { open: '#ff9a3c', resolved: '#3dd44a' };
+
+async function adminLoadConnectModeration() {
+  const container = document.getElementById('adminConnectModeration');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:4px 0 10px;">⏱️ Business Not Responding (48h Review Window)</div>
+    <div id="cnaOverdue"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+
+    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:22px 0 10px;">⚖️ Open Disputes</div>
+    <div id="cnaDisputes"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+
+    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:22px 0 10px;">🧊 Frozen Campaigns</div>
+    <div id="cnaFrozen"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+    <div style="display:flex;gap:8px;align-items:flex-end;margin-top:12px;flex-wrap:wrap;">
+      <div style="flex:2;min-width:160px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Campaign ID to freeze</label>
+        <input type="text" id="cnaFreezeId" placeholder="campaign id" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
+      <div style="flex:2;min-width:160px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Reason</label>
+        <input type="text" id="cnaFreezeReason" placeholder="reason (optional)" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
+      <button class="btn-secondary" onclick="_cnaFreeze()">🧊 Freeze</button>
+    </div>
+
+    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:22px 0 10px;">✅ Verify / 🚫 Suspend a User</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+      <div style="flex:2;min-width:160px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">User ID</label>
+        <input type="text" id="cnaUserId" placeholder="user id" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
+      <div style="flex:1;min-width:120px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Role</label>
+        <select id="cnaUserRole" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;">
+          <option value="creator">Creator</option>
+          <option value="business">Business</option>
+        </select></div>
+      <div style="flex:2;min-width:160px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Reason (for suspend)</label>
+        <input type="text" id="cnaSuspendReason" placeholder="reason (optional)" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px;">
+      <button class="action-btn" onclick="_cnaVerify(true)">✔️ Verify Creator</button>
+      <button class="btn-secondary" onclick="_cnaVerify(false)">Unverify Creator</button>
+      <button class="action-btn" style="color:#ff6b6b;" onclick="_cnaSuspend(true)">🚫 Suspend</button>
+      <button class="btn-secondary" onclick="_cnaSuspend(false)">Unsuspend</button>
+    </div>
+  `;
+  await Promise.all([_cnaLoadOverdue(), _cnaLoadDisputes(), _cnaLoadFrozen()]);
+}
+
+// ─── 48h business non-response: outreach log + force-release ──────────────
+async function _cnaLoadOverdue() {
+  const el = document.getElementById('cnaOverdue');
+  if (!el) return;
+  const warnings = [];
+  const campaigns = await _cnSafeFetch('/connect/admin/campaigns/awaiting-review', 'Awaiting review', warnings) || [];
+  if (warnings.length) { el.innerHTML = ''; el.appendChild(_cnWarnBanner(warnings, 'adminLoadConnectModeration')); return; }
+  if (!campaigns.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🎉</div><p>Nothing awaiting review right now.</p></div>`; return; }
+
+  el.innerHTML = campaigns.map(c => `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+        <span style="font-weight:800;color:var(--white);">${esc(c.title)}</span>
+        ${c.admin_can_force_release
+          ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:10px;background:#ff6b6b20;color:#ff6b6b;">Overdue</span>`
+          : `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:10px;background:#4aa8ff20;color:#4aa8ff;">${c.review_hours_remaining}h left</span>`}
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">Campaign ${esc(c.id)} · ${fmtKES(c.budget_kes)}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        <select id="cnaOutreachChannel-${c.id}" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:7px 9px;color:var(--white);font-size:11.5px;">
+          <option value="phone">Phone</option><option value="sms">SMS</option><option value="email">Email</option>
+        </select>
+        <select id="cnaOutreachOutcome-${c.id}" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:7px 9px;color:var(--white);font-size:11.5px;">
+          <option value="no_answer">No answer</option><option value="answered">Answered</option><option value="unreachable">Unreachable</option>
+        </select>
+        <input type="text" id="cnaOutreachNote-${c.id}" placeholder="note (optional)" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:7px 9px;color:var(--white);font-size:11.5px;">
+        <button class="btn-secondary" style="padding:7px 12px;font-size:11.5px;" onclick="_cnaLogOutreach('${c.id}')">📞 Log Attempt</button>
+      </div>
+      <button class="action-btn" style="width:100%;text-align:center;${c.admin_can_force_release ? 'color:#ff6b6b;' : 'opacity:.5;cursor:not-allowed;'}" ${c.admin_can_force_release ? '' : 'disabled'} onclick="_cnaForceRelease('${c.id}')">
+        ${c.admin_can_force_release ? '⏱️ Force-Release Payment to Creator' : 'Force-release unlocks after 48h'}
+      </button>
+    </div>
+  `).join('');
+}
+
+async function _cnaLogOutreach(campaignId) {
+  const channel = document.getElementById(`cnaOutreachChannel-${campaignId}`).value;
+  const outcome = document.getElementById(`cnaOutreachOutcome-${campaignId}`).value;
+  const note = document.getElementById(`cnaOutreachNote-${campaignId}`).value.trim() || null;
+  try {
+    await api(`/connect/admin/campaigns/${campaignId}/outreach-attempts`, {
+      method: 'POST', body: JSON.stringify({ channel, outcome, note }),
+    });
+    if (typeof toast === 'function') toast('Outreach attempt logged.', 'success');
+  } catch (e) {
+    if (typeof toast === 'function') toast(e.message || 'Could not log outreach attempt', 'error');
+  }
+}
+
+async function _cnaForceRelease(campaignId) {
+  if (!confirm('Release escrow to the creator now? This is only for campaigns where the business has gone quiet past the 48h review window and outreach has been attempted.')) return;
+  try {
+    await api(`/connect/admin/campaigns/${campaignId}/force-release`, { method: 'POST', body: JSON.stringify({}) });
+    if (typeof toast === 'function') toast('Released to creator.', 'success');
+    _cnaLoadOverdue();
+  } catch (e) {
+    if (typeof toast === 'function') toast(e.message || 'Could not force-release', 'error');
+  }
+}
+
+// ─── Disputes ───────────────────────────────────────────────────────────────
+async function _cnaLoadDisputes() {
+  const el = document.getElementById('cnaDisputes');
+  if (!el) return;
+  const warnings = [];
+  const disputes = await _cnSafeFetch('/connect/admin/disputes?status=open', 'Disputes', warnings) || [];
+  if (warnings.length) { el.innerHTML = ''; el.appendChild(_cnWarnBanner(warnings, 'adminLoadConnectModeration')); return; }
+  if (!disputes.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🎉</div><p>No open disputes.</p></div>`; return; }
+
+  el.innerHTML = disputes.map(d => `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-weight:800;color:var(--white);">Campaign ${esc(d.campaign_id.slice(0, 8))}…</span>
+        ${_cnaPill(d.status, _CNA_DISPUTE_COLORS)}
+      </div>
+      <div style="font-size:12.5px;color:var(--white);margin-bottom:10px;">${esc(d.reason)}</div>
+      <input type="text" id="cnaDisputeNote-${d.id}" placeholder="Resolution note (optional)" style="width:100%;margin-bottom:8px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:11.5px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="action-btn" onclick="_cnaResolveDispute('${d.id}','release_to_creator')">Release to Creator</button>
+        <button class="action-btn" style="color:#ff6b6b;" onclick="_cnaResolveDispute('${d.id}','refund_to_business')">Refund Business</button>
+        <button class="action-btn" onclick="_cnaViewDisputeConversation('${d.campaign_id}')">💬 View Conversation</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Disputes don't carry creator_user_id directly, unlike payout rows — the
+// shared conversation viewer needs it to pick the right thread, so resolve
+// it from the campaign itself first.
+async function _cnaViewDisputeConversation(campaignId) {
+  try {
+    const campaign = await api(`/connect/campaigns/${campaignId}`);
+    if (!campaign.creator_user_id) { if (typeof toast === 'function') toast('No creator assigned to this campaign yet', 'error'); return; }
+    await cnViewConversation(campaignId, campaign.creator_user_id, 'Conversation', campaign.title || '');
+  } catch (e) {
+    if (typeof toast === 'function') toast(e.message || 'Could not open conversation', 'error');
+  }
+}
+
+async function _cnaResolveDispute(disputeId, resolution) {
+  const note = document.getElementById(`cnaDisputeNote-${disputeId}`)?.value.trim() || null;
+  try {
+    await api(`/connect/admin/disputes/${disputeId}/resolve`, {
+      method: 'POST', body: JSON.stringify({ resolution, resolution_note: note }),
+    });
+    if (typeof toast === 'function') toast('Dispute resolved', 'success');
+    _cnaLoadDisputes();
+  } catch (e) {
+    if (typeof toast === 'function') toast(e.message || 'Could not resolve dispute', 'error');
+  }
+}
+
+// ─── Frozen campaigns ───────────────────────────────────────────────────────
+async function _cnaLoadFrozen() {
+  const el = document.getElementById('cnaFrozen');
+  if (!el) return;
+  const warnings = [];
+  const campaigns = await _cnSafeFetch('/connect/admin/campaigns?frozen_only=true', 'Frozen campaigns', warnings) || [];
+  if (warnings.length) { el.innerHTML = ''; el.appendChild(_cnWarnBanner(warnings, 'adminLoadConnectModeration')); return; }
+  if (!campaigns.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🧊</div><p>No frozen campaigns.</p></div>`; return; }
+
+  el.innerHTML = campaigns.map(c => `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-weight:800;color:var(--white);">${esc(c.title)}</span>
+        ${_cnaPill(c.status, _CN_STATUS_COLORS, _CN_STATUS_LABELS)}
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">${c.frozen_reason ? esc(c.frozen_reason) : 'No reason given'}</div>
+      <button class="action-btn" onclick="_cnaUnfreeze('${c.id}')">Unfreeze</button>
+    </div>
+  `).join('');
+}
+
+async function _cnaFreeze() {
+  const id = document.getElementById('cnaFreezeId').value.trim();
+  const reason = document.getElementById('cnaFreezeReason').value.trim() || null;
+  if (!id) { if (typeof toast === 'function') toast('Enter a campaign ID', 'error'); return; }
+  try {
+    await api(`/connect/admin/campaigns/${id}/freeze`, { method: 'POST', body: JSON.stringify({ reason }) });
+    if (typeof toast === 'function') toast('Campaign frozen', 'success');
+    document.getElementById('cnaFreezeId').value = '';
+    document.getElementById('cnaFreezeReason').value = '';
+    _cnaLoadFrozen();
+  } catch (e) {
+    if (typeof toast === 'function') toast(e.message || 'Could not freeze campaign', 'error');
+  }
+}
+
+async function _cnaUnfreeze(campaignId) {
+  try {
+    await api(`/connect/admin/campaigns/${campaignId}/unfreeze`, { method: 'POST' });
+    if (typeof toast === 'function') toast('Campaign unfrozen', 'success');
+    _cnaLoadFrozen();
+  } catch (e) {
+    if (typeof toast === 'function') toast(e.message || 'Could not unfreeze campaign', 'error');
+  }
+}
+
+// ─── Verify / suspend ───────────────────────────────────────────────────────
+async function _cnaVerify(verify) {
+  const userId = document.getElementById('cnaUserId').value.trim();
+  if (!userId) { if (typeof toast === 'function') toast('Enter a user ID', 'error'); return; }
+  try {
+    await api(`/connect/admin/creators/${userId}/${verify ? 'verify' : 'unverify'}`, { method: 'POST' });
+    if (typeof toast === 'function') toast(verify ? 'Creator verified' : 'Creator unverified', 'success');
+  } catch (e) {
+    if (typeof toast === 'function') toast(e.message || 'Could not update verification', 'error');
+  }
+}
+
+async function _cnaSuspend(suspend) {
+  const userId = document.getElementById('cnaUserId').value.trim();
+  const role = document.getElementById('cnaUserRole').value;
+  const reason = document.getElementById('cnaSuspendReason').value.trim() || null;
+  if (!userId) { if (typeof toast === 'function') toast('Enter a user ID', 'error'); return; }
+  try {
+    const path = `/connect/admin/users/${userId}/${suspend ? 'suspend' : 'unsuspend'}?role=${role}`;
+    await api(path, { method: 'POST', body: suspend ? JSON.stringify({ reason }) : undefined });
+    if (typeof toast === 'function') toast(suspend ? 'User suspended' : 'User unsuspended', 'success');
+  } catch (e) {
+    if (typeof toast === 'function') toast(e.message || 'Could not update suspension', 'error');
+  }
 }

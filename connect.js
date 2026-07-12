@@ -832,6 +832,13 @@ function _cnRenderCampaignModal() {
   `;
 
   // ── Role/status-specific action area ──────────────────────────────────
+  // These used to render as a separate block above the chat. They now
+  // collect into actionHtml and get slotted INTO the chat panel itself
+  // (between the message timeline and the input row) further down, so
+  // "Fund Now" / "Submit for Review" / "Approve" / "Request Payout" are
+  // buttons the business and creator see right where they're already
+  // talking, not on a separate part of the page.
+  let actionHtml = '';
   if (!c.is_frozen) {
   if (!isBusinessOwner && c.status === 'published' && _cnRole === 'creator') {
     html += _cnApplyFormHtml();
@@ -862,29 +869,36 @@ function _cnRenderCampaignModal() {
     html += `<button class="btn-secondary" style="width:100%;margin-top:10px;" onclick="_cnOpenInviteModal(null,null,'${c.id}')">✉️ Invite a Creator Directly</button>`;
   }
 
+  // Pay Now — lives in the chat panel below, right where the business
+  // and creator agreed the work would happen.
   if (isBusinessOwner && c.status === 'awaiting_fund') {
-    html += _cnFundFormHtml();
+    actionHtml += _cnFundFormHtml();
   }
 
+  // Submit for Review — the creator's N-video batch + self-check, in-chat.
   if (isAssignedCreator && c.status === 'funded') {
-    html += _cnDeliverableFormHtml();
+    actionHtml += _cnDeliverableFormHtml();
   }
 
+  // Approve/Reject the submitted round — in-chat, with the 48h countdown.
   if (isBusinessOwner && c.status === 'submitted') {
-    html += `<div class="cn-section-lbl">Review Submission</div><div id="cnDeliverableReview">Loading…</div>`;
-    _cnLoadDeliverableForReview(c.id);
+    actionHtml += `<div class="cn-section-lbl">Review Submission ${_cnReviewCountdownHtml(c)}</div><div id="cnDeliverableReview">Loading…</div>`;
+  }
+  if (isAssignedCreator && c.status === 'submitted') {
+    actionHtml += `<div class="cn-section-lbl">Awaiting Business Review ${_cnReviewCountdownHtml(c)}</div><div style="font-size:12px;color:var(--muted);">The business has ${CN_REVIEW_WINDOW_HOURS}h to approve or explain a rejection. If they go quiet, EndaViral admin will follow up.</div>`;
   }
 
   if ((isBusinessOwner || isAssignedCreator) && ['funded', 'submitted', 'under_review'].includes(c.status)) {
-    html += `<button class="btn-secondary" style="margin-top:10px;width:100%;" onclick="_cnOpenDisputeForm()">⚠️ Open a Dispute</button><div id="cnDisputeForm"></div>`;
+    actionHtml += `<button class="btn-secondary" style="margin-top:10px;width:100%;" onclick="_cnOpenDisputeForm()">⚠️ Open a Dispute</button><div id="cnDisputeForm"></div>`;
   }
 
   if ((isBusinessOwner || isAssignedCreator) && c.status === 'completed') {
-    html += `<div id="cnReviewArea">${_cnReviewFormHtml()}</div>`;
+    actionHtml += `<div id="cnReviewArea">${_cnReviewFormHtml()}</div>`;
   }
 
+  // Request Payout — in-chat, once the business has approved.
   if (isAssignedCreator && c.status === 'completed') {
-    html += `<div class="cn-section-lbl">💰 Payout</div><div id="cnPayoutArea"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>`;
+    actionHtml += `<div class="cn-section-lbl">💰 Payout</div><div id="cnPayoutArea"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>`;
   }
 
   if (isBusinessOwner && ['completed', 'cancelled'].includes(c.status)) {
@@ -906,6 +920,7 @@ function _cnRenderCampaignModal() {
       // interested creators, so show a thread picker first.
       html += `<div id="cnMsgThreads"><div style="color:var(--muted);font-size:12px;">Loading conversations…</div></div>`;
       html += `<div class="cn-msgs" id="cnMsgList" style="display:none;"></div>
+        <div id="cnMsgActionCard"></div>
         <div id="cnMsgInputRow" style="display:none;gap:8px;">
           <input type="text" id="cnMsgInput" placeholder="Type a message…" style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" onkeydown="if(event.key==='Enter')_cnSendMessage('${c.id}')">
           <button class="btn-secondary" onclick="_cnSendMessage('${c.id}')">Send</button>
@@ -914,12 +929,18 @@ function _cnRenderCampaignModal() {
       _cnMsgThreadCreatorId = isBusinessOwner ? c.creator_user_id : currentUser.id;
       html += `
         <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>
+        <div id="cnMsgActionCard">${actionHtml}</div>
         <div style="display:flex;gap:8px;">
           <input type="text" id="cnMsgInput" placeholder="Type a message…" style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;" onkeydown="if(event.key==='Enter')_cnSendMessage('${c.id}')">
           <button class="btn-secondary" onclick="_cnSendMessage('${c.id}')">Send</button>
         </div>
       `;
     }
+  } else if (actionHtml) {
+    // No chat access for this viewer (shouldn't normally happen for the
+    // two parties) — fall back to showing the action card standalone so
+    // nothing is ever unreachable.
+    html += `<div id="cnMsgActionCard">${actionHtml}</div>`;
   }
 
   body.innerHTML = html;
@@ -929,8 +950,23 @@ function _cnRenderCampaignModal() {
   } else if (isBusinessOwner || creatorCanMessage) {
     _cnLoadMessages(c.id, _cnMsgThreadCreatorId);
   }
+  if (isBusinessOwner && c.status === 'submitted') _cnLoadDeliverableForReview(c.id);
   if (isAssignedCreator && c.status === 'completed') _cnLoadPayoutArea(c);
 }
+
+// 48h business-review countdown badge, shown next to the review section
+// both in the business's "approve/reject" card and the creator's "awaiting
+// review" note — same numbers, same source (server-computed, never
+// re-derived client-side).
+function _cnReviewCountdownHtml(c) {
+  if (!c.review_hours_remaining && c.review_hours_remaining !== 0) return '';
+  const overdue = c.review_hours_remaining <= 0;
+  const label = overdue
+    ? `Review window passed — EndaViral admin can step in`
+    : `${c.review_hours_remaining}h left to review`;
+  return `<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;${overdue ? 'background:#e5393520;color:#ff8a80;' : 'background:#2196f320;color:#64b5f6;'}">${label}</span>`;
+}
+const CN_REVIEW_WINDOW_HOURS = 48;
 
 // ─── Apply (creator) ──────────────────────────────────────────────────────────
 function _cnApplyFormHtml() {
@@ -1067,25 +1103,51 @@ function _cnPollFunding(campaignId, checkoutRequestId) {
 
 // ─── Submit deliverable (creator) ─────────────────────────────────────────────
 function _cnDeliverableFormHtml() {
+  const n = (_cnCurrentCampaign && _cnCurrentCampaign.required_deliverable_count) || 1;
+  const rows = Array.from({ length: n }, (_, i) => i + 1).map(i => `
+    <div class="cn-field" style="border-left:2px solid var(--border);padding-left:10px;margin-bottom:10px;">
+      <label>Video ${i} of ${n} — Link</label>
+      <input type="text" id="cnDelivUrl${i}" placeholder="https://...">
+      <label style="margin-top:6px;">Platform</label>
+      <select id="cnDelivPlatform${i}" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--white);width:100%;">
+        <option value="tiktok">TikTok</option>
+        <option value="instagram">Instagram</option>
+        <option value="facebook">Facebook</option>
+        <option value="youtube">YouTube</option>
+      </select>
+    </div>
+  `).join('');
+
   return `
-    <div class="cn-section-lbl">Submit Your Work</div>
-    <div class="cn-field"><label>Content URL</label><input type="text" id="cnDelivUrl" placeholder="https://..."></div>
+    <div class="cn-section-lbl">Submit Your Work (${n} video${n === 1 ? '' : 's'} required)</div>
+    ${rows}
     <div class="cn-field"><label>Note (optional)</label><textarea id="cnDelivNote" placeholder="Anything the business should know"></textarea></div>
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--white);margin:10px 0;cursor:pointer;">
+      <input type="checkbox" id="cnDelivConfirm" style="margin-top:2px;">
+      <span>I confirm this work was completed and is genuinely posted live on my socials at the link(s) above.</span>
+    </label>
     <button class="btn-primary" id="cnDelivBtn" onclick="_cnSubmitDeliverable('${_cnCurrentCampaign.id}')">Submit for Review</button>
   `;
 }
 
 async function _cnSubmitDeliverable(campaignId) {
-  const content_url = document.getElementById('cnDelivUrl').value.trim();
-  const note = document.getElementById('cnDelivNote').value.trim() || null;
-  if (!content_url) { toast('Add a link to your content', 'error'); return; }
+  const n = (_cnCurrentCampaign && _cnCurrentCampaign.required_deliverable_count) || 1;
+  const items = [];
+  for (let i = 1; i <= n; i++) {
+    const url = document.getElementById(`cnDelivUrl${i}`).value.trim();
+    if (!url) { toast(`Add the link for video ${i} of ${n}`, 'error'); return; }
+    items.push({ content_url: url, platform_posted_to: document.getElementById(`cnDelivPlatform${i}`).value });
+  }
+  const confirmed_posted = document.getElementById('cnDelivConfirm').checked;
+  if (!confirmed_posted) { toast('Please confirm the work was completed and posted before submitting.', 'error'); return; }
+  const confirmation_note = document.getElementById('cnDelivNote').value.trim() || null;
 
   const btn = document.getElementById('cnDelivBtn');
   btn.disabled = true; btn.textContent = 'Submitting…';
   try {
     await api(`/connect/campaigns/${campaignId}/deliverables`, {
       method: 'POST',
-      body: JSON.stringify({ content_url, note }),
+      body: JSON.stringify({ items, confirmed_posted, confirmation_note }),
     });
     toast('Submitted for review!', 'success');
     _cnOpenCampaign(campaignId);
@@ -1097,22 +1159,28 @@ async function _cnSubmitDeliverable(campaignId) {
 
 // ─── Review deliverable (business) ─────────────────────────────────────────────
 async function _cnLoadDeliverableForReview(campaignId) {
-  // The campaign detail response already carries the pending deliverable
-  // (id, content_url, note) whenever status is 'submitted' — no separate
-  // fetch needed, and it's what lets the business actually see the link
-  // to the posted work before approving payment.
+  // The campaign detail response already carries the pending round
+  // (id/content_url/platform/note per video) whenever status is
+  // 'submitted' — the business reviews and approves/rejects all of them
+  // together, never a single video out of the required set.
   const el = document.getElementById('cnDeliverableReview');
   if (!el) return;
-  const d = _cnCurrentCampaign && _cnCurrentCampaign.pending_deliverable;
-  if (!d) {
+  const rows = (_cnCurrentCampaign && _cnCurrentCampaign.pending_round) || [];
+  if (!rows.length) {
     el.innerHTML = `<div style="font-size:12px;color:var(--muted);">Couldn't load the submission — refresh and try again.</div>`;
     return;
   }
   el.innerHTML = `
-    <div class="cn-row"><span class="k">Submitted Link</span><span class="v"><a href="${esc(d.content_url)}" target="_blank" rel="noopener" style="color:#2196f3;">${esc(d.content_url)}</a></span></div>
-    ${d.note ? `<div style="font-size:12px;color:var(--white);margin:8px 0;">${esc(d.note)}</div>` : ''}
+    ${rows.map(d => `
+      <div class="cn-row" style="align-items:flex-start;">
+        <span class="k">Video ${d.sequence_no}${d.platform_posted_to ? ` (${esc(d.platform_posted_to)})` : ''}</span>
+        <span class="v"><a href="${esc(d.content_url)}" target="_blank" rel="noopener" style="color:#2196f3;">${esc(d.content_url)}</a></span>
+      </div>
+      ${d.note ? `<div style="font-size:11.5px;color:var(--muted);margin:2px 0 8px;">${esc(d.note)}</div>` : ''}
+    `).join('')}
+    <div style="font-size:11px;color:var(--muted);margin:6px 0 10px;">Creator confirmed all ${rows.length} video(s) are posted and live.</div>
     <div style="font-size:12px;color:var(--muted);margin:10px 0;">Check the content, then approve to release payment (85% to creator, 15% platform fee) or reject to request changes.</div>
-    <div class="cn-field"><label>Review Note (optional)</label><textarea id="cnReviewNote" placeholder="Feedback for the creator"></textarea></div>
+    <div class="cn-field"><label>Review Note ${'(required if rejecting)'}</label><textarea id="cnReviewNote" placeholder="Feedback for the creator"></textarea></div>
     <div style="display:flex;gap:10px;">
       <button class="btn-secondary" style="flex:1;" onclick="_cnReviewDeliverable('${campaignId}','reject')">Request Changes</button>
       <button class="btn-primary" style="flex:1;margin-top:0;" onclick="_cnReviewDeliverable('${campaignId}','approve')">✅ Approve & Pay</button>
@@ -1122,15 +1190,13 @@ async function _cnLoadDeliverableForReview(campaignId) {
 
 async function _cnReviewDeliverable(campaignId, decision) {
   const review_note = document.getElementById('cnReviewNote')?.value.trim() || null;
-  const deliverableId = _cnCurrentCampaign && _cnCurrentCampaign.pending_deliverable && _cnCurrentCampaign.pending_deliverable.id;
-
-  if (!deliverableId) {
-    toast('Could not find the submission to review — refresh and try again.', 'error');
+  if (decision === 'reject' && !review_note) {
+    toast('Please describe why the work is being rejected', 'error');
     return;
   }
 
   try {
-    await api(`/connect/campaigns/${campaignId}/deliverables/${deliverableId}/${decision}`, {
+    await api(`/connect/campaigns/${campaignId}/deliverables/${decision}`, {
       method: 'POST',
       body: JSON.stringify({ review_note }),
     });
@@ -1233,27 +1299,54 @@ async function _cnLoadPayoutArea(c) {
     ? `<div style="font-size:12px;color:#ff8a80;margin-bottom:8px;">Your last payout request was rejected${existing.admin_note ? `: ${esc(existing.admin_note)}` : ''}. Fix the details below and re-request.</div>`
     : '';
 
+  // Default per-video links from the approved round (fetched via the
+  // pending_round the last time it was submitted — for a completed
+  // campaign we re-fetch the round rows so a reload still has them).
+  let items = (existing && existing.items && existing.items.length) ? existing.items : null;
+  if (!items) {
+    try {
+      items = await api(`/connect/campaigns/${c.id}/deliverables/approved-round`);
+    } catch (_) { items = null; }
+  }
+  const n = c.required_deliverable_count || 1;
+  const rowsHtml = Array.from({ length: n }, (_, i) => i + 1).map(seq => {
+    const match = (items || []).find(it => it.sequence_no === seq);
+    return `
+      <div class="cn-field">
+        <label>Video ${seq} of ${n} — Link${match ? '' : ' (confirm/edit)'}</label>
+        <input type="text" id="cnPayoutUrl${seq}" value="${esc((match && match.content_url) || '')}" placeholder="https://...">
+      </div>
+    `;
+  }).join('');
+
   el.innerHTML = `
     ${breakdown}
     ${rejectedNote}
     <div class="cn-field"><label>M-Pesa Phone Number</label><input type="text" id="cnPayoutPhone" value="${esc(phone)}" placeholder="07XXXXXXXX"></div>
-    <div class="cn-field"><label>Link to Your Posted Work</label><input type="text" id="cnPayoutUrl" placeholder="https://..."></div>
+    ${rowsHtml}
     <button class="btn-primary" id="cnPayoutBtn" onclick="_cnRequestPayout('${c.id}')">Request Payout</button>
   `;
 }
 
 async function _cnRequestPayout(campaignId) {
   const phone = document.getElementById('cnPayoutPhone').value.trim();
-  const content_url = document.getElementById('cnPayoutUrl').value.trim();
   if (!phone) { toast('Enter your M-Pesa phone number', 'error'); return; }
-  if (!content_url) { toast('Add the link to your posted work', 'error'); return; }
+
+  const n = (_cnCurrentCampaign && _cnCurrentCampaign.required_deliverable_count) || 1;
+  const items = [];
+  for (let seq = 1; seq <= n; seq++) {
+    const el = document.getElementById(`cnPayoutUrl${seq}`);
+    const url = el ? el.value.trim() : '';
+    if (!url) { toast(`Add the link for video ${seq} of ${n}`, 'error'); return; }
+    items.push({ sequence_no: seq, content_url: url });
+  }
 
   const btn = document.getElementById('cnPayoutBtn');
   btn.disabled = true; btn.textContent = 'Submitting…';
   try {
     await api(`/connect/campaigns/${campaignId}/payout-request`, {
       method: 'POST',
-      body: JSON.stringify({ phone, content_url }),
+      body: JSON.stringify({ phone, items }),
     });
     toast('Payout requested — EndaViral will send your money via M-Pesa.', 'success');
     _cnOpenCampaign(campaignId);
@@ -1311,6 +1404,15 @@ async function _cnLoadMessages(campaignId, threadCreatorId) {
     return;
   }
   list.innerHTML = messages.map(m => {
+    if (m.is_system) {
+      // Shared timeline entry — funded / submitted / approved / payout /
+      // outreach events both parties see, rendered centered and distinct
+      // from a normal chat bubble so it reads as "what happened" rather
+      // than "what someone said".
+      return `<div class="cn-msg-system" style="text-align:center;margin:10px 0;">
+        <div style="display:inline-block;background:rgba(33,150,243,.1);border:1px solid rgba(33,150,243,.25);border-radius:10px;padding:8px 14px;font-size:11.5px;color:var(--white);max-width:90%;">${esc(m.body)}</div>
+      </div>`;
+    }
     const mine = currentUser && m.sender_user_id === currentUser.id;
     return `<div class="cn-msg ${mine ? 'mine' : ''}">
       ${!mine ? `<div class="who">${m.sender_user_id === _cnCurrentCampaign.business_user_id ? 'Business' : 'Creator'}</div>` : ''}
@@ -1613,6 +1715,9 @@ async function _cnRenderAdmin(target) {
     </div>
     <div id="cnAdminPayouts"><div class="cn-empty">Loading…</div></div>
 
+    <div class="cn-section-lbl">Business Not Responding (48h Review Window)</div>
+    <div id="cnAdminOverdue"><div class="cn-empty">Loading…</div></div>
+
     <div class="cn-section-lbl">Open Disputes</div>
     <div id="cnAdminDisputes"><div class="cn-empty">Loading…</div></div>
 
@@ -1645,7 +1750,69 @@ async function _cnRenderAdmin(target) {
       <button class="btn-secondary" onclick="_cnAdminSuspend(false)">Unsuspend</button>
     </div>
   `;
-  await Promise.all([_cnLoadAdminStats(), _cnLoadAdminPayouts('pending'), _cnLoadAdminDisputes(), _cnLoadAdminFrozen()]);
+  await Promise.all([_cnLoadAdminStats(), _cnLoadAdminPayouts('pending'), _cnLoadAdminDisputes(), _cnLoadAdminFrozen(), _cnLoadAdminOverdue()]);
+}
+
+// ─── 48h business non-response (submitted, review window elapsed) ─────────
+async function _cnLoadAdminOverdue() {
+  const el = document.getElementById('cnAdminOverdue');
+  if (!el) return;
+  let campaigns;
+  try {
+    campaigns = await api('/connect/admin/campaigns/awaiting-review');
+  } catch (e) { el.innerHTML = `<div class="cn-empty">Could not load.</div>`; return; }
+
+  if (!campaigns.length) { el.innerHTML = `<div class="cn-empty">Nothing awaiting review right now.</div>`; return; }
+
+  el.innerHTML = campaigns.map(c => `
+    <div class="cn-app-row" id="cnOverdueRow-${c.id}">
+      <div class="cn-app-top">
+        <span style="font-weight:700;">${esc(c.title)}</span>
+        ${c.admin_can_force_release
+          ? `<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e5393520;color:#ff8a80;">Overdue</span>`
+          : `<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#2196f320;color:#64b5f6;">${c.review_hours_remaining}h left</span>`}
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Campaign ${c.id} — ${fmtKES(c.budget_kes)}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <select id="cnOutreachChannel-${c.id}" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--white);font-size:11.5px;">
+          <option value="phone">Phone</option><option value="sms">SMS</option><option value="email">Email</option>
+        </select>
+        <select id="cnOutreachOutcome-${c.id}" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--white);font-size:11.5px;">
+          <option value="no_answer">No answer</option><option value="answered">Answered</option><option value="unreachable">Unreachable</option>
+        </select>
+        <input type="text" id="cnOutreachNote-${c.id}" placeholder="note (optional)" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--white);font-size:11.5px;">
+        <button class="btn-secondary" style="padding:6px 10px;font-size:11.5px;" onclick="_cnAdminLogOutreach('${c.id}')">📞 Log Attempt</button>
+      </div>
+      <button class="cn-btn-sm cn-btn-reject" style="width:100%;" ${c.admin_can_force_release ? '' : 'disabled'} onclick="_cnAdminForceRelease('${c.id}')">
+        ${c.admin_can_force_release ? '⏱️ Force-Release Payment to Creator' : 'Force-release unlocks after 48h'}
+      </button>
+    </div>
+  `).join('');
+}
+
+async function _cnAdminLogOutreach(campaignId) {
+  const channel = document.getElementById(`cnOutreachChannel-${campaignId}`).value;
+  const outcome = document.getElementById(`cnOutreachOutcome-${campaignId}`).value;
+  const note = document.getElementById(`cnOutreachNote-${campaignId}`).value.trim() || null;
+  try {
+    await api(`/connect/admin/campaigns/${campaignId}/outreach-attempts`, {
+      method: 'POST', body: JSON.stringify({ channel, outcome, note }),
+    });
+    toast('Outreach attempt logged.', 'success');
+  } catch (e) {
+    toast(e.message || 'Could not log outreach attempt', 'error');
+  }
+}
+
+async function _cnAdminForceRelease(campaignId) {
+  if (!confirm('Release escrow to the creator now? This is only for campaigns where the business has gone quiet past the 48h review window and outreach has been attempted.')) return;
+  try {
+    await api(`/connect/admin/campaigns/${campaignId}/force-release`, { method: 'POST', body: JSON.stringify({}) });
+    toast('Released to creator.', 'success');
+    _cnLoadAdminOverdue();
+  } catch (e) {
+    toast(e.message || 'Could not force-release', 'error');
+  }
 }
 
 // ─── Payout requests (admin confirms the M-Pesa transfer went out) ─────────
