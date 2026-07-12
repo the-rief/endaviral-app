@@ -235,7 +235,7 @@ function _cnHeroCopy(role) {
   } : {
     eyebrow: '🏢 For Businesses',
     title: 'Get real creators making content for your brand',
-    sub: 'Post a campaign or invite creators directly. Your budget sits safely in EndaViral escrow until you approve the finished work — you only pay when you\'re happy.',
+    sub: 'Post a campaign or invite creators directly. Your budget sits safely in EndaViral until you approve the finished work — you only pay when you\'re happy.',
   };
 }
 
@@ -249,7 +249,7 @@ function _cnJourneySteps(role) {
     { title: 'Join & accept terms', desc: 'Tap Join, accept the marketplace terms — takes under a minute.' },
     { title: 'Set up your profile', desc: 'Tell us who you are so creators know your brand is legit.' },
     { title: 'Post a campaign', desc: 'Set a budget and deliverables, then invite creators or wait for applications.' },
-    { title: 'Fund, review & pay', desc: 'Fund escrow once you pick a creator. Approve the finished work and EndaViral releases the payment.' },
+    { title: 'Fund, review & pay', desc: 'Fund the campaign once you pick a creator. Approve the finished work and EndaViral releases the payment.' },
   ];
 }
 
@@ -286,7 +286,7 @@ function _cnRenderShell(sec) {
       <div class="cn-hero-title">${esc(hero.title)}</div>
       <div class="cn-hero-sub">${esc(hero.sub)}</div>
       <div class="cn-hero-badges">
-        <span class="cn-hero-badge">🔒 Escrow protected</span>
+        <span class="cn-hero-badge">🔒 Payments protected</span>
         <span class="cn-hero-badge">💸 M-Pesa payouts</span>
         <span class="cn-hero-badge">✅ 15% fee — only on completed work</span>
         <span class="cn-hero-badge">⭐ Rated by both sides</span>
@@ -443,7 +443,7 @@ function _cnRenderJoinScreen(target, role) {
       <div style="font-size:12.5px;color:var(--muted);margin-bottom:18px;line-height:1.6;">
         ${isCreator
           ? 'Get discovered by brands, apply to paid campaigns, and get paid via M-Pesa once your work is approved.'
-          : 'Post paid campaigns, discover creators, and pay securely through EndaViral escrow.'}
+          : 'Post paid campaigns, discover creators, and pay securely through EndaViral.'}
       </div>
 
       <div class="cn-section-lbl" style="margin-top:0;">Before you join</div>
@@ -462,7 +462,7 @@ function _cnRenderJoinScreen(target, role) {
         <span>I have read and agree to the <a href="#" onclick="return _cnOpenTos()">EndaViral Connect Marketplace Terms of Service</a>, and confirm I am at least 18 years old or have legal authority to enter into this agreement.</span>
       </label>
 
-      <button class="btn-primary" id="cnJoinBtn" style="margin-top:6px;" onclick="_cnSubmitJoin('${role}')" disabled>Join the Marketplace</button>
+      <button class="btn-primary" id="cnJoinBtn" style="margin-top:6px;" onclick="_cnSubmitJoin('${role}')" disabled>Accept & Join the Marketplace</button>
     </div>
   `;
 }
@@ -498,7 +498,7 @@ async function _cnSubmitJoin(role) {
     _cnSetTab('profile');
   } catch (e) {
     toast(e.message || 'Could not join', 'error');
-    btn.disabled = false; btn.textContent = 'Join the Marketplace';
+    btn.disabled = false; btn.textContent = 'Accept & Join the Marketplace';
   }
 }
 
@@ -604,7 +604,7 @@ function _cnRenderCreateForm(target) {
       </select>
     </div>
     <div class="cn-field">
-      <label>Budget (KES) — this funds escrow once a creator is accepted</label>
+      <label>Budget (KES) — this funds the campaign once a creator is accepted</label>
       <input type="number" id="cnNewBudget" min="1" placeholder="e.g. 3000">
     </div>
     <div class="cn-field">
@@ -828,7 +828,7 @@ function _cnRenderCampaignModal() {
     ${c.min_followers ? `<div class="cn-row"><span class="k">Min. Followers</span><span class="v">${c.min_followers.toLocaleString()}</span></div>` : ''}
     ${c.required_niche ? `<div class="cn-row"><span class="k">Niche</span><span class="v">${esc(c.required_niche)}</span></div>` : ''}
     ${c.content_guidelines ? `<div class="cn-row"><span class="k">Guidelines</span><span class="v">${esc(c.content_guidelines)}</span></div>` : ''}
-    ${c.escrow_kes > 0 ? `<div class="cn-row"><span class="k">Escrow Held</span><span class="v" style="color:var(--green);">${fmtKES(c.escrow_kes)}</span></div>` : ''}
+    ${c.escrow_kes > 0 ? `<div class="cn-row"><span class="k">Payments Held</span><span class="v" style="color:var(--green);">${fmtKES(c.escrow_kes)}</span></div>` : ''}
   `;
 
   // ── Role/status-specific action area ──────────────────────────────────
@@ -971,7 +971,7 @@ async function _cnSubmitApplication(campaignId) {
 async function _cnAcceptApplication(campaignId, applicationId) {
   try {
     await api(`/connect/campaigns/${campaignId}/applications/${applicationId}/accept`, { method: 'POST' });
-    toast('Application accepted — fund escrow next to get started!', 'success');
+    toast('Application accepted — fund campaign next to get started!', 'success');
     _cnOpenCampaign(campaignId);
   } catch (e) {
     toast(e.message || 'Could not accept application', 'error');
@@ -992,7 +992,7 @@ async function _cnRejectApplication(campaignId, applicationId) {
 function _cnFundFormHtml() {
   const phone = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
   return `
-    <div class="cn-section-lbl">Fund Escrow to Start</div>
+    <div class="cn-section-lbl">Fund Campaign to Start</div>
     <div id="cnFundForm">
       <div class="cn-field"><label>M-Pesa Phone Number</label><input type="text" id="cnFundPhone" value="${esc(phone)}" placeholder="07XXXXXXXX"></div>
       <button class="btn-primary" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}')">📱 Send STK Push</button>
@@ -1000,7 +1000,7 @@ function _cnFundFormHtml() {
     <div id="cnFundStatus" style="display:none;text-align:center;padding:20px 0;">
       <div style="font-size:32px;margin-bottom:8px;" id="cnFundIcon">📱</div>
       <div style="font-weight:800;color:var(--white);margin-bottom:4px;" id="cnFundTitle">WAITING FOR PAYMENT</div>
-      <div style="font-size:12px;color:var(--muted);" id="cnFundDesc">Enter your M-Pesa PIN to fund escrow.</div>
+      <div style="font-size:12px;color:var(--muted);" id="cnFundDesc">Enter your M-Pesa PIN to fund the campaign.</div>
     </div>
   `;
 }
@@ -1048,9 +1048,9 @@ function _cnPollFunding(campaignId, checkoutRequestId) {
     if (data.status === 'success') {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
       if (icon) icon.textContent = '✅';
-      if (title) title.textContent = 'ESCROW FUNDED';
+      if (title) title.textContent = 'CAMPAIGN FUNDED';
       if (desc) desc.textContent = 'The creator can now start work.';
-      toast('🎉 Escrow funded!', 'success');
+      toast('🎉 Campaign funded!', 'success');
       setTimeout(() => _cnOpenCampaign(campaignId), 1200);
     } else if (data.status === 'failed' || data.status === 'cancelled') {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
@@ -1410,7 +1410,7 @@ function _cnStatusPillGeneric(status) {
 async function _cnAcceptInvite(inviteId) {
   try {
     await api(`/connect/invites/${inviteId}/accept`, { method: 'POST' });
-    toast('Invite accepted — fund it once the business pays into escrow.', 'success');
+    toast('Invite accepted — fund it once the business pays.', 'success');
     _cnRenderInvites(document.getElementById('cnTabContent'));
   } catch (e) {
     toast(e.message || 'Could not accept invite', 'error');

@@ -1751,6 +1751,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="admin-tab" onclick="adminTab('create-order',this)">➕ Create Order</div>
           <div class="admin-tab" onclick="adminTab('affiliate-payouts',this)" id="affPayoutsTabBtn">💸 Payouts</div>
           <div class="admin-tab" onclick="adminTab('academy', this)">🎓 Academy</div>
+          <div class="admin-tab" onclick="adminTab('connect', this)">🤝 Connect</div>
         </div>
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
@@ -2025,6 +2026,26 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div id="acAdminPane-funnel" style="display:none;"><div id="adminAcademyFunnel"></div></div>
           <div id="acAdminPane-revenue" style="display:none;"><div id="adminAcademyRevenue"></div></div>
           <div id="acAdminPane-leaderboard" style="display:none;"><div id="adminAcademyLeaderboard"></div></div>
+        </div>
+
+        <div class="admin-panel" id="ap-connect">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+            <div>
+              <div style="font-size:16px;font-weight:900;color:var(--white);" id="cnAdminPanelTitle">📊 CONNECT OVERVIEW</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="cnAdminPanelSub">Marketplace visibility, campaign lifecycle, revenue &amp; top performers</div>
+            </div>
+            <button class="btn-secondary" id="cnAdminRefreshBtn" style="font-size:12px;padding:8px 16px;">↻ Refresh</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+            <button id="cnSubTab-overview"    onclick="cnAdminSubTab('overview')"    style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Overview</button>
+            <button id="cnSubTab-funnel"      onclick="cnAdminSubTab('funnel')"      style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Funnel</button>
+            <button id="cnSubTab-revenue"     onclick="cnAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
+            <button id="cnSubTab-leaderboard" onclick="cnAdminSubTab('leaderboard')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Leaderboard</button>
+          </div>
+          <div id="cnAdminPane-overview"><div id="adminConnectOverview"></div></div>
+          <div id="cnAdminPane-funnel" style="display:none;"><div id="adminConnectFunnel"></div></div>
+          <div id="cnAdminPane-revenue" style="display:none;"><div id="adminConnectRevenue"></div></div>
+          <div id="cnAdminPane-leaderboard" style="display:none;"><div id="adminConnectLeaderboard"></div></div>
         </div>
 
       </div>
@@ -3207,6 +3228,7 @@ function resetDeposit() {
 <script src="admin.js"></script>
 <script src="admin_affiliate_payouts.js"></script>
 <script src="admin_academy_stats.js"></script>
+<script src="admin_connect_stats.js"></script>
 <script src="account.js"></script>
 <script src="auth.js"></script>
 

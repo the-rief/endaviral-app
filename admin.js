@@ -29,6 +29,7 @@ function adminTab(tab, el) {
   if (tab === 'create-order') initAdminCreateOrder();
   if (tab === 'affiliate-payouts') affAdminSubTab('payouts');
   if (tab === 'academy') acAdminSubTab('overview');
+  if (tab === 'connect') cnAdminSubTab('overview');
 }
 
 async function loadAdminUsers() {

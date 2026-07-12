@@ -28,7 +28,7 @@
  * ════════════════════════════════════════════════════════════════════ */
 
 const CONNECT_CREATOR_TOS_CHECKS = [
-  { key: 'fee_deduction', text: 'I understand EndaViral deducts a Marketplace Success Fee from completed campaigns.' },
+  { key: 'fee_deduction', text: 'I understand EndaViral deducts a 15% Marketplace Success Fee only after you are paid from completed campaigns.' },
   { key: 'payment_after_approval', text: 'I understand payments are released only after campaign approval or completion of the review period.' },
   { key: 'independent_contractor', text: 'I understand I participate on the Platform as an independent creator and not as an employee of EndaViral.' },
   { key: 'no_circumvention', text: 'I agree not to bypass the Platform by accepting direct payment from businesses introduced through EndaViral.' },
@@ -52,10 +52,10 @@ const CONNECT_TOS_HTML = `
     <strong>Business</strong> — a person, company, organization or brand seeking creator services through the Platform.<br>
     <strong>Campaign</strong> — a paid opportunity created by a Business for Creators.<br>
     <strong>Marketplace Fee</strong> — the commission deducted by EndaViral from successfully completed campaigns.<br>
-    <strong>Escrow</strong> — funds temporarily held by EndaViral until campaign completion.</p>
+    <strong>Paymnents Protected</strong> — funds temporarily held by EndaViral until campaign completion.</p>
 
     <h4>2. About EndaViral</h4>
-    <p>EndaViral Connect is a digital marketplace connecting Businesses with independent Creators. EndaViral provides creator discovery, campaign management, secure messaging, payment processing, escrow services, dispute resolution and marketplace analytics.</p>
+    <p>EndaViral Connect is a digital marketplace connecting Businesses with independent Creators. EndaViral provides creator discovery, campaign management, secure messaging, payment processing, dispute resolution and marketplace analytics.</p>
     <p>EndaViral does not employ Creators or Businesses and is not a party to the commercial relationship beyond operating the marketplace.</p>
 
     <h4>3. Account Registration</h4>
@@ -75,7 +75,7 @@ const CONNECT_TOS_HTML = `
     <h4>6. Campaigns</h4>
     <p>Businesses are responsible for ensuring campaign details include a campaign title, description, budget, deliverables, deadline, platform(s), and creator requirements. Campaigns may be rejected or removed if they violate Platform policies.</p>
 
-    <h4>7. Escrow &amp; Payments</h4>
+    <h4>7. Secure Payments</h4>
     <p>Businesses must fund campaigns before work begins. Funds are securely held by EndaViral until campaign completion.</p>
     <p>Payment is released when the Business approves the submitted work, or when no dispute is raised within the review period.</p>
     <p>EndaViral deducts a Marketplace Success Fee from Creator earnings. Current Marketplace Fee: <strong>15%.</strong></p>
