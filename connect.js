@@ -60,6 +60,7 @@
 
 // ─── State ──────────────────────────────────────────────────────────────────
 let _cnRole = 'creator';          // 'creator' | 'business'
+let _cnLandingPicked = false;     // true once a first-time visitor has picked a side this session
 let _cnUnreadByCampaign = {};     // campaign_id -> unread_count, refreshed by _cnPollUnread
 let _cnUnreadPollTimer = null;
 let _cnTab  = 'discover';         // active sub-tab
@@ -224,13 +225,18 @@ function _cnInjectStyles() {
     #sec-connect[data-cn-role="business"]{--cn-accent:#ff7043;--cn-accent-dark:#e0562b;--cn-accent-soft:rgba(255,112,67,.14);}
 
     /* ── Hero ─────────────────────────────────────────────────────────── */
-    .cn-hero{position:relative;overflow:hidden;border-radius:20px;padding:26px 26px 22px;margin-bottom:16px;background:linear-gradient(135deg,#0f1f2e 0%,#13253a 55%,#0d1a26 100%);border:1px solid var(--border);}
-    .cn-hero::after{content:'';position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,var(--cn-accent) 0%,transparent 70%);opacity:.14;pointer-events:none;transition:background .25s;}
-    .cn-hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--cn-accent);margin-bottom:10px;position:relative;}
-    .cn-hero-title{font-size:21px;font-weight:900;color:var(--white);margin-bottom:8px;letter-spacing:-.4px;line-height:1.25;max-width:540px;position:relative;}
-    .cn-hero-sub{font-size:12.5px;color:#a9bccd;line-height:1.6;max-width:560px;margin-bottom:16px;position:relative;}
+    .cn-hero{position:relative;overflow:hidden;border-radius:20px;padding:30px 30px 26px;margin-bottom:16px;background:
+        radial-gradient(circle at 15px 15px, rgba(255,255,255,.05) 1.5px, transparent 1.5px),
+        linear-gradient(135deg,#0f1f2e 0%,#13253a 55%,#0d1a26 100%);
+      background-size:26px 26px, 100% 100%;border:1px solid var(--border);box-shadow:0 18px 40px -22px rgba(0,0,0,.6);}
+    .cn-hero::after{content:'';position:absolute;top:-90px;right:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,var(--cn-accent) 0%,transparent 70%);opacity:.16;pointer-events:none;transition:background .25s;}
+    .cn-hero::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--cn-accent),transparent);}
+    .cn-hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--cn-accent);margin-bottom:12px;position:relative;background:var(--cn-accent-soft);border:1px solid var(--cn-accent);border-radius:20px;padding:5px 12px;}
+    .cn-hero-title{font-size:23px;font-weight:900;color:var(--white);margin-bottom:9px;letter-spacing:-.5px;line-height:1.22;max-width:560px;position:relative;font-family:var(--font-display);}
+    .cn-hero-sub{font-size:12.5px;color:#a9bccd;line-height:1.65;max-width:560px;margin-bottom:18px;position:relative;}
     .cn-hero-badges{display:flex;gap:8px;flex-wrap:wrap;position:relative;}
-    .cn-hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:10.5px;font-weight:700;color:#c3d3e0;}
+    .cn-hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:20px;padding:7px 13px;font-size:10.5px;font-weight:700;color:#c3d3e0;transition:border-color .15s,background .15s;}
+    .cn-hero-badge:hover{border-color:var(--cn-accent);background:var(--cn-accent-soft);}
 
     /* ── Role toggle (segmented control) — only shown once both sides are
        joined, or before either is chosen ────────────────────────────────*/
@@ -253,13 +259,57 @@ function _cnInjectStyles() {
     .cn-guide-title{font-size:10.5px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);}
     .cn-guide-toggle-btn{background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:4px 2px;}
     .cn-guide-toggle-btn:hover{color:var(--white);}
-    .cn-journey{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
-    .cn-journey-step{position:relative;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;}
-    .cn-journey-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin-bottom:9px;color:#fff;background:var(--cn-accent);}
+    .cn-journey{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;position:relative;}
+    .cn-journey-step{position:relative;background:linear-gradient(180deg,var(--card),var(--navy));border:1px solid var(--border);border-radius:14px;padding:16px 14px;transition:transform .15s,border-color .15s;}
+    .cn-journey-step:hover{transform:translateY(-2px);border-color:var(--cn-accent);}
+    .cn-journey-num{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;margin-bottom:10px;color:#fff;background:linear-gradient(135deg,var(--cn-accent),var(--cn-accent-dark));box-shadow:0 4px 10px -2px var(--cn-accent-soft);}
     .cn-journey-step-title{font-size:12px;font-weight:800;color:var(--white);margin-bottom:4px;line-height:1.3;}
     .cn-journey-step-desc{font-size:11px;color:var(--muted);line-height:1.5;}
     @media (max-width:900px){ .cn-journey{grid-template-columns:repeat(2,1fr);} }
     @media (max-width:520px){ .cn-journey{grid-template-columns:1fr;} }
+
+    /* ── Landing chooser — the neutral, role-agnostic first screen shown
+       to a brand-new visitor before they pick Creator or Business. Not
+       tinted to either accent colour; uses the brand gold instead ─────*/
+    .cn-landing-hero{position:relative;overflow:hidden;border-radius:22px;padding:40px 32px 34px;margin-bottom:22px;text-align:center;background:
+        radial-gradient(circle at 20% 20%, rgba(34,211,238,.10), transparent 45%),
+        radial-gradient(circle at 80% 30%, rgba(255,176,32,.10), transparent 45%),
+        linear-gradient(160deg,#0d1826 0%,#101f30 60%,#0c1622 100%);
+      border:1px solid var(--border);box-shadow:0 22px 50px -26px rgba(0,0,0,.65);}
+    .cn-landing-badge{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold);background:rgba(255,176,32,.12);border:1px solid rgba(255,176,32,.35);border-radius:20px;padding:7px 16px;margin-bottom:16px;}
+    .cn-landing-title{font-size:27px;font-weight:900;color:var(--white);letter-spacing:-.6px;line-height:1.2;max-width:640px;margin:0 auto 12px;font-family:var(--font-display);}
+    .cn-landing-title span{background:linear-gradient(135deg,var(--cyan),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;}
+    .cn-landing-sub{font-size:13px;color:#a9bccd;line-height:1.7;max-width:520px;margin:0 auto 20px;}
+    .cn-landing-badges{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;}
+    .cn-landing-badges .cn-hero-badge{background:rgba(255,255,255,.045);}
+
+    .cn-choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px;}
+    @media (max-width:760px){ .cn-choice-grid{grid-template-columns:1fr;} }
+    .cn-choice-card{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:26px 24px;cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;display:flex;flex-direction:column;}
+    .cn-choice-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px -20px rgba(0,0,0,.55);}
+    .cn-choice-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+    .cn-choice-card--creator::before{background:linear-gradient(90deg,#2196f3,#1670c2);}
+    .cn-choice-card--business::before{background:linear-gradient(90deg,#ff7043,#e0562b);}
+    .cn-choice-card--creator:hover{border-color:#2196f3;}
+    .cn-choice-card--business:hover{border-color:#ff7043;}
+    .cn-choice-icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px;}
+    .cn-choice-card--creator .cn-choice-icon{background:linear-gradient(135deg,rgba(33,150,243,.18),rgba(22,112,194,.1));border:1px solid rgba(33,150,243,.35);}
+    .cn-choice-card--business .cn-choice-icon{background:linear-gradient(135deg,rgba(255,112,67,.18),rgba(224,86,43,.1));border:1px solid rgba(255,112,67,.35);}
+    .cn-choice-eyebrow{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px;}
+    .cn-choice-card--creator .cn-choice-eyebrow{color:#4fa8f5;}
+    .cn-choice-card--business .cn-choice-eyebrow{color:#ff8a63;}
+    .cn-choice-title{font-size:18px;font-weight:900;color:var(--white);margin-bottom:6px;letter-spacing:-.3px;}
+    .cn-choice-sub{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px;}
+    .cn-choice-list{list-style:none;padding:0;margin:0 0 20px;display:flex;flex-direction:column;gap:9px;flex:1;}
+    .cn-choice-list li{display:flex;align-items:flex-start;gap:9px;font-size:12px;color:#c3d3e0;line-height:1.5;}
+    .cn-choice-list li::before{content:'✓';flex-shrink:0;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;margin-top:1px;}
+    .cn-choice-card--creator .cn-choice-list li::before{background:rgba(33,150,243,.18);color:#4fa8f5;}
+    .cn-choice-card--business .cn-choice-list li::before{background:rgba(255,112,67,.18);color:#ff8a63;}
+    .cn-choice-cta{border:none;border-radius:12px;padding:13px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;font-family:'Montserrat',sans-serif;transition:filter .15s;width:100%;}
+    .cn-choice-cta:hover{filter:brightness(1.1);}
+    .cn-choice-card--creator .cn-choice-cta{background:linear-gradient(135deg,#2196f3,#1670c2);box-shadow:0 8px 20px -8px rgba(33,150,243,.5);}
+    .cn-choice-card--business .cn-choice-cta{background:linear-gradient(135deg,#ff7043,#e0562b);box-shadow:0 8px 20px -8px rgba(255,112,67,.5);}
+    .cn-landing-foot{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11.5px;color:var(--muted);text-align:center;}
 
     /* ── Tab nav (pills) ──────────────────────────────────────────────── */
     .cn-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
@@ -518,6 +568,73 @@ function _cnSetLastRole(role) {
   try { localStorage.setItem('cnLastRole', role); } catch (_) { /* ignore */ }
 }
 
+// ─── Landing chooser gate ───────────────────────────────────────────────────
+// A brand-new visitor (joined neither side) should land on a neutral,
+// role-agnostic marketplace intro and explicitly choose Creator or Business
+// before seeing anything tinted toward one side. Once they've joined at
+// least one side, or picked one this session, this stops applying and the
+// normal role-aware shell (hero/journey/tabs) takes over as before.
+function _cnShowingLanding() {
+  const joinedCount = (_cnJoinedRoles.creator ? 1 : 0) + (_cnJoinedRoles.business ? 1 : 0);
+  return joinedCount === 0 && !_cnLandingPicked;
+}
+
+function _cnPickRole(role) {
+  _cnLandingPicked = true;
+  _cnRole = role;
+  _cnTab = role === 'creator' ? 'discover' : 'campaigns';
+  _cnSetLastRole(role);
+  const sec = document.getElementById('sec-connect');
+  _cnRenderShell(sec);
+  _cnLoadActiveTab();
+}
+
+function _cnRenderLanding(sec) {
+  sec.dataset.cnRole = ''; // neutral — don't let either accent colour leak in here
+  sec.innerHTML = `
+    <div class="cn-landing-hero">
+      <div class="cn-landing-badge">🚀 EndaViral Marketplace</div>
+      <div class="cn-landing-title">Where Kenyan brands and <span>creators</span> get paid to work together</div>
+      <div class="cn-landing-sub">Businesses fund paid campaigns. Creators deliver the content. EndaViral holds the money safe in the middle and only releases it once the work is approved — then it lands by M-Pesa.</div>
+      <div class="cn-landing-badges">
+        <span class="cn-hero-badge">🔒 Payments protected</span>
+        <span class="cn-hero-badge">💸 M-Pesa payouts</span>
+        <span class="cn-hero-badge">✅ 15% fee — only on completed work</span>
+        <span class="cn-hero-badge">⭐ Rated by both sides</span>
+      </div>
+    </div>
+
+    <div class="cn-choice-grid">
+      <div class="cn-choice-card cn-choice-card--creator" onclick="_cnPickRole('creator')">
+        <div class="cn-choice-icon">🎬</div>
+        <div class="cn-choice-eyebrow">For Creators</div>
+        <div class="cn-choice-title">Turn your following into income</div>
+        <div class="cn-choice-sub">Get discovered by brands, apply to paid campaigns, and get paid the moment your work is approved.</div>
+        <ul class="cn-choice-list">
+          <li>Apply to open campaigns or get invited directly</li>
+          <li>Message businesses and negotiate your rate</li>
+          <li>Get paid via M-Pesa once your work is approved</li>
+        </ul>
+        <button class="cn-choice-cta" onclick="event.stopPropagation();_cnPickRole('creator')">🎬 I'm a Creator</button>
+      </div>
+      <div class="cn-choice-card cn-choice-card--business" onclick="_cnPickRole('business')">
+        <div class="cn-choice-icon">🏢</div>
+        <div class="cn-choice-eyebrow">For Businesses</div>
+        <div class="cn-choice-title">Get real creators making content for your brand</div>
+        <div class="cn-choice-sub">Post a campaign or invite creators directly. Your budget stays safe with EndaViral until you approve the work.</div>
+        <ul class="cn-choice-list">
+          <li>Post a campaign or browse and invite creators</li>
+          <li>Fund the budget — it's held safely until you approve</li>
+          <li>Pay only for completed, approved work</li>
+        </ul>
+        <button class="cn-choice-cta" onclick="event.stopPropagation();_cnPickRole('business')">🏢 I'm a Business</button>
+      </div>
+    </div>
+
+    <div class="cn-landing-foot">Not sure yet? Pick either side to preview it — you can always switch before you join.</div>
+  `;
+}
+
 // ─── Page init ───────────────────────────────────────────────────────────────
 async function initConnectPage() {
   _cnInjectStyles();
@@ -540,7 +657,7 @@ async function initConnectPage() {
 
   _cnRenderShell(sec);
   await _cnPollUnread();
-  await _cnLoadActiveTab();
+  if (!_cnShowingLanding()) await _cnLoadActiveTab();
   _cnStartUnreadPolling();
 }
 
@@ -592,6 +709,7 @@ async function _cnPollUnread() {
 }
 
 function _cnRenderShell(sec) {
+  if (_cnShowingLanding()) { _cnRenderLanding(sec); return; }
   sec.dataset.cnRole = _cnRole;
   const hero = _cnHeroCopy(_cnRole);
   const steps = _cnJourneySteps(_cnRole);
