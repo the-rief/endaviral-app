@@ -1388,6 +1388,25 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
         </div>
 
+        <!-- ── EndaViral Connect Marketplace Promo Banner ── -->
+        <div id="dashConnectBanner" onclick="navTo('connect')" title="EndaViral Connect" style="position:relative;overflow:hidden;background:linear-gradient(120deg,#0f1f2e 0%,#132a3d 50%,#0c1a26 100%);border:1px solid rgba(74,168,255,.28);border-radius:16px;padding:18px 20px;margin-bottom:20px;cursor:pointer;transition:border-color .2s;">
+          <div style="position:relative;z-index:1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <div style="flex-shrink:0;width:46px;height:46px;border-radius:12px;background:rgba(74,168,255,.16);border:1px solid rgba(74,168,255,.28);display:flex;align-items:center;justify-content:center;font-size:22px;">🤝</div>
+            <div style="flex:1;min-width:180px;">
+              <div style="font-size:13px;font-weight:900;color:var(--white);margin-bottom:3px;">EndaViral Connect — Brand × Creator Marketplace</div>
+              <div style="font-size:12px;color:#8faab8;line-height:1.5;" id="dashConnectDesc">Get paid to create for real brands, or hire verified creators - protected M-Pesa payments</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+                <span style="font-size:10px;color:var(--muted);font-weight:600;">🔒 Payments protected</span>
+                <span style="color:var(--border);font-size:10px;">·</span>
+                <span style="font-size:10px;color:var(--muted);font-weight:600;">✅ Verified creators</span>
+                <span style="color:var(--border);font-size:10px;">·</span>
+                <span style="font-size:10px;color:var(--muted);font-weight:600;">M-Pesa payouts</span>
+              </div>
+            </div>
+            <button style="flex-shrink:0;background:#4aa8ff;color:#00121f;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:900;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;" onclick="event.stopPropagation();navTo('connect')" id="dashConnectBtn">Explore Marketplace →</button>
+          </div>
+        </div>
+
         <div class="sec-hd">
           <div><div class="sec-title">RECENT ORDERS</div><div class="sec-sub">Your latest 5 orders</div></div>
           <button class="btn-secondary" onclick="navTo('orders')">View All</button>
