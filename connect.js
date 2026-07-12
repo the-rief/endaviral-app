@@ -1052,12 +1052,12 @@ async function _cnRenderCreatorProfileForm(target) {
   target.innerHTML = `
     ${profile?.joined_at ? `<div class="cn-hero-badge" style="display:inline-flex;margin-bottom:14px;">✅ Joined EndaViral Connect on ${new Date(profile.joined_at).toLocaleDateString()}</div>` : ''}
     <div class="cn-field"><label>Display Name</label><input type="text" id="cnCpName" value="${esc(profile?.display_name || '')}"></div>
-    <div class="cn-field"><label>Profile Photo URL (optional)</label><input type="text" id="cnCpAvatar" value="${esc(profile?.avatar_url || '')}" placeholder="https://..."></div>
     <div class="cn-field"><label>Bio</label><textarea id="cnCpBio">${esc(profile?.bio || '')}</textarea></div>
     <div class="cn-field"><label>Location</label><input type="text" id="cnCpLocation" value="${esc(profile?.location || '')}" placeholder="e.g. Nairobi, Kenya"></div>
     <div class="cn-field"><label>Niches</label>${_cnMultiSelectHtml('cnCpNiches', CONNECT_NICHES, (profile?.niches || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean))}</div>
     <div class="cn-field">
-      <label>Platforms you're active on</label>
+      <label>Which platforms are you on?</label>
+      <div class="cn-tip" style="margin-bottom:8px;">Select all that apply — only those platforms will ask for a follower/subscriber count below. Not on all four? No problem, just pick the ones you're actually active on.</div>
       ${_cnMultiSelectHtml('cnCpPlatforms', CONNECT_PLATFORMS, (profile?.platforms || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean))}
     </div>
     <div id="cnCpFollowersWrap"></div>
@@ -1106,7 +1106,7 @@ function _cnRenderFollowerInputs() {
   const selected = _cnMultiState['cnCpPlatforms'] || [];
 
   if (!selected.length) {
-    wrap.innerHTML = `<div class="cn-tip">Pick at least one platform above to enter your follower/subscriber count.</div>`;
+    wrap.innerHTML = `<div class="cn-tip">👆 Pick at least one platform above — we'll show a follower/subscriber field for each one you select.</div>`;
     return;
   }
 
@@ -1148,7 +1148,6 @@ async function _cnSaveCreatorProfile() {
 
   const payload = {
     display_name: document.getElementById('cnCpName').value.trim() || null,
-    avatar_url: document.getElementById('cnCpAvatar').value.trim() || null,
     bio: document.getElementById('cnCpBio').value.trim() || null,
     location: document.getElementById('cnCpLocation').value.trim() || null,
     niches: _cnMultiSelectValue('cnCpNiches') || null,
@@ -1273,6 +1272,14 @@ function _cnRenderCampaignModal() {
       </div>
     </div>
   `;
+
+  // Payment Receipts — business owner only, once at least one funding
+  // attempt could exist (i.e. past the draft/published stage). Lets a
+  // receipt be re-downloaded any time, not only right after paying.
+  const _cnShowReceipts = isBusinessOwner && !['draft', 'published'].includes(c.status);
+  if (_cnShowReceipts) {
+    html += `<div class="cn-section-lbl">🧾 Payment Receipts</div><div id="cnReceiptsArea" style="margin-bottom:14px;"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>`;
+  }
 
   // ── Role/status-specific action area ──────────────────────────────────
   // These used to render as a separate block above the chat. They now
@@ -1431,6 +1438,7 @@ function _cnRenderCampaignModal() {
   }
   if (isBusinessOwner && c.status === 'submitted') _cnLoadDeliverableForReview(c.id);
   if (isAssignedCreator && c.status === 'completed') _cnLoadPayoutArea(c);
+  if (_cnShowReceipts) _cnLoadReceipts(c.id);
 }
 
 // 48h business-review countdown badge, shown next to the review section
@@ -1604,17 +1612,45 @@ async function _cnAcceptOffer(campaignId) {
 // ─── Fund escrow (business, STK push) — always tied to a specific
 // accepted application, since a campaign may have several parallel
 // negotiations and only ONE of them is the one being funded. ─────────────
+// Mirrors connect_service.PLATFORM_PROCESSING_FEE_TIERS exactly, for
+// DISPLAY ONLY — the actual charge is always computed server-side at
+// /fund time (see connect_service.platform_processing_fee); this just lets
+// the breakdown render before the STK push goes out, without a round trip.
+function _cnPlatformProcessingFee(amountKes) {
+  if (amountKes < 1000) return 30;
+  if (amountKes < 5000) return 50;
+  if (amountKes < 10000) return 75;
+  return 100;
+}
+
 function _cnFundFormHtml(applicationId, fundAmount) {
   const phone = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
+  const fee = _cnPlatformProcessingFee(fundAmount);
+  const total = fundAmount + fee;
   return `
+    <div class="cn-fund-breakdown" style="background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:2px 0;">
+        <span>Campaign Budget</span><span>${fmtKES(fundAmount)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:2px 0;">
+        <span>Platform Processing Fee</span><span>${fmtKES(fee)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:800;color:var(--white);padding:6px 0 4px;margin-top:4px;border-top:1px solid var(--border);">
+        <span>Total to Pay</span><span>${fmtKES(total)}</span>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.5;">
+        The Platform Processing Fee covers payment processing, M-Pesa transaction costs, fraud protection, and secure creator payouts.<br>
+        ✓ Secure payment &nbsp; ✓ Creator paid after approval &nbsp; ✓ M-Pesa receipt provided
+      </div>
+    </div>
     <div id="cnFundForm" class="cn-fund-row">
       <input type="text" id="cnFundPhone" class="cn-fund-phone" value="${esc(phone)}" placeholder="07XXXXXXXX">
-      <button class="cn-fund-btn" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}','${applicationId}')">📱 Fund ${fmtKES(fundAmount)}</button>
+      <button class="cn-fund-btn" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}','${applicationId}')">📱 Pay ${fmtKES(total)}</button>
     </div>
     <div id="cnFundStatus" style="display:none;text-align:center;padding:16px 0 6px;">
       <div style="font-size:30px;margin-bottom:6px;" id="cnFundIcon">📱</div>
       <div style="font-weight:800;color:var(--white);margin-bottom:4px;font-size:13px;" id="cnFundTitle">WAITING FOR PAYMENT</div>
-      <div style="font-size:11.5px;color:var(--muted);" id="cnFundDesc">Enter your M-Pesa PIN to fund the campaign.</div>
+      <div style="font-size:11.5px;color:var(--muted);" id="cnFundDesc">Enter your M-Pesa PIN to pay ${fmtKES(total)}.</div>
     </div>
   `;
 }
@@ -1663,9 +1699,24 @@ function _cnPollFunding(campaignId, checkoutRequestId) {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
       if (icon) icon.textContent = '✅';
       if (title) title.textContent = 'CAMPAIGN FUNDED';
-      if (desc) desc.textContent = 'The creator can now start work.';
+      if (desc) {
+        const feeNote = data.platform_processing_fee_kes
+          ? ` (incl. ${fmtKES(data.platform_processing_fee_kes)} processing fee)`
+          : '';
+        desc.textContent = `Paid ${fmtKES(data.total_charge_kes || data.amount_kes)}${feeNote}. The creator can now start work.`;
+      }
+      const statusEl = document.getElementById('cnFundStatus');
+      if (statusEl && !document.getElementById('cnFundReceiptBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'cnFundReceiptBtn';
+        btn.className = 'btn-secondary';
+        btn.style.cssText = 'margin-top:12px;';
+        btn.textContent = '⬇️ Download Receipt';
+        btn.onclick = () => _cnDownloadReceipt(campaignId, checkoutRequestId);
+        statusEl.appendChild(btn);
+      }
       toast('🎉 Campaign funded!', 'success');
-      setTimeout(() => _cnOpenCampaign(campaignId), 1200);
+      setTimeout(() => _cnOpenCampaign(campaignId), 2400);
     } else if (data.status === 'failed' || data.status === 'cancelled') {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
       if (icon) icon.textContent = '❌';
@@ -1677,6 +1728,60 @@ function _cnPollFunding(campaignId, checkoutRequestId) {
       if (desc) desc.textContent = 'Still waiting — check your phone, or close and try again.';
     }
   }, 3000);
+}
+
+// ─── Payment receipts (business) ───────────────────────────────────────────
+async function _cnLoadReceipts(campaignId) {
+  const el = document.getElementById('cnReceiptsArea');
+  if (!el) return;
+  let rows;
+  try {
+    rows = await api(`/connect/campaigns/${campaignId}/fundings`);
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:12px;">Could not load payment history.</div>`;
+    return;
+  }
+  const successful = (rows || []).filter(r => r.status === 'success');
+  if (!successful.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:12px;">No completed payments yet.</div>`;
+    return;
+  }
+  el.innerHTML = successful.map(r => `
+    <div style="display:flex;justify-content:space-between;align-items:center;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+      <div>
+        <div style="font-size:12.5px;font-weight:700;color:var(--white);">${fmtKES(r.total_charge_kes)} paid</div>
+        <div style="font-size:11px;color:var(--muted);">${r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}${r.mpesa_receipt ? ' · ' + esc(r.mpesa_receipt) : ''}</div>
+      </div>
+      <button class="btn-secondary" style="padding:6px 12px;font-size:11.5px;" onclick="_cnDownloadReceipt('${campaignId}','${r.checkout_request_id}')">⬇️ Receipt</button>
+    </div>
+  `).join('');
+}
+
+async function _cnDownloadReceipt(campaignId, checkoutRequestId) {
+  const headers = {};
+  if (typeof token !== 'undefined' && token) headers['Authorization'] = 'Bearer ' + token;
+  let resp;
+  try {
+    resp = await fetch(`${API}/connect/campaigns/${campaignId}/funding/${encodeURIComponent(checkoutRequestId)}/receipt`, { headers });
+  } catch (e) {
+    toast('Cannot reach the server. Please try again.', 'error');
+    return;
+  }
+  if (!resp.ok) {
+    let msg = 'Could not download receipt';
+    try { const data = await resp.json(); msg = data.detail || msg; } catch (_) {}
+    toast(msg, 'error');
+    return;
+  }
+  const blob = await resp.blob();
+  const disposition = resp.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  const filename = match ? match[1] : 'EndaViral-Receipt.pdf';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // ─── Submit deliverable (creator) ─────────────────────────────────────────────

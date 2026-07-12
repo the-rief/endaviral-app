@@ -32,8 +32,10 @@
  *   GET  /connect/admin/stats/funnel      — lifecycle funnel + per-platform
  *                                            drop-off (tiktok/ig/fb/yt)
  *   GET  /connect/admin/stats/revenue     — M-Pesa escrow funding rollups,
- *                                            commission earned, escrow held,
- *                                            payout-request queue health
+ *                                            commission earned, business-side
+ *                                            Platform Processing Fees earned,
+ *                                            escrow held, payout-request
+ *                                            queue health
  *   GET  /connect/admin/stats/leaderboard — top creators (by earnings) &
  *                                            top businesses (by campaigns)
  *   GET  /connect/admin/payout-requests   — payout queue (approve/reject
@@ -363,6 +365,8 @@ async function adminLoadConnectRevenue() {
   const pq = data.payout_queue || {};
   const cards = [
     { icon: '💰', label: 'Commission Earned',   value: fmtKES(data.total_commission_kes || 0), sub: 'from completed campaigns', color: '#3dd44a' },
+    { icon: '💳', label: 'Processing Fees',     value: fmtKES(data.total_processing_fee_kes || 0), sub: 'business-side, on funding', color: '#4ea8ff' },
+    { icon: '📈', label: 'Total Platform Revenue', value: fmtKES(data.total_platform_revenue_kes || 0), sub: 'commission + processing fees', color: '#ff6bcb' },
     { icon: '🏦', label: 'Escrow Held',         value: fmtKES(data.escrow_held_kes || 0), sub: 'in active campaigns', color: '#9b6bff' },
     { icon: '📤', label: 'Paid to Creators',    value: fmtKES(data.total_creator_paid_kes || 0), sub: 'lifetime, completed campaigns', color: '#ffd700' },
     { icon: '⏳', label: 'Pending Payouts',     value: fmtKES(pq.pending_amount_kes || 0), sub: `${pq.pending_count || 0} ticket${pq.pending_count === 1 ? '' : 's'} waiting`, color: '#ff9a3c' },
