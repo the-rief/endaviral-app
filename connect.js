@@ -325,41 +325,99 @@ function _cnInjectStyles() {
     .cn-msdrop-opt input{position:absolute;opacity:0;width:0;height:0;}
     .cn-msdrop-tick{width:16px;height:16px;flex-shrink:0;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10.5px;color:transparent;background:var(--navy);}
     .cn-msdrop-opt input:checked ~ .cn-msdrop-tick{background:var(--cn-accent);border-color:var(--cn-accent);color:#fff;}
-    .cn-msgs{max-height:260px;overflow-y:auto;background:var(--navy);border-radius:12px;padding:12px;margin-bottom:10px;}
-    .cn-msg{margin-bottom:10px;max-width:80%;}
-    .cn-msg .bubble{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px 12px;font-size:12.5px;color:var(--white);}
-    .cn-msg.mine{margin-left:auto;text-align:right;}
-    .cn-msg.mine .bubble{background:var(--cn-accent-soft);border-color:var(--cn-accent);}
-    .cn-msg .who{font-size:10px;color:var(--muted);margin-bottom:3px;}
+    /* ── Campaign summary — description + scannable chip row, replaces the
+       old stack of individual key/value rows (budget / deliverables / min
+       followers / niche / guidelines each on their own line) which read
+       like a spec sheet instead of a campaign brief ─────────────────────*/
+    .cn-summary-card{background:var(--navy);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px;}
+    .cn-chip-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;}
+    .cn-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:11.5px;font-weight:700;color:var(--white);white-space:nowrap;}
+    .cn-chip-money{background:rgba(61,212,74,.12);border-color:rgba(61,212,74,.3);color:var(--green);}
 
-    /* ── Negotiation banner — sticky context strip above the chat, replaces
-       the old separate "NEGOTIATE PRICE" box duplicating info the chat
-       bubbles already show ─────────────────────────────────────────────*/
-    .cn-neg-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:rgba(76,175,80,.08);border:1px solid rgba(76,175,80,.3);border-radius:12px;padding:10px 14px;margin-bottom:10px;}
-    .cn-neg-banner-who{font-size:12px;font-weight:800;color:var(--white);}
-    .cn-neg-banner-who .sub{display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-top:1px;}
-    .cn-neg-banner-amt{font-family:'Montserrat',sans-serif;font-size:15px;font-weight:900;color:var(--green);white-space:nowrap;}
-    .cn-neg-banner-orig{font-size:10.5px;color:var(--muted);font-weight:600;}
+    /* ── Section headers used above the Applications & Chat cards ───────*/
+    .cn-card-header{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:18px 2px 8px;}
+    .cn-card-header-count{background:var(--cn-accent-soft);color:var(--cn-accent);border-radius:10px;padding:1px 8px;font-size:10.5px;}
 
-    /* ── Not-selected / declined banner ──────────────────────────────────*/
-    .cn-lost-banner{display:flex;align-items:center;gap:9px;background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.25);border-radius:12px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#ff8a80;}
+    /* ── Applications inbox — its own bordered card, separate from both
+       the campaign summary above and the chat below ────────────────────*/
+    .cn-apps-card{background:var(--navy);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:4px;}
+    .cn-apps-subhead{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
+    .cn-apps-subhead-active{color:var(--green);}
+    .cn-app-row:last-child, .cn-neg-row:last-child{margin-bottom:0;}
 
-    /* ── Message input row w/ inline price-offer toggle ─────────────────*/
-    .cn-msg-input-row{display:flex;gap:8px;align-items:flex-end;}
-    .cn-msg-input-row input[type=text]{flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;font-family:inherit;}
-    .cn-propose-toggle{background:var(--navy);border:1px solid var(--border);border-radius:10px;width:38px;height:38px;flex-shrink:0;font-size:15px;cursor:pointer;color:var(--muted);transition:all .15s;}
-    .cn-propose-toggle:hover,.cn-propose-toggle.active{border-color:var(--green);color:var(--green);background:rgba(76,175,80,.08);}
-    .cn-propose-row{display:none;gap:8px;margin-bottom:8px;}
-    .cn-propose-row.open{display:flex;}
-    .cn-propose-row input{flex:1;background:var(--navy);border:1px solid var(--green);border-radius:10px;padding:9px 12px;color:var(--white);font-size:12.5px;font-family:inherit;}
-
-    /* ── Applications list — pending bids + active (accepted) negotiations
-       shown as distinct, clickable rows on the business side ───────────*/
-    .cn-neg-row{background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:11px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:border-color .15s;}
+    /* ── Applications list rows — pending bids + active (accepted)
+       negotiations shown as distinct, clickable rows ────────────────────*/
+    .cn-neg-row{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:border-color .15s;}
     .cn-neg-row:hover{border-color:var(--cn-accent);}
     .cn-neg-row-name{font-size:12.5px;font-weight:800;color:var(--white);}
     .cn-neg-row-sub{font-size:11px;color:var(--muted);margin-top:2px;}
     .cn-neg-row-amt{font-family:'Montserrat',sans-serif;font-weight:800;color:var(--green);font-size:13.5px;white-space:nowrap;}
+    .cn-app-row{background:var(--card);}
+
+    /* ── Chat card — the whole conversation (thread picker / messages /
+       deal panel / composer) lives inside ONE bordered container with its
+       own header, so it reads as a single self-contained panel instead of
+       bleeding into the applications list above it ─────────────────────*/
+    .cn-chat-card{background:var(--navy);border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:16px;}
+    .cn-chat-card-head{font-size:12px;font-weight:800;color:var(--white);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+
+    .cn-msgs{max-height:360px;overflow-y:auto;padding:4px 2px;margin-bottom:12px;}
+    .cn-msg-daydiv{text-align:center;margin:14px 0 10px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);}
+    .cn-msg{display:flex;align-items:flex-end;gap:8px;margin-bottom:12px;max-width:82%;}
+    .cn-msg-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+    .cn-msg-body .who{font-size:10px;font-weight:700;color:var(--muted);margin-bottom:3px;}
+    .cn-msg .bubble{background:var(--card);border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:4px;padding:9px 13px;font-size:12.5px;color:var(--white);line-height:1.45;}
+    .cn-msg.mine{margin-left:auto;flex-direction:row-reverse;}
+    .cn-msg.mine .bubble{background:var(--cn-accent-soft);border-color:var(--cn-accent);border-bottom-left-radius:14px;border-bottom-right-radius:4px;}
+
+    /* ── System-style cards (price offers, fund prompts, timeline events,
+       not-selected notices) — visually distinct from normal chat bubbles
+       and from each other, so "what happened" never looks like "what
+       someone typed" ─────────────────────────────────────────────────*/
+    .cn-msg-card{text-align:center;margin:4px auto 14px;max-width:92%;border-radius:12px;padding:10px 14px;font-size:11.5px;color:var(--white);line-height:1.5;}
+    .cn-msg-card-title{font-weight:700;margin-bottom:8px;}
+    .cn-msg-card-title span{color:var(--green);font-weight:900;}
+    .cn-msg-card-waiting{font-size:10.5px;color:var(--muted);font-style:italic;}
+    .cn-msg-card .cn-btn-sm{width:auto;padding:7px 16px;flex:none;}
+    .cn-msg-card-offer{background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.3);}
+    .cn-msg-card-offer .cn-msg-card-title span{color:#ffca28;}
+    .cn-msg-card-fund{background:rgba(76,175,80,.08);border:1px solid rgba(76,175,80,.3);}
+    .cn-msg-card-timeline{background:rgba(33,150,243,.1);border:1px solid rgba(33,150,243,.25);}
+    .cn-msg-card-lost{background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.25);color:#ff8a80;}
+
+    /* ── Deal panel — negotiation banner + fund bar fused into one card,
+       replaces the old separate "NEGOTIATE PRICE" / "FUND CAMPAIGN TO
+       START" boxes duplicating info the chat bubbles already show ──────*/
+    .cn-deal-panel{border:1px solid rgba(76,175,80,.3);border-radius:12px;overflow:hidden;margin-bottom:10px;}
+    .cn-neg-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:rgba(76,175,80,.1);padding:11px 14px;}
+    .cn-neg-banner-who{font-size:12px;font-weight:800;color:var(--white);}
+    .cn-neg-banner-who .sub{display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-top:1px;}
+    .cn-neg-banner-amt{font-family:'Montserrat',sans-serif;font-size:16px;font-weight:900;color:var(--green);white-space:nowrap;}
+    .cn-neg-banner-orig{font-size:10.5px;color:var(--muted);font-weight:600;}
+    .cn-fund-row{display:flex;gap:8px;padding:10px 12px;background:rgba(76,175,80,.04);border-top:1px dashed rgba(76,175,80,.25);}
+    .cn-fund-phone{flex:1;background:var(--navy);border:1px solid var(--border);border-radius:9px;padding:9px 11px;color:var(--white);font-size:12.5px;font-family:inherit;}
+    .cn-fund-phone:focus{outline:none;border-color:var(--green);}
+    .cn-fund-btn{flex-shrink:0;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;border:none;border-radius:9px;padding:0 16px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;}
+
+    /* Standalone banner not inside a deal panel (e.g. creator side, which
+       never sees the fund bar) still gets rounded corners + a border. */
+    .cn-neg-banner:only-child{border-radius:12px;border:1px solid rgba(76,175,80,.3);margin-bottom:10px;}
+
+    /* ── Not-selected / declined banner (outside the chat, e.g. as a
+       standalone action-card notice) ─────────────────────────────────*/
+    .cn-lost-banner{display:flex;align-items:center;gap:9px;background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.25);border-radius:12px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#ff8a80;}
+
+    /* ── Message input row w/ inline price-offer toggle ─────────────────*/
+    .cn-msg-input-row{display:flex;gap:8px;align-items:flex-end;}
+    .cn-msg-input-row input[type=text]{flex:1;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:10px 16px;color:var(--white);font-size:12.5px;font-family:inherit;}
+    .cn-msg-input-row input[type=text]:focus{outline:none;border-color:var(--cn-accent);}
+    .cn-msg-input-row .btn-secondary{border-radius:20px;padding:10px 18px;}
+    .cn-propose-toggle{background:var(--card);border:1px solid var(--border);border-radius:50%;width:38px;height:38px;flex-shrink:0;font-size:15px;cursor:pointer;color:var(--muted);transition:all .15s;}
+    .cn-propose-toggle:hover,.cn-propose-toggle.active{border-color:var(--green);color:var(--green);background:rgba(76,175,80,.08);}
+    .cn-propose-row{display:none;gap:8px;margin-bottom:8px;}
+    .cn-propose-row.open{display:flex;}
+    .cn-propose-row input{flex:1;background:var(--card);border:1px solid var(--green);border-radius:10px;padding:9px 12px;color:var(--white);font-size:12.5px;font-family:inherit;}
+
     .cn-stars{display:flex;gap:6px;font-size:24px;margin-bottom:10px;}
     .cn-star{cursor:pointer;opacity:.3;transition:opacity .1s;}
     .cn-star.on{opacity:1;}
@@ -1203,13 +1261,17 @@ function _cnRenderCampaignModal() {
     <div class="modal-title" style="margin-bottom:4px;">${esc(c.title)}</div>
     <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">${_cnStatusPill(c.status)}${c.is_frozen ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#e5393520;color:#ff8a80;border:1px solid #e5393540;">🧊 Frozen by admin</span>` : ''}</div>
     ${c.is_frozen ? `<div style="font-size:12px;color:#ff8a80;background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;">This campaign is frozen${c.frozen_reason ? ': ' + esc(c.frozen_reason) : ''}. No actions can be taken until an admin unfreezes it.</div>` : ''}
-    <div style="font-size:13px;color:var(--white);line-height:1.6;margin-bottom:14px;">${esc(c.description)}</div>
-    <div class="cn-row"><span class="k">Budget</span><span class="v" style="color:var(--green);">${fmtKES(c.budget_kes)}</span></div>
-    <div class="cn-row"><span class="k">Deliverables</span><span class="v">${esc(c.deliverables)}</span></div>
-    ${c.min_followers ? `<div class="cn-row"><span class="k">Min. Followers</span><span class="v">${c.min_followers.toLocaleString()}</span></div>` : ''}
-    ${c.required_niche ? `<div class="cn-row"><span class="k">Niche</span><span class="v">${esc(c.required_niche)}</span></div>` : ''}
-    ${c.content_guidelines ? `<div class="cn-row"><span class="k">Guidelines</span><span class="v">${esc(c.content_guidelines)}</span></div>` : ''}
-    ${c.escrow_kes > 0 ? `<div class="cn-row"><span class="k">Payments Held</span><span class="v" style="color:var(--green);">${fmtKES(c.escrow_kes)}</span></div>` : ''}
+    <div class="cn-summary-card">
+      <div style="font-size:13px;color:var(--white);line-height:1.6;margin-bottom:${c.content_guidelines ? '12px' : '0'};">${esc(c.description)}</div>
+      ${c.content_guidelines ? `<div style="font-size:11.5px;color:var(--muted);line-height:1.5;"><span style="font-weight:800;color:var(--white);">Guidelines:</span> ${esc(c.content_guidelines)}</div>` : ''}
+      <div class="cn-chip-row">
+        <span class="cn-chip cn-chip-money">${fmtKES(c.budget_kes)}</span>
+        <span class="cn-chip">📦 ${esc(c.deliverables)}</span>
+        ${c.min_followers ? `<span class="cn-chip">👥 ${c.min_followers.toLocaleString()}+ followers</span>` : ''}
+        ${c.required_niche ? `<span class="cn-chip">🏷️ ${esc(c.required_niche)}</span>` : ''}
+        ${c.escrow_kes > 0 ? `<span class="cn-chip cn-chip-money">🔒 ${fmtKES(c.escrow_kes)} held</span>` : ''}
+      </div>
+    </div>
   `;
 
   // ── Role/status-specific action area ──────────────────────────────────
@@ -1236,12 +1298,13 @@ function _cnRenderCampaignModal() {
     // it reads like a business inbox: active talks first, fresh bids below.
     const _cnActiveApps = _cnCurrentApplications.filter(a => a.status === 'accepted');
     const _cnPendingApps = _cnCurrentApplications.filter(a => a.status === 'pending');
-    html += `<div class="cn-section-lbl">Applications (${_cnCurrentApplications.length})</div>`;
+    html += `<div class="cn-card-header"><span>📥 Applications</span><span class="cn-card-header-count">${_cnCurrentApplications.length}</span></div>`;
+    html += `<div class="cn-apps-card">`;
     if (!_cnCurrentApplications.length) {
-      html += `<div style="font-size:12px;color:var(--muted);">No applications yet — check back soon.</div>`;
+      html += `<div style="font-size:12px;color:var(--muted);text-align:center;padding:6px 0;">No applications yet — check back soon, or invite a creator directly.</div>`;
     } else {
       if (_cnActiveApps.length) {
-        html += `<div style="font-size:10.5px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">In Negotiation</div>`;
+        html += `<div class="cn-apps-subhead cn-apps-subhead-active">In Negotiation · ${_cnActiveApps.length}</div>`;
         html += _cnActiveApps.map(a => `
           <div class="cn-neg-row" onclick="_cnOpenNegotiationThread('${c.id}','${a.id}')">
             <div>
@@ -1253,7 +1316,7 @@ function _cnRenderCampaignModal() {
         `).join('');
       }
       if (_cnPendingApps.length) {
-        html += `<div style="font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:${_cnActiveApps.length ? '14px' : '0'} 0 6px;">New Bids</div>`;
+        html += `<div class="cn-apps-subhead" style="margin-top:${_cnActiveApps.length ? '12px' : '0'};">New Bids · ${_cnPendingApps.length}</div>`;
         html += _cnPendingApps.map(a => `
           <div class="cn-app-row">
             <div class="cn-app-top"><span class="cn-app-bid">${fmtKES(a.bid_amount_kes)}</span>${_cnStatusPill(a.status)}</div>
@@ -1267,7 +1330,8 @@ function _cnRenderCampaignModal() {
         `).join('');
       }
     }
-    html += `<button class="btn-secondary" style="width:100%;margin-top:10px;" onclick="_cnOpenInviteModal(null,null,'${c.id}')">✉️ Invite a Creator Directly</button>`;
+    html += `<button class="btn-secondary" style="width:100%;margin-top:${_cnCurrentApplications.length ? '10px' : '0'};" onclick="_cnOpenInviteModal(null,null,'${c.id}')">✉️ Invite a Creator Directly</button>`;
+    html += `</div>`;
   }
 
   // Negotiate Price — lives inline in the chat panel below (a sticky
@@ -1327,24 +1391,28 @@ function _cnRenderCampaignModal() {
 
   _cnMsgThreadCreatorId = null;
   if (isBusinessOwner || creatorCanMessage) {
-    html += `<div class="cn-section-lbl">Messages</div>`;
     if (isBusinessOwner && !c.creator_user_id) {
       // No creator assigned yet — the business may be hearing from several
       // interested creators, so show a thread picker first. Picking one
       // (or clicking a row in "In Negotiation" above) opens that specific
       // conversation, with its own negotiate/fund controls.
-      html += `<div id="cnMsgThreads"><div style="color:var(--muted);font-size:12px;">Loading conversations…</div></div>`;
-      html += `<div id="cnMsgBackLink" style="display:none;margin-bottom:8px;"><a href="#" style="font-size:11.5px;color:var(--cn-accent);text-decoration:none;font-weight:700;" onclick="event.preventDefault();_cnShowMsgThreadPicker('${c.id}')">← All conversations</a></div>`;
-      html += `<div class="cn-msgs" id="cnMsgList" style="display:none;"></div>
+      html += `<div class="cn-chat-card">
+        <div class="cn-chat-card-head" id="cnChatCardHead">💬 Conversations</div>
+        <div id="cnMsgThreads"><div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center;">Loading conversations…</div></div>
+        <div id="cnMsgBackLink" style="display:none;margin-bottom:8px;"><a href="#" style="font-size:11.5px;color:var(--cn-accent);text-decoration:none;font-weight:700;" onclick="event.preventDefault();_cnShowMsgThreadPicker('${c.id}')">← All conversations</a></div>
+        <div class="cn-msgs" id="cnMsgList" style="display:none;"></div>
         <div id="cnMsgActionCard"></div>
-        <div id="cnMsgInputRow" style="display:none;"></div>`;
+        <div id="cnMsgInputRow" style="display:none;"></div>
+      </div>`;
     } else {
       _cnMsgThreadCreatorId = isBusinessOwner ? c.creator_user_id : currentUser.id;
-      html += `
-        <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>
+      const chatHeadName = isBusinessOwner ? esc(c.creator_display_name || 'Creator') : 'Business';
+      html += `<div class="cn-chat-card">
+        <div class="cn-chat-card-head">💬 Conversation with ${chatHeadName}</div>
+        <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center;">Loading…</div></div>
         <div id="cnMsgActionCard">${actionHtml}</div>
         <div id="cnMsgInputRow"></div>
-      `;
+      </div>`;
     }
   } else if (actionHtml) {
     // No chat access for this viewer (shouldn't normally happen for the
@@ -1443,7 +1511,7 @@ function _cnNegotiationBannerHtml(ctx) {
   const changed = ctx.agreedAmount != null && ctx.bidAmount != null && Number(ctx.agreedAmount) !== Number(ctx.bidAmount);
   return `
     <div class="cn-neg-banner">
-      <div class="cn-neg-banner-who">🤝 Negotiating this campaign<span class="sub">Chat below to agree on a price, then fund when ready</span></div>
+      <div class="cn-neg-banner-who">🤝 In talks<span class="sub">Agree a price in chat, then fund when ready</span></div>
       <div style="text-align:right;">
         <div class="cn-neg-banner-amt">${fmtKES(ctx.fundAmount)}</div>
         ${changed ? `<div class="cn-neg-banner-orig">was ${fmtKES(ctx.bidAmount)}</div>` : ''}
@@ -1539,16 +1607,14 @@ async function _cnAcceptOffer(campaignId) {
 function _cnFundFormHtml(applicationId, fundAmount) {
   const phone = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
   return `
-    <div class="cn-section-lbl">💸 Fund This Creator</div>
-    <div id="cnFundForm">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Amount to fund: <span style="color:var(--green);font-weight:700;">${fmtKES(fundAmount)}</span></div>
-      <div class="cn-field"><label>M-Pesa Phone Number</label><input type="text" id="cnFundPhone" value="${esc(phone)}" placeholder="07XXXXXXXX"></div>
-      <button class="btn-primary" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}','${applicationId}')">📱 Send STK Push</button>
+    <div id="cnFundForm" class="cn-fund-row">
+      <input type="text" id="cnFundPhone" class="cn-fund-phone" value="${esc(phone)}" placeholder="07XXXXXXXX">
+      <button class="cn-fund-btn" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}','${applicationId}')">📱 Fund ${fmtKES(fundAmount)}</button>
     </div>
-    <div id="cnFundStatus" style="display:none;text-align:center;padding:20px 0;">
-      <div style="font-size:32px;margin-bottom:8px;" id="cnFundIcon">📱</div>
-      <div style="font-weight:800;color:var(--white);margin-bottom:4px;" id="cnFundTitle">WAITING FOR PAYMENT</div>
-      <div style="font-size:12px;color:var(--muted);" id="cnFundDesc">Enter your M-Pesa PIN to fund the campaign.</div>
+    <div id="cnFundStatus" style="display:none;text-align:center;padding:16px 0 6px;">
+      <div style="font-size:30px;margin-bottom:6px;" id="cnFundIcon">📱</div>
+      <div style="font-weight:800;color:var(--white);margin-bottom:4px;font-size:13px;" id="cnFundTitle">WAITING FOR PAYMENT</div>
+      <div style="font-size:11.5px;color:var(--muted);" id="cnFundDesc">Enter your M-Pesa PIN to fund the campaign.</div>
     </div>
   `;
 }
@@ -1968,8 +2034,10 @@ function _cnRenderActionCard() {
   const app = _cnActiveNegotiationApp;
   let html = '';
   if (app && app.status === 'accepted' && c.status === 'published') {
-    html += _cnNegotiationBannerHtml({ fundAmount: app.fund_amount_kes, bidAmount: app.bid_amount_kes, agreedAmount: app.agreed_amount_kes });
-    html += _cnFundFormHtml(app.id, app.fund_amount_kes);
+    html += `<div class="cn-deal-panel">`
+      + _cnNegotiationBannerHtml({ fundAmount: app.fund_amount_kes, bidAmount: app.bid_amount_kes, agreedAmount: app.agreed_amount_kes })
+      + _cnFundFormHtml(app.id, app.fund_amount_kes)
+      + `</div>`;
   }
   el.innerHTML = html;
 }
@@ -1992,42 +2060,54 @@ async function _cnLoadMessages(campaignId, threadCreatorId) {
     ? !!(_cnActiveNegotiationApp && _cnActiveNegotiationApp.status === 'accepted')
     : _cnCurrentCampaign.my_application_status === 'accepted';
   const lastMsg = messages[messages.length - 1];
+  let lastDay = null;
   list.innerHTML = messages.map(m => {
+    // A thin date divider whenever the day changes, so a long negotiation
+    // reads like a real conversation timeline instead of an undifferentiated
+    // stack of bubbles.
+    let dayDivider = '';
+    if (m.created_at) {
+      const day = new Date(m.created_at).toDateString();
+      if (day !== lastDay) { dayDivider = `<div class="cn-msg-daydiv"><span>${day === new Date().toDateString() ? 'Today' : day}</span></div>`; lastDay = day; }
+    }
+
     if (m.kind === 'price_offer') {
       const amt = m.action_payload && m.action_payload.amount_kes;
       const mine = currentUser && m.sender_user_id === currentUser.id;
       const proposerLabel = m.sender_user_id === _cnCurrentCampaign.business_user_id ? 'Business' : 'Creator';
       const canAccept = m === lastMsg && !mine && _cnCurrentCampaign.status === 'published' && appStillActive;
-      return `<div class="cn-msg-system" style="text-align:center;margin:10px 0;">
-        <div style="display:inline-block;background:rgba(76,175,80,.08);border:1px solid rgba(76,175,80,.3);border-radius:10px;padding:10px 14px;font-size:11.5px;color:var(--white);max-width:90%;">
-          <div style="font-weight:700;margin-bottom:${canAccept ? '6px' : '0'};">💬 ${mine ? 'You' : proposerLabel} proposed ${fmtKES(amt)}</div>
-          ${canAccept ? `<button class="cn-btn-sm cn-btn-accept" onclick="_cnAcceptOffer('${campaignId}')">Accept ${fmtKES(amt)}</button>` : ''}
-        </div>
+      return dayDivider + `<div class="cn-msg-card cn-msg-card-offer">
+        <div class="cn-msg-card-title">💬 ${mine ? 'You' : proposerLabel} proposed <span>${fmtKES(amt)}</span></div>
+        ${canAccept ? `<button class="cn-btn-sm cn-btn-accept" onclick="_cnAcceptOffer('${campaignId}')">✓ Accept ${fmtKES(amt)}</button>` : `<div class="cn-msg-card-waiting">${mine ? 'Waiting for a reply…' : ''}</div>`}
       </div>`;
     }
     if (m.kind === 'fund_prompt') {
       const amt = m.action_payload && m.action_payload.amount_kes;
       const canFund = isBusinessOwner && appStillActive;
-      return `<div class="cn-msg-system" style="text-align:center;margin:10px 0;">
-        <div style="display:inline-block;background:rgba(76,175,80,.08);border:1px solid rgba(76,175,80,.3);border-radius:10px;padding:10px 14px;font-size:11.5px;color:var(--white);max-width:90%;">
-          <div style="font-weight:700;margin-bottom:${canFund ? '6px' : '0'};">✅ Agreed on ${fmtKES(amt)}</div>
-          ${canFund ? `<button class="cn-btn-sm cn-btn-accept" onclick="document.getElementById('cnFundPhone')?.scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('cnFundPhone')?.focus();">Fund Now</button>` : ''}
-        </div>
+      return dayDivider + `<div class="cn-msg-card cn-msg-card-fund">
+        <div class="cn-msg-card-title">✅ Agreed on <span>${fmtKES(amt)}</span></div>
+        ${canFund ? `<button class="cn-btn-sm cn-btn-accept" onclick="document.getElementById('cnFundPhone')?.scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('cnFundPhone')?.focus();">📱 Fund Now</button>` : `<div class="cn-msg-card-waiting">Ready to fund whenever you are.</div>`}
       </div>`;
+    }
+    if (m.kind === 'not_selected') {
+      return dayDivider + `<div class="cn-msg-card cn-msg-card-lost">${esc(m.body)}</div>`;
     }
     if (m.is_system) {
       // Shared timeline entry — funded / submitted / approved / payout /
       // outreach events both parties see, rendered centered and distinct
       // from a normal chat bubble so it reads as "what happened" rather
       // than "what someone said".
-      return `<div class="cn-msg-system" style="text-align:center;margin:10px 0;">
-        <div style="display:inline-block;background:rgba(33,150,243,.1);border:1px solid rgba(33,150,243,.25);border-radius:10px;padding:8px 14px;font-size:11.5px;color:var(--white);max-width:90%;">${esc(m.body)}</div>
-      </div>`;
+      return dayDivider + `<div class="cn-msg-card cn-msg-card-timeline">${esc(m.body)}</div>`;
     }
     const mine = currentUser && m.sender_user_id === currentUser.id;
-    return `<div class="cn-msg ${mine ? 'mine' : ''}">
-      ${!mine ? `<div class="who">${m.sender_user_id === _cnCurrentCampaign.business_user_id ? 'Business' : 'Creator'}</div>` : ''}
-      <div class="bubble">${esc(m.body)}</div>
+    const senderIsBusiness = m.sender_user_id === _cnCurrentCampaign.business_user_id;
+    const initial = senderIsBusiness ? '🏢' : '🎬';
+    return dayDivider + `<div class="cn-msg ${mine ? 'mine' : ''}">
+      ${!mine ? `<div class="cn-msg-avatar" style="background:${senderIsBusiness ? 'var(--orange)' : 'var(--blue)'}22;color:${senderIsBusiness ? 'var(--orange)' : 'var(--blue)'};">${initial}</div>` : ''}
+      <div class="cn-msg-body">
+        ${!mine ? `<div class="who">${senderIsBusiness ? 'Business' : 'Creator'}</div>` : ''}
+        <div class="bubble">${esc(m.body)}</div>
+      </div>
     </div>`;
   }).join('');
   list.scrollTop = list.scrollHeight;
