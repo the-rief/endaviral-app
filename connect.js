@@ -155,6 +155,12 @@ function _cnMsOptionChange(id, key, checked) {
     const options = id.includes('Niches') ? CONNECT_NICHES : CONNECT_PLATFORMS;
     labelEl.textContent = _cnMsLabel(id, options);
   }
+  // The creator profile form needs to know the moment platforms are
+  // ticked/unticked, so it can show a follower-count input only for
+  // platforms actually selected. See _cnRenderFollowerInputs().
+  if (id === 'cnCpPlatforms' && typeof _cnRenderFollowerInputs === 'function') {
+    _cnRenderFollowerInputs();
+  }
 }
 
 function _cnMsToggleOpen(id) {
@@ -298,6 +304,13 @@ function _cnInjectStyles() {
     .cn-field input,.cn-field textarea,.cn-field select{width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--white);font-size:13px;font-family:inherit;transition:border-color .15s;}
     .cn-field input:focus,.cn-field textarea:focus,.cn-field select:focus{outline:none;border-color:var(--cn-accent);}
     .cn-field textarea{resize:vertical;min-height:70px;}
+
+    /* ── Per-platform follower/subscriber inputs (creator profile) ──────── */
+    .cn-cp-followers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+    .cn-cp-follower-row{background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:8px 10px;}
+    .cn-cp-follower-label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;}
+    .cn-cp-follower-row input{width:100%;background:transparent;border:none;padding:0;color:var(--white);font-size:14px;font-family:inherit;}
+    .cn-cp-follower-row input:focus{outline:none;}
 
     /* ── Multi-select-with-ticks dropdown (Niches / Platforms) ─────────*/
     .cn-msdrop{position:relative;}
@@ -974,15 +987,22 @@ async function _cnRenderCreatorProfileForm(target) {
   try { profile = await api('/connect/profile/creator/me'); } catch (_) { /* not created yet */ }
   _cnCreatorProfile = profile;
 
+  // Seed the per-platform follower values from whatever the server has on
+  // file, so re-opening the form doesn't wipe out numbers already entered.
+  _cnCpFollowerValues = { ...(profile?.platform_followers || {}) };
+
   target.innerHTML = `
     ${profile?.joined_at ? `<div class="cn-hero-badge" style="display:inline-flex;margin-bottom:14px;">✅ Joined EndaViral Connect on ${new Date(profile.joined_at).toLocaleDateString()}</div>` : ''}
     <div class="cn-field"><label>Display Name</label><input type="text" id="cnCpName" value="${esc(profile?.display_name || '')}"></div>
-    <div class="cn-field"><label>Profile Photo URL</label><input type="text" id="cnCpAvatar" value="${esc(profile?.avatar_url || '')}" placeholder="https://..."></div>
+    <div class="cn-field"><label>Profile Photo URL (optional)</label><input type="text" id="cnCpAvatar" value="${esc(profile?.avatar_url || '')}" placeholder="https://..."></div>
     <div class="cn-field"><label>Bio</label><textarea id="cnCpBio">${esc(profile?.bio || '')}</textarea></div>
     <div class="cn-field"><label>Location</label><input type="text" id="cnCpLocation" value="${esc(profile?.location || '')}" placeholder="e.g. Nairobi, Kenya"></div>
     <div class="cn-field"><label>Niches</label>${_cnMultiSelectHtml('cnCpNiches', CONNECT_NICHES, (profile?.niches || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean))}</div>
-    <div class="cn-field"><label>Platforms</label>${_cnMultiSelectHtml('cnCpPlatforms', CONNECT_PLATFORMS, (profile?.platforms || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean))}</div>
-    <div class="cn-field"><label>Follower Count</label><input type="number" id="cnCpFollowers" value="${profile?.followers_count || 0}" min="0"></div>
+    <div class="cn-field">
+      <label>Platforms you're active on</label>
+      ${_cnMultiSelectHtml('cnCpPlatforms', CONNECT_PLATFORMS, (profile?.platforms || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean))}
+    </div>
+    <div id="cnCpFollowersWrap"></div>
     <div class="cn-section-lbl">Payment Details</div>
     <div class="cn-tip">🔒 Required before you can apply to campaigns. Your phone number is only ever visible to EndaViral — businesses never see it — and it's what your payout tickets pay out to.</div>
     <div class="cn-field"><label>Email</label><input type="email" id="cnCpEmail" value="${esc(profile?.email || '')}" placeholder="you@example.com"></div>
@@ -1009,11 +1029,65 @@ async function _cnRenderCreatorProfileForm(target) {
     `).join('')}` : ''}
     ` : ''}
   `;
+
+  _cnRenderFollowerInputs();
+}
+
+// ─── Per-platform follower/subscriber counts ───────────────────────────────
+// A creator only has an input for a platform once they've ticked it under
+// "Platforms you're active on" — someone only on TikTok and Instagram never
+// sees Facebook/YouTube fields. Values persist in _cnCpFollowerValues while
+// the form is open (across platform ticks/unticks) and get sent as
+// platform_followers on save; the server derives the visible total from
+// this, so there's no separate "Follower Count" field anymore.
+let _cnCpFollowerValues = {};
+
+function _cnRenderFollowerInputs() {
+  const wrap = document.getElementById('cnCpFollowersWrap');
+  if (!wrap) return;
+  const selected = _cnMultiState['cnCpPlatforms'] || [];
+
+  if (!selected.length) {
+    wrap.innerHTML = `<div class="cn-tip">Pick at least one platform above to enter your follower/subscriber count.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div class="cn-field">
+      <label>Followers / Subscribers</label>
+      <div class="cn-cp-followers-grid">
+        ${selected.map(key => {
+          const p = _cnPlatformDef(key);
+          const val = _cnCpFollowerValues[key] ?? '';
+          return `
+            <div class="cn-cp-follower-row">
+              <span class="cn-cp-follower-label">${p.emoji} ${esc(p.label)}</span>
+              <input type="number" min="0" placeholder="0"
+                id="cnCpFollowers-${key}"
+                value="${esc(String(val))}"
+                oninput="_cnCpFollowerValues['${key}'] = this.value === '' ? '' : parseInt(this.value) || 0;">
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
 }
 
 async function _cnSaveCreatorProfile() {
   const btn = document.getElementById('cnCpSaveBtn');
   btn.disabled = true; btn.textContent = 'Saving…';
+
+  const selectedPlatforms = _cnMultiState['cnCpPlatforms'] || [];
+  // Only send counts for platforms currently ticked — a stray leftover
+  // value for a platform someone unticked shouldn't be submitted (the
+  // server rejects follower keys outside the selected platform list).
+  const platform_followers = {};
+  selectedPlatforms.forEach(key => {
+    const v = _cnCpFollowerValues[key];
+    platform_followers[key] = (v === '' || v === undefined || v === null) ? 0 : v;
+  });
+
   const payload = {
     display_name: document.getElementById('cnCpName').value.trim() || null,
     avatar_url: document.getElementById('cnCpAvatar').value.trim() || null,
@@ -1021,7 +1095,7 @@ async function _cnSaveCreatorProfile() {
     location: document.getElementById('cnCpLocation').value.trim() || null,
     niches: _cnMultiSelectValue('cnCpNiches') || null,
     platforms: _cnMultiSelectValue('cnCpPlatforms') || null,
-    followers_count: parseInt(document.getElementById('cnCpFollowers').value) || 0,
+    platform_followers,
     email: document.getElementById('cnCpEmail').value.trim() || null,
     phone: document.getElementById('cnCpPhone').value.trim() || null,
     price_short_video_kes: parseFloat(document.getElementById('cnCpPriceVideo').value) || null,
