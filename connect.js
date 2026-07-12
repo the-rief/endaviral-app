@@ -1137,10 +1137,16 @@ function _cnRenderCampaignModal() {
     html += `<button class="btn-secondary" style="width:100%;margin-top:10px;" onclick="_cnOpenInviteModal(null,null,'${c.id}')">✉️ Invite a Creator Directly</button>`;
   }
 
+  // Negotiate Price — either side can propose a new number once the bid is
+  // accepted; the other side accepts it, right in the chat panel below.
+  if ((isBusinessOwner || isAssignedCreator) && c.status === 'awaiting_fund') {
+    actionHtml += _cnNegotiateFormHtml(c);
+  }
+
   // Pay Now — lives in the chat panel below, right where the business
   // and creator agreed the work would happen.
   if (isBusinessOwner && c.status === 'awaiting_fund') {
-    actionHtml += _cnFundFormHtml();
+    actionHtml += _cnFundFormHtml(c);
   }
 
   // Submit for Review — the creator's N-video batch + self-check, in-chat.
@@ -1292,12 +1298,62 @@ async function _cnRejectApplication(campaignId, applicationId) {
   }
 }
 
+// ─── Negotiate price (either party, post-accept) ───────────────────────────────
+function _cnNegotiateFormHtml(c) {
+  const amount = c.fund_amount_kes != null ? c.fund_amount_kes : c.budget_kes;
+  return `
+    <div class="cn-section-lbl">Negotiate Price</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
+      Current agreed amount: <span style="color:var(--green);font-weight:700;">${fmtKES(amount)}</span>
+      ${c.agreed_amount_kes != null && c.accepted_bid_kes != null && c.agreed_amount_kes !== c.accepted_bid_kes ? ` <span style="color:var(--muted);">(originally ${fmtKES(c.accepted_bid_kes)})</span>` : ''}
+    </div>
+    <div style="display:flex;gap:8px;">
+      <input type="number" id="cnNegotiateAmount" min="1" placeholder="Propose a new amount (KES)" style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;">
+      <button class="btn-secondary" id="cnNegotiateBtn" onclick="_cnProposePrice('${c.id}')">Propose</button>
+    </div>
+  `;
+}
+
+async function _cnProposePrice(campaignId) {
+  const input = document.getElementById('cnNegotiateAmount');
+  const amount_kes = parseFloat(input.value);
+  if (!amount_kes || amount_kes <= 0) { toast('Enter a valid amount', 'error'); return; }
+
+  const btn = document.getElementById('cnNegotiateBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    await api(`/connect/campaigns/${campaignId}/negotiate/offer`, {
+      method: 'POST',
+      body: JSON.stringify({ amount_kes }),
+    });
+    input.value = '';
+    toast('Offer sent', 'success');
+    _cnLoadMessages(campaignId, _cnMsgThreadCreatorId);
+  } catch (e) {
+    toast(e.message || 'Could not send offer', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Propose';
+  }
+}
+
+async function _cnAcceptOffer(campaignId) {
+  try {
+    await api(`/connect/campaigns/${campaignId}/negotiate/accept`, { method: 'POST' });
+    toast('Price agreed!', 'success');
+    _cnOpenCampaign(campaignId);
+  } catch (e) {
+    toast(e.message || 'Could not accept that offer', 'error');
+  }
+}
+
 // ─── Fund escrow (business, STK push) ─────────────────────────────────────────
-function _cnFundFormHtml() {
+function _cnFundFormHtml(c) {
   const phone = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
+  const amount = c.fund_amount_kes != null ? c.fund_amount_kes : c.budget_kes;
   return `
     <div class="cn-section-lbl">Fund Campaign to Start</div>
     <div id="cnFundForm">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Amount to fund: <span style="color:var(--green);font-weight:700;">${fmtKES(amount)}</span></div>
       <div class="cn-field"><label>M-Pesa Phone Number</label><input type="text" id="cnFundPhone" value="${esc(phone)}" placeholder="07XXXXXXXX"></div>
       <button class="btn-primary" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}')">📱 Send STK Push</button>
     </div>
@@ -1685,7 +1741,20 @@ async function _cnLoadMessages(campaignId, threadCreatorId) {
     list.innerHTML = `<div style="color:var(--muted);font-size:12px;">No messages yet — say hello!</div>`;
     return;
   }
+  const lastMsg = messages[messages.length - 1];
   list.innerHTML = messages.map(m => {
+    if (m.kind === 'price_offer') {
+      const amt = m.action_payload && m.action_payload.amount_kes;
+      const mine = currentUser && m.sender_user_id === currentUser.id;
+      const proposerLabel = m.sender_user_id === _cnCurrentCampaign.business_user_id ? 'Business' : 'Creator';
+      const canAccept = m === lastMsg && !mine && _cnCurrentCampaign.status === 'awaiting_fund';
+      return `<div class="cn-msg-system" style="text-align:center;margin:10px 0;">
+        <div style="display:inline-block;background:rgba(76,175,80,.08);border:1px solid rgba(76,175,80,.3);border-radius:10px;padding:10px 14px;font-size:11.5px;color:var(--white);max-width:90%;">
+          <div style="font-weight:700;margin-bottom:${canAccept ? '6px' : '0'};">💬 ${mine ? 'You' : proposerLabel} proposed ${fmtKES(amt)}</div>
+          ${canAccept ? `<button class="cn-btn-sm cn-btn-accept" onclick="_cnAcceptOffer('${campaignId}')">Accept ${fmtKES(amt)}</button>` : ''}
+        </div>
+      </div>`;
+    }
     if (m.is_system) {
       // Shared timeline entry — funded / submitted / approved / payout /
       // outreach events both parties see, rendered centered and distinct
