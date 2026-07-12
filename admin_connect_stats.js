@@ -769,10 +769,15 @@ async function _cnaLoadDisputes() {
   el.innerHTML = disputes.map(d => `
     <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <span style="font-weight:800;color:var(--white);">Campaign ${esc(d.campaign_id.slice(0, 8))}…</span>
+        <span style="font-weight:800;color:var(--white);">${esc(d.campaign_title || ('Campaign ' + d.campaign_id.slice(0, 8) + '…'))}</span>
         ${_cnaPill(d.status, _CNA_DISPUTE_COLORS)}
       </div>
-      <div style="font-size:12.5px;color:var(--white);margin-bottom:10px;">${esc(d.reason)}</div>
+      <div style="font-size:12.5px;color:var(--white);margin-bottom:8px;">${esc(d.reason)}</div>
+      ${d.deliverable_links && d.deliverable_links.length ? `
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px;">Submitted work:
+          ${d.deliverable_links.map(v => `<a href="${esc(v.content_url)}" target="_blank" rel="noopener" style="color:#4aa8ff;margin-right:8px;">🔗 ${esc(v.platform_posted_to || 'link')}${v.creator_confirmed_posted ? '' : ' ⚠️ not confirmed posted'}</a>`).join('')}
+        </div>` : ''}
+      ${d.evidence_url ? `<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Evidence: <a href="${esc(d.evidence_url)}" target="_blank" rel="noopener" style="color:#4aa8ff;">🔗 View evidence</a></div>` : ''}
       <input type="text" id="cnaDisputeNote-${d.id}" placeholder="Resolution note (optional)" style="width:100%;margin-bottom:8px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:11.5px;">
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="action-btn" onclick="_cnaResolveDispute('${d.id}','release_to_creator')">Release to Creator</button>

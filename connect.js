@@ -60,6 +60,8 @@
 
 // ─── State ──────────────────────────────────────────────────────────────────
 let _cnRole = 'creator';          // 'creator' | 'business'
+let _cnUnreadByCampaign = {};     // campaign_id -> unread_count, refreshed by _cnPollUnread
+let _cnUnreadPollTimer = null;
 let _cnTab  = 'discover';         // active sub-tab
 let _cnCampaigns = [];            // last-loaded list for the active tab
 let _cnCurrentCampaign = null;    // full detail of the open modal's campaign
@@ -272,7 +274,56 @@ async function initConnectPage() {
   const sec = document.getElementById('sec-connect');
   if (!sec) return;
   _cnRenderShell(sec);
+  await _cnPollUnread();
   await _cnLoadActiveTab();
+  _cnStartUnreadPolling();
+}
+
+// ─── Unread message/prompt badges (nav item + per-card) ────────────────────
+// Polled on a light interval so a business/creator sees "someone messaged
+// you" or "a payment is waiting on your action" without needing to open
+// every campaign. Self-clearing: the interval checks whether the Connect
+// section is still on-screen and stops itself once the user navigates away,
+// same pattern as the admin panel's balance-refresh timer in index.html.
+function _cnStartUnreadPolling() {
+  if (_cnUnreadPollTimer) clearInterval(_cnUnreadPollTimer);
+  _cnUnreadPollTimer = setInterval(() => {
+    const sec = document.getElementById('sec-connect');
+    if (!sec || !sec.classList.contains('active')) {
+      clearInterval(_cnUnreadPollTimer);
+      _cnUnreadPollTimer = null;
+      return;
+    }
+    _cnPollUnread();
+  }, 25000);
+}
+
+async function _cnPollUnread() {
+  try {
+    const data = await api(`/connect/notifications/unread-count?role=${_cnRole}`);
+    _cnUnreadByCampaign = {};
+    (data.campaigns || []).forEach(c => { _cnUnreadByCampaign[c.campaign_id] = c.unread_count; });
+
+    const badge = document.getElementById('connectBadge');
+    if (badge) {
+      if (data.total_unread > 0) {
+        badge.textContent = data.total_unread > 99 ? '99+' : String(data.total_unread);
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    // Only re-render the card grid if we're actually looking at one and no
+    // modal is open — avoids yanking a form or open chat out from under
+    // whoever's mid-action every 25s.
+    if ((_cnTab === 'campaigns' || _cnTab === 'work') && !_cnCurrentCampaign) {
+      const target = document.getElementById('cnTabContent');
+      if (target) await _cnLoadActiveTab();
+    }
+  } catch (e) {
+    // Silent — background convenience poll, not user-initiated.
+  }
 }
 
 function _cnRenderShell(sec) {
@@ -529,8 +580,10 @@ async function _cnRenderDiscover(target) {
 
 function _cnCardHtml(c) {
   const plat = _cnPlatformDef(c.platform);
+  const unread = _cnUnreadByCampaign[c.id] || 0;
   return `
-  <div class="cn-card" onclick="_cnOpenCampaign('${c.id}')">
+  <div class="cn-card" data-campaign-id="${c.id}" style="position:relative;" onclick="_cnOpenCampaign('${c.id}')">
+    ${unread > 0 ? `<span class="cn-unread-dot" style="position:absolute;top:12px;right:12px;background:var(--green);color:#000;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:800;">💬 ${unread > 9 ? '9+' : unread}</span>` : ''}
     <div class="cn-card-top">
       <div class="cn-card-title">${plat.emoji} ${esc(c.title)}</div>
       <div class="cn-card-budget">${fmtKES(c.budget_kes)}</div>
@@ -1211,17 +1264,31 @@ async function _cnReviewDeliverable(campaignId, decision) {
 function _cnOpenDisputeForm() {
   const el = document.getElementById('cnDisputeForm');
   if (!el) return;
+  // No deliverable round has ever been submitted on-platform yet (status
+  // is still 'funded') -> there's nothing on file for admin to treat as
+  // evidence, so the link/screenshot becomes required, not optional.
+  const evidenceRequired = _cnCurrentCampaign && _cnCurrentCampaign.status === 'funded';
   el.innerHTML = `
     <div class="cn-field" style="margin-top:12px;"><label>What happened?</label><textarea id="cnDisputeReason" placeholder="Explain the issue — our team will review and resolve it."></textarea></div>
+    <div class="cn-field">
+      <label>Evidence link${evidenceRequired ? ' (required)' : ' (optional)'}</label>
+      <input type="text" id="cnDisputeEvidence" placeholder="Link to a screenshot, or the posted video if it's not already on the campaign">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">${evidenceRequired
+        ? 'No work has been submitted on the platform for this campaign yet, so this is the only record admin will have — attach a link to a screenshot or the delivered work.'
+        : 'If the work was submitted through the normal flow, the posted video link is already on file — our team will see it. Add this if you agreed to send the work directly (e.g. not posted publicly) — a screenshot proving delivery is stronger evidence than a link in that case.'}</div>
+    </div>
     <button class="btn-secondary" style="width:100%;background:rgba(229,57,53,.14);border-color:rgba(229,57,53,.3);color:#ff8a80;" onclick="_cnSubmitDispute('${_cnCurrentCampaign.id}')">Submit Dispute</button>
   `;
 }
 
 async function _cnSubmitDispute(campaignId) {
   const reason = document.getElementById('cnDisputeReason').value.trim();
+  const evidence_url = document.getElementById('cnDisputeEvidence')?.value.trim() || null;
   if (!reason || reason.length < 10) { toast('Explain what happened in a bit more detail', 'error'); return; }
+  const evidenceRequired = _cnCurrentCampaign && _cnCurrentCampaign.status === 'funded';
+  if (evidenceRequired && !evidence_url) { toast('Add a link to a screenshot or the delivered work — no work is on file for this campaign yet', 'error'); return; }
   try {
-    await api(`/connect/campaigns/${campaignId}/dispute`, { method: 'POST', body: JSON.stringify({ reason }) });
+    await api(`/connect/campaigns/${campaignId}/dispute`, { method: 'POST', body: JSON.stringify({ reason, evidence_url }) });
     toast('Dispute submitted — our team will review it shortly.', 'success');
     _cnOpenCampaign(campaignId);
   } catch (e) {
@@ -1909,10 +1976,15 @@ async function _cnLoadAdminDisputes() {
     el.innerHTML = disputes.map(d => `
       <div class="cn-app-row">
         <div class="cn-app-top">
-          <span style="font-size:12.5px;font-weight:800;color:var(--white);">Campaign ${esc(d.campaign_id.slice(0, 8))}…</span>
+          <span style="font-size:12.5px;font-weight:800;color:var(--white);">${esc(d.campaign_title || ('Campaign ' + d.campaign_id.slice(0, 8) + '…'))}</span>
           ${_cnStatusPillGeneric(d.status)}
         </div>
         <div style="font-size:12px;color:var(--white);margin-bottom:8px;">${esc(d.reason)}</div>
+        ${d.deliverable_links && d.deliverable_links.length ? `
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px;">Submitted work:
+            ${d.deliverable_links.map(v => `<a href="${esc(v.content_url)}" target="_blank" rel="noopener" style="color:#2196f3;margin-right:8px;">🔗 ${esc(v.platform_posted_to || 'link')}${v.creator_confirmed_posted ? '' : ' ⚠️ not confirmed posted'}</a>`).join('')}
+          </div>` : ''}
+        ${d.evidence_url ? `<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Evidence: <a href="${esc(d.evidence_url)}" target="_blank" rel="noopener" style="color:#2196f3;">🔗 View evidence</a></div>` : ''}
         <input type="text" id="cnDisputeNote-${d.id}" placeholder="Resolution note (optional)" style="width:100%;margin-bottom:8px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:11.5px;">
         <div class="cn-app-actions">
           <button class="cn-btn-sm cn-btn-accept" onclick="_cnAdminResolveDispute('${d.id}','release_to_creator')">Release to Creator</button>
