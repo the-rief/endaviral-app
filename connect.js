@@ -85,6 +85,8 @@ const _cnBidsPageSize = 20;
 let _cnBidsTotalLoaded = [];          // rows loaded so far for the active tab (appended on "Load more")
 let _cnBidsHasMore = false;
 let _cnBidsCounts = {};               // status -> count, from /applications/counts
+let _cnBidsSort = 'newest';           // 'newest' | 'price_low' | 'price_high'
+let _cnBidsQuery = '';                // creator-name search, debounced
 let _cnJoinedRoles = { creator: false, business: false };  // which side(s) this user has actually joined — drives whether the role toggle shows at all
 let _cnRolesResolved = false;      // becomes true once _cnDetectJoinedRoles() has checked the server
 
@@ -611,6 +613,10 @@ function _cnInjectStyles() {
     .cn-bid-tab.active{color:var(--white);border-bottom-color:var(--cn-accent);}
     .cn-bid-tab-count{background:var(--card);color:var(--muted);border-radius:10px;padding:1px 7px;font-size:10.5px;}
     .cn-bid-tab.active .cn-bid-tab-count{background:var(--cn-accent-soft);color:var(--cn-accent);}
+    .cn-bids-toolbar{display:flex;gap:8px;margin:12px 0;}
+    .cn-bids-search{flex:1;min-width:0;background:var(--navy);border:1px solid var(--border);border-radius:9px;padding:9px 11px;color:var(--white);font-size:12.5px;font-family:inherit;}
+    .cn-bids-search:focus{outline:none;border-color:var(--cn-accent);}
+    .cn-bids-sort{flex-shrink:0;background:var(--navy);border:1px solid var(--border);border-radius:9px;padding:9px 8px;color:var(--white);font-size:12px;font-family:inherit;cursor:pointer;}
     .cn-bid-row{background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
     .cn-bid-row:hover{border-color:var(--cn-accent);}
     .cn-bid-row-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
@@ -2531,6 +2537,8 @@ async function _cnOpenBidsInbox(campaignId) {
   _cnBidsOffset = 0;
   _cnBidsTotalLoaded = [];
   _cnBidsHasMore = false;
+  _cnBidsSort = 'newest';
+  _cnBidsQuery = '';
   const modal = document.getElementById('cnBidsInboxModal');
   if (!modal) return;
   modal.classList.add('show');
@@ -2554,14 +2562,48 @@ function _cnSwitchBidsTab(tab) {
   _cnLoadBidsPage(true);
 }
 
+function _cnSetBidsSort(sort) {
+  _cnBidsSort = sort;
+  _cnBidsOffset = 0;
+  _cnBidsTotalLoaded = [];
+  _cnFetchBidsList(true);
+}
+
+// Debounced so we're not firing a request per keystroke across a
+// thousand-row inbox — waits for a short pause in typing.
+let _cnBidsSearchDebounce = null;
+function _cnOnBidsSearchInput(value) {
+  clearTimeout(_cnBidsSearchDebounce);
+  _cnBidsSearchDebounce = setTimeout(() => {
+    _cnBidsQuery = value.trim();
+    _cnBidsOffset = 0;
+    _cnBidsTotalLoaded = [];
+    _cnFetchBidsList(true);
+  }, 300);
+}
+
 async function _cnLoadBidsPage(reset) {
   if (reset) _cnRenderBidsInboxShell();
+  await _cnFetchBidsList(reset);
+}
+
+// Data fetch + list re-render only — does NOT touch the tabs/search/sort
+// toolbar, so sort changes and (debounced) search-as-you-type never blow
+// away the search input's focus/cursor mid-keystroke.
+async function _cnFetchBidsList(reset) {
   const listEl = document.getElementById('cnBidsList');
   if (reset && listEl) listEl.innerHTML = `<div class="cn-bids-empty">Loading…</div>`;
 
   let data;
   try {
-    data = await api(`/connect/campaigns/${_cnBidsCampaignId}/applications?status=${_cnBidsStatusParam(_cnBidsTab)}&limit=${_cnBidsPageSize}&offset=${_cnBidsOffset}`);
+    const params = new URLSearchParams({
+      status: _cnBidsStatusParam(_cnBidsTab),
+      sort: _cnBidsSort,
+      limit: String(_cnBidsPageSize),
+      offset: String(_cnBidsOffset),
+    });
+    if (_cnBidsQuery) params.set('q', _cnBidsQuery);
+    data = await api(`/connect/campaigns/${_cnBidsCampaignId}/applications?${params.toString()}`);
   } catch (e) {
     if (listEl) listEl.innerHTML = `<div class="cn-bids-empty">Couldn't load bids.</div>`;
     return;
@@ -2586,6 +2628,14 @@ function _cnRenderBidsInboxShell() {
       <button class="cn-bid-tab ${_cnBidsTab === 'pending' ? 'active' : ''}" onclick="_cnSwitchBidsTab('pending')">New <span class="cn-bid-tab-count">${pendingN}</span></button>
       <button class="cn-bid-tab ${_cnBidsTab === 'accepted' ? 'active' : ''}" onclick="_cnSwitchBidsTab('accepted')">In talks <span class="cn-bid-tab-count">${acceptedN}</span></button>
       <button class="cn-bid-tab ${_cnBidsTab === 'closed' ? 'active' : ''}" onclick="_cnSwitchBidsTab('closed')">Closed <span class="cn-bid-tab-count">${closedN}</span></button>
+    </div>
+    <div class="cn-bids-toolbar">
+      <input type="text" class="cn-bids-search" placeholder="Search by creator name…" value="${esc(_cnBidsQuery)}" oninput="_cnOnBidsSearchInput(this.value)">
+      <select class="cn-bids-sort" onchange="_cnSetBidsSort(this.value)">
+        <option value="newest" ${_cnBidsSort === 'newest' ? 'selected' : ''}>Newest first</option>
+        <option value="price_low" ${_cnBidsSort === 'price_low' ? 'selected' : ''}>Lowest price</option>
+        <option value="price_high" ${_cnBidsSort === 'price_high' ? 'selected' : ''}>Highest price</option>
+      </select>
     </div>
     <div id="cnBidsList"></div>
     <button class="btn-secondary cn-bids-loadmore" id="cnBidsLoadMore" style="display:none;" onclick="_cnLoadBidsPage(false)">Load more</button>
