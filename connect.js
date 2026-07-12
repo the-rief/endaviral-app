@@ -112,6 +112,25 @@ function _cnNicheDef(key) {
   return CONNECT_NICHES.find(n => n.key === key) || { key, label: key || '—', emoji: '🏷️' };
 }
 
+// ─── Multi-value campaign fields ────────────────────────────────────────────
+// Campaign.platform / Campaign.required_niche are comma-separated (a
+// campaign can target more than one platform/niche) — these turn that raw
+// string into the def objects / tag markup used across the card, detail,
+// and admin views.
+function _cnPlatformDefs(commaStr) {
+  const keys = (commaStr || '').split(',').map(s => s.trim()).filter(Boolean);
+  return (keys.length ? keys : ['']).map(_cnPlatformDef);
+}
+function _cnNicheDefs(commaStr) {
+  return (commaStr || '').split(',').map(s => s.trim()).filter(Boolean).map(_cnNicheDef);
+}
+function _cnPlatformTagsHtml(commaStr, tagClass) {
+  return _cnPlatformDefs(commaStr).map(p => `<span class="${tagClass}">${p.emoji} ${esc(p.label)}</span>`).join('');
+}
+function _cnNicheTagsHtml(commaStr, tagClass) {
+  return _cnNicheDefs(commaStr).map(n => `<span class="${tagClass}">${n.emoji} ${esc(n.label)}</span>`).join('');
+}
+
 // ─── Generic multi-select-with-ticks dropdown ──────────────────────────────
 // Used for Niches / Platforms on the creator profile: a small button that
 // opens a checkbox list so a creator (or business) can tick every category
@@ -1140,7 +1159,7 @@ async function _cnRenderDiscover(target) {
 }
 
 function _cnCardHtml(c) {
-  const plat = _cnPlatformDef(c.platform);
+  const plat = _cnPlatformDefs(c.platform)[0];   // first platform — used for the title-row emoji
   const unread = _cnUnreadByCampaign[c.id] || 0;
   return `
   <div class="cn-card" data-campaign-id="${c.id}" style="position:relative;" onclick="_cnOpenCampaign('${c.id}')">
@@ -1151,9 +1170,9 @@ function _cnCardHtml(c) {
     </div>
     <div class="cn-card-desc">${esc(c.description)}</div>
     <div class="cn-card-meta">
-      <span class="cn-tag">${plat.emoji} ${esc(plat.label)}</span>
+      ${_cnPlatformTagsHtml(c.platform, 'cn-tag')}
       ${c.min_followers ? `<span class="cn-tag">${c.min_followers.toLocaleString()}+ followers</span>` : ''}
-      ${c.required_niche ? `<span class="cn-tag">${esc(c.required_niche)}</span>` : ''}
+      ${_cnNicheTagsHtml(c.required_niche, 'cn-tag')}
       ${_cnStatusPill(c.status)}
     </div>
   </div>`;
@@ -1219,9 +1238,7 @@ function _cnRenderCreateForm(target) {
       </div>
       <div class="cn-field">
         <label>Platform</label>
-        <select id="cnNewPlatform">
-          ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}">${p.emoji} ${p.label}</option>`).join('')}
-        </select>
+        ${_cnMultiSelectHtml('cnNewPlatforms', CONNECT_PLATFORMS, ['tiktok'])}
       </div>
     </div>
 
@@ -1251,10 +1268,8 @@ function _cnRenderCreateForm(target) {
       </div>
       <div class="cn-field">
         <label>Required Niche</label>
-        <select id="cnNewNiche">
-          <option value="">Any niche</option>
-          ${CONNECT_NICHES.map(n => `<option value="${n.key}">${n.emoji} ${n.label}</option>`).join('')}
-        </select>
+        ${_cnMultiSelectHtml('cnNewNiches', CONNECT_NICHES, [])}
+        <div style="font-size:12px;color:var(--muted);margin-top:6px;">Leave blank to accept creators of any niche. Pick more than one if several fit.</div>
       </div>
     </div>
 
@@ -1275,15 +1290,16 @@ function _cnRenderCreateForm(target) {
 async function _cnSubmitCreateCampaign() {
   const title = document.getElementById('cnNewTitle').value.trim();
   const description = document.getElementById('cnNewDesc').value.trim();
-  const platform = document.getElementById('cnNewPlatform').value;
+  const platform = _cnMultiSelectValue('cnNewPlatforms');
   const budget_kes = parseFloat(document.getElementById('cnNewBudget').value);
   const deliverables = document.getElementById('cnNewDeliverables').value.trim();
   const min_followers = parseInt(document.getElementById('cnNewMinFollowers').value) || 0;
-  const required_niche = document.getElementById('cnNewNiche').value.trim() || null;
+  const required_niche = _cnMultiSelectValue('cnNewNiches') || null;
   const content_guidelines = document.getElementById('cnNewGuidelines').value.trim() || null;
 
   if (!title || title.length < 3) { toast('Give your campaign a title', 'error'); return; }
   if (!description || description.length < 10) { toast('Add a bit more description', 'error'); return; }
+  if (!platform) { toast('Pick at least one platform', 'error'); return; }
   if (!budget_kes || budget_kes <= 0) { toast('Enter a valid budget', 'error'); return; }
   if (!deliverables) { toast('List what the creator should deliver', 'error'); return; }
 
@@ -1582,12 +1598,12 @@ function _cnCloseCampaign() {
 function _cnRenderCampaignModal() {
   const c = _cnCurrentCampaign;
   const body = document.getElementById('cnCampaignModalBody');
-  const plat = _cnPlatformDef(c.platform);
+  const plats = _cnPlatformDefs(c.platform);
   const isBusinessOwner = currentUser && currentUser.id === c.business_user_id;
   const isAssignedCreator = currentUser && currentUser.id === c.creator_user_id;
 
   let html = `
-    <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#2196f3;margin-bottom:6px;">${plat.emoji} ${esc(plat.label).toUpperCase()}</div>
+    <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#2196f3;margin-bottom:6px;">${plats.map(p => `${p.emoji} ${esc(p.label).toUpperCase()}`).join(' · ')}</div>
     <div class="modal-title" style="margin-bottom:4px;">${esc(c.title)}</div>
     <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">${_cnStatusPill(c.status)}${c.is_frozen ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#e5393520;color:#ff8a80;border:1px solid #e5393540;">🧊 Frozen by admin</span>` : ''}</div>
     ${c.is_frozen ? `<div style="font-size:12px;color:#ff8a80;background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;">This campaign is frozen${c.frozen_reason ? ': ' + esc(c.frozen_reason) : ''}. No actions can be taken until an admin unfreezes it.</div>` : ''}
@@ -1598,7 +1614,7 @@ function _cnRenderCampaignModal() {
         <span class="cn-chip cn-chip-money">${fmtKES(c.budget_kes)}</span>
         <span class="cn-chip">📦 ${esc(c.deliverables)}</span>
         ${c.min_followers ? `<span class="cn-chip">👥 ${c.min_followers.toLocaleString()}+ followers</span>` : ''}
-        ${c.required_niche ? `<span class="cn-chip">🏷️ ${esc(c.required_niche)}</span>` : ''}
+        ${_cnNicheTagsHtml(c.required_niche, 'cn-chip')}
         ${c.escrow_kes > 0 ? `<span class="cn-chip cn-chip-money">🔒 ${fmtKES(c.escrow_kes)} held</span>` : ''}
       </div>
     </div>
@@ -2605,7 +2621,7 @@ async function _cnRenderInvites(target) {
   }
   target.innerHTML = invites.map(i => {
     const c = i.campaign || {};
-    const plat = _cnPlatformDef(c.platform);
+    const platLabel = _cnPlatformDefs(c.platform).map(p => `${p.emoji} ${p.label}`).join(', ');
     return `
     <div class="cn-app-row">
       <div class="cn-app-top">
@@ -2613,7 +2629,7 @@ async function _cnRenderInvites(target) {
         ${_cnStatusPillGeneric(i.status)}
       </div>
       <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px;">
-        ${plat.emoji} ${esc(plat.label)} · ${c.budget_kes != null ? fmtKES(c.budget_kes) : ''} ·
+        ${platLabel} · ${c.budget_kes != null ? fmtKES(c.budget_kes) : ''} ·
         Invited ${i.created_at ? new Date(i.created_at).toLocaleDateString() : ''}
       </div>
       ${i.message ? `<div style="font-size:12px;color:var(--white);margin-bottom:8px;">"${esc(i.message)}"</div>` : ''}
@@ -2666,7 +2682,10 @@ async function _cnRenderFindCreators(target) {
   target.innerHTML = `
     <div class="cn-tip">🔎 Search by niche, platform or follower count — or skip the filters and invite anyone straight from their profile card.</div>
     <div class="cn-field" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-      <input type="text" id="cnFcNiche" placeholder="Niche (e.g. fashion)" class="cn-fc-input" value="${esc(_cnCreatorFilters.niche)}">
+      <select id="cnFcNiche" class="cn-fc-input">
+        <option value="">Any niche</option>
+        ${CONNECT_NICHES.map(n => `<option value="${n.key}" ${_cnCreatorFilters.niche === n.key ? 'selected' : ''}>${n.emoji} ${esc(n.label)}</option>`).join('')}
+      </select>
       <select id="cnFcPlatform" class="cn-fc-input">
         <option value="">Any platform</option>
         ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}" ${_cnCreatorFilters.platform === p.key ? 'selected' : ''}>${p.emoji} ${esc(p.label)}</option>`).join('')}
