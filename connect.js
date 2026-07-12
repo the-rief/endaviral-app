@@ -367,6 +367,18 @@ function _cnInjectStyles() {
     .cn-empty-icon{font-size:28px;display:block;margin-bottom:10px;}
     .cn-empty-title{font-size:13.5px;font-weight:800;color:var(--white);margin-bottom:5px;}
 
+    /* ── Gate screen — a blocking "finish this before you continue" step
+       (e.g. incomplete profile). Distinct from cn-empty's plain "nothing
+       here" treatment: it's an action prompt, not an absence, so it gets
+       the same accent-lit, top-border-glow language as the hero cards ──*/
+    .cn-gate{position:relative;overflow:hidden;text-align:center;padding:42px 26px;border-radius:18px;background:linear-gradient(180deg,var(--card),var(--navy));border:1px solid var(--border);box-shadow:0 18px 40px -26px rgba(0,0,0,.6);}
+    .cn-gate::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--cn-accent),var(--cn-accent-dark));}
+    .cn-gate-icon{width:58px;height:58px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 18px;background:var(--cn-accent-soft);border:1px solid var(--cn-accent);}
+    .cn-gate-title{font-size:16px;font-weight:900;color:var(--white);margin-bottom:9px;letter-spacing:-.2px;}
+    .cn-gate-sub{font-size:12.5px;color:var(--muted);line-height:1.65;max-width:440px;margin:0 auto 22px;}
+    .cn-gate-btn{border:none;border-radius:12px;padding:13px 26px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;font-family:'Montserrat',sans-serif;background:linear-gradient(135deg,var(--cn-accent),var(--cn-accent-dark));box-shadow:0 8px 20px -8px var(--cn-accent-soft);transition:filter .15s,transform .15s;}
+    .cn-gate-btn:hover{filter:brightness(1.1);transform:translateY(-1px);}
+
     .cn-section-lbl{font-size:10.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;}
     .cn-tip{display:flex;gap:8px;align-items:flex-start;background:var(--cn-accent-soft);border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:11.5px;color:#c3d3e0;line-height:1.5;margin-bottom:14px;}
     .cn-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:12.5px;}
@@ -506,11 +518,13 @@ function _cnInjectStyles() {
     /* ── Join / onboarding screen ─────────────────────────────────────── */
     .cn-join-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px;}
     .cn-join-badge{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--cn-accent);margin-bottom:10px;}
-    .cn-join-check{display:flex;gap:11px;align-items:center;font-size:12px;color:var(--white);margin-bottom:11px;cursor:pointer;line-height:1.5;padding:11px 14px;border-radius:12px;background:var(--navy);border:1px solid var(--border);transition:all .15s;}
-    .cn-join-check:hover{border-color:rgba(255,255,255,.25);}
-    .cn-join-check.checked{background:var(--cn-accent-soft);border-color:var(--cn-accent);}
-    .cn-join-check input{position:absolute;opacity:0;width:0;height:0;}
+    .cn-join-check,.cn-confirm-row{display:flex;gap:11px;align-items:center;font-size:12px;color:var(--white);margin-bottom:11px;cursor:pointer;line-height:1.5;padding:11px 14px;border-radius:12px;background:var(--navy);border:1px solid var(--border);transition:all .15s;}
+    .cn-join-check:hover,.cn-confirm-row:hover{border-color:rgba(255,255,255,.25);}
+    .cn-join-check.checked,.cn-confirm-row.checked{background:var(--cn-accent-soft);border-color:var(--cn-accent);}
+    .cn-join-check input,.cn-confirm-row input{position:absolute;opacity:0;width:0;height:0;}
     .cn-join-check a{color:var(--cn-accent);text-decoration:underline;}
+    .cn-select{width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--white);font-size:13px;font-family:inherit;transition:border-color .15s;}
+    .cn-select:focus{outline:none;border-color:var(--cn-accent);}
     .cn-join-item{position:relative;display:flex;gap:12px;align-items:center;padding:13px 14px;border-radius:12px;background:var(--navy);margin-bottom:8px;cursor:pointer;transition:all .15s;border:1px solid var(--border);}
     .cn-join-item:hover{border-color:rgba(255,255,255,.25);}
     .cn-join-item.checked{background:var(--cn-accent-soft);border-color:var(--cn-accent);}
@@ -1033,11 +1047,13 @@ function _cnRenderJoinScreen(target, role) {
 
 // Enables the Join button only once every ToS + role-specific checkbox on
 // the join screen is ticked.
+function _cnSyncCheckRow(input) {
+  const row = input.closest('.cn-join-item, .cn-join-check, .cn-confirm-row');
+  if (row) row.classList.toggle('checked', input.checked);
+}
+
 function _cnUpdateJoinBtn(changedInput) {
-  if (changedInput) {
-    const row = changedInput.closest('.cn-join-item, .cn-join-check');
-    if (row) row.classList.toggle('checked', changedInput.checked);
-  }
+  if (changedInput) _cnSyncCheckRow(changedInput);
   const btn = document.getElementById('cnJoinBtn');
   if (!btn) return;
   const boxes = document.querySelectorAll('.cn-join-check-box');
@@ -1077,13 +1093,13 @@ async function _cnSubmitJoin(role) {
 function _cnRenderIncompleteProfileScreen(target, role) {
   const isCreator = role === 'creator';
   target.innerHTML = `
-    <div class="cn-empty">
-      <span class="cn-empty-icon">${isCreator ? '💳' : '🏢'}</span>
-      <div class="cn-empty-title">${isCreator ? 'Almost there — add your payment details' : 'Finish setting up your business profile'}</div>
-      ${isCreator
+    <div class="cn-gate">
+      <div class="cn-gate-icon">${isCreator ? '💳' : '🏢'}</div>
+      <div class="cn-gate-title">${isCreator ? 'Almost there — add your payment details' : 'Finish setting up your business profile'}</div>
+      <div class="cn-gate-sub">${isCreator
         ? "Add your email and M-Pesa number to your Creator profile — that's how EndaViral pays you — before browsing campaigns."
-        : "Add your company name before posting a campaign or inviting creators."}
-      <br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('profile')">Go to My Profile →</button>
+        : "Add your company name before posting a campaign or inviting creators."}</div>
+      <button class="cn-gate-btn" onclick="_cnSetTab('profile')">Go to My Profile →</button>
     </div>
   `;
 }
@@ -2000,7 +2016,7 @@ function _cnDeliverableFormHtml() {
       <label>Video ${i} of ${n} — Link</label>
       <input type="text" id="cnDelivUrl${i}" placeholder="https://...">
       <label style="margin-top:6px;">Platform</label>
-      <select id="cnDelivPlatform${i}" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--white);width:100%;">
+      <select id="cnDelivPlatform${i}" class="cn-select">
         <option value="tiktok">TikTok</option>
         <option value="instagram">Instagram</option>
         <option value="facebook">Facebook</option>
@@ -2013,8 +2029,9 @@ function _cnDeliverableFormHtml() {
     <div class="cn-section-lbl">Submit Your Work (${n} video${n === 1 ? '' : 's'} required)</div>
     ${rows}
     <div class="cn-field"><label>Note (optional)</label><textarea id="cnDelivNote" placeholder="Anything the business should know"></textarea></div>
-    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--white);margin:10px 0;cursor:pointer;">
-      <input type="checkbox" id="cnDelivConfirm" style="margin-top:2px;">
+    <label class="cn-confirm-row" style="margin:10px 0;">
+      <input type="checkbox" id="cnDelivConfirm" onchange="_cnSyncCheckRow(this)">
+      <span class="cn-join-tick">✓</span>
       <span>I confirm this work was completed and is genuinely posted live on my socials at the link(s) above.</span>
     </label>
     <button class="btn-primary" id="cnDelivBtn" onclick="_cnSubmitDeliverable('${_cnCurrentCampaign.id}')">Submit for Review</button>
