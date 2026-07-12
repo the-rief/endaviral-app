@@ -311,6 +311,37 @@ function _cnInjectStyles() {
     .cn-choice-card--business .cn-choice-cta{background:linear-gradient(135deg,#ff7043,#e0562b);box-shadow:0 8px 20px -8px rgba(255,112,67,.5);}
     .cn-landing-foot{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11.5px;color:var(--muted);text-align:center;}
 
+    /* ── Landing stats strip — quietly hidden if no data is available;
+       never shows fabricated numbers ────────────────────────────────*/
+    .cn-landing-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;}
+    .cn-landing-stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 14px;text-align:center;}
+    .cn-landing-stat-num{font-family:var(--font-display);font-size:19px;font-weight:900;color:var(--gold);letter-spacing:-.3px;margin-bottom:3px;}
+    .cn-landing-stat-label{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+    @media (max-width:760px){ .cn-landing-stats{grid-template-columns:repeat(2,1fr);} }
+
+    /* ── How it works — one shared timeline covering both sides ─────────*/
+    .cn-landing-section-lbl{font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:16px;}
+    .cn-timeline{display:flex;align-items:stretch;gap:0;margin-bottom:26px;overflow-x:auto;padding-bottom:4px;}
+    .cn-timeline-step{flex:1;min-width:118px;display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 6px;position:relative;}
+    .cn-timeline-dot{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--card);border:1px solid var(--border);margin-bottom:9px;flex-shrink:0;}
+    .cn-timeline-step[data-who="business"] .cn-timeline-dot{border-color:rgba(255,112,67,.4);background:rgba(255,112,67,.1);}
+    .cn-timeline-step[data-who="creator"] .cn-timeline-dot{border-color:rgba(33,150,243,.4);background:rgba(33,150,243,.1);}
+    .cn-timeline-step[data-who="system"] .cn-timeline-dot{border-color:rgba(255,176,32,.4);background:rgba(255,176,32,.1);}
+    .cn-timeline-arrow{position:absolute;top:17px;left:-6px;color:var(--border);font-size:14px;}
+    .cn-timeline-step:first-child .cn-timeline-arrow{display:none;}
+    .cn-timeline-label{font-size:11px;font-weight:800;color:var(--white);margin-bottom:2px;line-height:1.3;}
+    .cn-timeline-who{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
+    @media (max-width:760px){ .cn-timeline{flex-direction:column;align-items:flex-start;overflow-x:visible;}
+      .cn-timeline-step{flex-direction:row;align-items:center;text-align:left;width:100%;padding:8px 0;gap:12px;}
+      .cn-timeline-arrow{display:none !important;}
+      .cn-timeline-dot{margin-bottom:0;}
+    }
+
+    /* ── Trust row — plain reassurance line beneath the choice cards ────*/
+    .cn-trust-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;}
+    .cn-trust-item{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#c3d3e0;font-weight:600;}
+    .cn-trust-item b{color:var(--green);font-weight:700;}
+
     /* ── Tab nav (pills) ──────────────────────────────────────────────── */
     .cn-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
     .cn-tab{padding:9px 15px;border-radius:24px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
@@ -594,45 +625,92 @@ function _cnRenderLanding(sec) {
   sec.innerHTML = `
     <div class="cn-landing-hero">
       <div class="cn-landing-badge">🚀 EndaViral Marketplace</div>
-      <div class="cn-landing-title">Where Kenyan brands and <span>creators</span> get paid to work together</div>
-      <div class="cn-landing-sub">Businesses fund paid campaigns. Creators deliver the content. EndaViral holds the money safe in the middle and only releases it once the work is approved — then it lands by M-Pesa.</div>
+      <div class="cn-landing-title">Kenya's Creator Marketplace</div>
+      <div class="cn-landing-sub"><strong style="color:var(--white);">Businesses hire. Creators deliver. Everyone gets paid securely.</strong><br>Businesses securely fund campaigns — payments are only released once the work is approved.</div>
       <div class="cn-landing-badges">
-        <span class="cn-hero-badge">🔒 Payments protected</span>
-        <span class="cn-hero-badge">💸 M-Pesa payouts</span>
-        <span class="cn-hero-badge">✅ 15% fee — only on completed work</span>
-        <span class="cn-hero-badge">⭐ Rated by both sides</span>
+        <span class="cn-hero-badge">🔒 Secure Payments</span>
+        <span class="cn-hero-badge">📲 M-Pesa Payouts</span>
+        <span class="cn-hero-badge">⭐ Rated by Both Sides</span>
+        <span class="cn-hero-badge">🛡️ Trusted Marketplace</span>
       </div>
     </div>
+
+    <div class="cn-landing-stats" id="cnLandingStats" style="display:none;"></div>
 
     <div class="cn-choice-grid">
       <div class="cn-choice-card cn-choice-card--creator" onclick="_cnPickRole('creator')">
         <div class="cn-choice-icon">🎬</div>
         <div class="cn-choice-eyebrow">For Creators</div>
-        <div class="cn-choice-title">Turn your following into income</div>
-        <div class="cn-choice-sub">Get discovered by brands, apply to paid campaigns, and get paid the moment your work is approved.</div>
+        <div class="cn-choice-title">Earn from your content</div>
+        <div class="cn-choice-sub">Apply for paid campaigns from Kenyan businesses.</div>
         <ul class="cn-choice-list">
-          <li>Apply to open campaigns or get invited directly</li>
-          <li>Message businesses and negotiate your rate</li>
-          <li>Get paid via M-Pesa once your work is approved</li>
+          <li>Apply for campaigns</li>
+          <li>Negotiate directly with businesses</li>
+          <li>Get paid by M-Pesa</li>
         </ul>
-        <button class="cn-choice-cta" onclick="event.stopPropagation();_cnPickRole('creator')">🎬 I'm a Creator</button>
+        <button class="cn-choice-cta" onclick="event.stopPropagation();_cnPickRole('creator')">🎥 Start as Creator</button>
       </div>
       <div class="cn-choice-card cn-choice-card--business" onclick="_cnPickRole('business')">
         <div class="cn-choice-icon">🏢</div>
         <div class="cn-choice-eyebrow">For Businesses</div>
-        <div class="cn-choice-title">Get real creators making content for your brand</div>
-        <div class="cn-choice-sub">Post a campaign or invite creators directly. Your budget stays safe with EndaViral until you approve the work.</div>
+        <div class="cn-choice-title">Hire creators that fit your brand</div>
+        <div class="cn-choice-sub">Post a campaign or invite creators directly — pay only once you approve the work.</div>
         <ul class="cn-choice-list">
-          <li>Post a campaign or browse and invite creators</li>
-          <li>Fund the budget — it's held safely until you approve</li>
-          <li>Pay only for completed, approved work</li>
+          <li>Post a campaign</li>
+          <li>Receive creator applications</li>
+          <li>Approve work before payment</li>
         </ul>
-        <button class="cn-choice-cta" onclick="event.stopPropagation();_cnPickRole('business')">🏢 I'm a Business</button>
+        <button class="cn-choice-cta" onclick="event.stopPropagation();_cnPickRole('business')">🏢 Hire Creators</button>
       </div>
     </div>
 
-    <div class="cn-landing-foot">Not sure yet? Pick either side to preview it — you can always switch before you join.</div>
+    <div class="cn-trust-row">
+      <span class="cn-trust-item"><b>✔</b> Payments processed securely</span>
+      <span class="cn-trust-item"><b>✔</b> M-Pesa payouts</span>
+      <span class="cn-trust-item"><b>✔</b> Marketplace support</span>
+      <span class="cn-trust-item"><b>✔</b> Dispute resolution</span>
+    </div>
+
+    <div class="cn-landing-foot" style="margin-bottom:24px;">Not sure where to start? Explore both experiences before joining — switch anytime.</div>
+
+    <div class="cn-landing-section-lbl">How It Works</div>
+    <div class="cn-timeline">
+      <div class="cn-timeline-step" data-who="business"><div class="cn-timeline-dot">🏢</div><div class="cn-timeline-label">Business posts campaign</div><div class="cn-timeline-who">Business</div></div>
+      <div class="cn-timeline-step" data-who="creator"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot">🎬</div><div class="cn-timeline-label">Creators apply</div><div class="cn-timeline-who">Creator</div></div>
+      <div class="cn-timeline-step" data-who="business"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot">✅</div><div class="cn-timeline-label">Business selects creator</div><div class="cn-timeline-who">Business</div></div>
+      <div class="cn-timeline-step" data-who="business"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot">💰</div><div class="cn-timeline-label">Business funds campaign</div><div class="cn-timeline-who">Business</div></div>
+      <div class="cn-timeline-step" data-who="creator"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot">📦</div><div class="cn-timeline-label">Creator delivers work</div><div class="cn-timeline-who">Creator</div></div>
+      <div class="cn-timeline-step" data-who="business"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot">👍</div><div class="cn-timeline-label">Business approves</div><div class="cn-timeline-who">Business</div></div>
+      <div class="cn-timeline-step" data-who="system"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot">📲</div><div class="cn-timeline-label">Creator gets paid</div><div class="cn-timeline-who">M-Pesa</div></div>
+    </div>
   `;
+  _cnLoadLandingStats();
+}
+
+// Optional stat strip (total paid out, businesses, campaigns completed, avg
+// approval time). Deliberately fetched from a real endpoint rather than
+// hardcoded — a marketplace landing page showing fabricated numbers is
+// worse than showing none. Strip stays hidden if the endpoint isn't wired
+// up yet or returns nothing.
+async function _cnLoadLandingStats() {
+  const el = document.getElementById('cnLandingStats');
+  if (!el) return;
+  let stats = null;
+  try { stats = await api('/connect/marketplace-stats'); } catch (_) { stats = null; }
+  if (!stats || typeof stats !== 'object') return;
+  const items = [
+    stats.total_paid_kes != null ? { num: `KES ${Number(stats.total_paid_kes).toLocaleString()}`, label: 'Paid to Creators' } : null,
+    stats.businesses_count != null ? { num: String(stats.businesses_count), label: 'Businesses' } : null,
+    stats.campaigns_completed != null ? { num: String(stats.campaigns_completed), label: 'Campaigns Completed' } : null,
+    stats.avg_approval_hours != null ? { num: `${stats.avg_approval_hours}h`, label: 'Avg Approval Time' } : null,
+  ].filter(Boolean);
+  if (!items.length) return;
+  el.innerHTML = items.map(i => `
+    <div class="cn-landing-stat">
+      <div class="cn-landing-stat-num">${esc(i.num)}</div>
+      <div class="cn-landing-stat-label">${esc(i.label)}</div>
+    </div>`).join('');
+  el.style.display = 'grid';
 }
 
 // ─── Page init ───────────────────────────────────────────────────────────────
