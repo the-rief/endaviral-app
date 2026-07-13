@@ -87,6 +87,7 @@ let _cnBidsHasMore = false;
 let _cnBidsCounts = {};               // status -> count, from /applications/counts
 let _cnBidsSort = 'newest';           // 'newest' | 'price_low' | 'price_high'
 let _cnBidsQuery = '';                // creator-name search, debounced
+let _cnBidsView = 'list';             // 'list' | 'chat' | 'pay' — one modal, one view at a time
 let _cnJoinedRoles = { creator: false, business: false };  // which side(s) this user has actually joined — drives whether the role toggle shows at all
 let _cnRolesResolved = false;      // becomes true once _cnDetectJoinedRoles() has checked the server
 
@@ -2046,11 +2047,12 @@ function _cnOpenPaySheet(campaignId, applicationId) {
     ? _cnActiveNegotiationApp
     : _cnBidsTotalLoaded.find(a => a.id === applicationId);
   if (!app) return;
-  const modal = document.getElementById('cnPaySheetModal');
-  const body = document.getElementById('cnPaySheetModalBody');
-  if (!modal || !body) return;
+  _cnBidsView = 'pay';
+  const body = document.getElementById('cnBidsModalBody');
+  if (!body) return;
   const phone = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
   body.innerHTML = `
+    <button class="cn-bidchat-back" style="margin-bottom:16px;" onclick="_cnCancelPaySheet('${campaignId}','${applicationId}')" aria-label="Back to chat">←</button>
     <div class="modal-title" style="margin-bottom:2px;">Confirm &amp; pay</div>
     <div class="modal-sub" style="margin-bottom:4px;">${esc(app.creator_display_name || 'Creator')}</div>
     <div class="cn-paysheet-amt">
@@ -2063,7 +2065,14 @@ function _cnOpenPaySheet(campaignId, applicationId) {
     </div>
     <button class="btn-primary" style="width:100%;" onclick="_cnContinuePaySheet('${campaignId}','${applicationId}')">Continue</button>
   `;
-  modal.classList.add('show');
+}
+
+// Cancelling the pay sheet (before Continue) just steps back to that bid's
+// chat — never closes the whole modal, since the negotiation itself is
+// untouched.
+function _cnCancelPaySheet(campaignId, applicationId) {
+  _cnStopFundPolling();
+  _cnOpenBidChat(campaignId, applicationId);
 }
 
 function _cnContinuePaySheet(campaignId, applicationId) {
@@ -2074,12 +2083,11 @@ function _cnContinuePaySheet(campaignId, applicationId) {
     ? _cnActiveNegotiationApp
     : _cnBidsTotalLoaded.find(a => a.id === applicationId);
   if (!app) return;
-  const body = document.getElementById('cnPaySheetModalBody');
+  const body = document.getElementById('cnBidsModalBody');
   if (body) body.innerHTML = _cnFundFormHtml(applicationId, app.fund_amount_kes, phone);
 }
 
-function _cnClosePaySheet() {
-  document.getElementById('cnPaySheetModal').classList.remove('show');
+function _cnStopFundPolling() {
   if (_cnFundPollTimer) { clearInterval(_cnFundPollTimer); _cnFundPollTimer = null; }
 }
 
@@ -2176,10 +2184,10 @@ function _cnPollFunding(campaignId, checkoutRequestId) {
       }
       toast('🎉 Campaign funded!', 'success');
       setTimeout(() => {
-        _cnClosePaySheet();
-        const chatModal = document.getElementById('cnBidChatModal');
-        if (chatModal) chatModal.classList.remove('show');
-        _cnCloseBidsInbox();
+        _cnStopFundPolling();
+        document.getElementById('cnBidsModal').classList.remove('show');
+        _cnActiveNegotiationApp = null;
+        _cnMsgThreadCreatorId = null;
         _cnOpenCampaign(campaignId);
       }, 2400);
     } else if (data.status === 'failed' || data.status === 'cancelled') {
@@ -2526,11 +2534,11 @@ async function _cnRequestPayout(campaignId) {
   }
 }
 
-// ─── Bids Inbox (business, published campaign, not yet assigned) ──────────
-// One paginated screen for every bid on the campaign — separate from the
-// campaign modal itself, so it stays fast whether there are 3 bids or
-// 3,000. Rows link out to their own Bid Chat screen; nothing here shows a
-// price breakdown, only the agreed/bid amount as a plain figure.
+// ─── Bids (business, published campaign, not yet assigned) ────────────────
+// ONE modal for the whole bid-handling flow — list / chat / pay are three
+// views inside the SAME dialog, swapped in place, never stacked as
+// separate modals-on-top-of-modals. The campaign modal steps aside (hides)
+// while this is open and comes back, refreshed, when it closes.
 async function _cnOpenBidsInbox(campaignId) {
   _cnBidsCampaignId = campaignId;
   _cnBidsTab = (_cnBidsCounts && _cnBidsCounts.accepted) ? 'accepted' : 'pending';
@@ -2539,14 +2547,23 @@ async function _cnOpenBidsInbox(campaignId) {
   _cnBidsHasMore = false;
   _cnBidsSort = 'newest';
   _cnBidsQuery = '';
-  const modal = document.getElementById('cnBidsInboxModal');
+  _cnBidsView = 'list';
+  const modal = document.getElementById('cnBidsModal');
   if (!modal) return;
+  document.getElementById('cnCampaignModal').classList.remove('show');
   modal.classList.add('show');
   await _cnLoadBidsPage(true);
 }
 
-function _cnCloseBidsInbox() {
-  document.getElementById('cnBidsInboxModal').classList.remove('show');
+// The modal's ✕ — the only way out that returns all the way to the
+// campaign. Back arrows inside (chat → list, pay → chat) step back one
+// view at a time within this same modal instead.
+function _cnCloseBidsModal() {
+  document.getElementById('cnBidsModal').classList.remove('show');
+  _cnActiveNegotiationApp = null;
+  _cnMsgThreadCreatorId = null;
+  _cnStopFundPolling();
+  if (_cnBidsCampaignId) _cnOpenCampaign(_cnBidsCampaignId);
 }
 
 function _cnBidsStatusParam(tab) {
@@ -2615,8 +2632,9 @@ async function _cnFetchBidsList(reset) {
 }
 
 function _cnRenderBidsInboxShell() {
-  const body = document.getElementById('cnBidsInboxModalBody');
+  const body = document.getElementById('cnBidsModalBody');
   if (!body) return;
+  _cnBidsView = 'list';
   const counts = _cnBidsCounts || {};
   const pendingN = counts.pending || 0;
   const acceptedN = counts.accepted || 0;
@@ -2676,21 +2694,16 @@ function _cnRenderBidsList() {
   if (moreBtn) moreBtn.style.display = _cnBidsHasMore ? '' : 'none';
 }
 
-// ─── Bid chat (one screen per bid) ──────────────────────────────────────────
-// Reuses the same #cnMsgList / #cnMsgActionCard / #cnMsgInputRow ids the
-// single-thread chat inside the campaign modal uses — safe because this
-// modal only ever opens from the Bids Inbox, i.e. while the campaign has no
-// assigned creator yet, which is exactly when the campaign modal itself has
-// no chat card of its own to collide with.
+// ─── Bid chat (one view per bid, inside the same Bids modal) ──────────────
 function _cnOpenBidChat(campaignId, applicationId) {
   const app = _cnBidsTotalLoaded.find(a => a.id === applicationId);
   if (!app) return;
   _cnActiveNegotiationApp = app;
   _cnMsgThreadCreatorId = app.creator_user_id;
+  _cnBidsView = 'chat';
 
-  const modal = document.getElementById('cnBidChatModal');
-  const body = document.getElementById('cnBidChatModalBody');
-  if (!modal || !body) return;
+  const body = document.getElementById('cnBidsModalBody');
+  if (!body) return;
   body.innerHTML = `
     <div class="cn-bidchat-head">
       <button class="cn-bidchat-back" onclick="_cnCloseBidChat()" aria-label="Back to bids inbox">←</button>
@@ -2703,18 +2716,18 @@ function _cnOpenBidChat(campaignId, applicationId) {
     <div id="cnMsgActionCard"></div>
     <div id="cnMsgInputRow"></div>
   `;
-  modal.classList.add('show');
   _cnRenderBidChatActionCard();
   _cnRenderMsgInputRow(campaignId);
   _cnLoadMessages(campaignId, app.creator_user_id);
 }
 
+// Back arrow — steps back to the list view within the SAME modal (never
+// closes it), and refreshes the list/counts since this bid may have moved
+// tabs (e.g. price changed) while its chat was open.
 function _cnCloseBidChat() {
-  document.getElementById('cnBidChatModal').classList.remove('show');
+  _cnBidsView = 'list';
   _cnActiveNegotiationApp = null;
   _cnMsgThreadCreatorId = null;
-  // The bid may have moved tabs (e.g. price changed) — refresh the list
-  // and counts behind it so the inbox reflects the latest state.
   if (_cnBidsCampaignId) {
     _cnRefreshBidsCounts(_cnBidsCampaignId);
     _cnLoadBidsPage(true);
