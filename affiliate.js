@@ -27,6 +27,14 @@
  *     flicker. All tab panes now lazy-load from dedicated endpoints.
  * 11. Referrals pane showed name + email from dashboard (redacted); full
  *     /referrals endpoint now loaded lazily, same as payouts.
+ * 12. FIX (visibility update): backend now credits affiliates from three
+ *     revenue streams (SMM, Marketplace, Academy), not just SMM orders.
+ *     → Opt-in screen and dashboard header copy updated to reflect all three.
+ *     → New "Earnings by Source" panel renders from data.earnings_breakdown
+ *       (degrades to nothing on a stale cached payload that predates it).
+ *     → Commissions table has a new "Source" badge column (📈 SMM /
+ *       🤝 Marketplace / 🎓 Academy) and the old "Order Value" header is
+ *       relabelled "Basis (KES)" since Marketplace/Academy rows aren't orders.
  *
  * INTEGRATION CHECKLIST (index.html):
  *   1. Sidebar nav item   — paste ★NAVITEM below
@@ -168,7 +176,7 @@ function _renderOptIn(sec) {
   <div class="sec-hd" style="margin-bottom:24px;">
     <div>
       <div class="sec-title">REFER &amp; EARN</div>
-      <div class="sec-sub">Turn your audience into income — earn 15% on every order your referrals place</div>
+      <div class="sec-sub">Turn your audience into income — earn from every SMM order, Marketplace campaign & Academy purchase your referrals make</div>
     </div>
   </div>
 
@@ -176,17 +184,17 @@ function _renderOptIn(sec) {
     <div style="font-size:64px;margin-bottom:16px;">🤝</div>
     <div style="font-size:26px;font-weight:900;color:var(--white);margin-bottom:10px;">Join the Affiliate Programme</div>
     <div style="font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:32px;max-width:420px;margin-left:auto;margin-right:auto;">
-      Share your personal link. When friends sign up and order, you earn
-      <strong style="color:var(--green);">15% of every order value</strong> straight to your M-Pesa.
+      Share your personal link. Every time a referral orders an SMM service, books a Marketplace campaign, or
+      buys an Academy course, you earn a cut — straight to your M-Pesa.
       No limits. No expiry. Withdraw anytime from KES 100.
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:36px;text-align:left;">
       ${[
-        ['💸','Earn 15%','On every referral order, forever'],
-        ['📲','M-Pesa Payouts','Withdraw to any Safaricom number'],
-        ['⚡','24h Disbursement','Get paid fast — no long waits'],
-        ['🎯','Real-time Stats','Track signups & earnings live'],
+        ['📈','15% — SMM Orders','On every referral\'s SMM order, forever'],
+        ['🤝','10% — Marketplace','Of our success fee on completed campaigns'],
+        ['🎓','10% — Academy','On every paid Academy course purchase'],
+        ['📲','M-Pesa Payouts','Withdraw to any Safaricom number, from KES 100'],
       ].map(([icon, title, desc]) => `
         <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;">
           <div style="font-size:24px;margin-bottom:8px;">${icon}</div>
@@ -243,7 +251,7 @@ function _renderDashboard(sec, data) {
   <div class="sec-hd" style="flex-wrap:wrap;gap:12px;margin-bottom:24px;">
     <div>
       <div class="sec-title">REFER &amp; EARN</div>
-      <div class="sec-sub">Earn ${commissionPct}% on every order your referrals place</div>
+      <div class="sec-sub">Earning from SMM orders, Marketplace campaigns &amp; Academy purchases your referrals make</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       ${hasPendingPayout
@@ -304,7 +312,7 @@ function _renderDashboard(sec, data) {
         <div style="text-align:center;padding:14px 18px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.15);border-radius:12px;">
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Rate</div>
           <div style="font-size:32px;font-weight:900;color:var(--green);">${commissionPct}%</div>
-          <div style="font-size:10px;color:var(--muted);">per order</div>
+          <div style="font-size:10px;color:var(--muted);">per SMM order</div>
           <button onclick="affCopyLink()" style="margin-top:10px;width:100%;background:var(--green);color:#000;border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;">📋 Copy Link</button>
         </div>
         ${monthlyRank ? `
@@ -363,6 +371,34 @@ function _renderDashboard(sec, data) {
       <div class="stat-sub">${freeCredits > 0 ? 'This month' : 'Sent to M-Pesa'}</div>
     </div>
   </div>
+
+  <!-- ══ EARNINGS BREAKDOWN (by revenue stream) ══ -->
+  ${(() => {
+    // FIX: backend now credits affiliates from three streams (SMM,
+    // Marketplace, Academy) — data.earnings_breakdown may be absent on a
+    // stale cached dashboard payload, so this whole block degrades to
+    // nothing rather than showing broken KES 0 rows.
+    const b = data.earnings_breakdown;
+    if (!b) return '';
+    const sources = [
+      { key:'smm_kes',         icon:'📈', label:'SMM Services',  sub:'15% of profit on referred orders',      color:'#3dd44a' },
+      { key:'marketplace_kes', icon:'🤝', label:'Marketplace',   sub:'10% of our success fee on campaigns',   color:'#4ea8ff' },
+      { key:'academy_kes',     icon:'🎓', label:'Creator Academy', sub:'10% of paid course purchases',        color:'#ffd700' },
+    ];
+    return `
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:20px;">
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">EARNINGS BY SOURCE — ALL TIME</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
+      ${sources.map(s => `
+        <div style="background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+          <div style="font-size:20px;margin-bottom:6px;">${s.icon}</div>
+          <div style="font-size:18px;font-weight:900;color:${s.color};">${fmtKES(b[s.key] || 0)}</div>
+          <div style="font-size:11px;font-weight:700;color:var(--white);margin-top:4px;">${s.label}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">${s.sub}</div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+  })()}
 
   <!-- ══ REFERRAL LINK ══ -->
   <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:20px;">
@@ -460,13 +496,22 @@ async function _loadCommissionsPane() {
       return;
     }
     pane.innerHTML = `<div class="tbl-wrap"><table>
-      <thead><tr><th>Date</th><th>From</th><th>Order Value</th><th>Commission</th><th>Status</th></tr></thead>
+      <thead><tr><th>Date</th><th>Source</th><th>From</th><th>Basis (KES)</th><th>Commission</th><th>Status</th></tr></thead>
       <tbody>${commissions.map(c => {
         const st  = c.status || 'pending';
         // FIX: added 'cleared' → 'processing' class mapping
         const cls = st === 'paid' ? 'completed' : st === 'cleared' ? 'processing' : st === 'voided' ? 'failed' : 'pending';
+        // FIX: commissions can now come from three streams — badge each row
+        // so affiliates can see at a glance where an earning came from.
+        const src = c.source || 'smm';
+        const srcMeta = {
+          smm:         { icon:'📈', label:'SMM',         color:'#3dd44a' },
+          marketplace: { icon:'🤝', label:'Marketplace', color:'#4ea8ff' },
+          academy:     { icon:'🎓', label:'Academy',      color:'#ffd700' },
+        }[src] || { icon:'📈', label:esc(src), color:'#7a8fad' };
         return `<tr>
           <td style="font-size:12px;color:var(--muted);">${c.created_at ? new Date(c.created_at).toLocaleDateString('en-KE') : '—'}</td>
+          <td><span style="font-size:11px;font-weight:700;color:${srcMeta.color};white-space:nowrap;">${srcMeta.icon} ${srcMeta.label}</span></td>
           <td>${esc(c.referral_name || '—')}</td>
           <td>${fmtKES(c.order_amount || 0)}</td>
           <td style="color:var(--green);font-weight:700;">+${fmtKES(c.commission_amount || 0)}</td>

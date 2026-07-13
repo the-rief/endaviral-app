@@ -33,6 +33,12 @@
  * 10. affAdminConfirmDisburse sent `amount_sent` as a number but backend
  *     Pydantic schema required Decimal — now sends as string to preserve
  *     precision on large amounts.
+ * 11. FIX (visibility update): "Total Commissions" stat sub-label used to say
+ *     "15% of all referral spend" — no longer accurate now that Marketplace
+ *     (10% of our success fee) and Academy (10% of course price) also feed
+ *     total_earned_kes. Relabelled generically. A true per-source admin
+ *     breakdown (like the affiliate-facing dashboard's earnings_breakdown)
+ *     would need a new backend admin endpoint — not added here.
  * ════════════════════════════════════════════════════════════════════ */
 
 // ─── Per-tab cache variables ──────────────────────────────────────────────────
@@ -171,11 +177,23 @@ function _affAdminBuildStats() {
     tierCounts[t.name] = (tierCounts[t.name]||0) + 1;
   }
 
+  // FIX (visibility): platform-wide earnings by source, summed client-side
+  // from each affiliate's earnings_breakdown (now returned by
+  // GET /affiliate/admin/affiliates) — no extra request needed.
+  const bySource = { smm_kes:0, marketplace_kes:0, academy_kes:0 };
+  for (const a of af) {
+    const b = a.earnings_breakdown;
+    if (!b) continue;
+    bySource.smm_kes         += b.smm_kes || 0;
+    bySource.marketplace_kes += b.marketplace_kes || 0;
+    bySource.academy_kes     += b.academy_kes || 0;
+  }
+
   const cards = [
     { icon:'🤝', label:'Total Affiliates',  value: totalAff,            sub:`${activeAff} with referrals`,        color:'#3dd44a' },
     { icon:'👥', label:'Total Referrals',   value: totalRefs,           sub:'signed up via affiliate links',      color:'#3dd44a' },
     { icon:'🛒', label:'Referral Spend',    value: fmtKES(totalSpend),  sub:'spend by referred users',            color:'#ffd700' },
-    { icon:'💰', label:'Total Commissions', value: fmtKES(totalEarned), sub:'15% of all referral spend',          color:'#ffd700' },
+    { icon:'💰', label:'Total Commissions', value: fmtKES(totalEarned), sub:'across SMM, Marketplace &amp; Academy', color:'#ffd700' },
     { icon:'⏳', label:'Pending Balance',   value: fmtKES(totalPending),sub:'awaiting withdrawal requests',       color:'#ff9a3c' },
     { icon:'✅', label:'Total Paid Out',    value: fmtKES(totalPaid),   sub:'M-Pesa disbursements made',          color:'#3dd44a' },
     { icon:'📬', label:'Pending Requests',  value: pendingCount,         sub:`${fmtKES(pendingKes)} to disburse`, color: pendingCount > 0 ? '#ff6b6b' : '#3dd44a' },
@@ -206,6 +224,20 @@ function _affAdminBuildStats() {
         <div style="font-size:20px;margin-bottom:8px;">🏅</div>
         <div style="font-size:11px;font-weight:700;color:var(--white);margin-bottom:8px;letter-spacing:.5px;">TIER BREAKDOWN</div>
         ${tierHtml}
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+        <div style="font-size:20px;margin-bottom:8px;">💹</div>
+        <div style="font-size:11px;font-weight:700;color:var(--white);margin-bottom:8px;letter-spacing:.5px;">EARNINGS BY SOURCE</div>
+        ${[
+          ['📈','SMM',         bySource.smm_kes,         '#3dd44a'],
+          ['🤝','Marketplace', bySource.marketplace_kes, '#4ea8ff'],
+          ['🎓','Academy',     bySource.academy_kes,     '#ffd700'],
+        ].map(([icon,label,val,color]) => `
+          <div style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+            <span style="font-size:13px;">${icon}</span>
+            <span style="font-size:11px;color:${color};font-weight:700;flex:1;">${label}</span>
+            <span style="font-size:12px;font-weight:800;color:var(--white);">${fmtKES(val)}</span>
+          </div>`).join('')}
       </div>
     </div>`;
   return el;
@@ -525,7 +557,7 @@ function _affAdminRenderLeaderboard(wrap) {
       : `<div class="tbl-wrap"><table>
           <thead><tr>
             <th>#</th><th>Affiliate</th><th>Tier</th><th>Code</th>
-            <th>Referrals</th><th>Ref. Spend</th><th>Total Earned</th>
+            <th>Referrals</th><th>Ref. Spend</th><th>Total Earned</th><th>By Source</th>
             <th>Pending</th><th>Paid Out</th><th>Rate</th><th>Joined</th><th></th>
           </tr></thead>
           <tbody>
@@ -550,6 +582,21 @@ function _affAdminRenderLeaderboard(wrap) {
                 <td style="font-weight:700;text-align:center;">${(a.total_referrals||0).toLocaleString()}</td>
                 <td style="color:var(--muted);font-size:13px;">${fmtKES(a.referral_spend_kes||0)}</td>
                 <td style="font-weight:800;color:var(--green);">${fmtKES(a.total_earned_kes||0)}</td>
+                <td style="white-space:nowrap;">
+                  ${(() => {
+                    const b = a.earnings_breakdown;
+                    if (!b) return '<span style="color:var(--muted);font-size:11px;">—</span>';
+                    const parts = [
+                      ['📈', b.smm_kes,         '#3dd44a'],
+                      ['🤝', b.marketplace_kes, '#4ea8ff'],
+                      ['🎓', b.academy_kes,     '#ffd700'],
+                    ].filter(([,v]) => v > 0);
+                    if (!parts.length) return '<span style="color:var(--muted);font-size:11px;">—</span>';
+                    return parts.map(([icon,v,color]) =>
+                      `<div style="font-size:10px;color:${color};font-weight:700;white-space:nowrap;">${icon} ${fmtKES(v)}</div>`
+                    ).join('');
+                  })()}
+                </td>
                 <td style="font-weight:700;color:${pend>0?'#ff9a3c':'var(--muted)'};">${fmtKES(pend)}</td>
                 <td style="color:var(--muted);font-size:13px;">${fmtKES(a.paid_kes||0)}</td>
                 <td>
