@@ -1420,7 +1420,7 @@ async function submitAcademyPurchase() {
 
 function _acPollPurchaseStatus(moduleId, checkoutRequestId) {
   let attempts = 0;
-  const maxAttempts = 30; // ~90s at 3s interval — mirrors the wallet deposit poller
+  const maxAttempts = 60; // ~90s at 3s interval — mirrors the wallet deposit poller
   if (_acPurchasePollTimer) clearInterval(_acPurchasePollTimer);
 
   _acPurchasePollTimer = setInterval(async () => {

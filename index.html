@@ -3726,7 +3726,8 @@ function resetDeposit() {
    modal buttons on small screens (modals are z-index 100/500/999, chat is 9000) */
 body:has(.modal-overlay.show) #ev-chat-widget,
 body:has(.idle-overlay.show) #ev-chat-widget,
-body:has(.tnc-overlay.show) #ev-chat-widget{
+body:has(.tnc-overlay.show) #ev-chat-widget,
+body:has(.bw-overlay.show) #ev-chat-widget{
   display:none!important;
 }
 
