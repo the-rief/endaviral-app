@@ -752,7 +752,7 @@ function _cnOpenBidChat(campaignId, applicationId) {
   _cnActiveNegotiationApp = app;
   _cnMsgThreadCreatorId = app.creator_user_id;
 
-  const detail = document.getElementById('cnBidsDetail');
+  const detail = document.getElementById('cnBidsModalBody');
   if (!detail) return;
   detail.innerHTML = `
     <div class="cn-bidchat-head">
@@ -822,7 +822,7 @@ function _cnOpenPaySheet(campaignId, applicationId) {
     ? _cnActiveNegotiationApp
     : _bwRows.find(a => a.id === applicationId);
   if (!app) return;
-  const body = document.getElementById('cnBidsDetail');
+  const body = document.getElementById('cnBidsModalBody');
   if (!body) return;
   const phone = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
   const creatorLabel = esc(app.creator_display_name || 'the creator');
@@ -891,7 +891,7 @@ function _cnContinuePaySheet(campaignId, applicationId) {
     return;
   }
 
-  const body = document.getElementById('cnBidsDetail');
+  const body = document.getElementById('cnBidsModalBody');
   if (body) body.innerHTML = `<div style="padding:16px 16px 0;">${_cnFundFormHtml(applicationId, app.fund_amount_kes, phone)}</div>`;
 }
 
