@@ -3894,7 +3894,6 @@ body:has(.bw-overlay.show) #ev-chat-widget{
         <div class="ev-shortcuts-label">⚡ Instant Answers</div>
         <div class="ev-shortcuts-grid" id="ev-shortcuts-grid"></div>
       </div>
-      <div id="ev-instant-answer-panel"></div>
 
       <div id="ev-login-prompt">
         <span style="font-size:28px;">🔒</span>
@@ -3935,6 +3934,15 @@ body:has(.bw-overlay.show) #ev-chat-widget{
 
         <button class="ev-nt-submit" id="ev-nt-submit" onclick="evSubmitTicket()">Submit Ticket</button>
       </div>
+    </div>
+
+    <!-- Instant answer view: full-screen Q/A with back-to-shortcuts arrow -->
+    <div id="ev-view-instant">
+      <div class="ev-nt-hd">
+        <button class="ev-nt-back" onclick="evCloseInstantAnswer()">←</button>
+        <div class="ev-nt-title">Instant Answer</div>
+      </div>
+      <div id="ev-instant-answer-panel"></div>
     </div>
   </div>
 </div>

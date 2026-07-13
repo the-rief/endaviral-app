@@ -109,12 +109,14 @@
   }
 
   // Tapping a shortcut — local-only, never touches the server.
+  // Opens the full instant-answer view (not a cramped inline box) so the
+  // whole Q/A is readable, with a back arrow to return to the shortcuts.
   window.evShowInstantAnswer = function(i) {
     const s = _shortcuts[i];
     if (!s) return;
     const panel = document.getElementById('ev-instant-answer-panel');
     if (!panel) return;
-    panel.style.display = 'flex';
+    _showView('instant');
     panel.innerHTML = '';
 
     const user     = _getUser();
@@ -128,7 +130,6 @@
       if (t) t.remove();
       _appendLocal(panel, _adminBubbleHtml(s.answer, evNow(), true));
       // Scroll so the START of the new answer is visible, not the tail end.
-      // (Jumping straight to scrollHeight was cropping off the top of longer replies.)
       const bubbles = panel.querySelectorAll('.ev-msg.from-admin');
       const lastAdminMsg = bubbles[bubbles.length - 1];
       if (lastAdminMsg) {
@@ -139,9 +140,11 @@
     }, 500);
   };
 
+  // Back arrow — return to the shortcuts/home view.
   window.evCloseInstantAnswer = function() {
     const panel = document.getElementById('ev-instant-answer-panel');
-    if (panel) { panel.style.display = 'none'; panel.innerHTML = ''; }
+    if (panel) panel.innerHTML = '';
+    _showView('home');
   };
 
   /* ═══════════════════════════════════════════════════════════════
@@ -234,7 +237,7 @@
   ═══════════════════════════════════════════════════════════════ */
   function _showView(view) {
     state.view = view;
-    ['home','new'].forEach(v => {
+    ['home','new','instant'].forEach(v => {
       const el = document.getElementById('ev-view-' + v);
       if (el) el.style.display = (v === view) ? 'flex' : 'none';
     });
@@ -596,7 +599,7 @@
     const style = document.createElement('style');
     style.textContent = `
       /* Views */
-      #ev-view-home, #ev-view-new {
+      #ev-view-home, #ev-view-new, #ev-view-instant {
         display:none; flex-direction:column; flex:1; min-height:0; overflow:hidden;
       }
 
@@ -612,10 +615,11 @@
       }
       .ev-shortcut-btn:hover { background:rgba(61,212,74,.2); border-color:rgba(61,212,74,.5); }
 
+      #ev-view-instant .ev-nt-hd { padding:14px 14px 10px; flex-shrink:0; }
       #ev-instant-answer-panel {
-        display:none; flex-direction:column; gap:10px; margin:10px 14px;
-        padding:12px; max-height:320px; overflow-y:auto;
-        background:#111820; border:1px solid rgba(61,212,74,.15); border-radius:12px;
+        display:flex; flex-direction:column; gap:10px;
+        flex:1; min-height:0; overflow-y:auto;
+        padding:4px 14px 14px;
         position:relative;
       }
 
