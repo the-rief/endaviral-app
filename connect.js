@@ -540,11 +540,19 @@ function _cnInjectStyles() {
     /* ── Join / onboarding screen ─────────────────────────────────────── */
     .cn-join-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px;}
     .cn-join-badge{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--cn-accent);margin-bottom:10px;}
-    .cn-join-check,.cn-confirm-row{display:flex;gap:11px;align-items:center;font-size:12px;color:var(--white);margin-bottom:11px;cursor:pointer;line-height:1.5;padding:11px 14px;border-radius:12px;background:var(--navy);border:1px solid var(--border);transition:all .15s;}
+    /* position:relative was missing here, so the input below (position:
+       absolute) had no scoped ancestor to anchor to and escaped to
+       whichever container up the tree WAS positioned — landing well
+       outside this row. Also swapped the input from a 0×0 phantom (click
+       target relies entirely on browser label pass-through, which is
+       fragile with an absolutely-positioned-and-mislocated control) to a
+       real input stretched over the FULL row, so the whole thing — icon,
+       text, padding — is one large, reliable, natively-tappable target. */
+    .cn-join-check,.cn-confirm-row{position:relative;display:flex;gap:11px;align-items:center;font-size:12px;color:var(--white);margin-bottom:11px;cursor:pointer;line-height:1.5;padding:11px 14px;border-radius:12px;background:var(--navy);border:1px solid var(--border);transition:all .15s;}
     .cn-join-check:hover,.cn-confirm-row:hover{border-color:rgba(255,255,255,.25);}
     .cn-join-check.checked,.cn-confirm-row.checked{background:var(--cn-accent-soft);border-color:var(--cn-accent);}
-    .cn-join-check input,.cn-confirm-row input{position:absolute;opacity:0;width:0;height:0;}
-    .cn-join-check a{color:var(--cn-accent);text-decoration:underline;}
+    .cn-join-check input,.cn-confirm-row input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;}
+    .cn-join-check a{color:var(--cn-accent);text-decoration:underline;position:relative;z-index:1;pointer-events:none;}
     .cn-select{width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--white);font-size:13px;font-family:inherit;transition:border-color .15s;}
     .cn-select:focus{outline:none;border-color:var(--cn-accent);}
 
@@ -1754,7 +1762,10 @@ function _cnRenderCampaignModal() {
   }
 
   if ((isBusinessOwner || isAssignedCreator) && c.status === 'completed') {
-    actionHtml += `<div id="cnReviewArea">${_cnReviewFormHtml()}</div>`;
+    // Placeholder only — _cnLoadReviewArea (called below, once #cnReviewArea
+    // is actually in the DOM) decides whether this viewer already left a
+    // review before deciding whether to show the star form at all.
+    actionHtml += `<div id="cnReviewArea"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>`;
   }
 
   // Request Payout — in-chat, once the business has approved.
@@ -1830,6 +1841,7 @@ function _cnRenderCampaignModal() {
     _cnLoadMessages(c.id, _cnMsgThreadCreatorId);
   }
   if (isBusinessOwner && c.status === 'submitted') _cnLoadDeliverableForReview(c.id);
+  if ((isBusinessOwner || isAssignedCreator) && c.status === 'completed') _cnLoadReviewArea(c);
   if (isAssignedCreator && c.status === 'completed') _cnLoadPayoutArea(c);
   if (_cnShowReceipts) _cnLoadReceipts(c.id);
 }
@@ -2197,6 +2209,30 @@ async function _cnSubmitDispute(campaignId) {
 // ─── Reviews ───────────────────────────────────────────────────────────────────
 let _cnReviewRating = 0;
 
+// Fetches this campaign's reviews and only shows the star form if the
+// CURRENT viewer doesn't already have one on it — same "load, then decide"
+// shape as _cnLoadPayoutArea/_cnLoadDeliverableForReview, just for reviews.
+// Without this the form re-renders blank every time the modal is reopened
+// (it only ever updated in-place for the rest of that one session), which
+// let either side be prompted to review again after already doing so.
+async function _cnLoadReviewArea(c) {
+  const el = document.getElementById('cnReviewArea');
+  if (!el) return;
+
+  let mine = null;
+  try {
+    const list = await api(`/connect/campaigns/${c.id}/reviews`);
+    mine = (list || []).find(r => {
+      const reviewerId = r.reviewer_user_id ?? r.user_id ?? r.sender_user_id ?? r.author_user_id;
+      return reviewerId === currentUser.id;
+    }) || null;
+  } catch (_) { /* couldn't load — fall through to showing the form */ }
+
+  el.innerHTML = mine
+    ? `<div style="font-size:12px;color:var(--muted);">✅ Review submitted${mine.rating ? ` — you rated this ${'★'.repeat(mine.rating)}${'☆'.repeat(5 - mine.rating)}` : ''}.</div>`
+    : _cnReviewFormHtml();
+}
+
 function _cnReviewFormHtml() {
   return `
     <div class="cn-section-lbl">Rate Your Experience</div>
@@ -2367,11 +2403,25 @@ async function _cnLoadMessages(campaignId, threadCreatorId) {
       </div>`;
     }
     if (m.kind === 'fund_prompt') {
+      // History-only card: it just records that a price was agreed. The
+      // actual "pay" call-to-action lives in ONE place — the deal panel
+      // above the timeline (bids.js's _cnRenderBidChatActionCard / the
+      // creator-side negotiation banner) — so this never grows its own
+      // Fund/Pay button. It used to ("📱 Fund Now" scrolling to a
+      // #cnFundPhone field), but that field only ever exists inside the
+      // separate pay-sheet screen now, so the button was both dead (no
+      // element to scroll to) and, worse, kept appearing — looking like a
+      // second unfunded prompt — even after the campaign was already
+      // funded, since it never checked campaign status. Belt-and-braces:
+      // no button here at all, just a status line.
       const amt = m.action_payload && m.action_payload.amount_kes;
-      const canFund = isBusinessOwner && appStillActive;
+      const alreadyFunded = _cnCurrentCampaign.status !== 'published' || !appStillActive;
+      const waitingCopy = alreadyFunded
+        ? 'Funded — see below.'
+        : (isBusinessOwner ? 'Use the Pay button above to fund.' : 'Ready to fund whenever you are.');
       return dayDivider + `<div class="cn-msg-card cn-msg-card-fund">
         <div class="cn-msg-card-title">✅ Agreed on <span>${fmtKES(amt)}</span></div>
-        ${canFund ? `<button class="cn-btn-sm cn-btn-accept" onclick="document.getElementById('cnFundPhone')?.scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('cnFundPhone')?.focus();">📱 Fund Now</button>` : `<div class="cn-msg-card-waiting">Ready to fund whenever you are.</div>`}
+        <div class="cn-msg-card-waiting">${waitingCopy}</div>
       </div>`;
     }
     if (m.kind === 'not_selected') {

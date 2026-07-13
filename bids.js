@@ -184,11 +184,12 @@ function _bwBuildShell() {
           </div>
         </div>
         <div class="bw-topbar-right">
-          <button class="btn-secondary" id="bwInviteBtn">✉️ Invite a Creator Directly</button>
+          <button class="btn-secondary" id="bwInviteBtn">✉️ <span class="bw-invite-label">Invite a Creator Directly</span></button>
         </div>
       </div>
-      <div class="bw-body">
+      <div class="bw-body" id="bwBody" data-view="list">
         <div class="bw-rail" id="bwRail"></div>
+        <div class="bw-rail-scrim" onclick="_bwSetView('list')"></div>
         <div class="bw-list-col">
           <div class="bw-list-toolbar" id="bwToolbar"></div>
           <div class="bw-bulkbar" id="bwBulkbar" style="display:none;"></div>
@@ -213,6 +214,24 @@ function _bwBuildShell() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && document.getElementById('bwOverlay')?.classList.contains('show')) _bwClose();
   });
+}
+
+// ─── Mobile view state ──────────────────────────────────────────────────────
+// Three panes (rail / list / detail) sit side by side on desktop, no state
+// needed. Below the 768px breakpoint (see CSS) there's only room for one at
+// a time, so .bw-body's [data-view] attribute — "list" | "rail" | "detail" —
+// drives which pane is slid into view. Setting it is always safe to call
+// even on desktop, where it's simply ignored (the CSS hook only exists
+// inside the mobile media query).
+function _bwSetView(view) {
+  const body = document.getElementById('bwBody');
+  if (body) body.dataset.view = view;
+}
+
+function _bwToggleRail() {
+  const body = document.getElementById('bwBody');
+  if (!body) return;
+  _bwSetView(body.dataset.view === 'rail' ? 'list' : 'rail');
 }
 
 // ─── Shortlist (client-side only — see header note) ────────────────────────
@@ -267,6 +286,7 @@ function _bwRenderRail() {
   const segIcon = { pending: '🆕', accepted: '🤝', hired: '✅', closed: '🗂️' };
 
   rail.innerHTML = `
+    <button class="bw-rail-close" onclick="_bwSetView('list')" aria-label="Close filters">✕ Close</button>
     <div class="bw-rail-label">Segments</div>
     ${BW_SEGMENTS.map(s => `
       <button class="bw-rail-item ${_bwSegment === s.key ? 'active' : ''}" onclick="_bwSwitchSegment('${s.key}')">
@@ -304,13 +324,14 @@ function _bwRenderRail() {
 }
 
 function _bwSwitchSegment(key) {
-  if (_bwSegment === key) return;
+  if (_bwSegment === key) { _bwSetView('list'); return; }
   _bwSegment = key;
   _bwOffset = 0;
   _bwRows = [];
   _bwSelected.clear();
   _bwRenderRail();
   _bwFetchPage(true);
+  _bwSetView('list'); // no-op on desktop (data-view is mobile-only); closes the rail overlay on phones
 }
 
 function _bwSetSort(v) {
@@ -361,6 +382,7 @@ function _bwRenderToolbar() {
   const el = document.getElementById('bwToolbar');
   if (!el) return;
   el.innerHTML = `
+    <button class="bw-filter-btn" onclick="_bwToggleRail()" aria-label="Filters">☰</button>
     <div class="bw-search-wrap">
       <span class="bw-search-icon">🔍</span>
       <input type="text" class="bw-search" placeholder="Search by creator name…" value="${esc(_bwQuery)}" oninput="_bwOnSearchInput(this.value)">
@@ -545,7 +567,7 @@ function _bwShowDetailEmpty() {
   _bwPutBackModalBody();
   const empty = document.getElementById('bwDetailEmpty');
   if (empty) empty.style.display = '';
-  document.querySelector('.bw-body')?.classList.remove('bw-detail-open');
+  _bwSetView('list');
 }
 
 function _bwPutBackModalBody() {
@@ -568,7 +590,7 @@ function _bwOpenRow(appId) {
 
   _bwActiveAppId = appId;
   _bwRenderList(); // to highlight the active row
-  document.querySelector('.bw-body')?.classList.add('bw-detail-open');
+  _bwSetView('detail');
   _cnOpenBidChat(_bwCampaignId, appId); // below — chat, negotiate, pay, fund
 }
 
@@ -667,6 +689,13 @@ function _bwInjectStyles() {
     /* ── List column ────────────────────────────────────────────────── */
     .bw-list-col{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--border);background:rgba(255,255,255,.008);}
     .bw-list-toolbar{display:flex;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+    .bw-filter-btn{display:none;flex-shrink:0;width:38px;height:38px;align-items:center;justify-content:center;
+      background:var(--navy);border:1px solid var(--border);border-radius:9px;color:var(--white);font-size:15px;cursor:pointer;}
+    .bw-filter-btn:hover{border-color:var(--cn-accent);}
+    .bw-rail-close{display:none;width:100%;background:none;border:none;border-bottom:1px solid var(--border);
+      color:var(--muted);font-size:11.5px;font-weight:700;text-align:left;padding:0 8px 14px;margin-bottom:14px;cursor:pointer;}
+    .bw-rail-close:hover{color:var(--white);}
+    .bw-rail-scrim{display:none;}
     .bw-search-wrap{position:relative;flex:1;min-width:0;}
     .bw-search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:11.5px;opacity:.55;pointer-events:none;}
     .bw-search{width:100%;background:var(--navy);border:1px solid var(--border);border-radius:9px;
@@ -734,12 +763,40 @@ function _bwInjectStyles() {
       background:var(--border);border-radius:8px;}
     .bw-rail::-webkit-scrollbar-thumb:hover,.bw-list::-webkit-scrollbar-thumb:hover,.bw-detail::-webkit-scrollbar-thumb:hover{background:#354867;}
 
-    @media (max-width:980px){
-      .bw-body{grid-template-columns:150px minmax(260px,1fr) 0;}
-      .bw-detail{display:none;}
-      .bw-body.bw-detail-open{grid-template-columns:0 0 1fr;}
-      .bw-body.bw-detail-open .bw-rail,.bw-body.bw-detail-open .bw-list-col{display:none;}
-      .bw-body.bw-detail-open .bw-detail{display:flex;}
+    /* ── Mobile (≤768px) — only room for one pane at a time. Rail and
+       detail become full-height slide-in overlays over the list, driven
+       by .bw-body's [data-view] attribute ("list" default | "rail" |
+       "detail") instead of the old fixed 3-column grid, which at any
+       width below ~980px still tried to cram a 150px rail next to a
+       260px-minimum list — more than most phone screens are wide. ────*/
+    @media(max-width:768px){
+      .bw-topbar{padding:11px 14px;gap:8px;}
+      .bw-topbar-icon{width:30px;height:30px;font-size:13px;}
+      .bw-title{font-size:14px;}
+      .bw-eyebrow{font-size:9.5px;}
+      .bw-topbar-right .btn-secondary{padding:8px 10px;font-size:12px;}
+      .bw-invite-label{display:none;}
+
+      .bw-filter-btn{display:flex;}
+      .bw-rail-close{display:block;}
+
+      .bw-body{grid-template-columns:1fr;position:relative;overflow:hidden;}
+      .bw-list-col{width:100%;border-right:none;}
+
+      .bw-rail,.bw-detail{position:absolute;top:0;bottom:0;left:0;z-index:6;
+        background:var(--navy);transition:transform .22s ease;}
+      .bw-rail{width:86%;max-width:320px;transform:translateX(-105%);
+        box-shadow:18px 0 32px -20px rgba(0,0,0,.7);}
+      .bw-detail{width:100%;right:0;background:var(--black);transform:translateX(105%);}
+
+      .bw-body[data-view="rail"] .bw-rail{transform:translateX(0);}
+      .bw-body[data-view="detail"] .bw-detail{transform:translateX(0);}
+
+      .bw-rail-scrim{display:block;position:absolute;inset:0;z-index:5;
+        background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s ease;}
+      .bw-body[data-view="rail"] .bw-rail-scrim{opacity:1;pointer-events:auto;}
+
+      .bw-row-actions{flex-wrap:wrap;}
     }
   `;
   document.head.appendChild(style);
