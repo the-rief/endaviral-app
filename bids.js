@@ -986,7 +986,17 @@ function _cnPollFunding(campaignId, checkoutRequestId) {
     const title = document.getElementById('cnFundTitle');
     const desc = document.getElementById('cnFundDesc');
 
-    if (data.status === 'success') {
+    // Accept both 'success' and 'completed' as the terminal success value —
+    // mirrors index.html's order-payment poller (startPaymentPoll) and
+    // wallet-deposit poller, which both check for either string. The
+    // campaign funding poller here previously checked 'success' only, so a
+    // funding-status response of 'completed' was silently never recognized:
+    // the poll just kept running until it timed out, the UI never called
+    // _cnOpenCampaign() to refresh, and the chat kept showing stale
+    // Pay/Fund Now buttons even though the payment (and the backend's
+    // campaign.status/application.status flip in connect.py) had already
+    // gone through.
+    if (data.status === 'success' || data.status === 'completed') {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
       if (icon) icon.textContent = '✅';
       if (title) title.textContent = 'CAMPAIGN FUNDED';
