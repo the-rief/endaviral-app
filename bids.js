@@ -972,7 +972,7 @@ async function _cnSubmitFund(campaignId, applicationId) {
 
 function _cnPollFunding(campaignId, checkoutRequestId) {
   let attempts = 0;
-  const maxAttempts = 60; // ~90s at 3s interval, mirrors Academy's purchase poller
+  const maxAttempts = 30; // ~90s at 3s interval, mirrors Academy's purchase poller
   if (_cnFundPollTimer) clearInterval(_cnFundPollTimer);
 
   _cnFundPollTimer = setInterval(async () => {
