@@ -621,6 +621,10 @@ function _cnInjectStyles() {
     .cn-paysheet-amt{text-align:center;padding:6px 0 18px;}
     .cn-paysheet-amt-val{font-family:'Montserrat',sans-serif;font-size:30px;font-weight:900;color:var(--green);}
     .cn-paysheet-amt-lbl{font-size:11.5px;color:var(--muted);margin-top:4px;}
+    .cn-paysheet-amt-input{width:100%;background:var(--navy);border:1px solid var(--border);border-radius:9px;
+      padding:10px 12px;color:var(--green);font-family:'Montserrat',sans-serif;font-size:18px;font-weight:800;}
+    .cn-paysheet-amt-input:focus{outline:none;border-color:var(--green);}
+    .cn-paysheet-amt-hint{font-size:11px;color:var(--muted);line-height:1.5;margin-top:6px;}
     .cn-paysheet-field{margin-bottom:14px;}
     .cn-paysheet-field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
   `;

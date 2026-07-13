@@ -39,9 +39,9 @@
  *   plus the bid chat thread, price negotiation-in-a-bid, the pay sheet,
  *   and the STK push + funding poll it triggers (_cnOpenBidsInbox,
  *   _cnCloseBidsModal, _cnOpenBidChat, _cnRenderBidChatActionCard,
- *   _cnOpenPaySheet, _cnCancelPaySheet, _cnContinuePaySheet,
- *   _cnFundFormHtml, _cnSubmitFund, _cnPollFunding, _cnStopFundPolling,
- *   _cnPlatformProcessingFee). None of it is defined in connect.js and
+ *   _cnOpenPaySheet, _cnPaySheetSyncButton, _cnCancelPaySheet, _cnContinuePaySheet,
+ *   _cnProposePriceFromPaySheet, _cnFundFormHtml, _cnSubmitFund, _cnPollFunding,
+ *   _cnStopFundPolling, _cnPlatformProcessingFee). None of it is defined in connect.js and
  *   nothing here is overridden by connect.js — this is simply the single
  *   implementation. connect.js's own "N bids received" summary card (on
  *   a business's still-open campaign, before the workspace is opened)
@@ -801,12 +801,22 @@ function _cnPlatformProcessingFee(amountKes) {
 
 // ─── Pay Sheet — the ONLY place the KES breakdown is shown, and only after
 // the business taps Pay in a bid's chat. Two steps in the same modal:
-//  1. Confirm — the amount is shown read-only (it's whatever was agreed in
-//     chat; the client is never trusted to supply/override it — the server
-//     always funds coalesce(agreed_amount_kes, bid_amount_kes)), plus the
-//     M-Pesa number to pay from.
+//  1. Confirm — the amount is editable (see below), plus the M-Pesa number
+//     to pay from.
 //  2. Breakdown + Pay — budget/fee/total appears only once step 1 is
-//     confirmed, then the STK push goes out. ──────────────────────────────
+//     confirmed, then the STK push goes out.
+//
+// The amount field lets the business type in whatever price they actually
+// agreed with the creator (in case it moved on since the last accepted
+// offer), but it can NEVER skip straight to funding at a number the
+// creator hasn't agreed to — connect.py's fund_campaign still only ever
+// charges coalesce(agreed_amount_kes, bid_amount_kes) server-side, and the
+// creator is still the only one who can accept a price (see connect.py's
+// accept_price: "you can't accept your own offer"). So Continue checks the
+// typed amount against the currently agreed one: unchanged goes straight
+// to the funding breakdown as before; changed sends it as a normal price
+// offer (the same /negotiate/offer call the chat's 💰 button uses) and
+// hands back to the bid chat to wait for the creator's accept. ───────────
 function _cnOpenPaySheet(campaignId, applicationId) {
   const app = (_cnActiveNegotiationApp && _cnActiveNegotiationApp.id === applicationId)
     ? _cnActiveNegotiationApp
@@ -815,22 +825,41 @@ function _cnOpenPaySheet(campaignId, applicationId) {
   const body = document.getElementById('cnBidsDetail');
   if (!body) return;
   const phone = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
+  const creatorLabel = esc(app.creator_display_name || 'the creator');
   body.innerHTML = `
     <div style="padding:16px 16px 0;">
     <button class="cn-bidchat-back" style="margin-bottom:16px;display:flex;" onclick="_cnCancelPaySheet('${campaignId}','${applicationId}')" aria-label="Back to chat">←</button>
     <div class="modal-title" style="margin-bottom:2px;">Confirm &amp; pay</div>
-    <div class="modal-sub" style="margin-bottom:4px;">${esc(app.creator_display_name || 'Creator')}</div>
-    <div class="cn-paysheet-amt">
-      <div class="cn-paysheet-amt-val">${fmtKES(app.fund_amount_kes)}</div>
-      <div class="cn-paysheet-amt-lbl">Final amount agreed in chat</div>
+    <div class="modal-sub" style="margin-bottom:14px;">${esc(app.creator_display_name || 'Creator')}</div>
+    <div class="cn-paysheet-field">
+      <label>Amount to fund (KES)</label>
+      <input type="number" min="1" step="1" id="cnPayAmount" class="cn-paysheet-amt-input"
+        value="${app.fund_amount_kes}" oninput="_cnPaySheetSyncButton('${applicationId}')">
+      <div class="cn-paysheet-amt-hint">Currently agreed: ${fmtKES(app.fund_amount_kes)}. Change this if you've agreed on a new price — ${creatorLabel} will need to accept it before you can fund at that amount.</div>
     </div>
     <div class="cn-paysheet-field">
       <label>M-Pesa number to pay from</label>
       <input type="text" id="cnPayPhone" class="cn-fund-phone" style="width:100%;" value="${esc(phone)}" placeholder="07XXXXXXXX">
     </div>
-    <button class="btn-primary" style="width:100%;" onclick="_cnContinuePaySheet('${campaignId}','${applicationId}')">Continue</button>
+    <button class="btn-primary" id="cnPaySheetContinueBtn" style="width:100%;" onclick="_cnContinuePaySheet('${campaignId}','${applicationId}')">Continue</button>
     </div>
   `;
+}
+
+// Flips the Continue button's label the moment the typed amount stops
+// matching what's currently agreed, so it's clear before they click that
+// this will send a new offer rather than go straight to payment.
+function _cnPaySheetSyncButton(applicationId) {
+  const btn = document.getElementById('cnPaySheetContinueBtn');
+  const amountInput = document.getElementById('cnPayAmount');
+  if (!btn || !amountInput || btn.disabled) return;
+  const app = (_cnActiveNegotiationApp && _cnActiveNegotiationApp.id === applicationId)
+    ? _cnActiveNegotiationApp
+    : _bwRows.find(a => a.id === applicationId);
+  if (!app) return;
+  const amount_kes = parseFloat(amountInput.value);
+  const changed = !amount_kes || amount_kes <= 0 || Math.abs(amount_kes - Number(app.fund_amount_kes)) > 0.005;
+  btn.textContent = changed ? '💬 Propose This Price' : 'Continue';
 }
 
 // Cancelling the pay sheet (before Continue) just steps back to that bid's
@@ -849,8 +878,37 @@ function _cnContinuePaySheet(campaignId, applicationId) {
     ? _cnActiveNegotiationApp
     : _bwRows.find(a => a.id === applicationId);
   if (!app) return;
+  const amountInput = document.getElementById('cnPayAmount');
+  const amount_kes = parseFloat(amountInput ? amountInput.value : '');
+  if (!amount_kes || amount_kes <= 0) { toast('Enter a valid amount', 'error'); return; }
+
+  // Unchanged from what's already agreed → straight to the funding
+  // breakdown, same as before. Changed → this is a new price, so it goes
+  // out as a proposal (never straight to funding — see the header note
+  // above this pay sheet for why).
+  if (Math.abs(amount_kes - Number(app.fund_amount_kes)) > 0.005) {
+    _cnProposePriceFromPaySheet(campaignId, applicationId, amount_kes);
+    return;
+  }
+
   const body = document.getElementById('cnBidsDetail');
   if (body) body.innerHTML = `<div style="padding:16px 16px 0;">${_cnFundFormHtml(applicationId, app.fund_amount_kes, phone)}</div>`;
+}
+
+async function _cnProposePriceFromPaySheet(campaignId, applicationId, amount_kes) {
+  const btn = document.getElementById('cnPaySheetContinueBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  try {
+    await api(`/connect/campaigns/${campaignId}/negotiate/offer`, {
+      method: 'POST',
+      body: JSON.stringify({ amount_kes, application_id: applicationId }),
+    });
+    toast('New price proposed — you can fund once they accept it', 'success');
+    _cnOpenBidChat(campaignId, applicationId);
+  } catch (e) {
+    toast(e.message || 'Could not propose that price', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '💬 Propose This Price'; }
+  }
 }
 
 function _cnStopFundPolling() {
