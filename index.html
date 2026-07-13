@@ -3903,7 +3903,7 @@ body:has(.bw-overlay.show) #ev-chat-widget{
       </div>
 
       <div class="ev-tickets-wrap">
-        <div class="ev-tickets-label">🎫 My Tickets</div>
+        <div class="ev-tickets-label">🎫 Latest Ticket</div>
         <div id="ev-tickets-list"></div>
       </div>
 
@@ -3934,22 +3934,6 @@ body:has(.bw-overlay.show) #ev-chat-widget{
         </div>
 
         <button class="ev-nt-submit" id="ev-nt-submit" onclick="evSubmitTicket()">Submit Ticket</button>
-      </div>
-    </div>
-
-    <!-- Thread view: a single ticket's conversation with admin -->
-    <div id="ev-view-thread">
-      <div class="ev-thread-hd">
-        <button class="ev-nt-back" onclick="evGoHome()">←</button>
-        <div class="ev-thread-subject" id="ev-thread-subject">Support ticket</div>
-      </div>
-      <div class="ev-chat-msgs" id="ev-thread-msgs"></div>
-      <div id="ev-thread-banner"></div>
-      <div class="ev-chat-input-row">
-        <textarea class="ev-chat-input" id="ev-thread-input" placeholder="Type your message…" oninput="evAutoResize(this)" onkeydown="evThreadKeydown(event)"></textarea>
-        <button class="ev-send-btn" onclick="evSendThreadReply()" id="ev-thread-send">
-          <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-        </button>
       </div>
     </div>
   </div>

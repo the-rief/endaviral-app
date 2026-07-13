@@ -18,7 +18,6 @@
     open:           false,
     view:           'home',      // 'home' | 'new' | 'thread'
     threads:        [],          // summaries from GET /threads
-    activeThreadId: null,
     unread:         0,
   };
 
@@ -128,7 +127,15 @@
       const t = document.getElementById('ev-instant-typing');
       if (t) t.remove();
       _appendLocal(panel, _adminBubbleHtml(s.answer, evNow(), true));
-      panel.scrollTop = panel.scrollHeight;
+      // Scroll so the START of the new answer is visible, not the tail end.
+      // (Jumping straight to scrollHeight was cropping off the top of longer replies.)
+      const bubbles = panel.querySelectorAll('.ev-msg.from-admin');
+      const lastAdminMsg = bubbles[bubbles.length - 1];
+      if (lastAdminMsg) {
+        panel.scrollTop = lastAdminMsg.offsetTop - 8;
+      } else {
+        panel.scrollTop = panel.scrollHeight;
+      }
     }, 500);
   };
 
@@ -158,16 +165,6 @@
     } catch (_) { _renderHome(); }
   }
 
-  async function _fetchThread(threadId) {
-    try {
-      const res = await fetch(`${SUPPORT_API}/threads/${threadId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (_) { return null; }
-  }
-
   /* ═══════════════════════════════════════════════════════════════
      HOME VIEW — shortcuts (already in DOM) + ticket list
   ═══════════════════════════════════════════════════════════════ */
@@ -191,19 +188,38 @@
       return;
     }
 
-    listEl.innerHTML = state.threads.map(t => {
-      const statusClass = t.status;
-      const preview = t.last_message ? _stripMd(t.last_message.body).slice(0, 60) : '';
-      return `
-        <button class="ev-ticket-card" onclick="evOpenThreadView('${t.id}')">
-          <div class="ev-ticket-card-top">
-            <span class="ev-ticket-subject">${_escape(t.subject || 'Support ticket')}</span>
-            <span class="ev-ticket-status ev-ticket-status-${statusClass}">${_statusLabel(t.status)}</span>
-          </div>
-          <div class="ev-ticket-preview">${_escape(preview)}${preview.length >= 60 ? '…' : ''}</div>
-        </button>`;
-    }).join('');
+    // The widget is a quick-glance surface, not the full ticket history —
+    // that lives on the dedicated My Tickets page. Here we only ever show
+    // the single most relevant ticket: the latest open/pending one if there
+    // is one, otherwise just the latest ticket overall.
+    const active = state.threads.find(t => t.status === 'open' || t.status === 'pending');
+    const t = active || state.threads[0];
+
+    const statusClass = t.status;
+    const preview = t.last_message ? _stripMd(t.last_message.body).slice(0, 60) : '';
+    const card = `
+      <button class="ev-ticket-card" onclick="evGoToTicketsPage()">
+        <div class="ev-ticket-card-top">
+          <span class="ev-ticket-subject">${_escape(t.subject || 'Support ticket')}</span>
+          <span class="ev-ticket-status ev-ticket-status-${statusClass}">${_statusLabel(t.status)}</span>
+        </div>
+        <div class="ev-ticket-preview">${_escape(preview)}${preview.length >= 60 ? '…' : ''}</div>
+      </button>`;
+
+    const viewAll = state.threads.length > 1
+      ? `<button class="ev-tickets-viewall" onclick="evGoToTicketsPage()">View all tickets (${state.threads.length}) in My Tickets →</button>`
+      : `<button class="ev-tickets-viewall" onclick="evGoToTicketsPage()">Open in My Tickets →</button>`;
+
+    listEl.innerHTML = card + viewAll;
   }
+
+  // The widget never displays a ticket conversation itself — that's the
+  // My Tickets page's job. This is the single hand-off point: close the
+  // widget and route there.
+  window.evGoToTicketsPage = function() {
+    window.evChatToggle();
+    if (typeof window.navTo === 'function') window.navTo('tickets');
+  };
 
   function _statusLabel(s) {
     return { open: '🔴 Open', pending: '🟡 Pending', resolved: '🟢 Resolved', closed: '⬛ Closed' }[s] || s;
@@ -218,14 +234,13 @@
   ═══════════════════════════════════════════════════════════════ */
   function _showView(view) {
     state.view = view;
-    ['home','new','thread'].forEach(v => {
+    ['home','new'].forEach(v => {
       const el = document.getElementById('ev-view-' + v);
       if (el) el.style.display = (v === view) ? 'flex' : 'none';
     });
   }
 
   window.evGoHome = function() {
-    state.activeThreadId = null;
     evCloseInstantAnswer();
     _showView('home');
     evBootWidget();
@@ -282,130 +297,24 @@
       if (!res.ok) throw new Error();
       const data = await res.json();
 
-      // Drop it into our local list + open it
+      // Ticket created. The widget's job stops here — it captured the
+      // issue fast; the actual conversation happens on the My Tickets
+      // page, not inside the widget. Show a quick confirmation, then hand off.
       state.threads.unshift(data);
-      lastSeenCount[data.id] = (data.messages || []).length;
-      evOpenThreadView(data.id, data);
-      evStartPolling();
+      if (btn) btn.textContent = '✅ Ticket created!';
+      if (desc) { desc.disabled = true; }
+      setTimeout(() => { evGoToTicketsPage(); }, 900);
     } catch (_) {
       if (desc) desc.placeholder = '❌ Could not submit. Please try again.';
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'Submit Ticket'; }
+      if (btn && btn.textContent !== '✅ Ticket created!') { btn.disabled = false; btn.textContent = 'Submit Ticket'; }
     }
   };
 
-  /* ═══════════════════════════════════════════════════════════════
-     THREAD VIEW — a single ticket's conversation with admin
-  ═══════════════════════════════════════════════════════════════ */
-  window.evOpenThreadView = async function(threadId, preloaded) {
-    state.activeThreadId = threadId;
-    _showView('thread');
-
-    const msgsEl = document.getElementById('ev-thread-msgs');
-    if (msgsEl) msgsEl.innerHTML = '';
-
-    const detail = preloaded || await _fetchThread(threadId);
-    if (!detail) { evGoHome(); return; }
-
-    document.getElementById('ev-thread-subject').textContent = detail.subject || 'Support ticket';
-    _renderThreadMessages(detail.messages || []);
-    lastSeenCount[threadId] = (detail.messages || []).length;
-    _updateThreadBanner(detail.status);
-    _syncThreadInput(detail.status);
-
-    // Keep local list summary in sync
-    const idx = state.threads.findIndex(t => t.id === threadId);
-    if (idx >= 0) state.threads[idx].status = detail.status;
-  };
-
-  function _renderThreadMessages(messages) {
-    const user = _getUser();
-    const initial = (user.name || 'U').charAt(0).toUpperCase();
-    const msgsEl = document.getElementById('ev-thread-msgs');
-    if (!msgsEl) return;
-    for (const m of messages) {
-      if (m.sender === 'admin') {
-        _appendLocal(msgsEl, _adminBubbleHtml(m.body, _fmtTime(m.created_at)));
-      } else {
-        _appendLocal(msgsEl, _userBubbleHtml(m.body, initial, _fmtTime(m.created_at)));
-      }
-    }
-    evScrollThreadBottom();
-  }
-
-  function evScrollThreadBottom() {
-    const el = document.getElementById('ev-thread-msgs');
-    if (el) setTimeout(() => { el.scrollTop = el.scrollHeight; }, 50);
-  }
-
-  window.evThreadKeydown = function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); evSendThreadReply(); }
-  };
-
-  window.evSendThreadReply = async function() {
-    const input = document.getElementById('ev-thread-input');
-    if (!input || input.disabled) return;
-    const text = input.value.trim();
-    if (!text || !state.activeThreadId) return;
-
-    const user = _getUser();
-    const initial = (user.name || 'U').charAt(0).toUpperCase();
-    const msgsEl = document.getElementById('ev-thread-msgs');
-    _appendLocal(msgsEl, _userBubbleHtml(text, initial, evNow()));
-    evScrollThreadBottom();
-    input.value = '';
-    evAutoResize(input);
-    lastSeenCount[state.activeThreadId] = (lastSeenCount[state.activeThreadId] || 0) + 1;
-
-    try {
-      await fetch(`${SUPPORT_API}/threads/${state.activeThreadId}/messages`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: text })
-      });
-    } catch (_) {}
-  };
-
-  window.evMarkResolved = async function() {
-    if (!state.activeThreadId) return;
-    try {
-      await fetch(`${SUPPORT_API}/threads/${state.activeThreadId}/resolve`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      _updateThreadBanner('resolved');
-      _syncThreadInput('resolved');
-    } catch (_) {}
-  };
-
-  function _updateThreadBanner(status) {
-    const banner = document.getElementById('ev-thread-banner');
-    if (!banner) return;
-    if (['resolved','closed'].includes(status)) {
-      const label = status === 'resolved' ? '✅ This ticket has been resolved' : '🔒 This ticket is closed';
-      banner.style.display = 'block';
-      banner.innerHTML = `
-        <div>${label}</div>
-        <button class="ev-new-ticket-btn" onclick="evOpenNewTicketForm()">＋ Open New Ticket</button>`;
-    } else {
-      banner.style.display = 'none';
-      banner.innerHTML = '';
-    }
-  }
-
-  function _syncThreadInput(status) {
-    const isClosed = ['resolved','closed'].includes(status);
-    const input = document.getElementById('ev-thread-input');
-    const btn   = document.getElementById('ev-thread-send');
-    if (input) {
-      input.disabled = isClosed;
-      input.placeholder = isClosed
-        ? 'This ticket is closed. Open a new one if you need more help.'
-        : 'Type your message…';
-      input.style.opacity = isClosed ? '0.5' : '1';
-    }
-    if (btn) btn.disabled = isClosed;
-  }
+  /* NOTE: the widget intentionally does NOT render ticket conversations.
+     Reading and replying to a ticket happens on the dedicated My Tickets
+     page (see evGoToTicketsPage above). The widget only ever captures the
+     first message fast and hands off. */
 
   /* ═══════════════════════════════════════════════════════════════
      POLLING — every 15s while widget is open
@@ -436,26 +345,8 @@
         const known = lastSeenCount[t.id] ?? 0;
         const count = t.message_count || 0;
         if (count > known) {
-          if (t.id === state.activeThreadId && state.view === 'thread') {
-            // Fetch full detail and append only the new messages
-            const detail = await _fetchThread(t.id);
-            if (detail) {
-              const allMsgs = detail.messages || [];
-              const freshMsgs = allMsgs.slice(known);
-              const adminMsgs = freshMsgs.filter(m => m.sender === 'admin');
-              _renderThreadMessages(freshMsgs);
-              lastSeenCount[t.id] = allMsgs.length;
-              if (detail.status !== t.status) {
-                _updateThreadBanner(detail.status);
-                _syncThreadInput(detail.status);
-              }
-              newAdminCount += adminMsgs.length;
-            }
-          } else {
-            // Not currently viewing this thread — just bump the cursor + badge
-            if (t.last_message && t.last_message.sender === 'admin') newAdminCount++;
-            lastSeenCount[t.id] = count;
-          }
+          if (t.last_message && t.last_message.sender === 'admin') newAdminCount++;
+          lastSeenCount[t.id] = count;
         }
       }
 
@@ -474,10 +365,7 @@
         if (lastAdmin) {
           const body = lastAdmin.last_message.body || '';
           const preview = _stripMd(body).slice(0, 80) + (body.length > 80 ? '…' : '');
-          evShowDashboardPopup(ADMIN_NAME, preview, () => {
-            if (!state.open) window.evChatToggle();
-            evOpenThreadView(lastAdmin.id);
-          });
+          evShowDashboardPopup(ADMIN_NAME, preview, () => evGoToTicketsPage());
         }
       }
     } catch (_) {}
@@ -708,7 +596,7 @@
     const style = document.createElement('style');
     style.textContent = `
       /* Views */
-      #ev-view-home, #ev-view-new, #ev-view-thread {
+      #ev-view-home, #ev-view-new {
         display:none; flex-direction:column; flex:1; min-height:0; overflow:hidden;
       }
 
@@ -726,7 +614,7 @@
 
       #ev-instant-answer-panel {
         display:none; flex-direction:column; gap:10px; margin:10px 14px;
-        padding:12px; max-height:220px; overflow-y:auto;
+        padding:12px; max-height:320px; overflow-y:auto;
         background:#111820; border:1px solid rgba(61,212,74,.15); border-radius:12px;
         position:relative;
       }
@@ -741,6 +629,12 @@
         cursor:pointer; font-family:'Montserrat',sans-serif; transition:border-color .2s;
       }
       .ev-ticket-card:hover { border-color:rgba(61,212,74,.4); }
+      .ev-tickets-viewall {
+        display:block; width:100%; text-align:center; background:none;
+        border:none; color:#3dd44a; font-size:11.5px; font-weight:700;
+        padding:8px 4px 2px; cursor:pointer; font-family:'Montserrat',sans-serif;
+      }
+      .ev-tickets-viewall:hover { text-decoration:underline; }
       .ev-ticket-card-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; }
       .ev-ticket-subject { font-size:12.5px; font-weight:700; color:#f0f4ff; }
       .ev-ticket-status { font-size:10px; font-weight:700; white-space:nowrap; }
@@ -795,10 +689,6 @@
         font-family:'Montserrat',sans-serif; font-size:13.5px; font-weight:800; cursor:pointer;
       }
       .ev-nt-submit:disabled { opacity:.6; cursor:default; }
-
-      /* Thread view header */
-      .ev-thread-hd { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid rgba(61,212,74,.1); flex-shrink:0; }
-      .ev-thread-subject { flex:1; font-size:13px; font-weight:800; color:#f0f4ff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
       /* Message bubbles (shared: thread + instant answer panel) */
       .ev-msg{display:flex;gap:8px;align-items:flex-end;max-width:88%;}
