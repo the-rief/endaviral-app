@@ -2622,7 +2622,8 @@ async function _cnSearchCreators() {
 
   resultsEl.innerHTML = `<div class="cn-empty">Loading…</div>`;
   try {
-    const creators = await api(`/connect/creators?${params.toString()}`);
+    const allCreators = await api(`/connect/creators?${params.toString()}`);
+    const creators = allCreators.filter(p => p.display_name && p.display_name.trim());
     if (!creators.length) {
       resultsEl.innerHTML = `<div class="cn-empty">No creators match those filters.</div>`;
       return;
@@ -2687,12 +2688,13 @@ async function _cnOpenInviteModal(creatorUserId, creatorLabel, campaignId) {
   let creatorOptionsHtml = '';
   if (!creatorUserId) {
     try {
-      const creators = await api('/connect/creators?sort=rating&limit=50');
+      const allCreators = await api('/connect/creators?sort=rating&limit=50');
+      const creators = allCreators.filter(p => p.display_name && p.display_name.trim());
       if (!creators.length) {
         body.innerHTML = `<div class="cn-empty">No creators in the directory yet.</div>`;
         return;
       }
-      creatorOptionsHtml = creators.map(p => `<option value="${p.user_id}">${esc(p.display_name || p.user_id)}${p.is_verified ? ' ✔️' : ''} — ★${p.rating_avg || 0}</option>`).join('');
+      creatorOptionsHtml = creators.map(p => `<option value="${p.user_id}">${esc(p.display_name)}${p.is_verified ? ' ✔️' : ''} — ★${p.rating_avg || 0}</option>`).join('');
     } catch (e) {
       body.innerHTML = `<div class="cn-empty">${esc(e.message || "Couldn't load creators.")}</div>`;
       return;
