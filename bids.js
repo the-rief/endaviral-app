@@ -1000,6 +1000,11 @@ function _cnFundFormHtml(applicationId, fundAmount, phone) {
       <div style="font-weight:800;color:var(--white);margin-bottom:4px;font-size:13px;" id="cnFundTitle">WAITING FOR PAYMENT</div>
       <div style="font-size:11.5px;color:var(--muted);" id="cnFundDesc">Enter your M-Pesa PIN to pay ${fmtKES(total)}.</div>
     </div>
+    <div style="text-align:center;padding-top:10px;">
+      <a href="javascript:void(0)" onclick="_cnOpenFundingIssueModal('${_cnCurrentCampaign.id}','${esc(phone || '')}')" style="font-size:11.5px;color:var(--muted);text-decoration:underline;">
+        Payment not reflecting? Contact support
+      </a>
+    </div>
   `;
 }
 
@@ -1024,6 +1029,7 @@ async function _cnSubmitFund(campaignId, applicationId) {
 
   document.getElementById('cnFundForm').style.display = 'none';
   document.getElementById('cnFundStatus').style.display = '';
+  _cnLastFundCheckoutId = data.checkoutRequestId;
   _cnPollFunding(campaignId, applicationId, data.checkoutRequestId);
 }
 
@@ -1107,4 +1113,71 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
       if (desc) desc.textContent = 'Still waiting — check your phone, or close and try again.';
     }
   }, 3000);
+}
+
+// ─── "Payment not reflecting?" support ticket — reachable from every state
+// of the fund flow (form, waiting-for-payment, and failed), since the
+// whole point of this is covering the case where the STK poll itself
+// can't be trusted (closed tab mid-poll, a delayed/lost Nexus callback,
+// or the deduction going through without the poll ever catching it).
+// Builds its own lightweight overlay rather than depending on index.html
+// markup, so it works no matter what's open underneath it. Posts to
+// POST /connect/campaigns/{id}/funding/report-issue (connect.py), which
+// creates a CampaignFundingIssueReport ticket an admin resolves from the
+// Connect admin panel's Payment Issues queue (admin_connect_stats.js).
+function _cnOpenFundingIssueModal(campaignId, phone) {
+  _cnCloseFundingIssueModal(); // guard against stacking if triggered twice
+  const overlay = document.createElement('div');
+  overlay.id = 'cnFundingIssueOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.onclick = (e) => { if (e.target === overlay) _cnCloseFundingIssueModal(); };
+  overlay.innerHTML = `
+    <div style="background:var(--card,#161d2b);border:1px solid var(--border);border-radius:14px;max-width:420px;width:100%;padding:20px;">
+      <div style="font-weight:800;color:var(--white);font-size:15px;margin-bottom:4px;">🆘 Contact Support</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Paid but the campaign still shows unfunded? Tell us what happened and EndaViral support will confirm it manually.</div>
+      <label style="font-size:11.5px;color:var(--muted);display:block;margin-bottom:4px;">What happened?</label>
+      <textarea id="cnFiMessage" rows="3" placeholder="e.g. Paid via M-Pesa at 2:15pm but the campaign still shows unfunded" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;color:var(--white);padding:8px 10px;font-size:12.5px;margin-bottom:10px;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
+      <label style="font-size:11.5px;color:var(--muted);display:block;margin-bottom:4px;">M-Pesa confirmation code (optional)</label>
+      <input id="cnFiReceipt" type="text" placeholder="e.g. QGH7XXXXX" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;color:var(--white);padding:8px 10px;font-size:12.5px;margin-bottom:10px;box-sizing:border-box;">
+      <label style="font-size:11.5px;color:var(--muted);display:block;margin-bottom:4px;">M-Pesa phone number (optional)</label>
+      <input id="cnFiPhone" type="text" value="${esc(phone || '')}" placeholder="07XXXXXXXX" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;color:var(--white);padding:8px 10px;font-size:12.5px;margin-bottom:16px;box-sizing:border-box;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn-secondary" style="flex:1;" onclick="_cnCloseFundingIssueModal()">Cancel</button>
+        <button class="btn-primary" id="cnFiSubmitBtn" style="flex:1;" onclick="_cnSubmitFundingIssueReport('${campaignId}')">Send Report</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function _cnCloseFundingIssueModal() {
+  const el = document.getElementById('cnFundingIssueOverlay');
+  if (el) el.remove();
+}
+
+async function _cnSubmitFundingIssueReport(campaignId) {
+  const messageEl = document.getElementById('cnFiMessage');
+  const message = messageEl ? messageEl.value.trim() : '';
+  if (!message) { toast('Tell us what happened', 'error'); return; }
+  const mpesa_receipt = document.getElementById('cnFiReceipt').value.trim() || null;
+  const phone = document.getElementById('cnFiPhone').value.trim() || null;
+
+  const btn = document.getElementById('cnFiSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    await api(`/connect/campaigns/${campaignId}/funding/report-issue`, {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        checkout_request_id: _cnLastFundCheckoutId || undefined,
+        mpesa_receipt,
+        phone,
+      }),
+    });
+    toast('Reported — EndaViral support will confirm and get back to you.', 'success');
+    _cnCloseFundingIssueModal();
+  } catch (e) {
+    toast(e.message || 'Could not send report', 'error');
+    btn.disabled = false; btn.textContent = 'Send Report';
+  }
 }

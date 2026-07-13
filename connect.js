@@ -71,6 +71,7 @@ let _cnCurrentApplications = [];  // applications for the open campaign (busines
 let _cnCreatorProfile = null;
 let _cnBusinessProfile = null;
 let _cnFundPollTimer = null;
+let _cnLastFundCheckoutId = null; // most recent checkoutRequestId this session tried to fund with — prefilled into the "payment not reflecting" report so admin has somewhere to start looking
 let _cnMsgThreadCreatorId = null;  // which creator's thread is open in the campaign modal (business side, when unassigned)
 let _cnActiveNegotiationApp = null; // the CampaignApplication behind the currently open thread, if any (drives the negotiation banner/propose/fund controls)
 let _cnBidCounts = {};             // cached applications/counts for the "N bids received" summary card on a business's own campaign — connect.js's own copy, fetched via bids.js's shared _bwFetchCampaignSummaryCounts(). bids.js keeps its own separate copy (_bwCounts) for the open workspace; the two are never shared or overwritten across files.
@@ -2028,6 +2029,10 @@ function _cnDeliverableFormHtml() {
         <option value="facebook">Facebook</option>
         <option value="youtube">YouTube</option>
       </select>
+      <label style="margin-top:6px;">Screenshot (optional proof)</label>
+      <input type="file" id="cnDelivShot${i}" accept="image/png,image/jpeg,image/webp" onchange="_cnPreviewDelivShot(${i})">
+      <div style="font-size:10.5px;color:var(--muted);margin-top:3px;">PNG, JPEG, or WEBP, under 4MB. Helpful if the platform's own stats disappear later.</div>
+      <img id="cnDelivShotPreview${i}" style="display:none;max-width:100%;max-height:140px;border-radius:8px;margin-top:6px;border:1px solid var(--border);">
     </div>
   `).join('');
 
@@ -2044,13 +2049,41 @@ function _cnDeliverableFormHtml() {
   `;
 }
 
+const _cnDelivShotData = {};
+
+function _cnPreviewDelivShot(i) {
+  const input = document.getElementById(`cnDelivShot${i}`);
+  const preview = document.getElementById(`cnDelivShotPreview${i}`);
+  const file = input.files && input.files[0];
+  if (!file) { delete _cnDelivShotData[i]; if (preview) preview.style.display = 'none'; return; }
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+    toast('Use a PNG, JPEG, or WEBP image', 'error');
+    input.value = '';
+    return;
+  }
+  if (file.size > 4 * 1024 * 1024) {
+    toast('That screenshot is over 4MB — please use a smaller image', 'error');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    _cnDelivShotData[i] = reader.result; // data:image/...;base64,....
+    if (preview) { preview.src = reader.result; preview.style.display = 'block'; }
+  };
+  reader.onerror = () => toast('Could not read that image — try another file', 'error');
+  reader.readAsDataURL(file);
+}
+
 async function _cnSubmitDeliverable(campaignId) {
   const n = (_cnCurrentCampaign && _cnCurrentCampaign.required_deliverable_count) || 1;
   const items = [];
   for (let i = 1; i <= n; i++) {
     const url = document.getElementById(`cnDelivUrl${i}`).value.trim();
     if (!url) { toast(`Add the link for video ${i} of ${n}`, 'error'); return; }
-    items.push({ content_url: url, platform_posted_to: document.getElementById(`cnDelivPlatform${i}`).value });
+    const item = { content_url: url, platform_posted_to: document.getElementById(`cnDelivPlatform${i}`).value };
+    if (_cnDelivShotData[i]) item.screenshot_data = _cnDelivShotData[i];
+    items.push(item);
   }
   const confirmed_posted = document.getElementById('cnDelivConfirm').checked;
   if (!confirmed_posted) { toast('Please confirm the work was completed and posted before submitting.', 'error'); return; }
@@ -2063,6 +2096,7 @@ async function _cnSubmitDeliverable(campaignId) {
       method: 'POST',
       body: JSON.stringify({ items, confirmed_posted, confirmation_note }),
     });
+    for (const k in _cnDelivShotData) delete _cnDelivShotData[k];
     toast('Submitted for review!', 'success');
     _cnOpenCampaign(campaignId);
   } catch (e) {
@@ -2091,6 +2125,7 @@ async function _cnLoadDeliverableForReview(campaignId) {
         <span class="v"><a href="${esc(d.content_url)}" target="_blank" rel="noopener" style="color:#2196f3;">${esc(d.content_url)}</a></span>
       </div>
       ${d.note ? `<div style="font-size:11.5px;color:var(--muted);margin:2px 0 8px;">${esc(d.note)}</div>` : ''}
+      ${d.has_screenshot ? `<button class="btn-secondary" style="padding:5px 10px;font-size:11px;margin:0 0 8px;" onclick="_cnViewDeliverableScreenshot('${campaignId}','${d.id}')">🖼️ View Screenshot</button>` : ''}
     `).join('')}
     <div style="font-size:11px;color:var(--muted);margin:6px 0 10px;">Creator confirmed all ${rows.length} video(s) are posted and live.</div>
     <div style="font-size:12px;color:var(--muted);margin:10px 0;">Check the content, then approve to release payment (85% to creator, 15% platform fee) or reject to request changes.</div>
@@ -2100,6 +2135,18 @@ async function _cnLoadDeliverableForReview(campaignId) {
       <button class="btn-primary" style="flex:1;margin-top:0;" onclick="_cnReviewDeliverable('${campaignId}','approve')">✅ Approve & Pay</button>
     </div>
   `;
+}
+
+async function _cnViewDeliverableScreenshot(campaignId, deliverableId) {
+  try {
+    const data = await api(`/connect/campaigns/${campaignId}/deliverables/${deliverableId}/screenshot`);
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write(`<title>Screenshot</title><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;"><img src="${data.screenshot_data}" style="max-width:100%;max-height:100vh;"></body>`);
+    }
+  } catch (e) {
+    toast(e.message || 'Could not load screenshot', 'error');
+  }
 }
 
 async function _cnReviewDeliverable(campaignId, decision) {
@@ -2382,6 +2429,16 @@ async function _cnLoadMessages(campaignId, threadCreatorId) {
     }
     if (m.kind === 'not_selected') {
       return dayDivider + `<div class="cn-msg-card cn-msg-card-lost">${esc(m.body)}</div>`;
+    }
+    if (m.kind === 'payment_issue') {
+      // Business reported "payment not reflecting" — shown to both sides
+      // so the creator understands why funding hasn't come through yet.
+      // Resolution/dismissal shows up as its own plain timeline message
+      // right after this one, not as a state change on this card.
+      return dayDivider + `<div class="cn-msg-card" style="background:rgba(255,154,60,.12);border:1px solid rgba(255,154,60,.35);border-radius:10px;padding:10px 12px;">
+        <div class="cn-msg-card-title" style="color:#ff9a3c;">🆘 Payment issue reported</div>
+        <div style="font-size:12.5px;color:var(--white);margin-top:4px;">${esc(m.body)}</div>
+      </div>`;
     }
     if (m.is_system) {
       // Shared timeline entry — funded / submitted / approved / payout /

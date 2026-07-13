@@ -44,6 +44,9 @@
  *                                            released to their wallet)
  *   POST /connect/admin/payout-requests/{id}/mark-paid
  *   POST /connect/admin/payout-requests/{id}/reject
+ *   GET  /connect/admin/funding-issues                  – "payment not reflecting" reports queue
+ *   POST /connect/admin/funding-issues/{id}/confirm      – manually confirm payment & fund campaign
+ *   POST /connect/admin/funding-issues/{id}/dismiss      – no payment found — close without funding
  *   GET  /connect/campaigns/{id}/message-threads  — creators who've
  *                                            messaged a business about a
  *                                            campaign (admin can view any)
@@ -91,6 +94,7 @@
  *     <button id="cnSubTab-revenue"     onclick="cnAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
  *     <button id="cnSubTab-leaderboard" onclick="cnAdminSubTab('leaderboard')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Leaderboard</button>
  *     <button id="cnSubTab-payouts"     onclick="cnAdminSubTab('payouts')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">💸 Payouts</button>
+ *     <button id="cnSubTab-paymentissues" onclick="cnAdminSubTab('paymentissues')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">🆘 Payment Issues</button>
  *     <button id="cnSubTab-moderation"  onclick="cnAdminSubTab('moderation')"  style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">🛡️ Moderation</button>
  *   </div>
  *   <div id="cnAdminPane-overview"><div id="adminConnectOverview"></div></div>
@@ -98,6 +102,7 @@
  *   <div id="cnAdminPane-revenue" style="display:none;"><div id="adminConnectRevenue"></div></div>
  *   <div id="cnAdminPane-leaderboard" style="display:none;"><div id="adminConnectLeaderboard"></div></div>
  *   <div id="cnAdminPane-payouts" style="display:none;"><div id="adminConnectPayouts"></div></div>
+ *   <div id="cnAdminPane-paymentissues" style="display:none;"><div id="adminConnectFundingIssues"></div></div>
  *   <div id="cnAdminPane-moderation" style="display:none;"><div id="adminConnectModeration"></div></div>
  * </div>
  *
@@ -123,7 +128,7 @@ let _cnAdminCurrentSubTab = 'overview';
 function cnAdminSubTab(tab) {
   _cnAdminCurrentSubTab = tab;
 
-  ['overview', 'funnel', 'revenue', 'leaderboard', 'payouts', 'moderation'].forEach(t => {
+  ['overview', 'funnel', 'revenue', 'leaderboard', 'payouts', 'paymentissues', 'moderation'].forEach(t => {
     const el = document.getElementById('cnSubTab-' + t);
     if (!el) return;
     el.style.borderBottomColor = t === tab ? 'var(--green)' : 'transparent';
@@ -131,7 +136,7 @@ function cnAdminSubTab(tab) {
     el.style.fontWeight        = t === tab ? '800' : '700';
   });
 
-  ['overview', 'funnel', 'revenue', 'leaderboard', 'payouts', 'moderation'].forEach(t => {
+  ['overview', 'funnel', 'revenue', 'leaderboard', 'payouts', 'paymentissues', 'moderation'].forEach(t => {
     const p = document.getElementById('cnAdminPane-' + t);
     if (p) p.style.display = t === tab ? '' : 'none';
   });
@@ -146,6 +151,7 @@ function cnAdminSubTab(tab) {
     revenue:     { title: '💰 CONNECT REVENUE',      sub: 'Escrow funding, commission earned & payout queue',          fn: adminLoadConnectRevenue },
     leaderboard: { title: '🏆 CONNECT LEADERBOARD',  sub: 'Top creators & top businesses',                             fn: adminLoadConnectLeaderboard },
     payouts:     { title: '💸 CREATOR PAYOUTS',      sub: 'Approve or reject M-Pesa payout tickets, view conversations', fn: () => adminLoadConnectPayouts('pending') },
+    paymentissues: { title: '🆘 PAYMENT ISSUES',     sub: '"Payment not reflecting" reports — confirm manually or dismiss', fn: () => adminLoadConnectFundingIssues('open') },
     moderation:  { title: '🛡️ CONNECT MODERATION',   sub: 'Overdue reviews, disputes, frozen campaigns & user status', fn: adminLoadConnectModeration },
   }[tab];
 
@@ -561,6 +567,112 @@ async function cnRejectPayout(payoutId) {
     adminLoadConnectPayouts(_cnPayoutFilter);
   } catch (e) {
     if (typeof toast === 'function') toast(e.message || 'Failed to reject payout', 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB: PAYMENT ISSUES — "payment not reflecting" support tickets. A business
+// raises one when they've paid via M-Pesa but the campaign still shows
+// unfunded (STK poll stuck, a delayed/lost Nexus callback, etc.). Confirming
+// here reaches the exact same end state a successful poll would have —
+// escrow held, campaign FUNDED, other bidders notified — just triggered by
+// an admin instead of Nexus. See connect_service.admin_confirm_funding_issue.
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _cnFundingIssueFilter = 'open';
+
+const _CN_FUNDING_ISSUE_STATUS_COLORS = { open: '#ff9a3c', resolved: '#3dd44a', dismissed: '#7a8fad' };
+
+async function adminLoadConnectFundingIssues(status) {
+  if (status) _cnFundingIssueFilter = status;
+  const container = document.getElementById('adminConnectFundingIssues');
+  if (!container) return;
+  container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading payment issue reports…</span></div>`;
+
+  const warnings = [];
+  const rows = await _cnSafeFetch(`/connect/admin/funding-issues?status=${encodeURIComponent(_cnFundingIssueFilter)}`, 'Connect funding issues', warnings) || [];
+
+  container.innerHTML = '';
+  if (warnings.length) container.appendChild(_cnWarnBanner(warnings, "() => adminLoadConnectFundingIssues('" + _cnFundingIssueFilter + "')"));
+
+  const el = document.createElement('div');
+
+  const filters = ['open', 'resolved', 'dismissed', 'all'];
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+      ${filters.map(f => `
+        <button onclick="adminLoadConnectFundingIssues('${f}')" style="background:${f === _cnFundingIssueFilter ? 'var(--green)' : 'var(--navy)'};color:${f === _cnFundingIssueFilter ? '#000' : 'var(--muted)'};border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Montserrat',sans-serif;text-transform:capitalize;">${f}</button>
+      `).join('')}
+    </div>
+  `;
+
+  if (!rows.length) {
+    el.innerHTML += `<div class="empty-state"><div class="icon">🆘</div><p>No ${_cnFundingIssueFilter === 'all' ? '' : _cnFundingIssueFilter} payment issue reports.</p></div>`;
+    container.appendChild(el);
+    return;
+  }
+
+  el.innerHTML += `<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Business</th><th>Campaign</th><th>Reported Issue</th><th>M-Pesa Ref / Phone</th>
+      <th>Reported</th><th>Status</th><th>Actions</th>
+    </tr></thead>
+    <tbody>${rows.map(r => `
+      <tr>
+        <td><strong>${esc(r.business_name)}</strong></td>
+        <td>${esc(r.campaign_title)}${r.campaign_status ? `<br><span style="font-size:10px;color:var(--muted);text-transform:capitalize;">${esc(r.campaign_status)}</span>` : ''}</td>
+        <td style="max-width:260px;">${esc(r.message)}</td>
+        <td style="font-size:11px;color:var(--muted);">
+          ${r.mpesa_receipt ? esc(r.mpesa_receipt) : '—'}${r.phone ? `<br>${esc(r.phone)}` : ''}
+        </td>
+        <td style="color:var(--muted);font-size:11px;">${r.created_at ? new Date(r.created_at).toLocaleString() : '—'}</td>
+        <td><span style="color:${_CN_FUNDING_ISSUE_STATUS_COLORS[r.status] || 'var(--muted)'};font-weight:800;text-transform:capitalize;">${esc(r.status)}</span>
+          ${r.admin_note ? `<br><span style="font-size:10px;color:var(--muted);">${esc(r.admin_note)}</span>` : ''}
+        </td>
+        <td style="white-space:nowrap;">
+          ${r.status === 'open' ? `
+            <button class="action-btn" onclick="cnConfirmFundingIssue('${r.id}')" title="Verify against Nexus/M-Pesa first, then fund the campaign">✅ Confirm & Fund</button>
+            <button class="action-btn" onclick="cnDismissFundingIssue('${r.id}')" title="No matching payment found">❌ Dismiss</button>
+          ` : ''}
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+  container.appendChild(el);
+}
+
+async function cnConfirmFundingIssue(reportId) {
+  const receipt = prompt('M-Pesa receipt code (e.g. QGH7XXXXX) — confirm the payment against Nexus/M-Pesa records before entering this:');
+  if (receipt === null) return;
+  const applicationId = prompt('Application ID to fund (leave blank if this campaign only has one accepted bid):') || null;
+  try {
+    await api(`/connect/admin/funding-issues/${reportId}/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({
+        mpesa_receipt: receipt.trim() || null,
+        application_id: applicationId ? applicationId.trim() : null,
+      }),
+    });
+    if (typeof toast === 'function') toast('Payment confirmed — campaign funded', 'success');
+    adminLoadConnectFundingIssues(_cnFundingIssueFilter);
+  } catch (e) {
+    if (typeof toast === 'function') toast(e.message || 'Failed to confirm payment', 'error');
+  }
+}
+
+async function cnDismissFundingIssue(reportId) {
+  const reason = prompt('Why is this report being closed without funding? (e.g. no matching M-Pesa transaction found)');
+  if (reason === null) return;
+  if (!reason.trim()) { if (typeof toast === 'function') toast('A reason is required', 'error'); return; }
+  try {
+    await api(`/connect/admin/funding-issues/${reportId}/dismiss`, {
+      method: 'POST',
+      body: JSON.stringify({ admin_note: reason.trim() }),
+    });
+    if (typeof toast === 'function') toast('Report dismissed', 'success');
+    adminLoadConnectFundingIssues(_cnFundingIssueFilter);
+  } catch (e) {
+    if (typeof toast === 'function') toast(e.message || 'Failed to dismiss report', 'error');
   }
 }
 

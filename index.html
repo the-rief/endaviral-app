@@ -2367,7 +2367,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="sec-hd">
             <div>
               <div class="sec-title">SUPPORT INBOX</div>
-              <div class="sec-sub">User chat threads — wrong orders & delayed services</div>
+              <div class="sec-sub">User support tickets — wrong orders, delays & general issues</div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
               <select id="supportFilterStatus" onchange="loadAdminSupport()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;">
@@ -2381,6 +2381,7 @@ tbody td{padding:13px 16px;font-size:14px;}
                 <option value="">All Types</option>
                 <option value="wrong_order">📦 Wrong Order</option>
                 <option value="delay">⏳ Delay</option>
+                <option value="other">💬 Other</option>
               </select>
               <button class="btn-secondary" onclick="loadAdminSupport()">↻ Refresh</button>
             </div>
@@ -2482,6 +2483,7 @@ tbody td{padding:13px 16px;font-size:14px;}
             <button id="cnSubTab-revenue"     onclick="cnAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
             <button id="cnSubTab-leaderboard" onclick="cnAdminSubTab('leaderboard')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Leaderboard</button>
             <button id="cnSubTab-payouts"     onclick="cnAdminSubTab('payouts')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">💸 Payouts</button>
+            <button id="cnSubTab-paymentissues" onclick="cnAdminSubTab('paymentissues')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">🆘 Payment Issues</button>
             <button id="cnSubTab-moderation"  onclick="cnAdminSubTab('moderation')"  style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">🛡️ Moderation</button>
           </div>
           <div id="cnAdminPane-overview"><div id="adminConnectOverview"></div></div>
@@ -2489,6 +2491,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div id="cnAdminPane-revenue" style="display:none;"><div id="adminConnectRevenue"></div></div>
           <div id="cnAdminPane-leaderboard" style="display:none;"><div id="adminConnectLeaderboard"></div></div>
           <div id="cnAdminPane-payouts" style="display:none;"><div id="adminConnectPayouts"></div></div>
+          <div id="cnAdminPane-paymentissues" style="display:none;"><div id="adminConnectFundingIssues"></div></div>
           <div id="cnAdminPane-moderation" style="display:none;"><div id="adminConnectModeration"></div></div>
         </div>
 
@@ -3374,7 +3377,7 @@ async function _autoRaisePaymentTicket({ phone, link, qty, orderId, checkoutId, 
     const res = await fetch(API_BASE + '/support/threads', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'wrong_order', first_message: firstMessage })
+      body: JSON.stringify({ issue_types: ['wrong_order'], first_message: firstMessage })
     });
     if (res.ok) {
       console.log('[EndaViral] Auto support ticket raised for payment failure');
@@ -3792,17 +3795,6 @@ body:has(.bw-overlay.show) #ev-chat-widget{
 .ev-chat-hd-name{font-size:14px;font-weight:800;color:#f0f4ff;letter-spacing:-.2px;}
 .ev-chat-hd-status{font-size:11px;color:#3dd44a;font-weight:600;display:flex;align-items:center;gap:5px;margin-top:1px;}
 .ev-chat-hd-dot{width:6px;height:6px;border-radius:50%;background:#3dd44a;animation:pulse 2s infinite;}
-.ev-chat-tabs{
-  display:flex;border-bottom:1px solid rgba(61,212,74,.1);flex-shrink:0;
-}
-.ev-chat-tab{
-  flex:1;padding:10px 6px;font-size:11.5px;font-weight:700;color:#7a8fad;
-  cursor:pointer;text-align:center;border:none;background:none;
-  font-family:'Montserrat',sans-serif;letter-spacing:.3px;
-  border-bottom:2px solid transparent;transition:all .2s;
-}
-.ev-chat-tab.active{color:#3dd44a;border-bottom-color:#3dd44a;}
-.ev-chat-tab:hover:not(.active){color:#f0f4ff;}
 
 /* ─── Messages Area ─── */
 .ev-chat-msgs{
@@ -3838,27 +3830,6 @@ body:has(.bw-overlay.show) #ev-chat-widget{
 .ev-msg-time{font-size:10px;color:#3a5570;margin-top:4px;text-align:right;}
 .from-admin .ev-msg-time{text-align:left;}
 
-/* Quick reply chips */
-.ev-quick-chips{
-  display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px;flex-shrink:0;
-}
-.ev-chip{
-  padding:6px 12px;border-radius:20px;font-size:11.5px;font-weight:600;
-  background:rgba(61,212,74,.1);border:1px solid rgba(61,212,74,.25);
-  color:#3dd44a;cursor:pointer;font-family:'Montserrat',sans-serif;
-  transition:all .2s;white-space:nowrap;
-}
-.ev-chip:hover{background:rgba(61,212,74,.2);border-color:rgba(61,212,74,.5);}
-
-/* Link input helper */
-.ev-link-helper{
-  margin:6px 14px 2px;
-  background:rgba(61,212,74,.06);border:1px solid rgba(61,212,74,.18);
-  border-radius:10px;padding:10px 12px;font-size:12px;color:#6a8aaa;
-  line-height:1.5;display:none;flex-shrink:0;
-}
-.ev-link-helper strong{color:#3dd44a;}
-
 /* ─── Input Bar ─── */
 .ev-chat-input-row{
   display:flex;align-items:center;gap:8px;
@@ -3893,22 +3864,6 @@ body:has(.bw-overlay.show) #ev-chat-widget{
 .ev-typing span:nth-child(3){animation-delay:.3s;}
 @keyframes ev-bounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-6px);}}
 
-/* ─── Empty / notice states ─── */
-.ev-chat-empty{
-  flex:1;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;text-align:center;padding:24px;gap:10px;color:#3a5570;
-}
-.ev-chat-empty .ev-empty-icon{font-size:36px;}
-.ev-chat-empty p{font-size:13px;line-height:1.6;}
-
-/* ─── Admin notice banner ─── */
-.ev-admin-notice{
-  margin:8px 14px;padding:10px 12px;
-  background:rgba(255,112,67,.08);border:1px solid rgba(255,112,67,.22);
-  border-radius:10px;font-size:12px;color:#ff8a65;line-height:1.5;
-  display:flex;gap:8px;align-items:flex-start;flex-shrink:0;
-}
-
 /* ─── Mobile ─── */
 @media(max-width:480px){
   #ev-chat-window{width:calc(100vw - 24px);right:-12px;bottom:76px;height:480px;}
@@ -3933,52 +3888,66 @@ body:has(.bw-overlay.show) #ev-chat-widget{
       </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="ev-chat-tabs">
-      <button class="ev-chat-tab active" onclick="evSwitchTab('order')" id="ev-tab-order">📦 Wrong Order</button>
-      <button class="ev-chat-tab" onclick="evSwitchTab('delay')" id="ev-tab-delay">⏳ Delayed Service</button>
+    <!-- Home view: shortcuts + ticket list -->
+    <div id="ev-view-home">
+      <div class="ev-shortcuts-wrap">
+        <div class="ev-shortcuts-label">⚡ Instant Answers</div>
+        <div class="ev-shortcuts-grid" id="ev-shortcuts-grid"></div>
+      </div>
+      <div id="ev-instant-answer-panel"></div>
+
+      <div id="ev-login-prompt">
+        <span style="font-size:28px;">🔒</span>
+        <div>Please sign in to open a ticket and track replies from our team.</div>
+        <button onclick="evScrollToLogin()">Sign In</button>
+      </div>
+
+      <div class="ev-tickets-wrap">
+        <div class="ev-tickets-label">🎫 My Tickets</div>
+        <div id="ev-tickets-list"></div>
+      </div>
+
+      <button class="ev-new-ticket-cta" id="ev-new-ticket-btn" onclick="evOpenNewTicketForm()">＋ New Ticket</button>
     </div>
 
-    <!-- Pane: Wrong Order -->
-    <div id="ev-pane-order" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-      <div class="ev-chat-msgs" id="ev-msgs-order"></div>
-      <div class="ev-link-helper" id="ev-link-helper">
-        💡 <strong>Tip:</strong> Paste the <strong>correct profile/post link</strong> below so we can re-place your order with the right URL.
-      </div>
-      <div class="ev-quick-chips" id="ev-chips-order">
-        <button class="ev-chip" onclick="evChip('I placed a wrong order')">Wrong order placed</button>
-        <button class="ev-chip" onclick="evChip('Wrong link submitted')">Wrong link</button>
-        <button class="ev-chip" onclick="evChip('Wrong quantity ordered')">Wrong quantity</button>
-        <button class="ev-chip" onclick="evChip('How to get the link')">How to get my link 🔗</button>
-        <button class="ev-chip" onclick="evChip('How long does it take to start')">How long to start? ⏱️</button>
-        <button class="ev-chip" onclick="evChip('My count dropped after delivery')">Count dropped 📉</button>
-        <button class="ev-chip ev-chip-human" onclick="evEscalateToHuman('order')" style="border-color:rgba(251,191,36,.4);color:#fbbf24;background:rgba(251,191,36,.08);">Talk to a human 🙋</button>
-      </div>
-      <div class="ev-chat-input-row">
-        <textarea class="ev-chat-input" id="ev-input-order" placeholder="Describe your issue or paste the correct link…" oninput="evAutoResize(this)" onkeydown="evKeydown(event,'order')"></textarea>
-        <button class="ev-send-btn" onclick="evSend('order')" id="ev-send-order">
-          <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-        </button>
+    <!-- New ticket view: checkboxes + free-text, straight to admin -->
+    <div id="ev-view-new">
+      <div class="ev-nt-form">
+        <div class="ev-nt-hd">
+          <button class="ev-nt-back" onclick="evGoHome()">←</button>
+          <div class="ev-nt-title">New Ticket</div>
+        </div>
+        <div class="ev-nt-sub">Tick what applies, or just describe your issue below — either way it goes straight to our support team.</div>
+
+        <div class="ev-nt-checkboxes">
+          <label class="ev-nt-cb-row">
+            <input type="checkbox" id="ev-nt-cb-wrong"> 📦 Wrong Order (wrong link / quantity / service)
+          </label>
+          <label class="ev-nt-cb-row">
+            <input type="checkbox" id="ev-nt-cb-delay"> ⏳ Delayed Service (no delivery after 24h)
+          </label>
+        </div>
+
+        <div>
+          <textarea class="ev-nt-textarea" id="ev-nt-desc" placeholder="Describe your issue… (e.g. Order ID, what happened, correct link if relevant)"></textarea>
+          <div class="ev-nt-hint">Leave both boxes unticked if it's something else — we'll still get your message.</div>
+        </div>
+
+        <button class="ev-nt-submit" id="ev-nt-submit" onclick="evSubmitTicket()">Submit Ticket</button>
       </div>
     </div>
 
-    <!-- Pane: Delayed Service -->
-    <div id="ev-pane-delay" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
-      <div class="ev-chat-msgs" id="ev-msgs-delay"></div>
-      <div class="ev-admin-notice" id="ev-delay-notice" style="display:none;">
-        <span>⚠️</span>
-        <span>Delays are usually caused by 3rd-party providers. Our team has been notified and is investigating.</span>
+    <!-- Thread view: a single ticket's conversation with admin -->
+    <div id="ev-view-thread">
+      <div class="ev-thread-hd">
+        <button class="ev-nt-back" onclick="evGoHome()">←</button>
+        <div class="ev-thread-subject" id="ev-thread-subject">Support ticket</div>
       </div>
-      <div class="ev-quick-chips" id="ev-chips-delay">
-        <button class="ev-chip" onclick="evChip('My order is stuck on Processing')">Stuck on Processing</button>
-        <button class="ev-chip" onclick="evChip('No delivery after 24 hours')">No delivery 24h+</button>
-        <button class="ev-chip" onclick="evChip('Partial delivery stopped')">Partial delivery</button>
-        <button class="ev-chip" onclick="evChip('My count dropped after delivery')">Count dropped 📉</button>
-        <button class="ev-chip ev-chip-human" onclick="evEscalateToHuman('delay')" style="border-color:rgba(251,191,36,.4);color:#fbbf24;background:rgba(251,191,36,.08);">Talk to a human 🙋</button>
-      </div>
+      <div class="ev-chat-msgs" id="ev-thread-msgs"></div>
+      <div id="ev-thread-banner"></div>
       <div class="ev-chat-input-row">
-        <textarea class="ev-chat-input" id="ev-input-delay" placeholder="Share your Order ID or describe the delay…" oninput="evAutoResize(this)" onkeydown="evKeydown(event,'delay')"></textarea>
-        <button class="ev-send-btn" onclick="evSend('delay')" id="ev-send-delay">
+        <textarea class="ev-chat-input" id="ev-thread-input" placeholder="Type your message…" oninput="evAutoResize(this)" onkeydown="evThreadKeydown(event)"></textarea>
+        <button class="ev-send-btn" onclick="evSendThreadReply()" id="ev-thread-send">
           <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
         </button>
       </div>

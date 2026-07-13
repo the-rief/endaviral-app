@@ -1,71 +1,161 @@
-/* ═══════════════════ ENDAVIRAL CHAT WIDGET (DB-backed) ═══════════════════ */
+/* ═══════════════════ ENDAVIRAL CHAT WIDGET (DB-backed) ═══════════════════
+   No scripted chatbot. Two things happen in here:
+   1) Instant Answers — canned, local-only replies triggered ONLY by tapping
+      a shortcut button. Nothing about these ever touches the server.
+   2) Tickets — a customer ticks either/both issue-type checkboxes and/or
+      types their issue, hits Submit, and it goes straight into a thread
+      with a human admin. No bot ever replies inside a ticket thread.
+═══════════════════════════════════════════════════════════════════════ */
 (function(){
-  const BOT_NAME    = 'Support Team';
-  const ADMIN_NAME  = 'EndaViral Support';
-  const BOT_AVATAR  = '👤';
+  const ADMIN_NAME   = 'EndaViral Support';
   const ADMIN_AVATAR = '👤';
-  const SUPPORT_API = API + '/support';
-
-  // threadIds stores { id, status } per tab so we know if a thread is closed
-  const threadMeta = { order: null, delay: null }; // { id, status }
-
-  // Server-side message count cursor — never tied to DOM count
-  const lastSeenCount = { order: 0, delay: 0 };
-
-  let pollHandle = null;
+  const SUPPORT_API  = API + '/support';
 
   /* ═══════════════════════════════════════════════════════════════
-     BOOT — load ALL threads for user (open, pending, resolved, closed)
-     and render history + status banners
+     WIDGET STATE
+  ═══════════════════════════════════════════════════════════════ */
+  const state = {
+    open:           false,
+    view:           'home',      // 'home' | 'new' | 'thread'
+    threads:        [],          // summaries from GET /threads
+    activeThreadId: null,
+    unread:         0,
+  };
+
+  // message_count last rendered/seen per thread id — polling cursor
+  const lastSeenCount = {};
+
+  let pollHandle = null;
+  let _booted    = false;
+
+  /* ═══════════════════════════════════════════════════════════════
+     INSTANT ANSWERS — shown as shortcuts. Tapping one renders the
+     canned Q/A locally only. Never posted to the server.
+  ═══════════════════════════════════════════════════════════════ */
+  const _shortcuts = [
+    {
+      label: 'How ordering works 🛒',
+      question: 'How does ordering work on this platform?',
+      answer:
+        `🛒 **Ordering SMM services is simple:**\n\n` +
+        `1. Click **New Order** in the left menu and pick a category (Instagram, TikTok, YouTube, etc.)\n` +
+        `2. Choose the exact service you want — pricing is shown **per 1,000**\n` +
+        `3. Paste your **profile or post link** and enter the **quantity**\n` +
+        `4. Confirm and pay via **M-Pesa STK push**\n\n` +
+        `Once payment is confirmed, your order is sent to processing automatically — no manual approval needed. ` +
+        `You can track progress any time from **My Orders**. Delivery start times vary by service, usually within a few hours.`
+    },
+    {
+      label: 'How to get my link 🔗',
+      question: 'How do I get my profile or post link?',
+      answer:
+        `🔗 **How to get your link:**\n\n` +
+        `• **TikTok profile:** Open TikTok → tap your profile → tap the share icon → *Copy link*\n` +
+        `• **TikTok video:** Open the video → tap Share → *Copy link*\n` +
+        `• **Instagram:** Go to your profile/post → tap ··· → *Copy link*\n` +
+        `• **YouTube:** Open your video → tap Share → *Copy link*\n` +
+        `• **Facebook/Twitter:** Open post → tap Share → *Copy link*\n\n` +
+        `Paste the copied link directly — make sure the account is set to **Public**!`
+    },
+    {
+      label: 'Delivery start times ⏱️',
+      question: 'How long does delivery take to start?',
+      answer:
+        `⏱️ **Delivery start times** vary by service:\n\n` +
+        `• **TikTok / Instagram / YouTube** — typically starts within **1–3 hours**\n` +
+        `• **Twitter / Facebook** — usually within **30 minutes to 2 hours**\n` +
+        `• **Slower growth packages** — may take up to **24 hours** to begin\n\n` +
+        `If your order hasn't started after **24 hours**, open a ticket and tick **Delayed Service** — our team will investigate.`
+    },
+    {
+      label: 'Refund & cancellation 💰',
+      question: 'What is your refund and cancellation policy?',
+      answer:
+        `💰 **Refund & cancellation policy:**\n\n` +
+        `Once an order is **placed and payment confirmed**, it goes straight to processing and **cannot be refunded or cancelled** — so please double-check your **link, quantity, and service** before confirming.\n\n` +
+        `That said, if an order **stalls, delays, or delivers partially**, our team will **complete it or re-queue it** at no extra cost. Open a ticket with your **Order ID** and we'll sort it out.`
+    },
+    {
+      label: 'Why did my count drop 📉',
+      question: 'Why did my follower/like count drop after delivery?',
+      answer:
+        `📉 **Noticed your count going down?** Here's why it happens:\n\n` +
+        `Platforms like TikTok and Instagram regularly run cleanup sweeps that remove inactive or low-activity accounts. Sources more likely to get flagged in these sweeps will naturally lose more over time.\n\n` +
+        `That's why we grade services by tier:\n\n` +
+        `🟡 **Basic** — cheapest, pulled from sources platforms flag most often, so drops are more likely.\n` +
+        `🟢 **Medium** — a balanced option with better stability than Basic.\n` +
+        `🔵 **Elite** — highest quality sources, built for long-term retention.\n\n` +
+        `If you're seeing drops on a **Basic** order, that's expected, not a fault. For lasting results, consider **Medium** or **Elite** next time. If you'd like us to look at a specific order, open a ticket with the **Order ID**.`
+    },
+    {
+      label: 'What services you offer 📦',
+      question: 'What services do you offer?',
+      answer:
+        `📦 **Our services include:**\n\n` +
+        `• 📸 Instagram — Followers, Likes, Views, Story Views\n` +
+        `• 🎵 TikTok — Followers, Likes, Views, Shares\n` +
+        `• ▶️ YouTube — Views, Likes, Subscribers, Watch Time\n` +
+        `• 🐦 Twitter/X — Followers, Likes, Retweets\n` +
+        `• 📘 Facebook — Likes, Followers, Views\n\n` +
+        `Click **New Order** to browse all available packages and pricing!`
+    },
+  ];
+
+  function _renderShortcuts() {
+    const grid = document.getElementById('ev-shortcuts-grid');
+    if (!grid) return;
+    grid.innerHTML = _shortcuts.map((s, i) =>
+      `<button class="ev-shortcut-btn" onclick="evShowInstantAnswer(${i})">${s.label}</button>`
+    ).join('');
+  }
+
+  // Tapping a shortcut — local-only, never touches the server.
+  window.evShowInstantAnswer = function(i) {
+    const s = _shortcuts[i];
+    if (!s) return;
+    const panel = document.getElementById('ev-instant-answer-panel');
+    if (!panel) return;
+    panel.style.display = 'flex';
+    panel.innerHTML = '';
+
+    const user     = _getUser();
+    const initial  = (user.name || 'U').charAt(0).toUpperCase();
+    _appendLocal(panel, _userBubbleHtml(s.question, initial, evNow()));
+    _appendLocal(panel, _typingHtml('ev-instant-typing'));
+    panel.scrollTop = panel.scrollHeight;
+
+    setTimeout(() => {
+      const t = document.getElementById('ev-instant-typing');
+      if (t) t.remove();
+      _appendLocal(panel, _adminBubbleHtml(s.answer, evNow(), true));
+      panel.scrollTop = panel.scrollHeight;
+    }, 500);
+  };
+
+  window.evCloseInstantAnswer = function() {
+    const panel = document.getElementById('ev-instant-answer-panel');
+    if (panel) { panel.style.display = 'none'; panel.innerHTML = ''; }
+  };
+
+  /* ═══════════════════════════════════════════════════════════════
+     BOOT — load ticket list for the logged-in user
   ═══════════════════════════════════════════════════════════════ */
   async function evBootWidget() {
-    if (!token) return;
+    _renderShortcuts();
+    if (!token) { _renderHome(); return; }
     try {
       const res = await fetch(`${SUPPORT_API}/threads`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (!res.ok) return;
+      if (!res.ok) { _renderHome(); return; }
       const threads = await res.json();
-
-      // Sort newest-first so we pick the most recent thread per tab
-      const sorted = (threads || []).slice().sort(
+      state.threads = (threads || []).slice().sort(
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
       );
-
-      for (const t of sorted) {
-        const tabKey = t.type === 'wrong_order' ? 'order' : 'delay';
-        if (!threadMeta[tabKey]) {
-          // Fetch full thread with messages
-          const detail = await _fetchThread(t.id);
-          if (!detail) continue;
-          threadMeta[tabKey] = { id: detail.id, status: detail.status };
-          
-          // Keep only last 10 messages for resource efficiency
-          const messages = (detail.messages || []).slice(-10);
-          lastSeenCount[tabKey] = messages.length;
-
-          // Clear any local greeting that was pre-rendered
-          const container = document.getElementById('ev-msgs-' + tabKey);
-          container.innerHTML = '';
-
-          // Render full history (only last 10 messages)
-          _renderMessages(tabKey, messages, false);
-
-          // Show closed/resolved banner if needed
-          _updateThreadBanner(tabKey, detail.status);
-
-          // Hide chips if thread is closed
-          _syncInputState(tabKey, detail.status);
-
-          // Advance flow step past bot collection so further msgs don't re-trigger flows
-          if (['resolved','closed'].includes(detail.status)) {
-            state[tabKey === 'order' ? 'order' : 'delay'].step = 99;
-          }
-        }
-      }
-
+      state.threads.forEach(t => { lastSeenCount[t.id] = t.message_count || 0; });
+      _renderHome();
       evStartPolling();
-    } catch (_) {}
+    } catch (_) { _renderHome(); }
   }
 
   async function _fetchThread(threadId) {
@@ -79,167 +169,318 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     OPEN a new thread (first user message)
+     HOME VIEW — shortcuts (already in DOM) + ticket list
   ═══════════════════════════════════════════════════════════════ */
-  async function evOpenThread(tabKey, firstMessage) {
+  function _renderHome() {
+    const listEl = document.getElementById('ev-tickets-list');
+    const loginPrompt = document.getElementById('ev-login-prompt');
+    const newBtn = document.getElementById('ev-new-ticket-btn');
+    if (!listEl) return;
+
     if (!token) {
-      evTypingThen(tabKey, 800, () => {
-        evBotMsgLocal(tabKey,
-          `🔒 You need to be **logged in** to submit a support ticket so we can track your issue.\n\n` +
-          `👉 [**Sign in or create a free account →**](#login)\n\n` +
-          `Once logged in, come back here and I'll pick up right where we left off!`,
-          true
-        );
-      });
+      if (loginPrompt) loginPrompt.style.display = 'flex';
+      listEl.innerHTML = '';
+      if (newBtn) newBtn.style.display = 'none';
       return;
     }
-    const type = tabKey === 'order' ? 'wrong_order' : 'delay';
+    if (loginPrompt) loginPrompt.style.display = 'none';
+    if (newBtn) newBtn.style.display = 'block';
+
+    if (!state.threads.length) {
+      listEl.innerHTML = `<div class="ev-tickets-empty">No tickets yet. Tap <strong>New Ticket</strong> below if you need help with an order.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = state.threads.map(t => {
+      const statusClass = t.status;
+      const preview = t.last_message ? _stripMd(t.last_message.body).slice(0, 60) : '';
+      return `
+        <button class="ev-ticket-card" onclick="evOpenThreadView('${t.id}')">
+          <div class="ev-ticket-card-top">
+            <span class="ev-ticket-subject">${_escape(t.subject || 'Support ticket')}</span>
+            <span class="ev-ticket-status ev-ticket-status-${statusClass}">${_statusLabel(t.status)}</span>
+          </div>
+          <div class="ev-ticket-preview">${_escape(preview)}${preview.length >= 60 ? '…' : ''}</div>
+        </button>`;
+    }).join('');
+  }
+
+  function _statusLabel(s) {
+    return { open: '🔴 Open', pending: '🟡 Pending', resolved: '🟢 Resolved', closed: '⬛ Closed' }[s] || s;
+  }
+
+  function _stripMd(t) {
+    return String(t || '').replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n/g,' ');
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     VIEW SWITCHING
+  ═══════════════════════════════════════════════════════════════ */
+  function _showView(view) {
+    state.view = view;
+    ['home','new','thread'].forEach(v => {
+      const el = document.getElementById('ev-view-' + v);
+      if (el) el.style.display = (v === view) ? 'flex' : 'none';
+    });
+  }
+
+  window.evGoHome = function() {
+    state.activeThreadId = null;
+    evCloseInstantAnswer();
+    _showView('home');
+    evBootWidget();
+  };
+
+  window.evOpenNewTicketForm = function() {
+    if (!token) { _scrollToLogin(); return; }
+    const cbWrong = document.getElementById('ev-nt-cb-wrong');
+    const cbDelay = document.getElementById('ev-nt-cb-delay');
+    const desc    = document.getElementById('ev-nt-desc');
+    if (cbWrong) cbWrong.checked = false;
+    if (cbDelay) cbDelay.checked = false;
+    if (desc) desc.value = '';
+    _showView('new');
+  };
+
+  function _scrollToLogin() {
+    const loginBox = document.getElementById('loginBox');
+    if (loginBox) {
+      loginBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const emailInput = document.getElementById('loginEmail');
+      if (emailInput) emailInput.focus();
+    }
+  }
+  window.evScrollToLogin = _scrollToLogin;
+
+  /* ═══════════════════════════════════════════════════════════════
+     SUBMIT NEW TICKET — checkboxes and/or typed text, straight to admin
+  ═══════════════════════════════════════════════════════════════ */
+  window.evSubmitTicket = async function() {
+    const cbWrong = document.getElementById('ev-nt-cb-wrong');
+    const cbDelay = document.getElementById('ev-nt-cb-delay');
+    const desc    = document.getElementById('ev-nt-desc');
+    const btn     = document.getElementById('ev-nt-submit');
+
+    const issue_types = [];
+    if (cbWrong && cbWrong.checked) issue_types.push('wrong_order');
+    if (cbDelay && cbDelay.checked) issue_types.push('delay');
+    const text = (desc && desc.value || '').trim();
+
+    if (!text) {
+      if (desc) { desc.focus(); desc.placeholder = 'Please describe your issue…'; }
+      return;
+    }
+    if (!token) { _scrollToLogin(); return; }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
     try {
       const res = await fetch(`${SUPPORT_API}/threads`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, first_message: firstMessage })
+        body: JSON.stringify({ issue_types, first_message: text })
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      threadMeta[tabKey] = { id: data.id, status: data.status };
 
-      // Clear local greeting, render server truth (includes bot greeting + user msg)
-      const container = document.getElementById('ev-msgs-' + tabKey);
-      container.innerHTML = '';
-      // Keep only last 10 messages for resource efficiency
-      const messages = (data.messages || []).slice(-10);
-      _renderMessages(tabKey, messages, false);
-      lastSeenCount[tabKey] = messages.length;
-
+      // Drop it into our local list + open it
+      state.threads.unshift(data);
+      lastSeenCount[data.id] = (data.messages || []).length;
+      evOpenThreadView(data.id, data);
       evStartPolling();
     } catch (_) {
-      evBotMsgLocal(tabKey, '❌ Could not reach support. Please try again in a moment.', true);
+      if (desc) desc.placeholder = '❌ Could not submit. Please try again.';
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit Ticket'; }
+    }
+  };
+
+  /* ═══════════════════════════════════════════════════════════════
+     THREAD VIEW — a single ticket's conversation with admin
+  ═══════════════════════════════════════════════════════════════ */
+  window.evOpenThreadView = async function(threadId, preloaded) {
+    state.activeThreadId = threadId;
+    _showView('thread');
+
+    const msgsEl = document.getElementById('ev-thread-msgs');
+    if (msgsEl) msgsEl.innerHTML = '';
+
+    const detail = preloaded || await _fetchThread(threadId);
+    if (!detail) { evGoHome(); return; }
+
+    document.getElementById('ev-thread-subject').textContent = detail.subject || 'Support ticket';
+    _renderThreadMessages(detail.messages || []);
+    lastSeenCount[threadId] = (detail.messages || []).length;
+    _updateThreadBanner(detail.status);
+    _syncThreadInput(detail.status);
+
+    // Keep local list summary in sync
+    const idx = state.threads.findIndex(t => t.id === threadId);
+    if (idx >= 0) state.threads[idx].status = detail.status;
+  };
+
+  function _renderThreadMessages(messages) {
+    const user = _getUser();
+    const initial = (user.name || 'U').charAt(0).toUpperCase();
+    const msgsEl = document.getElementById('ev-thread-msgs');
+    if (!msgsEl) return;
+    for (const m of messages) {
+      if (m.sender === 'admin') {
+        _appendLocal(msgsEl, _adminBubbleHtml(m.body, _fmtTime(m.created_at)));
+      } else {
+        _appendLocal(msgsEl, _userBubbleHtml(m.body, initial, _fmtTime(m.created_at)));
+      }
+    }
+    evScrollThreadBottom();
+  }
+
+  function evScrollThreadBottom() {
+    const el = document.getElementById('ev-thread-msgs');
+    if (el) setTimeout(() => { el.scrollTop = el.scrollHeight; }, 50);
+  }
+
+  window.evThreadKeydown = function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); evSendThreadReply(); }
+  };
+
+  window.evSendThreadReply = async function() {
+    const input = document.getElementById('ev-thread-input');
+    if (!input || input.disabled) return;
+    const text = input.value.trim();
+    if (!text || !state.activeThreadId) return;
+
+    const user = _getUser();
+    const initial = (user.name || 'U').charAt(0).toUpperCase();
+    const msgsEl = document.getElementById('ev-thread-msgs');
+    _appendLocal(msgsEl, _userBubbleHtml(text, initial, evNow()));
+    evScrollThreadBottom();
+    input.value = '';
+    evAutoResize(input);
+    lastSeenCount[state.activeThreadId] = (lastSeenCount[state.activeThreadId] || 0) + 1;
+
+    try {
+      await fetch(`${SUPPORT_API}/threads/${state.activeThreadId}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: text })
+      });
+    } catch (_) {}
+  };
+
+  window.evMarkResolved = async function() {
+    if (!state.activeThreadId) return;
+    try {
+      await fetch(`${SUPPORT_API}/threads/${state.activeThreadId}/resolve`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      _updateThreadBanner('resolved');
+      _syncThreadInput('resolved');
+    } catch (_) {}
+  };
+
+  function _updateThreadBanner(status) {
+    const banner = document.getElementById('ev-thread-banner');
+    if (!banner) return;
+    if (['resolved','closed'].includes(status)) {
+      const label = status === 'resolved' ? '✅ This ticket has been resolved' : '🔒 This ticket is closed';
+      banner.style.display = 'block';
+      banner.innerHTML = `
+        <div>${label}</div>
+        <button class="ev-new-ticket-btn" onclick="evOpenNewTicketForm()">＋ Open New Ticket</button>`;
+    } else {
+      banner.style.display = 'none';
+      banner.innerHTML = '';
     }
   }
 
-  /* ═══════════════════════════════════════════════════════════════
-     POST a user message to an existing thread
-  ═══════════════════════════════════════════════════════════════ */
-  async function evPostMessage(tabKey, body) {
-    const meta = threadMeta[tabKey];
-    if (!token || !meta) return;
-    try {
-      await fetch(`${SUPPORT_API}/threads/${meta.id}/messages`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body })
-      });
-    } catch (_) {}
+  function _syncThreadInput(status) {
+    const isClosed = ['resolved','closed'].includes(status);
+    const input = document.getElementById('ev-thread-input');
+    const btn   = document.getElementById('ev-thread-send');
+    if (input) {
+      input.disabled = isClosed;
+      input.placeholder = isClosed
+        ? 'This ticket is closed. Open a new one if you need more help.'
+        : 'Type your message…';
+      input.style.opacity = isClosed ? '0.5' : '1';
+    }
+    if (btn) btn.disabled = isClosed;
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     POST a bot message to the server so admin sees full conversation.
-     Only fires when a thread exists. Pre-thread greetings = local only.
-  ═══════════════════════════════════════════════════════════════ */
-  async function evPostBotMessage(tabKey, body) {
-    const meta = threadMeta[tabKey];
-    if (!token || !meta) return;
-    try {
-      await fetch(`${SUPPORT_API}/threads/${meta.id}/messages`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body, is_bot: true })
-      });
-    } catch (_) {}
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     POLLING — every 5 s while widget is open
-     Uses lastSeenCount[tabKey] as cursor — never DOM count
+     POLLING — every 15s while widget is open
   ═══════════════════════════════════════════════════════════════ */
   function evStartPolling() {
-    if (pollHandle) return;
-    pollHandle = setInterval(_pollAllTabs, 15000); // 15s -- was 5s (egress)
+    if (pollHandle || !token) return;
+    pollHandle = setInterval(_pollThreads, 15000);
   }
   function evStopPolling() {
     if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
   }
 
-  async function _pollAllTabs() {
-    // Skip entirely if all known threads are resolved/closed (no new msgs possible)
-    const hasOpenThread = ['order','delay'].some(k => {
-      const m = threadMeta[k];
-      return m && !['resolved','closed'].includes(m.status);
-    });
-    if (!hasOpenThread && (threadMeta.order || threadMeta.delay)) {
-      evStopPolling(); // all threads closed -- stop until a new thread is opened
-      return;
-    }
-    // Poll both tabs so background tab also picks up replies
-    for (const tabKey of ['order', 'delay']) {
-      const meta = threadMeta[tabKey];
-      if (!meta || !token) continue;
-      // Skip closed/resolved threads — no new messages expected
-      if (['resolved','closed'].includes(meta.status)) continue;
+  async function _pollThreads() {
+    if (!token) return;
+    try {
+      const res = await fetch(`${SUPPORT_API}/threads`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const threads = await res.json();
+      state.threads = (threads || []).slice().sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
 
-      try {
-        const res = await fetch(`${SUPPORT_API}/threads/${meta.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) continue;
-        const data = await res.json();
+      let newAdminCount = 0;
 
-        // Update local status if it changed
-        if (data.status !== meta.status) {
-          meta.status = data.status;
-          _updateThreadBanner(tabKey, data.status);
-          _syncInputState(tabKey, data.status);
-        }
-
-        const msgs = data.messages || [];
-        const known = lastSeenCount[tabKey];
-
-        if (msgs.length > known) {
-          const newMsgs = msgs.slice(known);
-          let newAdminCount = 0;
-
-          for (const m of newMsgs) {
-            if (m.sender === 'admin') {
-              // Differentiate real admin from bot
-              if (m.is_bot) {
-                evBotMsgLocal(tabKey, m.body, false);
-              } else {
-                evRealAdminMsgLocal(tabKey, m.body, false);
+      for (const t of state.threads) {
+        const known = lastSeenCount[t.id] ?? 0;
+        const count = t.message_count || 0;
+        if (count > known) {
+          if (t.id === state.activeThreadId && state.view === 'thread') {
+            // Fetch full detail and append only the new messages
+            const detail = await _fetchThread(t.id);
+            if (detail) {
+              const allMsgs = detail.messages || [];
+              const freshMsgs = allMsgs.slice(known);
+              const adminMsgs = freshMsgs.filter(m => m.sender === 'admin');
+              _renderThreadMessages(freshMsgs);
+              lastSeenCount[t.id] = allMsgs.length;
+              if (detail.status !== t.status) {
+                _updateThreadBanner(detail.status);
+                _syncThreadInput(detail.status);
               }
-              newAdminCount++;
+              newAdminCount += adminMsgs.length;
             }
-            // User messages from other sessions (edge case) — skip, already in DOM
-          }
-
-          // Advance cursor
-          lastSeenCount[tabKey] = msgs.length;
-
-          // Unread badge only for the inactive tab or closed widget
-          if (newAdminCount > 0 && (!state.open || state.activeTab !== tabKey)) {
-            state.unread += newAdminCount;
-            const badge = document.getElementById('ev-chat-badge');
-            badge.textContent = state.unread;
-            badge.classList.add('show');
-
-            // Show dashboard popup so customers on the home page see the reply
-            const lastAdminMsg = newMsgs.filter(m => m.sender === 'admin' && !m.is_bot).pop();
-            if (lastAdminMsg) {
-              const body = lastAdminMsg.body || '';
-              const preview = body.replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n/g,' ').slice(0, 80) + (body.length > 80 ? '…' : '');
-              evShowDashboardPopup('EndaViral Support', preview, () => {
-                // Open the chat widget to the right tab
-                if (!state.open) window.evChatToggle();
-                const orderTab = document.getElementById('ev-tab-order');
-                const delayTab = document.getElementById('ev-tab-delay');
-                if (tabKey === 'order' && orderTab) orderTab.click();
-                if (tabKey === 'delay' && delayTab) delayTab.click();
-              });
-            }
+          } else {
+            // Not currently viewing this thread — just bump the cursor + badge
+            if (t.last_message && t.last_message.sender === 'admin') newAdminCount++;
+            lastSeenCount[t.id] = count;
           }
         }
-      } catch (_) {}
-    }
+      }
+
+      if (state.view === 'home') _renderHome();
+
+      if (newAdminCount > 0) {
+        if (!state.open) {
+          state.unread += newAdminCount;
+          const badge = document.getElementById('ev-chat-badge');
+          badge.textContent = state.unread;
+          badge.classList.add('show');
+        }
+        const lastAdmin = state.threads
+          .filter(t => t.last_message && t.last_message.sender === 'admin')
+          .sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
+        if (lastAdmin) {
+          const body = lastAdmin.last_message.body || '';
+          const preview = _stripMd(body).slice(0, 80) + (body.length > 80 ? '…' : '');
+          evShowDashboardPopup(ADMIN_NAME, preview, () => {
+            if (!state.open) window.evChatToggle();
+            evOpenThreadView(lastAdmin.id);
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -251,11 +492,7 @@
     const sec = document.getElementById('sec-dashboard');
     return sec && (sec.classList.contains('active') || sec.style.display !== 'none');
   }
-
-  function _isChatOpen() {
-    return state.open;
-  }
-
+  function _isChatOpen() { return state.open; }
   function _isTicketsActive() {
     const sec = document.getElementById('sec-tickets');
     return sec && (sec.classList.contains('active') || sec.style.display !== 'none');
@@ -264,17 +501,15 @@
   let _dashPopupHandle = null;
 
   function evShowDashboardPopup(senderName, preview, onViewClick) {
-    // Only show when customer is on dashboard and chat/tickets aren't open
     if (!_isDashboardActive()) return;
     if (_isChatOpen() || _isTicketsActive()) return;
 
-    // Remove any existing popup
     const existing = document.getElementById('ev-dash-popup');
     if (existing) existing.remove();
     if (_dashPopupHandle) { clearTimeout(_dashPopupHandle); _dashPopupHandle = null; }
 
-    const safeSender  = String(senderName||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const safePreview = String(preview||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const safeSender  = _escape(senderName);
+    const safePreview = _escape(preview);
     const popup = document.createElement('div');
     popup.id = 'ev-dash-popup';
     popup.innerHTML = `
@@ -314,35 +549,19 @@
       </div>
     `;
 
-    // Styles injected once
     if (!document.getElementById('ev-dash-popup-styles')) {
       const s = document.createElement('style');
       s.id = 'ev-dash-popup-styles';
       s.textContent = `
         #ev-dash-popup {
-          position: fixed;
-          bottom: 100px;
-          right: 24px;
-          z-index: 9999;
-          width: 340px;
-          background: #152b1e;
-          border: 1px solid rgba(61,212,74,.45);
-          border-radius: 16px;
-          padding: 16px 18px;
-          box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(61,212,74,.1);
-          font-family: 'Montserrat', sans-serif;
-          animation: ev-popup-in .35s cubic-bezier(.22,1,.36,1) both;
+          position: fixed; bottom: 100px; right: 24px; z-index: 9999; width: 340px;
+          background: #152b1e; border: 1px solid rgba(61,212,74,.45); border-radius: 16px;
+          padding: 16px 18px; box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(61,212,74,.1);
+          font-family: 'Montserrat', sans-serif; animation: ev-popup-in .35s cubic-bezier(.22,1,.36,1) both;
         }
-        @keyframes ev-popup-in {
-          from { opacity:0; transform: translateY(20px) scale(.96); }
-          to   { opacity:1; transform: translateY(0)    scale(1);   }
-        }
-        #ev-dash-popup.ev-popup-out {
-          animation: ev-popup-out .25s ease forwards;
-        }
-        @keyframes ev-popup-out {
-          to { opacity:0; transform: translateY(12px) scale(.95); }
-        }
+        @keyframes ev-popup-in { from { opacity:0; transform: translateY(20px) scale(.96); } to { opacity:1; transform: translateY(0) scale(1); } }
+        #ev-dash-popup.ev-popup-out { animation: ev-popup-out .25s ease forwards; }
+        @keyframes ev-popup-out { to { opacity:0; transform: translateY(12px) scale(.95); } }
         #ev-dash-popup-view:hover  { opacity: .85; }
         #ev-dash-popup-dismiss:hover { color: #d0dff0; border-color: rgba(255,255,255,.25); }
         #ev-dash-popup-close:hover { color: #d0dff0; }
@@ -358,188 +577,19 @@
       if (_dashPopupHandle) { clearTimeout(_dashPopupHandle); _dashPopupHandle = null; }
     }
 
-    document.getElementById('ev-dash-popup-close').onclick   = _dismiss;
+    document.getElementById('ev-dash-popup-close').onclick    = _dismiss;
     document.getElementById('ev-dash-popup-dismiss').onclick  = _dismiss;
     document.getElementById('ev-dash-popup-view').onclick     = () => {
       _dismiss();
       if (typeof onViewClick === 'function') onViewClick();
     };
 
-    // Auto-dismiss after 12 seconds
     _dashPopupHandle = setTimeout(_dismiss, 12000);
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     RENDER history from server
-     isBot flag comes from m.is_bot field
+     TOGGLE OPEN/CLOSE + BOOT
   ═══════════════════════════════════════════════════════════════ */
-  function _renderMessages(tabKey, messages, updateCursor = true) {
-    const user = _getUser();
-    const initial = (user.name || 'U').charAt(0).toUpperCase();
-
-    for (const m of messages) {
-      if (m.sender === 'admin') {
-        if (m.is_bot) {
-          evBotMsgLocal(tabKey, m.body, false, _fmtTime(m.created_at));
-        } else {
-          evRealAdminMsgLocal(tabKey, m.body, false, _fmtTime(m.created_at));
-        }
-      } else {
-        evUserMsgLocal(tabKey, m.body, initial, _fmtTime(m.created_at));
-      }
-    }
-
-    if (updateCursor) {
-      lastSeenCount[tabKey] = messages.length;
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     THREAD STATUS BANNER  (closed / resolved)
-  ═══════════════════════════════════════════════════════════════ */
-  function _updateThreadBanner(tabKey, status) {
-    const bannerId = 'ev-thread-banner-' + tabKey;
-    let banner = document.getElementById(bannerId);
-
-    if (['resolved','closed'].includes(status)) {
-      const label = status === 'resolved'
-        ? '✅ This ticket has been resolved'
-        : '🔒 This ticket is closed';
-
-      if (!banner) {
-        const container = document.getElementById('ev-msgs-' + tabKey);
-        const wrap = document.createElement('div');
-        wrap.id = bannerId;
-        wrap.style.cssText = `
-          margin:8px 0;padding:10px 13px 12px;border-radius:10px;font-size:11.5px;
-          font-weight:700;text-align:center;letter-spacing:.3px;flex-shrink:0;
-          background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.2);
-          color:#3dd44a;`;
-        wrap.innerHTML = `
-          <div class="ev-banner-label">${label}</div>
-          <button class="ev-new-ticket-btn" onclick="evOpenNewTicket('${tabKey}')">
-            ＋ Open New Ticket
-          </button>`;
-        container.parentNode.insertBefore(wrap, container.nextSibling);
-      } else {
-        const labelEl = banner.querySelector('.ev-banner-label');
-        if (labelEl) labelEl.textContent = label;
-      }
-    } else {
-      if (banner) banner.remove();
-    }
-  }
-
-  /* ── Open a fresh ticket on the same tab ── */
-  window.evOpenNewTicket = function(tabKey) {
-    // Wipe thread state for this tab
-    threadMeta[tabKey] = null;
-    lastSeenCount[tabKey] = 0;
-    state[tabKey].step = 0;
-    state[tabKey].escalated = false;
-
-    // Clear message area
-    const container = document.getElementById('ev-msgs-' + tabKey);
-    if (container) container.innerHTML = '';
-
-    // Remove status banner
-    const banner = document.getElementById('ev-thread-banner-' + tabKey);
-    if (banner) banner.remove();
-
-    // Re-enable input
-    _syncInputState(tabKey, 'open');
-
-    // Show fresh bot greeting
-    const greetings = {
-      order: "👋 Starting a new ticket! I'm here to help fix your order.\n\nJust tell me what happened and I'll walk you through it step by step.",
-      delay: "⏳ Starting a new ticket! Share your **Order ID** and I'll look into the delay for you right away."
-    };
-    evTypingThen(tabKey, 800, () => {
-      evBotMsgLocal(tabKey, greetings[tabKey]);
-    });
-  };
-
-  /* Lock / unlock input based on thread status */
-  function _syncInputState(tabKey, status) {
-    const isClosed = ['resolved','closed'].includes(status);
-    const input = document.getElementById('ev-input-' + tabKey);
-    const btn   = document.getElementById('ev-send-' + tabKey);
-    const chips = document.getElementById('ev-chips-' + tabKey);
-    if (input) {
-      input.disabled = isClosed;
-      input.placeholder = isClosed
-        ? 'This ticket is closed. Open a new one if you need more help.'
-        : (tabKey === 'order'
-          ? 'Describe your issue or paste the correct link…'
-          : 'Share your Order ID or describe the delay…');
-      input.style.opacity = isClosed ? '0.5' : '1';
-    }
-    if (btn)   btn.disabled = isClosed;
-    if (chips) chips.style.display = isClosed ? 'none' : 'flex';
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     WIDGET STATE
-  ═══════════════════════════════════════════════════════════════ */
-  const state = {
-    order:     { step: 0 },
-    delay:     { step: 0 },
-    unread:    0,
-    open:      false,
-    activeTab: 'order',
-  };
-
-  /* ── Boot greeting (local only, shown before DB loads) ── */
-  let _greetingRendered = false;
-  setTimeout(() => {
-    if (_greetingRendered) return;
-    _greetingRendered = true;
-    if (!token) {
-      // Not logged in — show login prompt in both tabs, no badge
-      evBotMsgLocal('order',
-        `🔒 Please **sign in** to access support.\n\n[**Log in to your account →**](#ev-login-scroll)`,
-        true
-      );
-      evBotMsgLocal('delay',
-        `🔒 Please **sign in** to access support.\n\n[**Log in to your account →**](#ev-login-scroll)`,
-        true
-      );
-      // Wire login links
-      setTimeout(() => {
-        document.querySelectorAll('a[href="#ev-login-scroll"]').forEach(link => {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const loginBox = document.getElementById('loginBox');
-            if (loginBox) {
-              loginBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              const emailInput = document.getElementById('loginEmail');
-              if (emailInput) emailInput.focus();
-            }
-            if (window.evChatToggle) window.evChatToggle();
-          });
-        });
-      }, 100);
-      return;
-    }
-    evBotMsgLocal('order',
-      `👋 Hi! How can we help you?\n\nIf you placed a **wrong order** (wrong link, wrong quantity, wrong service), let me know and I'll help you fix it.\n\nJust tell me what happened.`,
-      true
-    );
-    evBotMsgLocal('delay',
-      `⏳ Hi! Experiencing a service delay?\n\nShare your **Order ID** (from My Orders) and I'll look into it right away.`,
-      true
-    );
-    if (!state.open) {
-      state.unread = 1;
-      const badge = document.getElementById('ev-chat-badge');
-      badge.textContent = '1';
-      badge.classList.add('show');
-    }
-  }, 1200);
-
-
-  /* ── Toggle open/close ── */
-  let _booted = false;
   window.evChatToggle = function() {
     state.open = !state.open;
     const win   = document.getElementById('ev-chat-window');
@@ -550,11 +600,13 @@
       fab.classList.add('open');
       state.unread = 0;
       badge.classList.remove('show');
-      evScrollBottom(state.activeTab);
-      evStartPolling();
       if (!_booted) {
         _booted = true;
+        _renderShortcuts();
+        _showView('home');
         evBootWidget();
+      } else {
+        evStartPolling();
       }
     } else {
       win.classList.remove('open');
@@ -563,26 +615,10 @@
     }
   };
 
-  /* ── Tab switching ── */
-  window.evSwitchTab = function(tab) {
-    state.activeTab = tab;
-    ['order','delay'].forEach(t => {
-      document.getElementById('ev-tab-' + t).classList.toggle('active', t === tab);
-      const pane = document.getElementById('ev-pane-' + t);
-      pane.style.display = t === tab ? 'flex' : 'none';
-    });
-    evScrollBottom(tab);
-  };
-
-  /* ── Quick-reply chips ── */
-  window.evChip = function(text) {
-    const tab   = state.activeTab;
-    const input = document.getElementById('ev-input-' + tab);
-    if (input.disabled) return;
-    input.value = text;
-    input.focus();
-    evAutoResize(input);
-  };
+  // Render the shortcuts row immediately so it's visible even before the
+  // widget is first opened / before login state is known.
+  document.addEventListener('DOMContentLoaded', () => { try { _renderShortcuts(); } catch(_){} });
+  setTimeout(() => { try { _renderShortcuts(); } catch(_){} }, 300);
 
   window.evAutoResize = function(el) {
     el.style.height = '42px';
@@ -590,456 +626,24 @@
     el.style.overflowY = el.scrollHeight > 100 ? 'auto' : 'hidden';
   };
 
-  window.evKeydown = function(e, tab) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); evSend(tab); }
-  };
-
   /* ═══════════════════════════════════════════════════════════════
-     SMART INTENT CLASSIFIER — routes to right tab automatically
+     BUBBLE RENDERERS (thread view + instant answer panel share these)
   ═══════════════════════════════════════════════════════════════ */
-  function _classifyIntent(text) {
-    const t = text.toLowerCase();
-    if (/delay|stuck|not.*(start|deliver|move|progress|working)|slow|taking.*long|still.*waiting|no.*result|no.*change|haven.t.*received/i.test(t))
-      return 'delay';
-    if (/wrong.*(order|link|service|quantity|url)|changed.*link|bad.*link|incorrect.*(link|url|order)|ordered.*wrong|submitted.*wrong/i.test(t))
-      return 'order';
-    return 'order'; // default to order tab
-  }
-
-  window.evAutoDetectTab = function(text) {
-    const intent = _classifyIntent(text);
-    return intent === 'delay' ? 'delay' : 'order';
-  };
-
-  /* ═══════════════════════════════════════════════════════════════
-     SMART SEND — auto-routes based on intent
-  ═══════════════════════════════════════════════════════════════ */
-  window.evSend = function(tab) {
-    const input = document.getElementById('ev-input-' + tab);
-    if (input.disabled) return;
-    const text = input.value.trim();
-    if (!text) return;
-
-    const user        = _getUser();
-    const userInitial = (user.name || 'U').charAt(0).toUpperCase();
-
-    evUserMsgLocal(tab, text, userInitial);
-    input.value = '';
-    evAutoResize(input);
-
-    const btn = document.getElementById('ev-send-' + tab);
-    btn.disabled = true;
-    setTimeout(() => { btn.disabled = false; }, 2000);
-
-    // Increment local cursor immediately so poll doesn't re-render this msg
-    lastSeenCount[tab]++;
-
-    if (!threadMeta[tab]) {
-      // First message — open thread on server
-      evOpenThread(tab, text);
-    } else {
-      // Post to existing thread
-      evPostMessage(tab, text);
-      if (tab === 'order') evHandleOrderFlow(text, user);
-      else                 evHandleDelayFlow(text, user);
-    }
-  };
-
-  /* ═══════════════════════════════════════════════════════════════
-     FAQ DETECTOR — answers common questions before they hit admin
-     Returns true if the message was handled as a FAQ.
-  ═══════════════════════════════════════════════════════════════ */
-  // ── Off-topic detector: user is trying to place/ask about a new order ──────
-  // Returns a bot reply string if off-topic, or null if it's a support issue.
-  function _checkOffTopic(tab, text) {
-    const t = text.toLowerCase().trim();
-
-    // "I want X" / "I need X" / "I'd like X" — new order intent
-    if (/^i (want|need|would like|wanna|need to get|want to get|want to buy)\b/i.test(t)) {
-      evTypingThen(tab, 900, () => {
-        evBotMsgLocal(tab,
-          `😊 Sounds like you want to **place a new order**!\n\n` +
-          `This support chat is for issues with *existing* orders. To place a new order:\n\n` +
-          `1. Click **New Order** in the left menu\n` +
-          `2. Search for the service you want\n` +
-          `3. Paste your profile/post link and confirm\n\n` +
-          `If you already placed an order and something went wrong, tell me what happened and I'll sort it out! 🔧`
-        );
-      });
-      return true;
-    }
-
-    // "how do I get followers / likes / views" — general new-order question
-    if (/how (do i|can i|to) (get|buy|order|boost|increase|grow).*(follower|like|view|subscriber|share|comment|retweet|watch)/i.test(t)) {
-      evTypingThen(tab, 900, () => {
-        evBotMsgLocal(tab,
-          `📦 **Ordering is easy!**\n\n` +
-          `1. Click **New Order** in the left menu\n` +
-          `2. Search for the service (e.g. *"Instagram Followers"*)\n` +
-          `3. Paste your **profile or post link**\n` +
-          `4. Enter the quantity and pay via **M-Pesa**\n\n` +
-          `Your order starts processing right after payment! If you have an *existing order* with an issue, just tell me what went wrong.`
-        );
-      });
-      return true;
-    }
-
-    // "will likes/followers help me" / "does X boost algorithm" — engagement education
-    if (/(does|do|will|can).*(like|follower|view|subscriber|share|comment).*(algorithm|spread|reach|viral|wider|audience|help|boost|grow|engage)/i.test(t) ||
-        /(algorithm|reach|viral|engagement).*(like|follower|view|subscriber|share)/i.test(t)) {
-      evTypingThen(tab, 1000, () => {
-        evBotMsgLocal(tab,
-          `📈 **Yes — social proof signals matter!**\n\n` +
-          `Here's how engagement helps:\n\n` +
-          `• **Likes & Views** — platforms like TikTok and Instagram use engagement rate to decide how widely to push content. More likes = more likely to hit the *For You* page.\n` +
-          `• **Followers** — a higher follower count builds trust, making new visitors more likely to follow and engage organically.\n` +
-          `• **Watch time (YouTube)** — more views with high watch time signals quality to the algorithm, boosting recommendations.\n\n` +
-          `💡 Our services give your content the initial push — the algorithm does the rest.\n\n` +
-          `Ready to boost? Click **New Order** to get started! 🚀`
-        );
-      });
-      return true;
-    }
-
-    return false;
-  }
-
-  const _faqs = [
-    {
-      match: /how.long.*(start|begin|deliver|take)/i,
-      answer: `⏱️ **Delivery start times** vary by service:\n\n• **TikTok / Instagram / YouTube** — typically starts within **1–3 hours**\n• **Twitter / Facebook** — usually within **30 minutes to 2 hours**\n• **Slower growth packages** — may take up to **24 hours** to begin\n\nIf your order hasn't started after **24 hours**, open a Delayed Service ticket and we'll investigate.`
-    },
-    {
-      match: /how.*(place|make|create|submit).*(order)/i,
-      answer: `🛒 **How to place an order:**\n\n1. Click **New Order** in the left menu\n2. Browse or search for the service you want\n3. Paste your **profile or post link** in the link field\n4. Enter the **quantity** and click **Place Order**\n5. Complete payment via **M-Pesa STK push**\n\nMake sure your link is public and correct before submitting!`
-    },
-    {
-      match: /how.*(get|find|copy|share).*(link|url)/i,
-      answer: `🔗 **How to get your link:**\n\n• **TikTok profile:** Open TikTok → tap your profile → tap the share icon → *Copy link*\n• **TikTok video:** Open the video → tap Share → *Copy link*\n• **Instagram:** Go to your profile/post → tap ··· → *Copy link*\n• **YouTube:** Open your video → tap Share → *Copy link*\n• **Facebook/Twitter:** Open post → tap Share → *Copy link*\n\nPaste the copied link directly — make sure the account is set to **Public**!`
-    },
-    {
-      match: /refund|money back|cancel/i,
-      answer: `💰 **Refund & cancellation policy:**\n\nOnce an order is **placed and payment confirmed**, it goes straight to processing and **cannot be refunded or cancelled** — so please double-check your **link, quantity, and service** before confirming.\n\nThat said, we've got you covered on our end: if an order **stalls, delays, or delivers partially**, our team will **complete it or re-queue it** at no extra cost. Share your **Order ID** and we'll sort it out.`
-    },
-    {
-      match: /payment.*(fail|not.work|error|declined)|m.?pesa.*(fail|not.work|error)/i,
-      answer: `📱 **M-Pesa payment not working?**\n\nTry these steps:\n1. Make sure you have **sufficient M-Pesa balance**\n2. Check that your **phone number** on your account is correct\n3. The STK push expires in **60 seconds** — don't close the prompt\n4. If it keeps failing, try again in **5 minutes**\n\nStill stuck? Reply with your **phone number** (last 4 digits only for safety) and we'll look into it.`
-    },
-    {
-      match: /(drop|dropp|reduc|decreas|losing|lost|lose|fell|falling|going down|unfollow|disappear|not.*(stay|stable|permanent))/i,
-      answer: `📉 **Noticed your count going down?** This is a common (and honest) question — here's why it happens:\n\n` +
-        `Platforms like TikTok and Instagram regularly run cleanup sweeps that remove inactive or low-activity accounts. Sources that are more likely to get flagged in these sweeps will naturally lose more over time — that's what causes visible drops.\n\n` +
-        `This is exactly why we grade services by tier:\n\n` +
-        `🟡 **Basic** — cheapest option, but pulled from sources platforms flag most often, so drops are more likely.\n` +
-        `🟢 **Medium** — a balanced option with better stability than Basic.\n` +
-        `🔵 **Elite** — highest quality sources, built for long-term retention with minimal drops.\n\n` +
-        `If you're seeing drops on a **Basic** order, that's expected behavior, not a fault — cheaper pricing reflects that trade-off. For results that last, we'd recommend upgrading to **Medium** or **Elite** next time.\n\n` +
-        `If you'd like, share your **Order ID** and I'll take a closer look at what happened on this specific order.`
-    },
-    {
-      match: /what.*(service|offer|sell|available|provide)/i,
-      answer: `📦 **Our services include:**\n\n• 📸 Instagram — Followers, Likes, Views, Story Views\n• 🎵 TikTok — Followers, Likes, Views, Shares\n• ▶️ YouTube — Views, Likes, Subscribers, Watch Time\n• 🐦 Twitter/X — Followers, Likes, Retweets\n• 📘 Facebook — Likes, Followers, Views\n\nClick **New Order** to browse all available packages and pricing!`
-    },
-    {
-      match: /not.*(working|deliver|start|moving|progress)|stuck|no.*(change|update|result)/i,
-      answer: `⚠️ **Order not progressing?**\n\nA few things to check:\n\n• Has it been **less than 24 hours**? Some services have a slow start — this is normal.\n• Is your profile/page still **public**? Private accounts block delivery.\n• Did the link change after ordering? Link changes stop delivery.\n\nIf it's been **over 24 hours** with no progress, please switch to the **⏳ Delayed Service** tab and share your Order ID — we'll escalate it right away.`
-    },
-  ];
-
-  function _checkFaq(tab, text) {
-    const lower = text.toLowerCase().trim();
-    const s = tab === 'order' ? state.order : state.delay;
-    const collectingData = (tab === 'order' && s.step >= 1 && s.step <= 4) ||
-                           (tab === 'delay' && s.step === 1);
-    if (collectingData) return false;
-    // Check off-topic FIRST (new order intents, algorithm questions)
-    if (_checkOffTopic(tab, text)) return true;
-    for (const faq of _faqs) {
-      if (faq.match.test(lower)) {
-        evTypingThen(tab, 1000, () => { evBotMsgLocal(tab, faq.answer); });
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     FALLBACK — fires when the bot has no scripted answer.
-     Instead of guessing or looping the customer through more prompts,
-     hand the conversation straight to a human admin.
-  ═══════════════════════════════════════════════════════════════ */
-  function _botFallback(tab) {
-    const s = state[tab];
-
-    // Already escalated this thread — don't spam admin with repeat notices,
-    // just reassure the customer a human already has it.
-    if (s.escalated) {
-      evTypingThen(tab, 800, () => {
-        evBotMsgLocal(tab,
-          `🙋 Our support team already has this conversation and will reply here shortly. Feel free to add any more details.`
-        );
-      });
-      return;
-    }
-    s.escalated = true;
-    s.step = 99; // stop bot-guided flow from re-triggering on this thread
-
-    const escalationNote = '[Auto-escalation] Bot had no answer for this message — routing directly to a human admin.';
-    if (!threadMeta[tab]) {
-      evOpenThread(tab, escalationNote);
-    } else {
-      evPostMessage(tab, escalationNote);
-    }
-
-    evTypingThen(tab, 1100, () => {
-      evBotMsgLocal(tab,
-        `🙋 That's outside what I can answer directly, so I've forwarded this straight to our support team — no need to repeat yourself.\n\n` +
-        `A real person will reply here shortly (usually within a few hours). Feel free to add any more details below in the meantime.`
-      );
-    });
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     HUMAN ESCALATION — bypasses bot flow, sends directly to admin
-  ═══════════════════════════════════════════════════════════════ */
-  window.evEscalateToHuman = function(tab) {
-    // Pin the flow step to 99 so bot-guided steps are skipped from now on
-    state[tab].step = 99;
-    state[tab].escalated = true;
-
-    const user    = _getUser();
-    const initial = (user.name || 'U').charAt(0).toUpperCase();
-
-    // Show user's chip tap as a message
-    evUserMsgLocal(tab, 'Connect with team', initial);
-    lastSeenCount[tab]++;
-
-    if (!threadMeta[tab]) {
-      // No thread yet — open one now with the escalation as first message
-      evOpenThread(tab, '[Support escalation] Customer requesting human support.');
-    } else {
-      evPostMessage(tab, '[Support escalation] Customer requesting human support.');
-    }
-
-    evTypingThen(tab, 900, () => {
-      evBotMsgLocal(tab,
-        `✅ I'm passing this to our support team right now.\n\n` +
-        `Someone will get back to you within **12 hours** (usually much sooner). ` +
-        `Feel free to add any extra details below and we'll see them.`
-      );
-    });
-  };
-
-  /* ═══════════════════════════════════════════════════════════════
-     INPUT VALIDATORS
-  ═══════════════════════════════════════════════════════════════ */
-  function _looksLikeOrderId(text) {
-    return /^\d{3,}$/.test(text.trim()) || /^[a-z0-9_-]{3,20}$/i.test(text.trim());
-  }
-  function _looksLikeQuantity(text) {
-    return /^\d+[kK]?$/.test(text.trim());
-  }
-  function _looksLikeUrl(text) {
-    return /^https?:\/\/.{5,}|^www\..{4,}|(instagram|tiktok|youtube|youtu\.be|facebook|twitter|x\.com|fb\.com)\..{2,}/i.test(text.trim());
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     ORDER CORRECTION FLOW (bot-guided, with validation + FAQ)
-  ═══════════════════════════════════════════════════════════════ */
-  function evHandleOrderFlow(text, user) {
-    const s      = state.order;
-    const helper = document.getElementById('ev-link-helper');
-
-    if (_checkFaq('order', text)) return;
-
-    if (s.step === 0) {
-      // If it's clearly a new-order intent, _checkFaq already handled it above.
-      // If we get here it's a genuine support message — proceed.
-      s.step = 1;
-      evTypingThen('order', 1400, () => {
-        evBotMsgLocal('order',
-          `Got it! I'll help fix your order right away. 🔧\n\nFirst, please share your **Order ID** — you can find it in the **My Orders** section.\n\n*(It's a number like* ***12345****)*`
-        );
-      });
-
-    } else if (s.step === 1) {
-      if (!_looksLikeOrderId(text)) {
-        evTypingThen('order', 900, () => {
-          evBotMsgLocal('order',
-            `🤔 That doesn't look like an Order ID.\n\nYour **Order ID** is a number (e.g. *12345*) found in the **My Orders** section.\n\nPlease share the correct Order ID to continue.`
-          );
-        });
-        return;
-      }
-      s.step = 2; s.orderId = text;
-      evTypingThen('order', 1200, () => {
-        evBotMsgLocal('order',
-          `Thanks! Now, which **service** did you intend to order?\n\nFor example: *"Instagram Followers"*, *"YouTube Views"*, *"TikTok Likes"*, etc.\n\nJust type the service name.`
-        );
-      });
-
-    } else if (s.step === 2) {
-      s.step = 3; s.serviceName = text;
-      evTypingThen('order', 1100, () => {
-        evBotMsgLocal('order', `Got it — **${text}**. 👍\n\nWhat **quantity** did you want? (e.g. *1000*, *5000*, *10000*)`);
-      });
-
-    } else if (s.step === 3) {
-      if (!_looksLikeQuantity(text)) {
-        evTypingThen('order', 900, () => {
-          evBotMsgLocal('order',
-            `🤔 Please enter just the **quantity as a number** (e.g. *1000*, *5000*).\n\nHow many ${s.serviceName || 'units'} did you want?`
-          );
-        });
-        return;
-      }
-      s.step = 4; s.quantity = text;
-      if (helper) helper.style.display = 'block';
-      evTypingThen('order', 1200, () => {
-        evBotMsgLocal('order',
-          `Perfect — **${text}** units. Almost done!\n\nFinally, paste the **correct link** for this order.\n\n💡 It should look like: *https://tiktok.com/@yourname* or *https://instagram.com/yourname*`
-        );
-      });
-
-    } else if (s.step === 4) {
-      if (!_looksLikeUrl(text)) {
-        evTypingThen('order', 900, () => {
-          evBotMsgLocal('order',
-            `🔗 That doesn't look like a valid link.\n\nPlease paste the **full URL** of your profile or post.\n\nNeed help finding it? Type *"how to get the link"* and I'll guide you.`
-          );
-        });
-        return;
-      }
-      s.step = 5; s.correctLink = text;
-      if (helper) helper.style.display = 'none';
-
-      const summary = [
-        `🔁 Wrong Order Correction Request`,
-        `📋 Order ID: ${s.orderId || 'not provided'}`,
-        `📦 Intended Service: ${s.serviceName || 'not provided'}`,
-        `🔢 Quantity: ${s.quantity || 'not provided'}`,
-        `🔗 Correct Link: ${s.correctLink || text}`,
-        `👤 User: ${user.name || user.email || 'unknown'}`,
-      ].join('\n');
-      evPostMessage('order', summary);
-      lastSeenCount['order']++;
-
-      evTypingThen('order', 1600, () => {
-        evBotMsgLocal('order',
-          `✅ Perfect! Here's what I've captured:\n\n` +
-          `📋 **Order ID:** ${s.orderId||'—'}\n` +
-          `📦 **Service:** ${s.serviceName||'—'}\n` +
-          `🔢 **Quantity:** ${s.quantity||'—'}\n` +
-          `🔗 **Link:** ${s.correctLink||text}\n\n` +
-          `Our team has been notified and will process your correction within **15–30 minutes**. We'll update you here!`
-        );
-      });
-
-    } else {
-      if (!_checkFaq('order', text)) _botFallback('order');
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
-     DELAY REPORTING FLOW (bot-guided, with FAQ)
-  ═══════════════════════════════════════════════════════════════ */
-  function evHandleDelayFlow(text, user) {
-    const s      = state.delay;
-    const notice = document.getElementById('ev-delay-notice');
-
-    if (_checkFaq('delay', text)) return;
-
-    if (s.step === 0) {
-      s.step = 1;
-      evTypingThen('delay', 1300, () => {
-        evBotMsgLocal('delay',
-          `I'm sorry to hear that! 😔 Service delays can happen due to high demand or provider issues.\n\nCould you share your **Order ID**? You can find it in the "My Orders" section.\n\n*(It's a number like* ***12345****)*`
-        );
-      });
-
-    } else if (s.step === 1) {
-      if (!_looksLikeOrderId(text)) {
-        evTypingThen('delay', 900, () => {
-          evBotMsgLocal('delay',
-            `🤔 That doesn't look like an Order ID.\n\nYour **Order ID** is a number (e.g. *12345*) found in the **My Orders** section.\n\nPlease share the correct Order ID.`
-          );
-        });
-        return;
-      }
-      s.step = 2; s.orderId = text;
-      if (notice) notice.style.display = 'flex';
-      evTypingThen('delay', 1500, () => {
-        evBotMsgLocal('delay',
-          `Thanks! I've escalated **Order #${text}** to our admin team. ✅\n\nMost delays are resolved within **2–6 hours**. If it's been over 24 hours, we'll complete or re-queue your order — orders can't be refunded once placed, but we'll make sure you get what you paid for.\n\nWe'll update you here shortly.`
-        );
-      });
-
-    } else {
-      if (!_checkFaq('delay', text)) _botFallback('delay');
-    }
-  }
-
-
-  /* ═══════════════════════════════════════════════════════════════
-     MESSAGE RENDERERS
-  ═══════════════════════════════════════════════════════════════ */
-
-  /**
-   * Bot message — automated / scripted (🦠 avatar, muted label)
-   * @param {string} tab
-   * @param {string} text
-   * @param {boolean} [incrementCursor=true] — set false when rendering history
-   * @param {string} [timeOverride]
-   */
-  function evBotMsgLocal(tab, text, incrementCursor = true, timeOverride) {
-    const time      = timeOverride || evNow();
+  function _adminBubbleHtml(text, time, isInstant) {
     const formatted = _fmt(text);
-    const html = `
-      <div class="ev-msg from-admin ev-msg-bot">
-        <div class="ev-msg-avatar" title="EndaViral Bot">${BOT_AVATAR}</div>
+    return `
+      <div class="ev-msg from-admin">
+        <div class="ev-msg-avatar" title="${ADMIN_NAME}">${ADMIN_AVATAR}</div>
         <div>
-          <div class="ev-msg-bubble ev-bubble-bot">${formatted}</div>
-          <div class="ev-msg-time">${BOT_NAME} · ${time}</div>
+          <div class="ev-msg-bubble">${formatted}</div>
+          <div class="ev-msg-time">${isInstant ? 'Instant answer' : ADMIN_NAME} · ${time}</div>
         </div>
       </div>`;
-    evAppendMsg(tab, html);
-    if (incrementCursor) lastSeenCount[tab]++;
-    _maybeBadge();
-    // Persist bot message to DB so admin sees full conversation
-    // evPostBotMessage is a no-op if no thread exists yet (pre-thread greetings stay local)
-    if (!timeOverride) evPostBotMessage(tab, text);
   }
 
-  /**
-   * Real human admin message — distinct styling (👤 avatar, green label)
-   * @param {string} tab
-   * @param {string} text
-   * @param {boolean} [incrementCursor=true]
-   * @param {string} [timeOverride]
-   */
-  function evRealAdminMsgLocal(tab, text, incrementCursor = true, timeOverride) {
-    const time      = timeOverride || evNow();
-    const formatted = _fmt(text);
-    const html = `
-      <div class="ev-msg from-admin ev-msg-human">
-        <div class="ev-msg-avatar ev-admin-avatar" title="EndaViral Support">${ADMIN_AVATAR}</div>
-        <div>
-          <div class="ev-msg-bubble ev-bubble-human">${formatted}</div>
-          <div class="ev-msg-time ev-time-human">${ADMIN_NAME} · ${time}</div>
-        </div>
-      </div>`;
-    evAppendMsg(tab, html);
-    if (incrementCursor) lastSeenCount[tab]++;
-    _maybeBadge();
-  }
-
-  /**
-   * User's own message
-   */
-  function evUserMsgLocal(tab, text, initial, timeOverride) {
-    const time     = timeOverride || evNow();
-    const safeText = text.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-    const html = `
+  function _userBubbleHtml(text, initial, time) {
+    const safeText = _escape(text).replace(/\n/g,'<br>');
+    return `
       <div class="ev-msg from-user">
         <div class="ev-msg-avatar ev-user-avatar">${initial}</div>
         <div>
@@ -1047,55 +651,33 @@
           <div class="ev-msg-time">${time}</div>
         </div>
       </div>`;
-    evAppendMsg(tab, html);
   }
 
-  function _maybeBadge() {
-    if (!state.open) {
-      state.unread++;
-      const badge = document.getElementById('ev-chat-badge');
-      badge.textContent = state.unread;
-      badge.classList.add('show');
-    }
-  }
-
-  /* ── Typing indicator ── */
-  function evTypingThen(tab, delay, cb) {
-    const typingHtml = `
-      <div class="ev-msg from-admin ev-msg-bot" id="ev-typing-${tab}">
-        <div class="ev-msg-avatar">${BOT_AVATAR}</div>
-        <div class="ev-msg-bubble ev-bubble-bot" style="padding:10px 14px;">
+  function _typingHtml(id) {
+    return `
+      <div class="ev-msg from-admin" id="${id}">
+        <div class="ev-msg-avatar">${ADMIN_AVATAR}</div>
+        <div class="ev-msg-bubble" style="padding:10px 14px;">
           <div class="ev-typing"><span></span><span></span><span></span></div>
         </div>
       </div>`;
-    evAppendMsg(tab, typingHtml);
-    setTimeout(() => {
-      const el = document.getElementById('ev-typing-' + tab);
-      if (el) el.remove();
-      cb();
-    }, delay);
   }
 
-  /* ── DOM helpers ── */
-  function evAppendMsg(tab, html) {
-    const container = document.getElementById('ev-msgs-' + tab);
+  function _appendLocal(container, html) {
     if (!container) return;
     container.insertAdjacentHTML('beforeend', html);
-    evScrollBottom(tab);
-  }
-
-  function evScrollBottom(tab) {
-    const el = document.getElementById('ev-msgs-' + tab);
-    if (el) setTimeout(() => { el.scrollTop = el.scrollHeight; }, 50);
   }
 
   /* ── Utilities ── */
-  function _fmt(text) {
-    // Escape first, then apply safe markdown-like substitutions
-    const safe = String(text||'')
+  function _escape(text) {
+    return String(text||'')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
+  }
+
+  function _fmt(text) {
+    const safe = _escape(text);
     return safe
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -1121,97 +703,152 @@
 
   /* ═══════════════════════════════════════════════════════════════
      EXTRA CSS injected at runtime
-     — differentiates bot vs real admin bubbles
-     — adds ticket history styling
   ═══════════════════════════════════════════════════════════════ */
   (function _injectStyles() {
     const style = document.createElement('style');
     style.textContent = `
-      /* Bot bubble — same as before (muted card) */
-      .ev-bubble-bot {
-        background: #1a2435 !important;
-        border: 1px solid rgba(61,212,74,.15) !important;
-        color: #d0dff0 !important;
-      }
-      .ev-msg-bot .ev-msg-time {
-        color: #3a5570;
+      /* Views */
+      #ev-view-home, #ev-view-new, #ev-view-thread {
+        display:none; flex-direction:column; flex:1; min-height:0; overflow:hidden;
       }
 
-      /* Real admin bubble — slightly warmer, green-tinted border */
-      .ev-bubble-human {
-        background: #152b1e !important;
-        border: 1px solid rgba(61,212,74,.45) !important;
-        color: #e0f8e8 !important;
+      /* Shortcuts */
+      .ev-shortcuts-wrap { padding:12px 14px 4px; flex-shrink:0; }
+      .ev-shortcuts-label { font-size:11px; font-weight:800; color:#3dd44a; letter-spacing:.4px; text-transform:uppercase; margin-bottom:8px; }
+      .ev-shortcuts-grid { display:flex; flex-wrap:wrap; gap:7px; }
+      .ev-shortcut-btn {
+        padding:7px 12px; border-radius:20px; font-size:11.5px; font-weight:600;
+        background:rgba(61,212,74,.1); border:1px solid rgba(61,212,74,.25);
+        color:#3dd44a; cursor:pointer; font-family:'Montserrat',sans-serif;
+        transition:all .2s; white-space:nowrap;
       }
-      .ev-admin-avatar {
-        background: linear-gradient(135deg,#28a035,#1a6b23) !important;
-        font-size: 14px !important;
-        box-shadow: 0 0 0 2px rgba(61,212,74,.4);
-      }
-      .ev-time-human {
-        color: #3dd44a !important;
-        font-weight: 700;
+      .ev-shortcut-btn:hover { background:rgba(61,212,74,.2); border-color:rgba(61,212,74,.5); }
+
+      #ev-instant-answer-panel {
+        display:none; flex-direction:column; gap:10px; margin:10px 14px;
+        padding:12px; max-height:220px; overflow-y:auto;
+        background:#111820; border:1px solid rgba(61,212,74,.15); border-radius:12px;
+        position:relative;
       }
 
-      /* User avatar */
-      .ev-user-avatar {
-        background: linear-gradient(135deg,#243048,#1a2435);
-        color: #3dd44a;
-        font-weight: 800;
-        font-size: 14px;
+      /* Ticket list */
+      .ev-tickets-wrap { flex:1; min-height:0; overflow-y:auto; padding:4px 14px 8px; display:flex; flex-direction:column; gap:8px; }
+      .ev-tickets-label { font-size:11px; font-weight:800; color:#7a8fad; letter-spacing:.4px; text-transform:uppercase; margin:10px 0 6px; }
+      .ev-tickets-empty { font-size:12.5px; color:#5a7290; line-height:1.6; padding:8px 2px; }
+      .ev-ticket-card {
+        display:block; width:100%; text-align:left; background:#1a2435;
+        border:1px solid rgba(61,212,74,.12); border-radius:10px; padding:10px 12px;
+        cursor:pointer; font-family:'Montserrat',sans-serif; transition:border-color .2s;
       }
+      .ev-ticket-card:hover { border-color:rgba(61,212,74,.4); }
+      .ev-ticket-card-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; }
+      .ev-ticket-subject { font-size:12.5px; font-weight:700; color:#f0f4ff; }
+      .ev-ticket-status { font-size:10px; font-weight:700; white-space:nowrap; }
+      .ev-ticket-status-open { color:#ff6b6b; }
+      .ev-ticket-status-pending { color:#fbbf24; }
+      .ev-ticket-status-resolved { color:#3dd44a; }
+      .ev-ticket-status-closed { color:#7a8fad; }
+      .ev-ticket-preview { font-size:11.5px; color:#6a8aaa; line-height:1.4; }
+
+      /* New ticket button (home) */
+      .ev-new-ticket-cta {
+        margin:8px 14px 14px; padding:11px; border-radius:10px; border:none;
+        background:linear-gradient(135deg,#3dd44a,#28a035); color:#000;
+        font-family:'Montserrat',sans-serif; font-size:13px; font-weight:800;
+        cursor:pointer; letter-spacing:.2px; flex-shrink:0;
+      }
+
+      /* Login prompt */
+      #ev-login-prompt {
+        display:none; flex-direction:column; align-items:center; text-align:center;
+        gap:10px; padding:28px 20px; color:#7a8fad; font-size:12.5px; line-height:1.6;
+      }
+      #ev-login-prompt button {
+        padding:9px 18px; border-radius:8px; border:none;
+        background:linear-gradient(135deg,#3dd44a,#28a035); color:#000;
+        font-family:'Montserrat',sans-serif; font-size:12.5px; font-weight:800; cursor:pointer;
+      }
+
+      /* New ticket form */
+      .ev-nt-form { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:14px; }
+      .ev-nt-hd { display:flex; align-items:center; gap:8px; }
+      .ev-nt-back { background:none; border:none; color:#7a8fad; font-size:18px; cursor:pointer; padding:2px 4px; }
+      .ev-nt-title { font-size:14px; font-weight:800; color:#f0f4ff; }
+      .ev-nt-sub { font-size:12px; color:#6a8aaa; line-height:1.5; }
+      .ev-nt-checkboxes { display:flex; flex-direction:column; gap:8px; }
+      .ev-nt-cb-row {
+        display:flex; align-items:center; gap:9px; padding:10px 12px;
+        background:#1a2435; border:1px solid rgba(61,212,74,.15); border-radius:10px;
+        cursor:pointer; font-size:12.5px; color:#d0dff0;
+      }
+      .ev-nt-cb-row input { width:16px; height:16px; accent-color:#3dd44a; cursor:pointer; }
+      .ev-nt-hint { font-size:11px; color:#5a7290; }
+      .ev-nt-textarea {
+        width:100%; min-height:90px; background:#1a2435; border:1px solid rgba(61,212,74,.18);
+        border-radius:10px; padding:10px 12px; color:#f0f4ff; font-family:'Montserrat',sans-serif;
+        font-size:13px; outline:none; resize:vertical; line-height:1.5;
+      }
+      .ev-nt-textarea:focus { border-color:rgba(61,212,74,.45); }
+      .ev-nt-submit {
+        padding:12px; border-radius:10px; border:none;
+        background:linear-gradient(135deg,#3dd44a,#28a035); color:#000;
+        font-family:'Montserrat',sans-serif; font-size:13.5px; font-weight:800; cursor:pointer;
+      }
+      .ev-nt-submit:disabled { opacity:.6; cursor:default; }
+
+      /* Thread view header */
+      .ev-thread-hd { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid rgba(61,212,74,.1); flex-shrink:0; }
+      .ev-thread-subject { flex:1; font-size:13px; font-weight:800; color:#f0f4ff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+      /* Message bubbles (shared: thread + instant answer panel) */
+      .ev-msg{display:flex;gap:8px;align-items:flex-end;max-width:88%;}
+      .ev-msg.from-admin{align-self:flex-start;}
+      .ev-msg.from-user{align-self:flex-end;flex-direction:row-reverse;}
+      .ev-msg-avatar{
+        width:28px;height:28px;border-radius:50%;flex-shrink:0;
+        background:linear-gradient(135deg,#3dd44a,#1a6b23);
+        display:flex;align-items:center;justify-content:center;font-size:12px;
+      }
+      .ev-msg-bubble{
+        padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.55;
+        max-width:230px;word-break:break-word;position:relative;
+        background:#1a2435;border:1px solid rgba(61,212,74,.15);color:#d0dff0;
+      }
+      .from-admin .ev-msg-bubble{ border-radius:4px 14px 14px 14px; }
+      .from-user .ev-msg-bubble{
+        background:linear-gradient(135deg,#3dd44a,#28a035);
+        color:#fff;border-radius:14px 4px 14px 14px; border:none;
+      }
+      .ev-msg-time{font-size:10px;color:#3a5570;margin-top:4px;text-align:right;}
+      .from-admin .ev-msg-time{text-align:left;}
+      .ev-user-avatar{
+        background:linear-gradient(135deg,#243048,#1a2435);
+        color:#3dd44a;font-weight:800;font-size:14px;
+      }
+
+      /* Typing indicator */
+      .ev-typing{display:flex;gap:4px;align-items:center;padding:2px 4px;}
+      .ev-typing span{ width:6px;height:6px;border-radius:50%;background:#3dd44a;opacity:.6; animation:ev-bounce .9s infinite; }
+      .ev-typing span:nth-child(2){animation-delay:.15s;}
+      .ev-typing span:nth-child(3){animation-delay:.3s;}
+      @keyframes ev-bounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-6px);}}
 
       /* Resolved / closed banner */
-      .ev-thread-status-banner {
-        margin: 8px 14px;
-        padding: 9px 13px;
-        border-radius: 10px;
-        font-size: 11.5px;
-        font-weight: 700;
-        text-align: center;
-        letter-spacing: .3px;
-        flex-shrink: 0;
+      #ev-thread-banner {
+        display:none; margin:8px 14px; padding:10px 13px 12px; border-radius:10px;
+        font-size:11.5px; font-weight:700; text-align:center; letter-spacing:.3px; flex-shrink:0;
+        background:rgba(61,212,74,.07); border:1px solid rgba(61,212,74,.2); color:#3dd44a;
       }
-      .ev-thread-status-banner.resolved {
-        background: rgba(61,212,74,.07);
-        border: 1px solid rgba(61,212,74,.2);
-        color: #3dd44a;
-      }
-      .ev-thread-status-banner.closed {
-        background: rgba(122,143,173,.07);
-        border: 1px solid rgba(122,143,173,.2);
-        color: #7a8fad;
-      }
-
-      /* Disabled input styling */
-      .ev-chat-input:disabled {
-        cursor: not-allowed;
-        background: #111820 !important;
-      }
-
-      /* New Ticket button inside closed/resolved banner */
       .ev-new-ticket-btn {
-        display: inline-block;
-        margin-top: 9px;
-        padding: 7px 18px;
-        background: linear-gradient(135deg, #3dd44a, #28a035);
-        border: none;
-        border-radius: 8px;
-        color: #000;
-        font-family: 'Montserrat', sans-serif;
-        font-size: 11.5px;
-        font-weight: 800;
-        letter-spacing: .4px;
-        cursor: pointer;
-        transition: opacity .2s, transform .15s;
+        display:inline-block; margin-top:9px; padding:7px 18px;
+        background:linear-gradient(135deg,#3dd44a,#28a035); border:none; border-radius:8px;
+        color:#000; font-family:'Montserrat',sans-serif; font-size:11.5px; font-weight:800;
+        letter-spacing:.4px; cursor:pointer; transition:opacity .2s, transform .15s;
       }
-      .ev-new-ticket-btn:hover {
-        opacity: .85;
-        transform: translateY(-1px);
-      }
-      .ev-new-ticket-btn:active {
-        transform: translateY(0);
-      }
+      .ev-new-ticket-btn:hover { opacity:.85; transform:translateY(-1px); }
+
+      /* Thread input row (reuse layout) */
+      .ev-chat-input:disabled { cursor:not-allowed; background:#111820 !important; }
     `;
     document.head.appendChild(style);
   })();
