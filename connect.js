@@ -1907,7 +1907,7 @@ function _cnNegotiationBannerHtml(ctx) {
   const changed = ctx.agreedAmount != null && ctx.bidAmount != null && Number(ctx.agreedAmount) !== Number(ctx.bidAmount);
   return `
     <div class="cn-neg-banner">
-      <div class="cn-neg-banner-who">🤝 In talks<span class="sub">Agree a price in chat, then fund when ready</span></div>
+      <div class="cn-neg-banner-who">🤝 In talks<span class="sub">Agree a price and deliverables.</span></div>
       <div style="text-align:right;">
         <div class="cn-neg-banner-amt">${fmtKES(ctx.fundAmount)}</div>
         ${changed ? `<div class="cn-neg-banner-orig">was ${fmtKES(ctx.bidAmount)}</div>` : ''}
