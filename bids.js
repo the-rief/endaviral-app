@@ -8,9 +8,9 @@
  *   ┌ rail ─────┐┌ list ────────────────────┐┌ detail ──────────────────┐
  *   │ New   412 ││ [ ] Kulture    KES 200    ││  Kulture — chat, offers, │
  *   │ Talks  14 ││ [x] Wolanda    KES 150    ││  Accept/Reject, Pay      │
- *   │ Hired   3 ││ [ ] Njeri M    KES 120     ││  (reuses connect.js's    │
- *   │ Closed760 ││ ...infinite scroll...     ││   existing chat/pay/fund │
- *   └───────────┘└───────────────────────────┘└  logic unchanged)────────┘
+ *   │ Hired   3 ││ [ ] Njeri M    KES 120     ││  Accept/Reject, Pay      │
+ *   │ Closed760 ││ ...infinite scroll...     ││                          │
+ *   └───────────┘└───────────────────────────┘└──────────────────────────┘
  *
  * DESIGN NOTE — what's real vs. cosmetic:
  *   The rail's 4 segments (New/In talks/Hired/Closed) map 1:1 onto the
@@ -34,27 +34,38 @@
  *   bulk endpoint gets added later — swap the loop in _bwBulkAction for a
  *   single call then.
  *
- * REUSE, NOT REBUILD:
- *   The chat thread, price negotiation, pay sheet, STK push + polling,
- *   and receipts are all left completely alone in connect.js — this file
- *   just physically relocates the existing #cnBidsModalBody element (and
- *   everything already wired to render into it) from the old cramped
- *   modal into this workspace's right-hand pane. _cnOpenBidChat,
- *   _cnRenderMsgInputRow, _cnLoadMessages, _cnOpenPaySheet,
- *   _cnSubmitFund, _cnPollFunding etc. are untouched.
+ * OWNERSHIP: this file is the ONLY home for bid management — the rail/
+ *   list/search/sort/filter/shortlist/bulk-accept-reject workspace above,
+ *   plus the bid chat thread, price negotiation-in-a-bid, the pay sheet,
+ *   and the STK push + funding poll it triggers (_cnOpenBidsInbox,
+ *   _cnCloseBidsModal, _cnOpenBidChat, _cnRenderBidChatActionCard,
+ *   _cnOpenPaySheet, _cnCancelPaySheet, _cnContinuePaySheet,
+ *   _cnFundFormHtml, _cnSubmitFund, _cnPollFunding, _cnStopFundPolling,
+ *   _cnPlatformProcessingFee). None of it is defined in connect.js and
+ *   nothing here is overridden by connect.js — this is simply the single
+ *   implementation. connect.js's own "N bids received" summary card (on
+ *   a business's still-open campaign, before the workspace is opened)
+ *   calls _bwFetchCampaignSummaryCounts(campaignId) — the one function
+ *   here meant to be called from outside — and keeps the result in its
+ *   own local variable; it never reads or writes this file's _bwCounts.
+ *   It reuses the existing #cnBidsModalBody markup already sitting in
+ *   index.html's ★MODALS block, reparented into this workspace's detail
+ *   pane.
  *
  * INTEGRATION: drop-in. No index.html edits needed.
  *   - Load AFTER connect.js:  <script src="bids.js"></script>
- *   - It overrides window._cnOpenBidsInbox / _cnCloseBidsModal /
- *     _cnCloseBidChat (later <script> tag wins) so every existing
- *     "Open Bids Inbox" button keeps working, just opens this instead.
- *   - It reuses the existing #cnBidsModalBody markup already sitting in
- *     index.html's ★MODALS block — nothing there needs to change either.
+ *   - _cnOpenBidsInbox(campaignId) is the entry point every "Open Bids
+ *     Inbox" button calls; _cnCloseBidsModal()/_cnCloseBidChat() are the
+ *     legacy names anything outside this file still calls to close it.
  *
- * Depends on (all globals already provided by connect.js / the app shell):
- *   esc(), fmtKES(), toast(), api(), currentUser,
- *   _cnCurrentCampaign, _cnBidsCampaignId, _cnBidsTotalLoaded,
- *   _cnOpenBidChat(), _cnOpenCampaign(), _cnOpenInviteModal(), _cnStatusPill()
+ * Depends on (globals owned by connect.js / the app shell — read, never
+ * redefined, here):
+ *   esc(), fmtKES(), toast(), api(), currentUser, token, API,
+ *   _cnCurrentCampaign, _cnActiveNegotiationApp, _cnMsgThreadCreatorId,
+ *   _cnFundPollTimer, _cnRenderMsgInputRow(), _cnLoadMessages(),
+ *   _cnCanNegotiateNow(), _cnNegotiationBannerHtml(), _cnDownloadReceipt(),
+ *   _cnOpenCampaign(), _cnOpenInviteModal(), _cnStatusPill(),
+ *   CONNECT_PLATFORMS
  * ════════════════════════════════════════════════════════════════════ */
 
 // ─── State ──────────────────────────────────────────────────────────────────
@@ -87,10 +98,8 @@ let _bwSearchDebounce = null;
 let _bwScrollGuard = false;
 let _bwOrigModalBodyParent = null; // where #cnBidsModalBody normally lives, so we can put it back
 
-// ─── Entry point — overrides connect.js's modal opener ─────────────────────
-// Every existing "Open Bids Inbox" button calls _cnOpenBidsInbox(campaignId);
-// redefining it here (this script loads after connect.js) redirects all of
-// them into the workspace without touching a single call site.
+// ─── Entry point ─────────────────────────────────────────────────────────
+// Every "Open Bids Inbox" button on the campaign card calls this directly.
 function _cnOpenBidsInbox(campaignId) {
   _bwOpen(campaignId);
 }
@@ -118,8 +127,6 @@ async function _bwOpen(campaignId) {
   _bwHasMore = false;
   _bwSelected.clear();
   _bwActiveAppId = null;
-
-  _cnBidsCampaignId = campaignId; // keep connect.js's own reference in sync — its chat/pay code reads this
 
   document.getElementById('cnCampaignModal')?.classList.remove('show');
   document.getElementById('bwOverlay').classList.add('show');
@@ -170,8 +177,9 @@ function _bwBuildShell() {
       <div class="bw-topbar">
         <div class="bw-topbar-left">
           <button class="bw-back" onclick="_bwClose()" aria-label="Back to campaign">←</button>
+          <div class="bw-topbar-icon">📥</div>
           <div>
-            <div class="bw-eyebrow">📥 Bids Workspace</div>
+            <div class="bw-eyebrow">Bids Workspace</div>
             <div class="bw-title" id="bwCampaignTitle">Bids</div>
           </div>
         </div>
@@ -189,7 +197,8 @@ function _bwBuildShell() {
         <div class="bw-detail" id="bwDetailPane">
           <div class="bw-detail-empty" id="bwDetailEmpty">
             <div class="bw-detail-empty-icon">💬</div>
-            <div>Select a bid to see the conversation</div>
+            <div class="bw-detail-empty-title">No bid selected</div>
+            <div class="bw-detail-empty-sub">Pick a bid from the list to see the conversation, negotiate a price, and fund the work.</div>
           </div>
         </div>
       </div>
@@ -229,26 +238,45 @@ function _bwToggleShortlist(appId, evt) {
 }
 
 // ─── Rail (segments + counts + local refinements) ──────────────────────────
+// _bwCounts is this workspace's own copy, refreshed on open/segment change.
+// connect.js shows its own separate "N bids received" summary card before
+// the workspace is even opened — it calls _bwFetchCampaignSummaryCounts()
+// below (the shared, stateless fetch) and keeps the result in its own
+// local variable, never touching _bwCounts itself.
+let _bwCounts = {};
+
 async function _bwRefreshCounts() {
-  try { _cnBidsCounts = await api(`/connect/campaigns/${_bwCampaignId}/applications/counts`); }
-  catch (_) { _cnBidsCounts = _cnBidsCounts || {}; }
+  _bwCounts = await _bwFetchCampaignSummaryCounts(_bwCampaignId);
+}
+
+// The one function in this file meant to be called from outside (by
+// connect.js) — a stateless counts fetch, so the raw API call has exactly
+// one owner even though two summary UIs (this rail, connect.js's campaign
+// card) both need the numbers.
+async function _bwFetchCampaignSummaryCounts(campaignId) {
+  try { return await api(`/connect/campaigns/${campaignId}/applications/counts`); }
+  catch (_) { return {}; }
 }
 
 function _bwRenderRail() {
   const rail = document.getElementById('bwRail');
   if (!rail) return;
-  const counts = _cnBidsCounts || {};
+  const counts = _bwCounts || {};
   const closedN = (counts.rejected || 0) + (counts.withdrawn || 0) + (counts.not_selected || 0);
   const countFor = (key) => key === 'closed' ? closedN : (counts[key] || 0);
+  const segIcon = { pending: '🆕', accepted: '🤝', hired: '✅', closed: '🗂️' };
 
   rail.innerHTML = `
     <div class="bw-rail-label">Segments</div>
     ${BW_SEGMENTS.map(s => `
       <button class="bw-rail-item ${_bwSegment === s.key ? 'active' : ''}" onclick="_bwSwitchSegment('${s.key}')">
-        <span>${esc(s.label)}</span><span class="bw-rail-count">${countFor(s.key)}</span>
+        <span class="bw-rail-item-icon">${segIcon[s.key] || ''}</span>
+        <span class="bw-rail-item-label">${esc(s.label)}</span>
+        <span class="bw-rail-count ${countFor(s.key) > 0 ? 'has-count' : ''}">${countFor(s.key)}</span>
       </button>
     `).join('')}
-    <div class="bw-rail-label" style="margin-top:18px;">Filter by</div>
+    <div class="bw-rail-divider"></div>
+    <div class="bw-rail-label">Filter by</div>
     <label class="bw-rail-check">
       <input type="checkbox" ${_bwShortlistOnly ? 'checked' : ''} onchange="_bwToggleShortlistOnly()">
       <span>★ Shortlisted only</span>
@@ -333,7 +361,10 @@ function _bwRenderToolbar() {
   const el = document.getElementById('bwToolbar');
   if (!el) return;
   el.innerHTML = `
-    <input type="text" class="bw-search" placeholder="Search by creator name…" value="${esc(_bwQuery)}" oninput="_bwOnSearchInput(this.value)">
+    <div class="bw-search-wrap">
+      <span class="bw-search-icon">🔍</span>
+      <input type="text" class="bw-search" placeholder="Search by creator name…" value="${esc(_bwQuery)}" oninput="_bwOnSearchInput(this.value)">
+    </div>
     <select class="bw-sort" onchange="_bwSetSort(this.value)">
       <option value="newest" ${_bwSort === 'newest' ? 'selected' : ''}>Newest first</option>
       <option value="price_low" ${_bwSort === 'price_low' ? 'selected' : ''}>Lowest price</option>
@@ -370,7 +401,6 @@ async function _bwFetchPage(reset) {
     _bwRows = reset ? data.applications : _bwRows.concat(data.applications);
     _bwOffset += data.applications.length;
     _bwHasMore = _bwOffset < data.total;
-    _cnBidsTotalLoaded = _bwRows; // keep connect.js's chat/pay lookups (by id) in sync
   } catch (e) {
     document.getElementById('bwList').innerHTML = `<div class="bw-empty">${esc(e.message || "Couldn't load bids.")}</div>`;
     _bwLoading = false;
@@ -408,12 +438,14 @@ function _bwRenderList() {
   const canBulk = _bwSegment === 'pending';
 
   if (!visible.length) {
+    const emptyIcon = { pending: '📭', accepted: '🤝', hired: '✅', closed: '🗂️' }[_bwSegment] || '📭';
     const base = _bwSegment === 'pending' ? 'No new bids yet — check back soon, or invite a creator directly.'
       : _bwSegment === 'accepted' ? 'No active negotiations right now.'
       : _bwSegment === 'hired' ? 'No one hired yet.'
       : 'Nothing here yet.';
-    const msg = (_bwShortlistOnly || _bwMaxPrice !== '') ? 'Nothing matches your current filters.' : base;
-    listEl.innerHTML = `<div class="bw-empty">${esc(msg)}</div>`;
+    const filtered = (_bwShortlistOnly || _bwMaxPrice !== '');
+    const msg = filtered ? 'Nothing matches your current filters.' : base;
+    listEl.innerHTML = `<div class="bw-empty"><div class="bw-empty-icon">${filtered ? '🔍' : emptyIcon}</div><div>${esc(msg)}</div></div>`;
   } else {
     listEl.innerHTML = visible.map(a => {
       const starred = _bwShortlist.has(a.id);
@@ -429,21 +461,21 @@ function _bwRenderList() {
             <div class="bw-row-name">
               <button class="bw-star ${starred ? 'on' : ''}" onclick="_bwToggleShortlist('${a.id}', event)" title="Shortlist">${starred ? '★' : '☆'}</button>
               ${esc(a.creator_display_name || 'Creator')}
-              ${a.creator_is_verified ? '<span title="Verified" style="color:#2196f3;">✔️</span>' : ''}
+              ${a.creator_is_verified ? '<span class="bw-verified" title="Verified">✔️</span>' : ''}
             </div>
             <div class="bw-row-amt">${fmtKES(a.fund_amount_kes)}</div>
           </div>
-          <div class="bw-row-sub">delivery in ${a.delivery_days} day${a.delivery_days == 1 ? '' : 's'}${followers ? ` · ${followers.toLocaleString()} followers` : ''} · ${_cnStatusPill(a.status)}</div>
+          <div class="bw-row-sub"><span>⏱ ${a.delivery_days} day${a.delivery_days == 1 ? '' : 's'}</span>${followers ? `<span class="bw-row-dot">·</span><span>👥 ${followers.toLocaleString()}</span>` : ''}<span class="bw-row-dot">·</span>${_cnStatusPill(a.status)}</div>
           ${a.proposal ? `<div class="bw-row-proposal">${esc(a.proposal)}</div>` : ''}
         </div>
         ${a.status === 'pending' ? `
         <div class="bw-row-actions">
-          <button class="cn-btn-sm cn-btn-accept" onclick="event.stopPropagation();_bwSingleAction('${a.id}','accept')">Accept</button>
-          <button class="cn-btn-sm cn-btn-reject" onclick="event.stopPropagation();_bwSingleAction('${a.id}','reject')">Reject</button>
+          <button class="cn-btn-sm cn-btn-accept" onclick="event.stopPropagation();_bwSingleAction('${a.id}','accept')">✓ Accept</button>
+          <button class="cn-btn-sm cn-btn-reject" onclick="event.stopPropagation();_bwSingleAction('${a.id}','reject')">✕ Reject</button>
         </div>` : ''}
       </div>
     `;
-    }).join('') + (_bwLoading ? `<div class="bw-empty">Loading more…</div>` : (!_bwHasMore ? `<div class="bw-list-end">— end of list —</div>` : ''));
+    }).join('') + (_bwLoading ? `<div class="bw-empty">Loading more…</div>` : (!_bwHasMore ? `<div class="bw-list-end"><span>— end of list —</span></div>` : ''));
   }
   _bwUpdateBulkbar();
 }
@@ -465,9 +497,10 @@ function _bwUpdateBulkbar() {
   if (_bwSegment !== 'pending' || _bwSelected.size === 0) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
   bar.innerHTML = `
+    <span class="bw-bulk-icon">☑️</span>
     <span class="bw-bulk-count">${_bwSelected.size} selected</span>
-    <button class="cn-btn-sm cn-btn-accept" onclick="_bwBulkAction('accept')">Accept</button>
-    <button class="cn-btn-sm cn-btn-reject" onclick="_bwBulkAction('reject')">Reject</button>
+    <button class="cn-btn-sm cn-btn-accept" onclick="_bwBulkAction('accept')">✓ Accept</button>
+    <button class="cn-btn-sm cn-btn-reject" onclick="_bwBulkAction('reject')">✕ Reject</button>
     <button class="bw-bulk-clear" onclick="_bwClearSelection()">Clear</button>
   `;
 }
@@ -504,9 +537,9 @@ async function _bwBulkAction(action) {
   await _bwFetchPage(true);
 }
 
-// ─── Detail pane — reparents connect.js's existing #cnBidsModalBody in,
-// then hands off entirely to connect.js's unchanged chat/negotiate/pay
-// logic (_cnOpenBidChat and everything it calls) ────────────────────────
+// ─── Detail pane — reparents the shared #cnBidsModalBody markup in, then
+// hands off to this file's own chat/negotiate/pay logic (_cnOpenBidChat
+// and everything it calls, further down) ────────────────────────────────
 function _bwShowDetailEmpty() {
   _bwActiveAppId = null;
   _bwPutBackModalBody();
@@ -536,13 +569,12 @@ function _bwOpenRow(appId) {
   _bwActiveAppId = appId;
   _bwRenderList(); // to highlight the active row
   document.querySelector('.bw-body')?.classList.add('bw-detail-open');
-  _cnOpenBidChat(_bwCampaignId, appId); // unchanged connect.js logic — chat, negotiate, pay, fund
+  _cnOpenBidChat(_bwCampaignId, appId); // below — chat, negotiate, pay, fund
 }
 
-// Back arrow inside the chat view — connect.js's own _cnCloseBidChat used to
-// step back to its OLD list-in-modal renderer. Overridden here so it steps
-// back to the workspace's empty state and refreshes the list instead of
-// clobbering #cnBidsModalBody with the old shell markup.
+// Back arrow inside the chat view — steps back to the workspace's empty
+// state and refreshes the list, since this bid may have moved segments
+// (e.g. price agreed, or funded) while its chat was open.
 function _cnCloseBidChat() {
   _cnActiveNegotiationApp = null;
   _cnMsgThreadCreatorId = null;
@@ -553,8 +585,8 @@ function _cnCloseBidChat() {
   }
 }
 
-// If anything (e.g. the post-funding success flow inside connect.js's
-// _cnPollFunding) navigates back to the campaign modal while the
+// If anything (e.g. this file's own post-funding success flow in
+// _cnPollFunding, below) navigates back to the campaign modal while the
 // workspace is open, close the workspace out of the way first so the two
 // full-screen surfaces never stack.
 (function _bwWrapOpenCampaign() {
@@ -578,79 +610,129 @@ function _bwInjectStyles() {
   style.id = 'bwStyles';
   style.textContent = `
     .bw-overlay{--cn-accent:#ff7043;--cn-accent-dark:#e0562b;--cn-accent-soft:rgba(255,112,67,.14);
-      display:none;position:fixed;inset:0;z-index:1000;background:var(--black);}
-    .bw-overlay.show{display:flex;}
-    .bw-shell{display:flex;flex-direction:column;width:100%;height:100%;}
+      display:none;position:fixed;inset:0;z-index:1000;background:var(--black);
+      font-family:'Montserrat',sans-serif;}
+    .bw-overlay.show{display:flex;animation:bwFadeIn .18s ease;}
+    @keyframes bwFadeIn{from{opacity:0;}to{opacity:1;}}
+    .bw-shell{display:flex;flex-direction:column;width:100%;height:100%;position:relative;}
+    .bw-shell::before{content:'';position:absolute;top:0;left:0;right:0;height:220px;pointer-events:none;
+      background:radial-gradient(ellipse 60% 100% at 15% 0%,rgba(255,112,67,.07) 0%,transparent 65%);z-index:0;}
 
-    .bw-topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;
-      padding:14px 22px;border-bottom:1px solid var(--border);background:var(--navy);flex-shrink:0;}
-    .bw-topbar-left{display:flex;align-items:center;gap:14px;}
+    /* ── Topbar ─────────────────────────────────────────────────────── */
+    .bw-topbar{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:14px 24px;border-bottom:1px solid var(--border);background:var(--navy);flex-shrink:0;
+      box-shadow:0 1px 0 rgba(255,255,255,.02) inset,0 8px 24px -18px rgba(0,0,0,.7);}
+    .bw-topbar-left{display:flex;align-items:center;gap:13px;}
     .bw-back{background:var(--card);border:1px solid var(--border);color:var(--muted);width:34px;height:34px;
-      border-radius:50%;cursor:pointer;font-size:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-    .bw-back:hover{color:var(--white);border-color:var(--cn-accent);}
-    .bw-eyebrow{font-size:10px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--cn-accent);}
-    .bw-title{font-size:15px;font-weight:800;color:var(--white);margin-top:1px;}
+      border-radius:50%;cursor:pointer;font-size:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+      transition:color .15s,border-color .15s,transform .15s;}
+    .bw-back:hover{color:var(--white);border-color:var(--cn-accent);transform:translateX(-1px);}
+    .bw-topbar-icon{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+      font-size:15px;background:var(--cn-accent-soft);border:1px solid rgba(255,112,67,.35);}
+    .bw-eyebrow{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--cn-accent);}
+    .bw-title{font-size:15.5px;font-weight:800;color:var(--white);margin-top:2px;letter-spacing:-.2px;}
 
-    .bw-body{flex:1;display:grid;grid-template-columns:200px minmax(320px,1fr) minmax(340px,42%);
+    .bw-body{position:relative;z-index:1;flex:1;display:grid;grid-template-columns:210px minmax(320px,1fr) minmax(340px,42%);
       min-height:0;overflow:hidden;}
 
-    .bw-rail{border-right:1px solid var(--border);background:var(--navy);padding:16px 12px;overflow-y:auto;}
+    /* ── Rail ───────────────────────────────────────────────────────── */
+    .bw-rail{border-right:1px solid var(--border);background:var(--navy);padding:18px 12px;overflow-y:auto;}
     .bw-rail-label{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);
-      padding:0 6px;margin-bottom:8px;}
-    .bw-rail-item{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;
-      background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:700;
-      padding:9px 10px;border-radius:9px;cursor:pointer;margin-bottom:2px;text-align:left;}
+      padding:0 8px;margin-bottom:8px;}
+    .bw-rail-divider{height:1px;background:var(--border);margin:14px 4px 16px;}
+    .bw-rail-item{width:100%;display:flex;align-items:center;gap:9px;
+      background:none;border:1px solid transparent;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:700;
+      padding:9px 10px;border-radius:10px;cursor:pointer;margin-bottom:3px;text-align:left;
+      transition:background .15s,color .15s,border-color .15s;position:relative;}
     .bw-rail-item:hover{background:var(--card);color:var(--white);}
-    .bw-rail-item.active{background:var(--cn-accent-soft);color:var(--white);}
-    .bw-rail-count{background:var(--card);color:var(--muted);border-radius:10px;padding:1px 8px;font-size:10.5px;}
+    .bw-rail-item.active{background:var(--cn-accent-soft);color:var(--white);border-color:rgba(255,112,67,.3);}
+    .bw-rail-item.active::before{content:'';position:absolute;left:-12px;top:50%;transform:translateY(-50%);
+      width:3px;height:16px;border-radius:3px;background:var(--cn-accent);}
+    .bw-rail-item-icon{font-size:13px;flex-shrink:0;opacity:.9;}
+    .bw-rail-item-label{flex:1;min-width:0;}
+    .bw-rail-count{background:var(--card);color:var(--muted);border-radius:10px;padding:1.5px 8px;font-size:10.5px;font-weight:800;}
+    .bw-rail-count.has-count{color:#c3d3e0;}
     .bw-rail-item.active .bw-rail-count{background:var(--cn-accent);color:#fff;}
     .bw-rail-check{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);
-      padding:4px 6px;cursor:pointer;margin-bottom:10px;}
-    .bw-rail-field{padding:0 6px;margin-bottom:10px;}
-    .bw-rail-field label{display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px;}
-    .bw-rail-field input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;
-      padding:7px 9px;color:var(--white);font-size:12px;font-family:inherit;}
-    .bw-rail-field input:focus{outline:none;border-color:var(--cn-accent);}
+      padding:4px 6px;cursor:pointer;margin-bottom:10px;transition:color .15s;}
+    .bw-rail-check:hover{color:#c3d3e0;}
+    .bw-rail-check input{accent-color:var(--cn-accent);}
+    .bw-rail-field{padding:0 6px;margin-bottom:12px;}
+    .bw-rail-field label{display:block;font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:5px;}
+    .bw-rail-field input,.bw-rail-field select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;
+      padding:7px 9px;color:var(--white);font-size:12px;font-family:inherit;transition:border-color .15s;}
+    .bw-rail-field input:focus,.bw-rail-field select:focus{outline:none;border-color:var(--cn-accent);}
     .bw-rail-hint{font-size:10.5px;color:var(--muted);line-height:1.5;padding:0 6px;}
 
-    .bw-list-col{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--border);}
+    /* ── List column ────────────────────────────────────────────────── */
+    .bw-list-col{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--border);background:rgba(255,255,255,.008);}
     .bw-list-toolbar{display:flex;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
-    .bw-search{flex:1;min-width:0;background:var(--navy);border:1px solid var(--border);border-radius:9px;
-      padding:9px 11px;color:var(--white);font-size:12.5px;font-family:inherit;}
+    .bw-search-wrap{position:relative;flex:1;min-width:0;}
+    .bw-search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:11.5px;opacity:.55;pointer-events:none;}
+    .bw-search{width:100%;background:var(--navy);border:1px solid var(--border);border-radius:9px;
+      padding:9px 11px 9px 30px;color:var(--white);font-size:12.5px;font-family:inherit;transition:border-color .15s;}
     .bw-search:focus{outline:none;border-color:var(--cn-accent);}
     .bw-sort{flex-shrink:0;background:var(--navy);border:1px solid var(--border);border-radius:9px;
-      padding:9px 8px;color:var(--white);font-size:12px;font-family:inherit;cursor:pointer;}
+      padding:9px 8px;color:var(--white);font-size:12px;font-family:inherit;cursor:pointer;transition:border-color .15s;}
+    .bw-sort:focus{outline:none;border-color:var(--cn-accent);}
 
-    .bw-bulkbar{align-items:center;gap:10px;padding:9px 14px;background:var(--cn-accent-soft);
-      border-bottom:1px solid var(--border);flex-shrink:0;}
-    .bw-bulk-count{font-size:12px;font-weight:800;color:var(--white);margin-right:4px;}
+    .bw-bulkbar{align-items:center;gap:10px;padding:10px 14px;background:var(--cn-accent-soft);
+      border-bottom:1px solid rgba(255,112,67,.3);flex-shrink:0;animation:bwFadeIn .12s ease;}
+    .bw-bulk-icon{font-size:13px;}
+    .bw-bulk-count{font-size:12px;font-weight:800;color:var(--white);margin-right:2px;}
     .bw-bulk-clear{background:none;border:none;color:var(--muted);font-size:11.5px;cursor:pointer;
-      margin-left:auto;text-decoration:underline;}
+      margin-left:auto;text-decoration:underline;transition:color .15s;}
+    .bw-bulk-clear:hover{color:var(--white);}
 
-    .bw-list{flex:1;overflow-y:auto;padding:10px;}
-    .bw-row{display:flex;gap:10px;align-items:flex-start;background:var(--navy);border:1px solid var(--border);
-      border-radius:12px;padding:12px 13px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
-    .bw-row:hover{border-color:var(--cn-accent);}
-    .bw-row.active{border-color:var(--cn-accent);background:var(--cn-accent-soft);}
-    .bw-row-check{margin-top:3px;flex-shrink:0;width:15px;height:15px;accent-color:var(--cn-accent);}
-    .bw-row-avatar{width:34px;height:34px;border-radius:50%;flex-shrink:0;object-fit:cover;margin-top:1px;}
+    .bw-list{flex:1;overflow-y:auto;padding:12px;}
+    .bw-row{display:flex;gap:11px;align-items:flex-start;background:var(--navy);border:1px solid var(--border);
+      border-radius:13px;padding:13px 14px;margin-bottom:9px;cursor:pointer;position:relative;
+      transition:border-color .15s,transform .12s,box-shadow .15s;}
+    .bw-row:hover{border-color:rgba(255,112,67,.45);transform:translateY(-1px);box-shadow:0 10px 22px -14px rgba(0,0,0,.7);}
+    .bw-row.active{border-color:var(--cn-accent);background:linear-gradient(180deg,var(--cn-accent-soft),var(--navy) 70%);
+      box-shadow:0 10px 24px -14px rgba(255,112,67,.25);}
+    .bw-row.active::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:3px;background:var(--cn-accent);}
+    .bw-row-check{margin-top:3px;flex-shrink:0;width:15px;height:15px;accent-color:var(--cn-accent);cursor:pointer;}
+    .bw-row-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;object-fit:cover;margin-top:1px;
+      border:1.5px solid var(--border);}
     .bw-row-avatar-fallback{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;
-      color:#fff;background:linear-gradient(135deg,var(--cn-accent),var(--cn-accent-dark));}
+      color:#fff;background:linear-gradient(135deg,var(--cn-accent),var(--cn-accent-dark));border-color:transparent;}
     .bw-row-main{flex:1;min-width:0;}
     .bw-row-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
-    .bw-row-name{font-size:12.5px;font-weight:800;color:var(--white);display:flex;align-items:center;gap:6px;}
-    .bw-star{background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:0;line-height:1;}
+    .bw-row-name{font-size:12.5px;font-weight:800;color:var(--white);display:flex;align-items:center;gap:6px;min-width:0;}
+    .bw-star{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:0;line-height:1;
+      flex-shrink:0;transition:color .15s,transform .1s;}
+    .bw-star:hover{color:var(--gold);transform:scale(1.12);}
     .bw-star.on{color:var(--gold);}
-    .bw-row-amt{font-family:'Montserrat',sans-serif;font-weight:800;color:var(--green);font-size:13.5px;white-space:nowrap;}
-    .bw-row-sub{font-size:11px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-    .bw-row-proposal{font-size:12px;color:var(--white);margin-top:8px;line-height:1.4;}
-    .bw-row-actions{display:flex;gap:8px;margin-top:10px;flex-shrink:0;}
-    .bw-empty{font-size:12px;color:var(--muted);text-align:center;padding:30px 10px;}
-    .bw-list-end{font-size:11px;color:var(--muted);text-align:center;padding:10px 0;}
+    .bw-verified{color:#2196f3;font-size:11px;flex-shrink:0;}
+    .bw-row-amt{font-family:'Montserrat',sans-serif;font-weight:800;color:var(--green);font-size:12.5px;white-space:nowrap;
+      background:rgba(61,212,74,.12);border:1px solid rgba(61,212,74,.25);border-radius:20px;padding:3px 10px;flex-shrink:0;}
+    .bw-row-sub{font-size:11px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+    .bw-row-dot{opacity:.5;}
+    .bw-row-proposal{font-size:12px;color:#c3d3e0;margin-top:9px;line-height:1.45;
+      border-left:2px solid var(--border);padding-left:9px;}
+    .bw-row-actions{display:flex;gap:8px;margin-top:11px;flex-shrink:0;}
+    .bw-row-actions .cn-btn-sm{padding:7px 14px;border-radius:20px;font-size:11px;letter-spacing:.2px;transition:filter .15s,transform .1s;}
+    .bw-row-actions .cn-btn-sm:hover{filter:brightness(1.08);transform:translateY(-1px);}
+    .bw-bulkbar .cn-btn-sm{padding:6px 14px;border-radius:20px;font-size:11px;flex:none;}
+    .bw-empty{font-size:12px;color:var(--muted);text-align:center;padding:44px 16px;}
+    .bw-empty-icon{font-size:26px;margin-bottom:10px;opacity:.55;}
+    .bw-list-end{font-size:10.5px;color:var(--muted);text-align:center;padding:14px 0 6px;letter-spacing:.3px;opacity:.7;}
 
+    /* ── Detail pane ────────────────────────────────────────────────── */
     .bw-detail{display:flex;flex-direction:column;min-height:0;overflow-y:auto;padding:18px 20px;}
-    .bw-detail-empty{margin:auto;text-align:center;color:var(--muted);font-size:12.5px;}
-    .bw-detail-empty-icon{font-size:30px;margin-bottom:10px;opacity:.6;}
+    .bw-detail-empty{margin:auto;text-align:center;color:var(--muted);font-size:12.5px;max-width:260px;}
+    .bw-detail-empty-icon{width:56px;height:56px;margin:0 auto 16px;border-radius:50%;font-size:22px;
+      display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--border);opacity:.9;}
+    .bw-detail-empty-title{font-size:13.5px;font-weight:800;color:var(--white);margin-bottom:6px;}
+    .bw-detail-empty-sub{font-size:11.5px;line-height:1.55;color:var(--muted);}
+
+    /* ── Scrollbars (dark theme) ────────────────────────────────────── */
+    .bw-rail::-webkit-scrollbar,.bw-list::-webkit-scrollbar,.bw-detail::-webkit-scrollbar{width:8px;}
+    .bw-rail::-webkit-scrollbar-track,.bw-list::-webkit-scrollbar-track,.bw-detail::-webkit-scrollbar-track{background:transparent;}
+    .bw-rail::-webkit-scrollbar-thumb,.bw-list::-webkit-scrollbar-thumb,.bw-detail::-webkit-scrollbar-thumb{
+      background:var(--border);border-radius:8px;}
+    .bw-rail::-webkit-scrollbar-thumb:hover,.bw-list::-webkit-scrollbar-thumb:hover,.bw-detail::-webkit-scrollbar-thumb:hover{background:#354867;}
 
     @media (max-width:980px){
       .bw-body{grid-template-columns:150px minmax(260px,1fr) 0;}
@@ -661,4 +743,234 @@ function _bwInjectStyles() {
     }
   `;
   document.head.appendChild(style);
+}
+// ─── Bid chat, negotiate price, pay sheet + fund (moved from connect.js —
+// this is the ONLY place any of this renders now) ──────────────────────
+function _cnOpenBidChat(campaignId, applicationId) {
+  const app = _bwRows.find(a => a.id === applicationId);
+  if (!app) return;
+  _cnActiveNegotiationApp = app;
+  _cnMsgThreadCreatorId = app.creator_user_id;
+
+  const detail = document.getElementById('cnBidsDetail');
+  if (!detail) return;
+  detail.innerHTML = `
+    <div class="cn-bidchat-head">
+      <button class="cn-bidchat-back" onclick="_cnCloseBidChat()" aria-label="Back to bids list">←</button>
+      <div>
+        <div class="cn-bidchat-title">${esc(app.creator_display_name || 'Creator')}</div>
+        <div class="cn-bidchat-sub">${_cnStatusPill(app.status)}</div>
+      </div>
+    </div>
+    <div class="cn-bidchat-scroll">
+      <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center;">Loading…</div></div>
+      <div id="cnMsgActionCard"></div>
+    </div>
+    <div id="cnMsgInputRow" style="padding:0 16px 14px;"></div>
+  `;
+  _cnRenderBidChatActionCard();
+  _cnRenderMsgInputRow(campaignId);
+  _cnLoadMessages(campaignId, app.creator_user_id);
+}
+
+function _cnRenderBidChatActionCard() {
+  const el = document.getElementById('cnMsgActionCard');
+  if (!el) return;
+  const c = _cnCurrentCampaign;
+  const app = _cnActiveNegotiationApp;
+  let html = '';
+  if (app && app.status === 'accepted' && c.status === 'published') {
+    html += `<div class="cn-deal-panel">`
+      + _cnNegotiationBannerHtml({ fundAmount: app.fund_amount_kes, bidAmount: app.bid_amount_kes, agreedAmount: app.agreed_amount_kes });
+    html += `<div style="padding:10px 12px;"><button class="cn-pay-btn" style="margin-bottom:0;" onclick="_cnOpenPaySheet('${c.id}','${app.id}')">💳 Pay</button></div>`;
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+}
+
+// Kept for backward compatibility with any external caller — new code
+// should call _cnRenderBidChatActionCard directly.
+function _cnRenderActionCard() { _cnRenderBidChatActionCard(); }
+
+function _cnPlatformProcessingFee(amountKes) {
+  if (amountKes < 1000) return 30;
+  if (amountKes < 5000) return 50;
+  if (amountKes < 10000) return 75;
+  return 100;
+}
+
+// ─── Pay Sheet — the ONLY place the KES breakdown is shown, and only after
+// the business taps Pay in a bid's chat. Two steps in the same modal:
+//  1. Confirm — the amount is shown read-only (it's whatever was agreed in
+//     chat; the client is never trusted to supply/override it — the server
+//     always funds coalesce(agreed_amount_kes, bid_amount_kes)), plus the
+//     M-Pesa number to pay from.
+//  2. Breakdown + Pay — budget/fee/total appears only once step 1 is
+//     confirmed, then the STK push goes out. ──────────────────────────────
+function _cnOpenPaySheet(campaignId, applicationId) {
+  const app = (_cnActiveNegotiationApp && _cnActiveNegotiationApp.id === applicationId)
+    ? _cnActiveNegotiationApp
+    : _bwRows.find(a => a.id === applicationId);
+  if (!app) return;
+  const body = document.getElementById('cnBidsDetail');
+  if (!body) return;
+  const phone = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
+  body.innerHTML = `
+    <div style="padding:16px 16px 0;">
+    <button class="cn-bidchat-back" style="margin-bottom:16px;display:flex;" onclick="_cnCancelPaySheet('${campaignId}','${applicationId}')" aria-label="Back to chat">←</button>
+    <div class="modal-title" style="margin-bottom:2px;">Confirm &amp; pay</div>
+    <div class="modal-sub" style="margin-bottom:4px;">${esc(app.creator_display_name || 'Creator')}</div>
+    <div class="cn-paysheet-amt">
+      <div class="cn-paysheet-amt-val">${fmtKES(app.fund_amount_kes)}</div>
+      <div class="cn-paysheet-amt-lbl">Final amount agreed in chat</div>
+    </div>
+    <div class="cn-paysheet-field">
+      <label>M-Pesa number to pay from</label>
+      <input type="text" id="cnPayPhone" class="cn-fund-phone" style="width:100%;" value="${esc(phone)}" placeholder="07XXXXXXXX">
+    </div>
+    <button class="btn-primary" style="width:100%;" onclick="_cnContinuePaySheet('${campaignId}','${applicationId}')">Continue</button>
+    </div>
+  `;
+}
+
+// Cancelling the pay sheet (before Continue) just steps back to that bid's
+// chat — never closes the whole modal, since the negotiation itself is
+// untouched.
+function _cnCancelPaySheet(campaignId, applicationId) {
+  _cnStopFundPolling();
+  _cnOpenBidChat(campaignId, applicationId);
+}
+
+function _cnContinuePaySheet(campaignId, applicationId) {
+  const phoneInput = document.getElementById('cnPayPhone');
+  const phone = phoneInput ? phoneInput.value.trim() : '';
+  if (!phone) { toast('Enter your M-Pesa number', 'error'); return; }
+  const app = (_cnActiveNegotiationApp && _cnActiveNegotiationApp.id === applicationId)
+    ? _cnActiveNegotiationApp
+    : _bwRows.find(a => a.id === applicationId);
+  if (!app) return;
+  const body = document.getElementById('cnBidsDetail');
+  if (body) body.innerHTML = `<div style="padding:16px 16px 0;">${_cnFundFormHtml(applicationId, app.fund_amount_kes, phone)}</div>`;
+}
+
+function _cnStopFundPolling() {
+  if (_cnFundPollTimer) { clearInterval(_cnFundPollTimer); _cnFundPollTimer = null; }
+}
+
+function _cnFundFormHtml(applicationId, fundAmount, phone) {
+  const fee = _cnPlatformProcessingFee(fundAmount);
+  const total = fundAmount + fee;
+  return `
+    <div class="cn-fund-breakdown" style="background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:2px 0;">
+        <span>Campaign Budget</span><span>${fmtKES(fundAmount)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:2px 0;">
+        <span>Platform Processing Fee</span><span>${fmtKES(fee)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:800;color:var(--white);padding:6px 0 4px;margin-top:4px;border-top:1px solid var(--border);">
+        <span>Total to Pay</span><span>${fmtKES(total)}</span>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.5;">
+        The Platform Processing Fee covers payment processing, M-Pesa transaction costs, fraud protection, and secure creator payouts.<br>
+        ✓ Secure payment &nbsp; ✓ Creator paid after approval &nbsp; ✓ M-Pesa receipt provided
+      </div>
+    </div>
+    <div id="cnFundForm" class="cn-fund-row">
+      <input type="text" id="cnFundPhone" class="cn-fund-phone" value="${esc(phone || '')}" placeholder="07XXXXXXXX">
+      <button class="cn-fund-btn" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}','${applicationId}')">📱 Pay ${fmtKES(total)}</button>
+    </div>
+    <div id="cnFundStatus" style="display:none;text-align:center;padding:16px 0 6px;">
+      <div style="font-size:30px;margin-bottom:6px;" id="cnFundIcon">📱</div>
+      <div style="font-weight:800;color:var(--white);margin-bottom:4px;font-size:13px;" id="cnFundTitle">WAITING FOR PAYMENT</div>
+      <div style="font-size:11.5px;color:var(--muted);" id="cnFundDesc">Enter your M-Pesa PIN to pay ${fmtKES(total)}.</div>
+    </div>
+  `;
+}
+
+async function _cnSubmitFund(campaignId, applicationId) {
+  const phone = document.getElementById('cnFundPhone').value.trim();
+  if (!phone) { toast('Enter your M-Pesa number', 'error'); return; }
+
+  const btn = document.getElementById('cnFundBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+
+  let data;
+  try {
+    data = await api(`/connect/campaigns/${campaignId}/fund`, {
+      method: 'POST',
+      body: JSON.stringify({ phone, application_id: applicationId }),
+    });
+  } catch (e) {
+    toast(e.message || 'Could not start payment', 'error');
+    btn.disabled = false; btn.textContent = '📱 Send STK Push';
+    return;
+  }
+
+  document.getElementById('cnFundForm').style.display = 'none';
+  document.getElementById('cnFundStatus').style.display = '';
+  _cnPollFunding(campaignId, data.checkoutRequestId);
+}
+
+function _cnPollFunding(campaignId, checkoutRequestId) {
+  let attempts = 0;
+  const maxAttempts = 30; // ~90s at 3s interval, mirrors Academy's purchase poller
+  if (_cnFundPollTimer) clearInterval(_cnFundPollTimer);
+
+  _cnFundPollTimer = setInterval(async () => {
+    attempts++;
+    let data;
+    try {
+      data = await api(`/connect/campaigns/${campaignId}/funding-status/${encodeURIComponent(checkoutRequestId)}`);
+    } catch (e) { return; }
+
+    const icon = document.getElementById('cnFundIcon');
+    const title = document.getElementById('cnFundTitle');
+    const desc = document.getElementById('cnFundDesc');
+
+    if (data.status === 'success') {
+      clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
+      if (icon) icon.textContent = '✅';
+      if (title) title.textContent = 'CAMPAIGN FUNDED';
+      if (desc) {
+        const feeNote = data.platform_processing_fee_kes
+          ? ` (incl. ${fmtKES(data.platform_processing_fee_kes)} processing fee)`
+          : '';
+        desc.textContent = `Paid ${fmtKES(data.total_charge_kes || data.amount_kes)}${feeNote}. The creator can now start work.`;
+      }
+      const statusEl = document.getElementById('cnFundStatus');
+      if (statusEl && !document.getElementById('cnFundReceiptBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'cnFundReceiptBtn';
+        btn.className = 'btn-secondary';
+        btn.style.cssText = 'margin-top:12px;';
+        btn.textContent = '⬇️ Download Receipt';
+        btn.onclick = () => _cnDownloadReceipt(campaignId, checkoutRequestId);
+        statusEl.appendChild(btn);
+      }
+      toast('🎉 Campaign funded!', 'success');
+      setTimeout(() => {
+        _cnStopFundPolling();
+        _cnActiveNegotiationApp = null;
+        _cnMsgThreadCreatorId = null;
+        _cnOpenCampaign(campaignId); // the wrapped _cnOpenCampaign below closes this workspace overlay
+      }, 2400);
+    } else if (data.status === 'failed' || data.status === 'cancelled') {
+      clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
+      if (icon) icon.textContent = '❌';
+      if (title) title.textContent = data.status === 'cancelled' ? 'PAYMENT CANCELLED' : 'PAYMENT FAILED';
+      if (desc) desc.textContent = 'You can try again.';
+      const retryForm = document.getElementById('cnFundForm');
+      const statusEl = document.getElementById('cnFundStatus');
+      setTimeout(() => {
+        if (retryForm) retryForm.style.display = '';
+        if (statusEl) statusEl.style.display = 'none';
+        const btn = document.getElementById('cnFundBtn');
+        if (btn) { btn.disabled = false; }
+      }, 1800);
+    } else if (attempts >= maxAttempts) {
+      clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
+      if (desc) desc.textContent = 'Still waiting — check your phone, or close and try again.';
+    }
+  }, 3000);
 }
