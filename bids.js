@@ -981,13 +981,13 @@ function _cnFundFormHtml(applicationId, fundAmount, phone) {
         <span>Campaign Budget</span><span>${fmtKES(fundAmount)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:2px 0;">
-        <span>Platform Processing Fee</span><span>${fmtKES(fee)}</span>
+        <span>Marketplace Processing Fee</span><span>${fmtKES(fee)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:800;color:var(--white);padding:6px 0 4px;margin-top:4px;border-top:1px solid var(--border);">
         <span>Total to Pay</span><span>${fmtKES(total)}</span>
       </div>
       <div style="font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.5;">
-        The Platform Processing Fee covers payment processing, M-Pesa transaction costs, fraud protection, and secure creator payouts.<br>
+        The Marketplace Processing Fee covers payment processing, M-Pesa transaction costs, fraud protection, and secure creator payouts.<br>
         ✓ Secure payment &nbsp; ✓ Creator paid after approval &nbsp; ✓ M-Pesa receipt provided
       </div>
     </div>

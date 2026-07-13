@@ -1247,7 +1247,7 @@ async function _cnRenderMyApplications(target) {
   target.innerHTML = apps.map(a => `
     <div class="cn-app-row" style="cursor:pointer;" onclick="_cnOpenCampaign('${a.campaign_id}')">
       <div class="cn-app-top">
-        <span class="cn-app-bid">${fmtKES(a.bid_amount_kes)}</span>
+        <span class="cn-app-bid">${fmtKES(a.fund_amount_kes)}</span>
         ${_cnStatusPill(a.status)}
       </div>
       <div style="font-size:11.5px;color:var(--muted);">Delivery in ${a.delivery_days} day${a.delivery_days == 1 ? '' : 's'} · Applied ${a.created_at ? new Date(a.created_at).toLocaleDateString() : ''}</div>
@@ -2009,59 +2009,10 @@ async function _cnAcceptOffer(campaignId) {
   }
 }
 
-// ─── Payment receipts (business) ───────────────────────────────────────────
-async function _cnLoadReceipts(campaignId) {
-  const el = document.getElementById('cnReceiptsArea');
-  if (!el) return;
-  let rows;
-  try {
-    rows = await api(`/connect/campaigns/${campaignId}/fundings`);
-  } catch (e) {
-    el.innerHTML = `<div style="color:var(--muted);font-size:12px;">Could not load payment history.</div>`;
-    return;
-  }
-  const successful = (rows || []).filter(r => r.status === 'success');
-  if (!successful.length) {
-    el.innerHTML = `<div style="color:var(--muted);font-size:12px;">No completed payments yet.</div>`;
-    return;
-  }
-  el.innerHTML = successful.map(r => `
-    <div style="display:flex;justify-content:space-between;align-items:center;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
-      <div>
-        <div style="font-size:12.5px;font-weight:700;color:var(--white);">${fmtKES(r.total_charge_kes)} paid</div>
-        <div style="font-size:11px;color:var(--muted);">${r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}${r.mpesa_receipt ? ' · ' + esc(r.mpesa_receipt) : ''}</div>
-      </div>
-      <button class="btn-secondary" style="padding:6px 12px;font-size:11.5px;" onclick="_cnDownloadReceipt('${campaignId}','${r.checkout_request_id}')">⬇️ Receipt</button>
-    </div>
-  `).join('');
-}
-
-async function _cnDownloadReceipt(campaignId, checkoutRequestId) {
-  const headers = {};
-  if (typeof token !== 'undefined' && token) headers['Authorization'] = 'Bearer ' + token;
-  let resp;
-  try {
-    resp = await fetch(`${API}/connect/campaigns/${campaignId}/funding/${encodeURIComponent(checkoutRequestId)}/receipt`, { headers });
-  } catch (e) {
-    toast('Cannot reach the server. Please try again.', 'error');
-    return;
-  }
-  if (!resp.ok) {
-    let msg = 'Could not download receipt';
-    try { const data = await resp.json(); msg = data.detail || msg; } catch (_) {}
-    toast(msg, 'error');
-    return;
-  }
-  const blob = await resp.blob();
-  const disposition = resp.headers.get('Content-Disposition') || '';
-  const match = disposition.match(/filename="?([^"]+)"?/);
-  const filename = match ? match[1] : 'EndaViral-Receipt.pdf';
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-}
+// ─── Payment receipts (business + creator) ─────────────────────────────────
+// Moved to receipt.js — see _cnLoadReceipts / _cnDownloadReceipt (business)
+// and _cnDownloadPayoutReceipt (creator). Load receipt.js after this file
+// and before either function is called (index.html already does this).
 
 // ─── Submit deliverable (creator) ─────────────────────────────────────────────
 function _cnDeliverableFormHtml() {
@@ -2282,16 +2233,21 @@ async function _cnLoadPayoutArea(c) {
 
   const payout = c.creator_payout_kes;
   const fee = c.platform_fee_kes;
+  const budget = (payout != null && fee != null) ? (Number(payout) + Number(fee)) : null;
   const breakdown = (payout != null && fee != null) ? `
-    <div class="cn-row"><span class="k">Amount Paid to You</span><span class="v" style="color:var(--green);">${fmtKES(payout)}</span></div>
-    <div class="cn-row"><span class="k">EndaViral Service Fee (15%)</span><span class="v">${fmtKES(fee)}</span></div>
+    <div class="cn-row"><span class="k">Campaign Budget</span><span class="v">${fmtKES(budget)}</span></div>
+    <div class="cn-row"><span class="k">Marketplace Success Fee (15%)</span><span class="v">${fmtKES(fee)}</span></div>
+    <div class="cn-row"><span class="k">Amount Released</span><span class="v" style="color:var(--green);">${fmtKES(payout)}</span></div>
   ` : '';
 
   if (existing && existing.status !== 'rejected') {
     const statusLabel = existing.status === 'paid'
       ? `✅ Paid${existing.mpesa_receipt ? ` — M-Pesa ref ${esc(existing.mpesa_receipt)}` : ''}`
       : '⏳ Pending — EndaViral is sending your money via M-Pesa';
-    el.innerHTML = `${breakdown}<div style="font-size:12px;color:var(--muted);margin-top:8px;">Payout ticket: ${statusLabel}</div>`;
+    const receiptBtn = existing.status === 'paid'
+      ? `<button class="btn-secondary" style="padding:6px 12px;font-size:11.5px;margin-top:8px;" onclick="_cnDownloadPayoutReceipt('${c.id}')">⬇️ Receipt</button>`
+      : '';
+    el.innerHTML = `${breakdown}<div style="font-size:12px;color:var(--muted);margin-top:8px;">Payout ticket: ${statusLabel}</div>${receiptBtn}`;
     return;
   }
 
