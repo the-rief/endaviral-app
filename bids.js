@@ -967,10 +967,10 @@ async function _cnSubmitFund(campaignId, applicationId) {
 
   document.getElementById('cnFundForm').style.display = 'none';
   document.getElementById('cnFundStatus').style.display = '';
-  _cnPollFunding(campaignId, data.checkoutRequestId);
+  _cnPollFunding(campaignId, applicationId, data.checkoutRequestId);
 }
 
-function _cnPollFunding(campaignId, checkoutRequestId) {
+function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
   let attempts = 0;
   const maxAttempts = 30; // ~90s at 3s interval, mirrors Academy's purchase poller
   if (_cnFundPollTimer) clearInterval(_cnFundPollTimer);
