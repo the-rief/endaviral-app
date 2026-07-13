@@ -980,7 +980,11 @@ function _cnPollFunding(campaignId, checkoutRequestId) {
     let data;
     try {
       data = await api(`/connect/campaigns/${campaignId}/funding-status/${encodeURIComponent(checkoutRequestId)}`);
-    } catch (e) { return; }
+      console.log('[EndaViral Connect] funding-status poll', attempts, data);
+    } catch (e) {
+      console.error('[EndaViral Connect] funding-status poll failed', attempts, e);
+      return;
+    }
 
     const icon = document.getElementById('cnFundIcon');
     const title = document.getElementById('cnFundTitle');
@@ -1017,12 +1021,17 @@ function _cnPollFunding(campaignId, checkoutRequestId) {
         statusEl.appendChild(btn);
       }
       toast('🎉 Campaign funded!', 'success');
-      setTimeout(() => {
+        setTimeout(() => {
         _cnStopFundPolling();
-        _cnActiveNegotiationApp = null;
-        _cnMsgThreadCreatorId = null;
-        _cnOpenCampaign(campaignId); // the wrapped _cnOpenCampaign below closes this workspace overlay
-      }, 2400);
+        // Refetch the campaign so _cnCurrentCampaign.status reflects FUNDED,
+        // then reopen this same bid's chat instead of leaving the workspace.
+        api(`/connect/campaigns/${campaignId}`).then(updatedCampaign => {
+            _cnCurrentCampaign = updatedCampaign;
+            _cnOpenBidChat(campaignId, applicationId); // back to the chat, not _cnOpenCampaign
+        });
+        }, 2400);
+
+
     } else if (data.status === 'failed' || data.status === 'cancelled') {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
       if (icon) icon.textContent = '❌';
