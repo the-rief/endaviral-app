@@ -1784,13 +1784,38 @@ function _cnRenderCampaignModal() {
   _cnMsgThreadCreatorId = null;
   if (showsSingleThreadHere) {
     _cnMsgThreadCreatorId = isBusinessOwner ? c.creator_user_id : currentUser.id;
-    const chatHeadName = isBusinessOwner ? esc(c.creator_display_name || 'Creator') : 'Business';
-    html += `<div class="cn-chat-card">
-      <div class="cn-chat-card-head">💬 Conversation with ${chatHeadName}</div>
-      <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center;">Loading…</div></div>
-      <div id="cnMsgActionCard">${actionHtml}</div>
-      <div id="cnMsgInputRow"></div>
-    </div>`;
+    if (isBusinessOwner) {
+      const chatHeadName = esc(c.creator_display_name || 'Creator');
+      html += `<div class="cn-chat-card">
+        <div class="cn-chat-card-head">💬 Conversation with ${chatHeadName}</div>
+        <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center;">Loading…</div></div>
+        <div id="cnMsgActionCard">${actionHtml}</div>
+        <div id="cnMsgInputRow"></div>
+      </div>`;
+    } else {
+      // A creator's own thread with the business — styled to match the
+      // business's Bids Workspace bid-chat (cn-bidchat-head/-title/-sub)
+      // instead of the older plain "Conversation with X" bar, so both
+      // sides of a negotiation share one look for a bid's chat. No back
+      // button here (unlike the business's version): a creator only ever
+      // has this one thread, there's no list to step back to.
+      const statusSub = c.my_application_status
+        ? _cnStatusPill(c.my_application_status)
+        : `<span style="color:var(--muted);">Ask about this campaign before you apply</span>`;
+      html += `<div class="cn-chat-card" style="padding:0;">
+        <div class="cn-bidchat-head">
+          <div>
+            <div class="cn-bidchat-title">Business</div>
+            <div class="cn-bidchat-sub">${statusSub}</div>
+          </div>
+        </div>
+        <div style="padding:14px 16px 0;">
+          <div class="cn-msgs" id="cnMsgList"><div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center;">Loading…</div></div>
+          <div id="cnMsgActionCard">${actionHtml}</div>
+        </div>
+        <div id="cnMsgInputRow" style="padding:0 16px 14px;"></div>
+      </div>`;
+    }
   } else if (actionHtml) {
     // No chat access for this viewer (shouldn't normally happen for the
     // two parties) — fall back to showing the action card standalone so
