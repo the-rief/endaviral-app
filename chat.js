@@ -164,7 +164,12 @@
       );
       state.threads.forEach(t => { lastSeenCount[t.id] = t.message_count || 0; });
       _renderHome();
-      evStartPolling();
+      // No interval here anymore — this used to call evStartPolling() and
+      // run a 15s /support/threads poll for the entire logged-in session,
+      // duplicating admin.js's own 30s background watcher hitting the
+      // exact same endpoint. Both are now driven by the SSE push
+      // (ticket_reply / new_ticket_message) instead — see
+      // evRefreshThreads below, called from auth.js's stream handler.
     } catch (_) { _renderHome(); }
   }
 
@@ -320,15 +325,17 @@
      first message fast and hands off. */
 
   /* ═══════════════════════════════════════════════════════════════
-     POLLING — every 15s while widget is open
+     REFRESH — was a 15s setInterval ("every 15s while widget is
+     open" per the old comment — but evBootWidget actually started it
+     at LOGIN, not at widget-open, so this ran the entire session).
+     Now it's called once on boot and again only when auth.js's SSE
+     handler tells it a ticket-relevant event arrived — same data,
+     zero idle polling in between.
   ═══════════════════════════════════════════════════════════════ */
-  function evStartPolling() {
-    if (pollHandle || !token) return;
-    pollHandle = setInterval(_pollThreads, 15000);
-  }
-  function evStopPolling() {
-    if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
-  }
+  function evStartPolling() { /* no-op — kept so any stray old call site doesn't throw */ }
+  function evStopPolling() { /* no-op, see above */ }
+
+  window.evRefreshThreads = _pollThreads;
 
   async function _pollThreads() {
     if (!token) return;
@@ -497,7 +504,7 @@
         _showView('home');
         evBootWidget();
       } else {
-        evStartPolling();
+        _pollThreads(); // one-shot catch-up on reopen, no interval started
       }
     } else {
       win.classList.remove('open');

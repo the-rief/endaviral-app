@@ -134,9 +134,55 @@ async function doRegister() {
   }
 }
 
+// ── Real-time push (SSE) ──────────────────────────────────────────────────────
+// Replaces the two poll loops this used to rely on: admin.js's 30s
+// _bgTicketWatchTick and connect.js's 60s _cnStartUnreadPolling. Both of
+// those "do the actual work" functions still exist and still work exactly
+// as before — they're just triggered by a push event now instead of a
+// timer, so the moment a message arrives is the moment the UI updates,
+// with no wasted requests in between.
+let _evtSource = null;
+let _evtReconnectTimer = null;
+
+async function startEventStream() {
+  if (!token) return;
+  try {
+    const { ticket } = await api('/connect/events/ticket', { method: 'POST' });
+    _evtSource = new EventSource(`${API_BASE}/connect/events?ticket=${ticket}`);
+    _evtSource.onmessage = (e) => {
+      let evt;
+      try { evt = JSON.parse(e.data); } catch(_) { return; }
+      if (evt.type === 'new_message') {
+        Store.invalidate('notifications');
+        if (typeof _cnPollUnread === 'function') _cnPollUnread();
+      } else if (evt.type === 'new_ticket_message' || evt.type === 'ticket_reply') {
+        if (typeof _bgTicketWatchTick === 'function') _bgTicketWatchTick();
+        if (typeof evRefreshThreads === 'function') evRefreshThreads();
+      }
+    };
+    _evtSource.onerror = () => {
+      // A redeemed ticket is one-time-use, so EventSource's own native
+      // retry (which reopens the same URL) won't work a second time —
+      // close it and re-mint a fresh ticket instead.
+      if (_evtSource) { _evtSource.close(); _evtSource = null; }
+      clearTimeout(_evtReconnectTimer);
+      if (token) _evtReconnectTimer = setTimeout(startEventStream, 3000);
+    };
+  } catch(e) {
+    clearTimeout(_evtReconnectTimer);
+    if (token) _evtReconnectTimer = setTimeout(startEventStream, 5000);
+  }
+}
+
+function stopEventStream() {
+  clearTimeout(_evtReconnectTimer);
+  if (_evtSource) { _evtSource.close(); _evtSource = null; }
+}
+
 function doLogout() {
   idleStop();
   _stopBgTicketWatch();
+  stopEventStream();
   token = null; currentUser = null;
   localStorage.removeItem('ev_token');
   localStorage.removeItem('ev_user');
@@ -183,7 +229,12 @@ function initApp() {
   // the network fetch if the catalog is already warm. Safe to call here.
   loadServices();
   idleStart();
-  _startBgTicketWatch();
+  // One immediate catch-up read on login (covers anything that arrived
+  // while the user was logged out), then the SSE stream takes over —
+  // no more 30s/60s polling after this.
+  if (typeof _bgTicketWatchTick === 'function') _bgTicketWatchTick();
+  if (typeof _cnPollUnread === 'function') _cnPollUnread();
+  startEventStream();
   if (typeof _updateAffiliateBadge === 'function') _updateAffiliateBadge();
   // Boot chat widget now that token is available — loads existing support threads
   if (typeof evBootWidget === 'function') evBootWidget();
