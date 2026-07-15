@@ -2860,7 +2860,53 @@ let paymentPollTimer = null;
 let pendingOrderId = null;
 let pendingCheckoutId = null;
 
+// ── Lightweight GET cache + in-flight dedupe ────────────────────────────────
+// api() previously hit the backend (and Neon) on every single call, even
+// when the exact same GET fired twice in quick succession — e.g. a tab
+// switch that triggers two components to independently ask for the same
+// list, or a poll tick landing while the previous identical call is still
+// in flight. This doesn't change what data looks like to callers; it just
+// collapses redundant round-trips within a short window.
+//   - IN-FLIGHT DEDUPE: if the same GET is already pending, reuse that
+//     promise instead of firing a second request.
+//   - SHORT TTL CACHE: once a GET resolves, serve identical GETs from that
+//     cached response for a few seconds instead of re-hitting the DB.
+// Any non-GET call (POST/PUT/PATCH/DELETE) always bypasses this and hits
+// the network directly, and also clears the GET cache — mutations should
+// never be served stale data afterward.
+const _apiGetCache = new Map();   // path -> { data, ts }
+const _apiInFlight  = new Map();  // path -> Promise
+const API_CACHE_TTL = 8000;       // 8s — long enough to absorb duplicate/poll overlap, short enough to stay fresh
+
 async function api(path, opts = {}) {
+  const method = (opts.method || 'GET').toUpperCase();
+
+  if (method !== 'GET') {
+    _apiGetCache.clear(); // don't let a stale GET linger past a mutation
+    return _apiRequest(path, opts);
+  }
+
+  const cached = _apiGetCache.get(path);
+  if (cached && (Date.now() - cached.ts) < API_CACHE_TTL) {
+    return cached.data;
+  }
+
+  if (_apiInFlight.has(path)) {
+    return _apiInFlight.get(path);
+  }
+
+  const p = _apiRequest(path, opts)
+    .then(data => {
+      _apiGetCache.set(path, { data, ts: Date.now() });
+      return data;
+    })
+    .finally(() => _apiInFlight.delete(path));
+
+  _apiInFlight.set(path, p);
+  return p;
+}
+
+async function _apiRequest(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = 'Bearer ' + token;
   let r;

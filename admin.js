@@ -1638,10 +1638,16 @@ function closeTicketThread() {
   loadTickets();
 }
 function _startTicketPoll() {
+  // Compute-hour fix: this was 6s regardless of whether the browser tab
+  // was even focused — an admin with a ticket thread open in the
+  // background kept the DB awake 10x/min for no reason. 15s is still
+  // plenty responsive for a live support conversation, and skipping ticks
+  // while the tab is hidden removes most of the background-tab cost.
   _stopTicketPoll();
   _ticketPollTimer = setInterval(async () => {
+    if (document.hidden) return;
     if (_activeTicketId) await _loadTicketThread(_activeTicketId);
-  }, 6000);
+  }, 15000);
 }
 function _stopTicketPoll() {
   if (_ticketPollTimer) { clearInterval(_ticketPollTimer); _ticketPollTimer = null; }

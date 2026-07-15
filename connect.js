@@ -64,6 +64,7 @@ let _cnLandingPicked = false;     // true once a first-time visitor has picked a
 let _cnUnreadByCampaign = {};     // campaign_id -> unread_count, refreshed by _cnPollUnread
 let _cnLastUnreadSnapshot = null; // JSON snapshot of the last poll's unread data — lets _cnPollUnread skip re-rendering when nothing actually changed
 let _cnUnreadPollTimer = null;
+let _cnVisibilityListener = null; // handle to the visibilitychange listener, so we can remove it when polling stops
 let _cnTab  = 'discover';         // active sub-tab
 let _cnCampaigns = [];            // last-loaded list for the active tab
 let _cnCurrentCampaign = null;    // full detail of the open modal's campaign
@@ -857,6 +858,16 @@ async function initConnectPage() {
 // every campaign. Self-clearing: the interval checks whether the Connect
 // section is still on-screen and stops itself once the user navigates away,
 // same pattern as the admin panel's balance-refresh timer in index.html.
+//
+// Compute-hour fix: this was the single biggest driver of Neon staying
+// awake — it ran every 25s with no regard for whether the tab was even
+// visible, so a creator/business who left Connect open in a background tab
+// kept the DB alive indefinitely. Two changes:
+//   1. 25s -> 60s (roughly halves the request volume on its own)
+//   2. Skip the tick entirely (and don't count it against the DB) when the
+//      tab isn't visible, per the Page Visibility API. Polling resumes
+//      immediately on refocus via the visibilitychange listener below, so
+//      badges still feel fresh the moment someone comes back to the tab.
 function _cnStartUnreadPolling() {
   if (_cnUnreadPollTimer) clearInterval(_cnUnreadPollTimer);
   _cnUnreadPollTimer = setInterval(() => {
@@ -864,10 +875,27 @@ function _cnStartUnreadPolling() {
     if (!sec || !sec.classList.contains('active')) {
       clearInterval(_cnUnreadPollTimer);
       _cnUnreadPollTimer = null;
+      if (_cnVisibilityListener) {
+        document.removeEventListener('visibilitychange', _cnVisibilityListener);
+        _cnVisibilityListener = null;
+      }
       return;
     }
+    if (document.hidden) return; // tab backgrounded — skip this tick, don't wake the DB
     _cnPollUnread();
-  }, 25000);
+  }, 60000);
+
+  // Catch up immediately when the user comes back to a backgrounded tab,
+  // instead of waiting up to 60s for the next tick.
+  if (!_cnVisibilityListener) {
+    _cnVisibilityListener = () => {
+      const sec = document.getElementById('sec-connect');
+      if (!document.hidden && sec && sec.classList.contains('active')) {
+        _cnPollUnread();
+      }
+    };
+    document.addEventListener('visibilitychange', _cnVisibilityListener);
+  }
 }
 
 async function _cnPollUnread() {
