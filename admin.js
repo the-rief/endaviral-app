@@ -1619,6 +1619,7 @@ async function submitNewTicket() {
     });
     closeNewTicketModal();
     toast('Ticket opened! Our team will respond shortly.', 'success');
+    window._bgAllThreadsClosed = false; // new open thread exists — resume background watching for admin replies
     await loadTickets();
     openTicketThread(data.id);
   } catch(e) {
@@ -1658,17 +1659,30 @@ function _getTicketUser() {
 
 /* ══════════════════════════════════════════════════════════════════
    BACKGROUND TICKET WATCHER
-   Polls all customer threads every 8 s while logged in.
-   When a new admin (non-bot) reply arrives, shows the dashboard
-   popup so customers don't miss messages even if they never open
-   the tickets section or chat widget.
+   Polls all customer threads every 30s while logged in, so customers
+   see a new admin reply even if they never open the tickets section.
+
+   COMPUTE-HOUR FIX (this was the biggest single driver we found):
+   The short-circuit below was meant to stop polling once nothing's
+   open, but its condition was `threads.length > 0 && every(...)`.
+   For a user with ZERO tickets — the common case, most users never
+   open one — `threads.length > 0` is false, so _bgAllThreadsClosed
+   was always false, so the skip check never fired. Every logged-in
+   user, with or without a single ticket, polled /support/threads
+   every 30s for their entire session, forever, with no way to stop
+   short of logging out. That's almost certainly what was keeping
+   Neon awake around the clock regardless of the other fixes.
+   Two changes: (1) treat zero threads as "quiet" too, so a user who
+   never opens a ticket fetches once and then goes silent, and
+   (2) skip ticks while the tab is hidden, same pattern as the other
+   pollers.
 ══════════════════════════════════════════════════════════════════ */
 let _bgTicketWatchTimer = null;
 const _bgTicketSeenCount = {}; // { threadId: msgCount }
 
 function _startBgTicketWatch() {
   if (_bgTicketWatchTimer) return;
-  _bgTicketWatchTimer = setInterval(_bgTicketWatchTick, 30000); // 30s -- was 8s (egress)
+  _bgTicketWatchTimer = setInterval(_bgTicketWatchTick, 30000);
 }
 function _stopBgTicketWatch() {
   if (_bgTicketWatchTimer) { clearInterval(_bgTicketWatchTimer); _bgTicketWatchTimer = null; }
@@ -1676,15 +1690,16 @@ function _stopBgTicketWatch() {
 
 async function _bgTicketWatchTick() {
   if (!token) return;
-  // Short-circuit: if we already know all tracked threads are closed/resolved,
-  // skip the network call entirely until next interval.
-  const knownIds = Object.keys(_bgTicketSeenCount);
-  if (knownIds.length > 0 && window._bgAllThreadsClosed) return;
+  if (document.hidden) return; // tab backgrounded — don't wake the DB for a popup nobody will see yet
+  // Short-circuit: skip the network call entirely once we know there's
+  // nothing to watch — either every known thread is resolved/closed, OR
+  // the user has no threads at all (the common case).
+  if (window._bgAllThreadsClosed) return;
   try {
     const data = await api('/support/threads');
     const threads = data.threads || data || [];
-    // Update closed-threads flag so we can skip future polls when all quiet
-    window._bgAllThreadsClosed = threads.length > 0 &&
+    // Quiet if there are no threads, OR every one we have is resolved/closed.
+    window._bgAllThreadsClosed = threads.length === 0 ||
       threads.every(t => ['resolved','closed'].includes(t.status));
     for (const t of threads) {
       if (['resolved','closed'].includes(t.status)) continue;

@@ -1848,7 +1848,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="page-section" id="sec-orders">
         <div class="sec-hd">
           <div><div class="sec-title">MY ORDERS</div><div class="sec-sub">Track your order history and status</div></div>
-          <button class="btn-secondary" onclick="loadOrders()">↻ Refresh</button>
+          <button class="btn-secondary" onclick="loadOrders(true)">↻ Refresh</button>
         </div>
         <div class="filter-row">
           <button class="cat-btn active" onclick="filterOrders('all',this)">All</button>
@@ -2709,6 +2709,7 @@ tbody td{padding:13px 16px;font-size:14px;}
   </div>
 </div>
 
+<script src="store.js"></script>
 <script>
 const API = 'https://api-endaviral.onrender.com/api/v1';
 
@@ -3146,10 +3147,15 @@ function closeSidebar() {
 
 async function loadDashboard() {
   try {
-    const data = await api('/orders?limit=5');
-    const orders = data.orders || data.data || data || [];
+    // Own Store slice, sized for what the dashboard actually shows (5 most
+    // recent). Deliberately NOT shared with loadOrders()'s 'orders' slice —
+    // dashboard-only visits are the dominant pattern, so a small dedicated
+    // fetch beats a shared-but-oversized one. This does mean a dashboard→
+    // orders visit re-fetches once more than the fully-shared version would;
+    // that's the accepted tradeoff for keeping the common case light.
+    const orders = await Store.ensure('dashboardOrders', () => api('/orders?limit=5').then(d => d.orders || d.data || d || []));
     allOrders = orders;
-    renderDashOrders(orders.slice(0,5));
+    renderDashOrders(orders.slice(0, 5));
     const total = orders.length;
     const active = orders.filter(o => ['pending','processing','inprogress'].includes((o.status||'').toLowerCase())).length;
     const spent = orders.reduce((s,o) => s + parseFloat(o.charge||o.cost||o.amount||0), 0);
@@ -3426,6 +3432,7 @@ async function _autoRaisePaymentTicket({ phone, link, qty, orderId, checkoutId, 
       body: JSON.stringify({ issue_types: ['wrong_order'], first_message: firstMessage })
     });
     if (res.ok) {
+      window._bgAllThreadsClosed = false; // new open thread exists — resume background watching
       console.log('[EndaViral] Auto support ticket raised for payment failure');
     }
   } catch (err) {
@@ -3495,6 +3502,8 @@ function startPaymentPoll() {
         } catch(_) {
           showOrderResult(true, 'Payment confirmed! Order is being processed. Check My Orders.');
         }
+        Store.invalidate('orders');
+        Store.invalidate('dashboardOrders'); // new order exists now — don't serve the pre-order cached dashboard list either
         loadDashboard();
       } else if (status.status === 'failed' || status.status === 'cancelled') {
         stopPaymentPoll();
@@ -3547,11 +3556,13 @@ function showOrderResult(success, msg) {
 }
 
 let orderFilter = 'all';
-async function loadOrders() {
+async function loadOrders(force = false) {
   document.getElementById('ordersTable').innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading orders…</span></div>';
   try {
-    const data = await api('/orders?limit=50');
-    allOrders = data.orders || data.data || data || [];
+    // Own Store slice ('orders', limit=50) — separate from dashboard's
+    // lighter 'dashboardOrders' slice (limit=5). force=true (refresh
+    // button, post-mutation calls below) always bypasses the cache.
+    allOrders = await Store.ensure('orders', () => api('/orders?limit=50').then(d => d.orders || d.data || d || []), { force });
     renderOrders();
   } catch(e) {
     document.getElementById('ordersTable').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
@@ -3613,7 +3624,8 @@ async function requestOrderRefill(orderId) {
   try {
     const data = await api(`/orders/${orderId}/refill`, { method: 'POST' });
     toast(data.message || 'Refill request submitted', 'success');
-    loadOrders();
+    Store.invalidate('dashboardOrders');
+    loadOrders(true);
   } catch (e) {
     toast(`Refill failed: ${e.message}`, 'error');
   }
@@ -3624,7 +3636,8 @@ async function requestOrderCancel(orderId) {
   try {
     const data = await api(`/orders/${orderId}/cancel`, { method: 'POST' });
     toast(data.message || 'Cancellation requested', 'success');
-    loadOrders();
+    Store.invalidate('dashboardOrders');
+    loadOrders(true);
   } catch (e) {
     toast(`Cancel failed: ${e.message}`, 'error');
   }

@@ -809,7 +809,7 @@ async function _cnLoadLandingStats() {
   const el = document.getElementById('cnLandingStats');
   if (!el) return;
   let stats = null;
-  try { stats = await api('/connect/marketplace-stats'); } catch (_) { stats = null; }
+  try { stats = await Store.ensure('connectLandingStats', () => api('/connect/marketplace-stats'), { ttl: 180000 }); } catch (_) { stats = null; }
   if (!stats || typeof stats !== 'object') return;
   const items = [
     stats.total_paid_kes != null ? { num: `KES ${Number(stats.total_paid_kes).toLocaleString()}`, label: 'Paid to Creators' } : null,
@@ -903,6 +903,7 @@ async function _cnPollUnread() {
     const data = await api(`/connect/notifications/unread-count?role=${_cnRole}`);
     _cnUnreadByCampaign = {};
     (data.campaigns || []).forEach(c => { _cnUnreadByCampaign[c.campaign_id] = c.unread_count; });
+    Store.set('notifications', data); // shared with anything that subscribes, instead of needing its own poll
 
     const badge = document.getElementById('connectBadge');
     if (badge) {
@@ -928,6 +929,7 @@ async function _cnPollUnread() {
       const target = document.getElementById('cnTabContent');
       if (target) {
         const scrollY = window.scrollY;
+        Store.invalidate(_cnTab === 'campaigns' ? 'connectCampaigns' : 'connectWork');
         await _cnLoadActiveTab();
         window.scrollTo(0, scrollY);
       }
@@ -1236,8 +1238,16 @@ function _cnRenderIncompleteProfileScreen(target, role) {
 }
 
 // ─── Discover (creator) ──────────────────────────────────────────────────────
+// Store-backed reads below use a short 20s TTL — long enough to absorb
+// repeated tab switches and re-renders without a network round-trip each
+// time, short enough that campaign data doesn't feel stale. Mutations that
+// change what these lists show (apply, publish, accept invite, deliverable
+// review, etc.) explicitly invalidate the relevant key rather than waiting
+// out the TTL — see each mutation function below.
+const CONNECT_CACHE_TTL = 20000;
+
 async function _cnRenderDiscover(target) {
-  const data = await api('/connect/discover');
+  const data = await Store.ensure('connectDiscover', () => api('/connect/discover'), { ttl: CONNECT_CACHE_TTL });
   _cnCampaigns = data || [];
   if (!_cnCampaigns.length) {
     target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">🔍</span><div class="cn-empty-title">No open campaigns right now</div>Check back soon — new campaigns get posted regularly.</div>`;
@@ -1268,7 +1278,7 @@ function _cnCardHtml(c) {
 
 // ─── My Applications (creator) ───────────────────────────────────────────────
 async function _cnRenderMyApplications(target) {
-  const apps = await api('/connect/applications/mine');
+  const apps = await Store.ensure('connectApplications', () => api('/connect/applications/mine'), { ttl: CONNECT_CACHE_TTL });
   if (!apps.length) {
     target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">📨</span><div class="cn-empty-title">No applications yet</div>Find a campaign you like and apply — your bid and delivery time show up here.<br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('discover')">Browse campaigns →</button></div>`;
     return;
@@ -1287,7 +1297,7 @@ async function _cnRenderMyApplications(target) {
 
 // ─── Active Work (creator) ────────────────────────────────────────────────────
 async function _cnRenderMyWork(target) {
-  const campaigns = await api('/connect/campaigns/mine?role=creator');
+  const campaigns = await Store.ensure('connectWork', () => api('/connect/campaigns/mine?role=creator'), { ttl: CONNECT_CACHE_TTL });
   const active = campaigns.filter(c => c.status !== 'draft');
   if (!active.length) {
     target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">🛠</span><div class="cn-empty-title">Nothing in progress yet</div>Once a business accepts your application or you accept an invite, the job shows up here.</div>`;
@@ -1298,7 +1308,7 @@ async function _cnRenderMyWork(target) {
 
 // ─── My Campaigns (business) ─────────────────────────────────────────────────
 async function _cnRenderMyCampaigns(target) {
-  const campaigns = await api('/connect/campaigns/mine?role=business');
+  const campaigns = await Store.ensure('connectCampaigns', () => api('/connect/campaigns/mine?role=business'), { ttl: CONNECT_CACHE_TTL });
   if (!campaigns.length) {
     target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">📋</span><div class="cn-empty-title">No campaigns posted yet</div>Set a budget and deliverables, and creators can start applying within minutes.<br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('create')">Post your first campaign →</button></div>`;
     return;
@@ -1415,6 +1425,7 @@ async function _cnSubmitCreateCampaign() {
   } catch (e) {
     toast('Campaign saved as draft — you can publish it from My Campaigns.', 'info');
   }
+  Store.invalidate('connectCampaigns');
 
   _cnSetTab('campaigns');
 }
@@ -1932,6 +1943,8 @@ async function _cnSubmitApplication(campaignId) {
       body: JSON.stringify({ bid_amount_kes, delivery_days, proposal }),
     });
     toast('Application submitted!', 'success');
+    Store.invalidate('connectApplications');
+    Store.invalidate('connectDiscover');
     _cnCloseCampaign();
     if (_cnTab === 'discover' || _cnTab === 'applications') _cnLoadActiveTab();
   } catch (e) {
@@ -2126,6 +2139,7 @@ async function _cnSubmitDeliverable(campaignId) {
     });
     for (const k in _cnDelivShotData) delete _cnDelivShotData[k];
     toast('Submitted for review!', 'success');
+    Store.invalidate('connectWork');
     _cnOpenCampaign(campaignId);
   } catch (e) {
     toast(e.message || 'Could not submit', 'error');
@@ -2190,6 +2204,8 @@ async function _cnReviewDeliverable(campaignId, decision) {
       body: JSON.stringify({ review_note }),
     });
     toast(decision === 'approve' ? '🎉 Approved — payment released!' : 'Sent back to creator for changes', 'success');
+    Store.invalidate('connectCampaigns');
+    Store.invalidate('connectWork');
     _cnOpenCampaign(campaignId);
   } catch (e) {
     toast(e.message || 'Could not submit review', 'error');
@@ -2302,7 +2318,7 @@ async function _cnLoadPayoutArea(c) {
 
   let existing = null;
   try {
-    const mine = await api('/connect/payout-requests/mine');
+    const mine = await Store.ensure('connectPayoutRequests', () => api('/connect/payout-requests/mine'), { ttl: CONNECT_CACHE_TTL });
     existing = (mine || []).find(t => t.campaign_id === c.id) || null;
   } catch (_) { /* no ticket yet, or couldn't load — fall through to the request form */ }
 
@@ -2381,6 +2397,7 @@ async function _cnRequestPayout(campaignId) {
       body: JSON.stringify({ phone, items }),
     });
     toast('Payout requested — EndaViral will send your money via M-Pesa.', 'success');
+    Store.invalidate('connectPayoutRequests');
     _cnOpenCampaign(campaignId);
   } catch (e) {
     toast(e.message || 'Could not request payout', 'error');
@@ -2537,7 +2554,7 @@ function _cnCloseCreate() {
 // Invites — creator's received invites tab
 // ══════════════════════════════════════════════════════════════════════════
 async function _cnRenderInvites(target) {
-  const invites = await api('/connect/invites/mine');
+  const invites = await Store.ensure('connectInvites', () => api('/connect/invites/mine'), { ttl: CONNECT_CACHE_TTL });
   if (!invites.length) {
     target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">✉️</span><div class="cn-empty-title">No invites yet</div>Businesses can invite you directly once you have a creator profile.</div>`;
     return;
@@ -2580,6 +2597,8 @@ async function _cnAcceptInvite(inviteId) {
   try {
     await api(`/connect/invites/${inviteId}/accept`, { method: 'POST' });
     toast('Invite accepted — fund it once the business pays.', 'success');
+    Store.invalidate('connectInvites');
+    Store.invalidate('connectWork');
     _cnRenderInvites(document.getElementById('cnTabContent'));
   } catch (e) {
     toast(e.message || 'Could not accept invite', 'error');
@@ -2590,6 +2609,7 @@ async function _cnDeclineInvite(inviteId) {
   try {
     await api(`/connect/invites/${inviteId}/decline`, { method: 'POST' });
     toast('Invite declined', 'success');
+    Store.invalidate('connectInvites');
     _cnRenderInvites(document.getElementById('cnTabContent'));
   } catch (e) {
     toast(e.message || 'Could not decline invite', 'error');
@@ -2700,7 +2720,7 @@ async function _cnOpenInviteModal(creatorUserId, creatorLabel, campaignId) {
   let campaignOptionsHtml = '';
   if (!campaignId) {
     try {
-      const campaigns = await api('/connect/campaigns/mine?role=business');
+      const campaigns = await Store.ensure('connectCampaigns', () => api('/connect/campaigns/mine?role=business'), { ttl: CONNECT_CACHE_TTL });
       const open = campaigns.filter(c => c.status === 'published');
       if (!open.length) {
         body.innerHTML = `<div class="cn-empty">You don't have any published campaigns to invite a creator to yet.<br><button class="btn-secondary" style="margin-top:12px;" onclick="_cnCloseInviteModal();_cnSetTab('create')">Post a campaign →</button></div>`;

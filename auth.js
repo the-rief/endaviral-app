@@ -140,15 +140,25 @@ function doLogout() {
   token = null; currentUser = null;
   localStorage.removeItem('ev_token');
   localStorage.removeItem('ev_user');
+  // Compute-hour work also introduced two caches (the Store module and the
+  // api() GET cache in index.html) that sit in front of the DB. Neither
+  // knows "the user changed" on its own — without this, a second person
+  // logging in on the same device/browser could briefly see the previous
+  // user's cached orders/campaigns/stats until each cache's own TTL expired.
+  if (typeof Store !== 'undefined') Store.reset();
+  if (typeof _apiGetCache !== 'undefined') _apiGetCache.clear();
   document.getElementById('appWrap').classList.remove('show');
   document.getElementById('appWrap').style.display = 'none';
   document.getElementById('authWrap').style.display = '';
   showLogin();
 }
 
-// ---- Dashboard fetch rate-limit: skip if loaded within last 60s (same session) ----
-const DASH_CACHE_TTL = 60 * 1000; // 60 seconds
-let _dashLastFetched = 0;
+// Dashboard fetch throttling is now handled by Store's TTL on the
+// 'dashboardOrders' slice (see index.html). This used to be a pair of
+// module-level vars (DASH_CACHE_TTL / _dashLastFetched) intended to skip
+// re-fetching within 60s, but _dashLastFetched was never actually set or
+// checked anywhere, so it never did anything — removed rather than fixed,
+// since Store now covers the same intent properly.
 
 function initApp() {
   document.getElementById('authWrap').style.display = 'none';

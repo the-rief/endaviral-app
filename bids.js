@@ -273,7 +273,7 @@ async function _bwRefreshCounts() {
 // one owner even though two summary UIs (this rail, connect.js's campaign
 // card) both need the numbers.
 async function _bwFetchCampaignSummaryCounts(campaignId) {
-  try { return await api(`/connect/campaigns/${campaignId}/applications/counts`); }
+  try { return await Store.ensure(`bidsCounts:${campaignId}`, () => api(`/connect/campaigns/${campaignId}/applications/counts`), { ttl: 15000 }); }
   catch (_) { return {}; }
 }
 
@@ -532,6 +532,7 @@ async function _bwSingleAction(id, action) {
     await api(`/connect/campaigns/${_bwCampaignId}/applications/${id}/${action}`, { method: 'POST' });
     toast(action === 'accept' ? 'Bid accepted — negotiate a price in chat, then fund when ready' : 'Bid rejected', action === 'accept' ? 'success' : 'info');
     _bwSelected.delete(id);
+    Store.invalidate(`bidsCounts:${_bwCampaignId}`);
     await _bwRefreshCounts();
     _bwRenderRail();
     await _bwFetchPage(true);
@@ -554,6 +555,7 @@ async function _bwBulkAction(action) {
   }
   toast(`${ok} bid${ok === 1 ? '' : 's'} ${action === 'accept' ? 'accepted' : 'rejected'}${fail ? `, ${fail} failed` : ''}`, fail ? 'error' : 'success');
   _bwSelected.clear();
+  Store.invalidate(`bidsCounts:${_bwCampaignId}`);
   await _bwRefreshCounts();
   _bwRenderRail();
   await _bwFetchPage(true);
@@ -1084,6 +1086,8 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
         statusEl.appendChild(btn);
       }
       toast('🎉 Campaign funded!', 'success');
+      Store.invalidate('connectCampaigns');
+      Store.invalidate('connectWork');
         setTimeout(() => {
         _cnStopFundPolling();
         // Refetch the campaign so _cnCurrentCampaign.status reflects FUNDED,

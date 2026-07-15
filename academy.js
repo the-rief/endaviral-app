@@ -813,9 +813,13 @@ function _acIsPurchased(state, moduleId) {
 
 // Fetches current progress from the server (also touches the learning
 // streak server-side, same as opening the page always did). Caches into
-// _acState so subsequent renders can read synchronously.
-async function _acFetchState() {
-  const data = await api('/academy/progress');
+// _acState so subsequent renders can read synchronously, and now also
+// goes through Store (20s TTL) so repeated navTo('academy') visits within
+// that window don't each re-hit the DB. Mutations below (lesson complete,
+// purchase, redeem points) pass force=true to guarantee they see their own
+// just-written change rather than a stale cached copy.
+async function _acFetchState(force = false) {
+  const data = await Store.ensure('academyProgress', () => api('/academy/progress'), { ttl: 20000, force });
   _acState = _acServerToLocal(data);
   return _acState;
 }
@@ -1312,6 +1316,7 @@ async function acMarkCurrentComplete() {
   }
 
   const wasGraduated = state.graduated;
+  Store.set('academyProgress', data); // keep Store's cache in sync — this mutation already has the fresh server state, no need to force a refetch
   _acState = _acServerToLocal(data);
 
   if (data.completed_now) {
@@ -1398,7 +1403,7 @@ async function submitAcademyPurchase() {
   if (data.already_purchased) {
     toast('You already own this module!', 'success');
     closeAcademyPurchase();
-    await _acFetchState();
+    await _acFetchState(true);
     _acUpdateBadges();
     _acOpenModule(moduleId);
     return;
@@ -1444,7 +1449,7 @@ function _acPollPurchaseStatus(moduleId, checkoutRequestId) {
       toast('🎉 Module unlocked!', 'success');
       setTimeout(async () => {
         closeAcademyPurchase();
-        await _acFetchState();
+        await _acFetchState(true);
         _acUpdateBadges();
         _acOpenModule(moduleId);
       }, 1200);
@@ -1486,7 +1491,7 @@ async function acRedeemWithPoints(moduleId) {
     toast(`⭐ Unlocked with ${data.points_spent} points! ${data.points_remaining} left.`, 'success');
   }
 
-  await _acFetchState();
+  await _acFetchState(true);
   _acUpdateBadges();
   _acOpenModule(moduleId);
 }
