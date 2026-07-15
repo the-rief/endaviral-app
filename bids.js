@@ -972,6 +972,9 @@ async function _cnProposePriceFromPaySheet(campaignId, applicationId, amount_kes
 
 function _cnStopFundPolling() {
   if (_cnFundPollTimer) { clearInterval(_cnFundPollTimer); _cnFundPollTimer = null; }
+  if (typeof PaymentEvents !== 'undefined' && _cnLastFundCheckoutId) {
+    PaymentEvents.off(_cnLastFundCheckoutId);
+  }
 }
 
 function _cnFundFormHtml(applicationId, fundAmount, phone) {
@@ -1040,7 +1043,7 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
   const maxAttempts = 30; // ~90s at 3s interval, mirrors Academy's purchase poller
   if (_cnFundPollTimer) clearInterval(_cnFundPollTimer);
 
-  _cnFundPollTimer = setInterval(async () => {
+  async function tick() {
     attempts++;
     let data;
     try {
@@ -1067,6 +1070,7 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
     // gone through.
     if (data.status === 'success' || data.status === 'completed') {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
+      if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
       if (icon) icon.textContent = '✅';
       if (title) title.textContent = 'CAMPAIGN FUNDED';
       if (desc) {
@@ -1101,6 +1105,7 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
 
     } else if (data.status === 'failed' || data.status === 'cancelled') {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
+      if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
       if (icon) icon.textContent = '❌';
       if (title) title.textContent = data.status === 'cancelled' ? 'PAYMENT CANCELLED' : 'PAYMENT FAILED';
       if (desc) desc.textContent = 'You can try again.';
@@ -1114,9 +1119,23 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
       }, 1800);
     } else if (attempts >= maxAttempts) {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
+      if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
       if (desc) desc.textContent = 'Still waiting — check your phone, or close and try again.';
     }
-  }, 3000);
+  }
+
+  _cnFundPollTimer = setInterval(tick, 3000);
+
+  // Real-time nudge — same idea as index.html's startPaymentPoll. The
+  // backend pushes a payment_status SSE event the moment Nexus's webhook
+  // (or the reconciler) resolves this checkout via
+  // connect_service.apply_nexus_status_to_funding; tick() re-reads
+  // funding-status itself, so this is just an earlier trigger of the same
+  // check, not a second source of truth. The 3s poll above still runs as
+  // the reliability fallback if the SSE connection drops.
+  if (typeof PaymentEvents !== 'undefined') {
+    PaymentEvents.onPaymentStatus(checkoutRequestId, () => tick());
+  }
 }
 
 // ─── "Payment not reflecting?" support ticket — reachable from every state

@@ -1344,6 +1344,7 @@ async function acMarkCurrentComplete() {
 // ─── Rendering: premium module purchase (M-Pesa STK, same pattern as wallet deposit) ─
 let _acPurchaseModuleId = null;
 let _acPurchasePollTimer = null;
+let _acPurchaseCheckoutId = null; // most recent checkoutRequestId this session is polling — used to release the PaymentEvents listener on close
 
 function openAcademyPurchase(moduleId) {
   const mod = ACADEMY_MODULES.find(m => m.id === moduleId);
@@ -1374,6 +1375,9 @@ function closeAcademyPurchase() {
   const overlay = document.getElementById('academyPurchaseModal');
   if (overlay) overlay.classList.remove('show');
   if (_acPurchasePollTimer) { clearInterval(_acPurchasePollTimer); _acPurchasePollTimer = null; }
+  if (typeof PaymentEvents !== 'undefined' && _acPurchaseCheckoutId) {
+    PaymentEvents.off(_acPurchaseCheckoutId);
+  }
 }
 
 async function submitAcademyPurchase() {
@@ -1427,8 +1431,9 @@ function _acPollPurchaseStatus(moduleId, checkoutRequestId) {
   let attempts = 0;
   const maxAttempts = 60; // ~90s at 3s interval — mirrors the wallet deposit poller
   if (_acPurchasePollTimer) clearInterval(_acPurchasePollTimer);
+  _acPurchaseCheckoutId = checkoutRequestId;
 
-  _acPurchasePollTimer = setInterval(async () => {
+  async function tick() {
     attempts++;
     let data;
     try {
@@ -1443,6 +1448,7 @@ function _acPollPurchaseStatus(moduleId, checkoutRequestId) {
 
     if (data.status === 'success') {
       clearInterval(_acPurchasePollTimer); _acPurchasePollTimer = null;
+      if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
       if (iconEl) iconEl.textContent = '✅';
       if (titleEl) titleEl.textContent = 'MODULE UNLOCKED';
       if (descEl) descEl.textContent = 'Payment confirmed — enjoy the lessons!';
@@ -1455,15 +1461,30 @@ function _acPollPurchaseStatus(moduleId, checkoutRequestId) {
       }, 1200);
     } else if (data.status === 'failed' || data.status === 'cancelled') {
       clearInterval(_acPurchasePollTimer); _acPurchasePollTimer = null;
+      if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
       if (iconEl) iconEl.textContent = '❌';
       if (titleEl) titleEl.textContent = data.status === 'cancelled' ? 'PAYMENT CANCELLED' : 'PAYMENT FAILED';
       if (descEl) descEl.textContent = 'You can try again.';
       setTimeout(() => { openAcademyPurchase(moduleId); }, 1800);
     } else if (attempts >= maxAttempts) {
       clearInterval(_acPurchasePollTimer); _acPurchasePollTimer = null;
+      if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
       if (descEl) descEl.textContent = 'Still waiting — check your phone, or close this and try again.';
     }
-  }, 3000);
+  }
+
+  _acPurchasePollTimer = setInterval(tick, 3000);
+
+  // Real-time nudge — same idea as index.html's startPaymentPoll and
+  // bids.js's _cnPollFunding. The backend pushes a payment_status SSE
+  // event the moment Nexus's webhook (or the reconciler) resolves this
+  // checkout via academy_purchase_reconciliation.apply_nexus_status_to_academy_purchase;
+  // tick() re-reads purchase-status itself, so this is just an earlier
+  // trigger of the same check. The 3s poll above still runs as the
+  // reliability fallback if the SSE connection drops.
+  if (typeof PaymentEvents !== 'undefined') {
+    PaymentEvents.onPaymentStatus(checkoutRequestId, () => tick());
+  }
 }
 
 // ─── Loyalty points: unlock a premium module with points instead of M-Pesa ─

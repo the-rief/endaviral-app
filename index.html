@@ -2710,6 +2710,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 </div>
 
 <script src="store.js"></script>
+<script src="payment_events.js"></script>
 <script>
 const API = 'https://api-endaviral.onrender.com/api/v1';
 
@@ -3484,7 +3485,8 @@ async function placeOrder() {
 function startPaymentPoll() {
   stopPaymentPoll();
   let attempts = 0;
-  paymentPollTimer = setInterval(async () => {
+
+  async function tick() {
     attempts++;
     if (attempts > 24) {
       stopPaymentPoll();
@@ -3516,11 +3518,25 @@ function startPaymentPoll() {
         });
       }
     } catch(_) {}
-  }, 5000);
+  }
+
+  paymentPollTimer = setInterval(tick, 5000);
+
+  // Real-time: the backend pushes a payment_status event via SSE the
+  // moment Nexus's webhook (or the reconciler) resolves this checkout —
+  // this just wakes tick() up early instead of waiting up to 5s. tick()
+  // re-reads /payments/status itself, so this is an earlier trigger of
+  // the same check, not a second source of truth.
+  if (typeof PaymentEvents !== 'undefined' && pendingCheckoutId) {
+    PaymentEvents.onPaymentStatus(pendingCheckoutId, () => tick());
+  }
 }
 
 function stopPaymentPoll() {
   if (paymentPollTimer) { clearInterval(paymentPollTimer); paymentPollTimer = null; }
+  if (typeof PaymentEvents !== 'undefined' && pendingCheckoutId) {
+    PaymentEvents.off(pendingCheckoutId);
+  }
 }
 
 function cancelOrderFlow() { stopPaymentPoll(); closeOrderModal(); toast('Order cancelled.', 'info'); }
@@ -3720,15 +3736,35 @@ function showDepositStatus(phone, amount) {
 
 function startDepPoll() {
   let attempts = 0;
-  depPollInterval = setInterval(async () => {
+
+  async function tick() {
     attempts++;
-    if (!depCheckoutId || attempts > 20) { clearInterval(depPollInterval); setDepTimeout(); return; }
+    if (!depCheckoutId || attempts > 20) {
+      clearInterval(depPollInterval);
+      if (typeof PaymentEvents !== 'undefined' && depCheckoutId) PaymentEvents.off(depCheckoutId);
+      setDepTimeout();
+      return;
+    }
     try {
       const data = await api('/payments/status/' + depCheckoutId);
-      if (data.status === 'completed' || data.status === 'success') { clearInterval(depPollInterval); setDepSuccess(data.mpesaReceipt || data.mpesa_receipt); }
-      else if (data.status === 'failed' || data.status === 'cancelled') { clearInterval(depPollInterval); setDepFailed(data.resultDesc || data.result_desc); }
+      if (data.status === 'completed' || data.status === 'success') {
+        clearInterval(depPollInterval);
+        if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(depCheckoutId);
+        setDepSuccess(data.mpesaReceipt || data.mpesa_receipt);
+      } else if (data.status === 'failed' || data.status === 'cancelled') {
+        clearInterval(depPollInterval);
+        if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(depCheckoutId);
+        setDepFailed(data.resultDesc || data.result_desc);
+      }
     } catch(_) {}
-  }, 3000);
+  }
+
+  depPollInterval = setInterval(tick, 3000);
+
+  // Real-time nudge — same idea as startPaymentPoll above.
+  if (typeof PaymentEvents !== 'undefined' && depCheckoutId) {
+    PaymentEvents.onPaymentStatus(depCheckoutId, () => tick());
+  }
 }
 
 function setDepSuccess(receipt) {
@@ -3751,7 +3787,9 @@ function setDepTimeout() {
   document.getElementById('depBackBtn').style.display = '';
 }
 function resetDeposit() {
-  clearInterval(depPollInterval); depCheckoutId = null;
+  clearInterval(depPollInterval);
+  if (typeof PaymentEvents !== 'undefined' && depCheckoutId) PaymentEvents.off(depCheckoutId);
+  depCheckoutId = null;
   document.getElementById('depositForm').style.display = '';
   document.getElementById('depositStatus').classList.remove('show');
   document.getElementById('depStatusIcon').textContent = '📱';

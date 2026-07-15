@@ -1693,6 +1693,9 @@ async function _cnOpenCampaign(campaignId) {
 function _cnCloseCampaign() {
   document.getElementById('cnCampaignModal').classList.remove('show');
   if (_cnFundPollTimer) { clearInterval(_cnFundPollTimer); _cnFundPollTimer = null; }
+  if (typeof PaymentEvents !== 'undefined' && _cnLastFundCheckoutId) {
+    PaymentEvents.off(_cnLastFundCheckoutId);
+  }
 }
 
 function _cnRenderCampaignModal() {
