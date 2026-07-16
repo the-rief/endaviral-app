@@ -672,18 +672,19 @@ tbody td{padding:13px 16px;font-size:14px;}
 .platform-more-btn:hover{border-color:rgba(61,212,74,.4);color:var(--white);}
 .platform-grid-extra{margin-bottom:18px;}
 
-.svc-colors-box{margin-bottom:14px;}
-.svc-colors-toggle{
-  display:flex;align-items:center;justify-content:space-between;width:100%;
+.svc-colors-box{
+  margin-bottom:14px;
   background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;
-  padding:9px 14px;font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:600;
-  color:var(--muted);cursor:pointer;transition:all .15s;
+  padding:12px 14px;
 }
-.svc-colors-toggle:hover{color:var(--white);border-color:rgba(255,255,255,.18);}
+.svc-colors-label{
+  display:block;width:100%;
+  font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:600;
+  color:var(--muted);margin-bottom:8px;
+}
 .svc-colors-body{
   display:flex;flex-wrap:wrap;gap:14px;align-items:center;
-  padding:10px 14px;margin-top:6px;
-  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;font-size:12.5px;
+  font-size:12.5px;
 }
 
 @media(max-width:768px){
@@ -1834,26 +1835,13 @@ tbody td{padding:13px 16px;font-size:14px;}
              info (what "Basic/Medium/Elite" in a service name means), not
              something a returning user needs to see on every visit. -->
         <div class="svc-colors-box">
-          <button class="svc-colors-toggle" id="svcColorsToggle" onclick="_toggleSvcColors()">
-            <span>ⓘ What do the service tiers mean?</span>
-            <span id="svcColorsChevron">▾</span>
-          </button>
-          <div class="svc-colors-body" id="svcColorsBody" style="display:none;">
+          <span class="svc-colors-label">ⓘ What do the service tiers mean?</span>
+          <div class="svc-colors-body">
             <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#facc15;display:inline-block;"></span><strong style="color:#facc15;">Basic</strong> <span style="opacity:.7;">— cheapest, drops more likely</span></span>
             <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#22c55e;display:inline-block;"></span><strong style="color:#22c55e;">Medium</strong> <span style="opacity:.7;">— balanced, better stability</span></span>
             <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#3b82f6;display:inline-block;"></span><strong style="color:#3b82f6;">Elite</strong> <span style="opacity:.7;">— priciest, best for long-term results</span></span>
           </div>
         </div>
-        <script>
-          (function(){
-            try {
-              if (localStorage.getItem('svcColorsCollapsed') === '0') {
-                document.getElementById('svcColorsBody').style.display = 'flex';
-                document.getElementById('svcColorsChevron').textContent = '▴';
-              }
-            } catch (_) { /* default stays collapsed */ }
-          })();
-        </script>
 
         <div id="servicesContainer">
           <div class="loading-spinner"><div class="spinner"></div><span>Loading services…</span></div>
@@ -3348,15 +3336,6 @@ function selectSubcat(key) {
   activeSubcat = key;
   document.querySelectorAll('.subcat-tile').forEach(b => b.classList.toggle('active', b.dataset.subcat === key));
   applyFilters();
-}
-
-function _toggleSvcColors() {
-  const body = document.getElementById('svcColorsBody');
-  const chevron = document.getElementById('svcColorsChevron');
-  const collapsed = body.style.display !== 'none';
-  body.style.display = collapsed ? 'none' : 'flex';
-  chevron.textContent = collapsed ? '▾' : '▴';
-  try { localStorage.setItem('svcColorsCollapsed', collapsed ? '1' : '0'); } catch (_) { /* ignore */ }
 }
 
 function applyFilters() {
