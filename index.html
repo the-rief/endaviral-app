@@ -543,6 +543,50 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .stat-card.orange::after{background:var(--orange);}
 .stat-card.red::after{background:var(--red);}
 .stat-label{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+
+/* ════════════════════════════════════════════════════════════
+   DASHBOARD v2 — compact, mobile-first
+   - stat row: one line of 3, no wasted vertical space
+   - promo strip: the 3 old full-width banners collapsed into
+     one swipeable row of small cards (grid on desktop)
+════════════════════════════════════════════════════════════ */
+.dash-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.dash-stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 10px;text-align:center;}
+.dash-stat .ds-val{font-family:'Montserrat',sans-serif;font-size:19px;font-weight:800;line-height:1.15;}
+.dash-stat.ds-orders .ds-val{color:var(--blue);}
+.dash-stat.ds-active .ds-val{color:var(--orange);}
+.dash-stat.ds-spent .ds-val{color:var(--green);}
+.dash-stat .ds-lbl{font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.promo-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.promo-card{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;cursor:pointer;transition:border-color .2s,transform .15s;}
+.promo-card:active{transform:scale(.98);}
+.promo-icon{flex-shrink:0;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.promo-card.pc-green .promo-icon{background:rgba(61,212,74,.14);}
+.promo-card.pc-purple .promo-icon{background:rgba(155,107,255,.16);}
+.promo-card.pc-blue .promo-icon{background:rgba(74,168,255,.16);}
+.promo-card.pc-green:hover{border-color:rgba(61,212,74,.45);}
+.promo-card.pc-purple:hover{border-color:rgba(155,107,255,.45);}
+.promo-card.pc-blue:hover{border-color:rgba(74,168,255,.45);}
+.promo-body{flex:1;min-width:0;}
+.promo-title{font-size:12.5px;font-weight:800;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.promo-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.promo-arrow{flex-shrink:0;color:var(--muted);font-size:15px;}
+
+@media(max-width:768px){
+  .dash-stats-row{gap:8px;margin-bottom:14px;}
+  .dash-stat{padding:10px 6px;border-radius:10px;}
+  .dash-stat .ds-val{font-size:16px;}
+  .dash-stat .ds-lbl{font-size:8.5px;}
+
+  .promo-strip{
+    display:flex;grid-template-columns:unset;gap:10px;
+    overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+    margin:0 -14px 18px;padding:0 14px 2px;
+  }
+  .promo-strip::-webkit-scrollbar{display:none;}
+  .promo-card{flex:0 0 78%;scroll-snap-align:start;}
+}
 .stat-val{font-family:'Montserrat',sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.5px;line-height:1;}
 .stat-sub{font-size:12px;color:var(--muted);margin-top:6px;}
 .stat-icon{position:absolute;right:16px;top:16px;opacity:.15;font-size:40px;}
@@ -1676,132 +1720,49 @@ tbody td{padding:13px 16px;font-size:14px;}
       <!-- DASHBOARD -->
       <div class="page-section active" id="sec-dashboard">
 
-        <!-- ── Quick-start guide (hidden once user has orders) ── -->
-        <div id="howToGuide" style="background:rgba(61,212,74,.05);border:1px solid rgba(61,212,74,.15);border-radius:14px;padding:16px 18px;margin-bottom:20px;">
-          <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px;letter-spacing:.3px;">🚀 HOW TO PLACE AN ORDER</div>
-          <button onclick="navTo('services')" style="width:100%;margin-bottom:14px;background:linear-gradient(135deg,#3dd44a,#28a035);color:#000;border:none;border-radius:10px;padding:13px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">👆 Tap here to start your first order →</button>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <div style="display:flex;gap:12px;align-items:flex-start;">
-              <div style="min-width:22px;height:22px;border-radius:50%;background:rgba(61,212,74,.15);color:var(--green);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">1</div>
-              <div style="font-size:13px;color:var(--muted);line-height:1.5;">Pick your platform (Instagram, TikTok, YouTube…) then choose a service card</div>
-            </div>
-            <div style="display:flex;gap:12px;align-items:flex-start;">
-              <div style="min-width:22px;height:22px;border-radius:50%;background:rgba(61,212,74,.15);color:var(--green);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">2</div>
-              <div style="font-size:13px;color:var(--muted);line-height:1.5;">Paste your <span style="color:var(--white);font-weight:600;">exact profile or post link</span> and set your quantity</div>
-            </div>
-            <div style="display:flex;gap:12px;align-items:flex-start;">
-              <div style="min-width:22px;height:22px;border-radius:50%;background:rgba(61,212,74,.15);color:var(--green);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">3</div>
-              <div style="font-size:13px;color:var(--muted);line-height:1.5;">Enter your M-Pesa number → tap <span style="color:var(--white);font-weight:600;">PAY &amp; ORDER</span> → enter PIN on prompt. Done! 🎉</div>
-            </div>
+        <!-- ── Quick-start guide (only shown until the user has an order; JS toggles display) ── -->
+        <div id="howToGuide" style="background:rgba(61,212,74,.05);border:1px solid rgba(61,212,74,.15);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+          <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px;letter-spacing:.3px;">🚀 PLACE YOUR FIRST ORDER</div>
+          <button onclick="navTo('services')" style="width:100%;margin-bottom:10px;background:linear-gradient(135deg,#3dd44a,#28a035);color:#000;border:none;border-radius:10px;padding:13px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">👆 Start an order →</button>
+          <div style="font-size:12px;color:var(--muted);line-height:1.5;">
+            Pick a platform &amp; service → paste your <span style="color:var(--white);font-weight:600;">profile or post link</span> → pay with M-Pesa. Done in under a minute.
           </div>
         </div>
 
-        <div class="stats-grid">
-          <div class="stat-card blue"><div class="stat-icon">📦</div><div class="stat-label">Total Orders</div><div class="stat-val" id="dash-orders">0</div><div class="stat-sub">All time</div></div>
-          <div class="stat-card orange"><div class="stat-icon">⏳</div><div class="stat-label">Active Orders</div><div class="stat-val" id="dash-active">0</div><div class="stat-sub">In progress</div></div>
-          <div class="stat-card red"><div class="stat-icon">💸</div><div class="stat-label">Total Spent</div><div class="stat-val" id="dash-spent">KES 0</div><div class="stat-sub">All orders</div></div>
+        <!-- ── Stat row: compact, one line, no wasted space ── -->
+        <div class="dash-stats-row">
+          <div class="dash-stat ds-orders"><div class="ds-val" id="dash-orders">0</div><div class="ds-lbl">Orders</div></div>
+          <div class="dash-stat ds-active"><div class="ds-val" id="dash-active">0</div><div class="ds-lbl">Active</div></div>
+          <div class="dash-stat ds-spent"><div class="ds-val" id="dash-spent">KES 0</div><div class="ds-lbl">Spent</div></div>
         </div>
-        <!-- ── Affiliate Promo Banner ── -->
-        <style>
-          #dashAffBanner{
-            position:relative;overflow:hidden;
-            background:linear-gradient(120deg,#0d2b15 0%,#0f3319 50%,#091f10 100%);
-            border:1px solid rgba(61,212,74,.28);
-            border-radius:16px;padding:18px 20px;margin-bottom:20px;cursor:pointer;
-            transition:border-color .2s,background .2s;
-          }
-          #dashAffBanner:hover{border-color:rgba(61,212,74,.5);}
-          #dashAffBanner:hover #affBannerBtn{background:#28a035;transform:translateX(2px);}
-          .aff-banner-inner{position:relative;z-index:1;display:flex;align-items:center;gap:14px;}
-          .aff-banner-icon{
-            flex-shrink:0;width:46px;height:46px;border-radius:12px;
-            background:rgba(61,212,74,.14);border:1px solid rgba(61,212,74,.22);
-            display:flex;align-items:center;justify-content:center;font-size:22px;
-          }
-          .aff-banner-text{flex:1;min-width:0;}
-          .aff-banner-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;}
-          .aff-banner-title strong{font-size:13px;font-weight:900;color:var(--white);}
-          .aff-banner-new{
-            background:rgba(61,212,74,.18);border:1px solid rgba(61,212,74,.3);
-            color:#6efb7a;font-size:9px;font-weight:800;letter-spacing:1.5px;
-            text-transform:uppercase;padding:2px 7px;border-radius:20px;flex-shrink:0;
-          }
-          .aff-banner-desc{font-size:12px;color:#8faab8;line-height:1.5;}
-          .aff-banner-desc b{color:var(--green);}
-          .aff-banner-chips{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;}
-          .aff-banner-live{display:flex;align-items:center;gap:4px;}
-          .aff-live-dot{width:6px;height:6px;border-radius:50%;background:#3dd44a;animation:affDotPulse 2s infinite;}
-          @keyframes affDotPulse{0%,100%{opacity:1}50%{opacity:.4}}
-          .aff-banner-live span{font-size:10px;color:#6efb7a;font-weight:700;}
-          .aff-chip{font-size:10px;color:var(--muted);font-weight:600;}
-          .aff-chip-sep{color:var(--border);font-size:10px;}
-          #affBannerBtn{
-            flex-shrink:0;
-            background:var(--green);color:#000;border:none;border-radius:10px;
-            padding:10px 20px;font-size:13px;font-weight:900;cursor:pointer;
-            font-family:'Montserrat',sans-serif;white-space:nowrap;
-            transition:all .2s;box-shadow:0 4px 14px rgba(61,212,74,.28);
-          }
-          /* Mobile: stack vertically, button full width */
-          @media(max-width:520px){
-            .aff-banner-inner{flex-wrap:wrap;}
-            .aff-banner-icon{width:38px;height:38px;font-size:18px;border-radius:10px;}
-            .aff-banner-title strong{font-size:12px;}
-            #affBannerBtn{width:100%;margin-top:10px;padding:11px;text-align:center;}
-            .aff-chip-sep:nth-child(4),.aff-chip:nth-child(5){display:none;}
-          }
-        </style>
 
-        <div id="dashAffBanner" onclick="navTo('affiliate')" title="Refer &amp; Earn">
-          <div class="aff-banner-inner">
-            <div class="aff-banner-icon">💸</div>
-            <div class="aff-banner-text">
-              <div class="aff-banner-title">
-                <strong>Earn Money sharing EndaViral</strong>
-              </div>
-              <div class="aff-banner-desc">
-                Get <b>15% commission</b> on every order your referrals place — paid to M-Pesa.
-              </div>
-              <div class="aff-banner-chips">
-                <div class="aff-banner-live"><div class="aff-live-dot"></div><span>Live</span></div>
-                <span class="aff-chip-sep">·</span>
-                <span class="aff-chip">M-Pesa payouts</span>
-                <span class="aff-chip-sep">·</span>
-                <span class="aff-chip">From KES 100</span>
-              </div>
+        <!-- ── Promo strip: swipe on mobile, 3-up grid on desktop. Replaces the 3 old full-width banners. ── -->
+        <div class="promo-strip">
+          <div class="promo-card pc-green" id="dashAffBanner" onclick="navTo('affiliate')" title="Refer &amp; Earn">
+            <div class="promo-icon">💸</div>
+            <div class="promo-body">
+              <div class="promo-title">Refer &amp; Earn</div>
+              <div class="promo-desc">15% commission via M-Pesa</div>
             </div>
-            <button id="affBannerBtn" onclick="event.stopPropagation();navTo('affiliate')">Start Earning →</button>
+            <div class="promo-arrow">→</div>
           </div>
-        </div>
 
-        <!-- ── Creator Academy Promo Banner ── -->
-        <div id="dashAcademyBanner" onclick="navTo('academy')" title="Creator Academy" style="position:relative;overflow:hidden;background:linear-gradient(120deg,#1a1330 0%,#241a42 50%,#150f26 100%);border:1px solid rgba(155,107,255,.28);border-radius:16px;padding:18px 20px;margin-bottom:20px;cursor:pointer;transition:border-color .2s;">
-          <div style="position:relative;z-index:1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-            <div style="flex-shrink:0;width:46px;height:46px;border-radius:12px;background:rgba(155,107,255,.16);border:1px solid rgba(155,107,255,.28);display:flex;align-items:center;justify-content:center;font-size:22px;">🎓</div>
-            <div style="flex:1;min-width:180px;">
-              <div style="font-size:13px;font-weight:900;color:var(--white);margin-bottom:3px;">Creator Academy</div>
-              <div style="font-size:12px;color:#8faab8;line-height:1.5;" id="dashAcademyDesc">Learn how to grow on every platform — free lessons, XP &amp; badges</div>
+          <div class="promo-card pc-purple" onclick="navTo('academy')" title="Creator Academy">
+            <div class="promo-icon">🎓</div>
+            <div class="promo-body">
+              <div class="promo-title">Creator Academy</div>
+              <div class="promo-desc">Free lessons, XP &amp; badges</div>
             </div>
-            <button style="flex-shrink:0;background:#9b6bff;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:900;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;" onclick="event.stopPropagation();navTo('academy')" id="dashAcademyBtn">Start Learning →</button>
+            <div class="promo-arrow">→</div>
           </div>
-        </div>
 
-        <!-- ── EndaViral Connect Marketplace Promo Banner ── -->
-        <div id="dashConnectBanner" onclick="navTo('connect')" title="EndaViral Connect" style="position:relative;overflow:hidden;background:linear-gradient(120deg,#0f1f2e 0%,#132a3d 50%,#0c1a26 100%);border:1px solid rgba(74,168,255,.28);border-radius:16px;padding:18px 20px;margin-bottom:20px;cursor:pointer;transition:border-color .2s;">
-          <div style="position:relative;z-index:1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-            <div style="flex-shrink:0;width:46px;height:46px;border-radius:12px;background:rgba(74,168,255,.16);border:1px solid rgba(74,168,255,.28);display:flex;align-items:center;justify-content:center;font-size:22px;">🤝</div>
-            <div style="flex:1;min-width:180px;">
-              <div style="font-size:13px;font-weight:900;color:var(--white);margin-bottom:3px;">EndaViral Creators Marketplace</div>
-              <div style="font-size:12px;color:#8faab8;line-height:1.5;" id="dashConnectDesc">Get paid to create for real brands, or hire verified creators</div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                <span style="font-size:10px;color:var(--muted);font-weight:600;">🔒 Payments protected</span>
-                <span style="color:var(--border);font-size:10px;">·</span>
-                <span style="font-size:10px;color:var(--muted);font-weight:600;">✅ Verified creators</span>
-                <span style="color:var(--border);font-size:10px;">·</span>
-                
-              </div>
+          <div class="promo-card pc-blue" onclick="navTo('connect')" title="EndaViral Connect">
+            <div class="promo-icon">🤝</div>
+            <div class="promo-body">
+              <div class="promo-title">Creators Marketplace</div>
+              <div class="promo-desc">Get paid by real brands</div>
             </div>
-            <button style="flex-shrink:0;background:#4aa8ff;color:#00121f;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:900;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;" onclick="event.stopPropagation();navTo('connect')" id="dashConnectBtn">Explore Marketplace →</button>
+            <div class="promo-arrow">→</div>
           </div>
         </div>
 
@@ -4165,22 +4126,12 @@ async function _maybeHideAffBanner() {
     const pending = data.pending_kes || 0;
     const earned  = data.total_earned_kes || 0;
     banner.innerHTML = `
-      <style>#dashAffBanner{cursor:pointer;}#dashAffBanner:hover{border-color:rgba(61,212,74,.55);}</style>
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;" onclick="navTo('affiliate')">
-        <div style="font-size:22px;">💸</div>
-        <div style="flex:1;min-width:160px;">
-          <div style="font-size:13px;font-weight:800;color:var(--white);">Your Affiliate Earnings</div>
-          <div style="font-size:12px;color:var(--muted);">
-            Total: <strong style="color:var(--green);">${fmtKES(earned)}</strong>
-            &nbsp;·&nbsp; Available: <strong style="color:var(--green);">${fmtKES(pending)}</strong>
-          </div>
-        </div>
-        <button onclick="event.stopPropagation();navTo('affiliate')"
-          style="background:rgba(61,212,74,.12);border:1px solid rgba(61,212,74,.25);color:var(--green);
-                 border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;
-                 font-family:'Montserrat',sans-serif;">View →</button>
-      </div>`;
-    banner.style.padding = '14px 18px';
+      <div class="promo-icon">💸</div>
+      <div class="promo-body">
+        <div class="promo-title">Earned ${fmtKES(earned)}</div>
+        <div class="promo-desc">${fmtKES(pending)} available to withdraw</div>
+      </div>
+      <div class="promo-arrow">→</div>`;
   } catch (e) {
     // 404 = not opted in yet — keep the full promo banner with "Start Earning →"
   }
