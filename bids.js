@@ -1040,7 +1040,9 @@ async function _cnSubmitFund(campaignId, applicationId) {
 
 function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
   let attempts = 0;
-  const maxAttempts = 30; // ~90s at 3s interval, mirrors Academy's purchase poller
+  const maxAttempts = 20; // 60s at 3s interval — active DB polling stops here;
+                           // the webhook/reconciler is expected to resolve it
+                           // from this point on, see the PaymentEvents note below
   if (_cnFundPollTimer) clearInterval(_cnFundPollTimer);
 
   async function tick() {
@@ -1119,8 +1121,14 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
       }, 1800);
     } else if (attempts >= maxAttempts) {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
-      if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
-      if (desc) desc.textContent = 'Still waiting — check your phone, or close and try again.';
+      // Deliberately NOT calling PaymentEvents.off() here — active DB
+      // polling stops, but escrow funding (campaign status, winner
+      // selection, notifications) is applied entirely server-side
+      // (connect_service.apply_nexus_status_to_funding) whenever the
+      // webhook or reconciler resolves this checkout, so we stay
+      // subscribed to the push and let tick() run one more time,
+      // silently, whenever that happens — no further polling required.
+      if (desc) desc.textContent = 'Still confirming — this will update automatically once M-Pesa confirms, or you can check back shortly.';
     }
   }
 

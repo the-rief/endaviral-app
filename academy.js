@@ -1429,7 +1429,9 @@ async function submitAcademyPurchase() {
 
 function _acPollPurchaseStatus(moduleId, checkoutRequestId) {
   let attempts = 0;
-  const maxAttempts = 60; // ~90s at 3s interval — mirrors the wallet deposit poller
+  const maxAttempts = 20; // 60s at 3s interval — active DB polling stops here;
+                           // the webhook/reconciler is expected to resolve it
+                           // from this point on, see the PaymentEvents note below
   if (_acPurchasePollTimer) clearInterval(_acPurchasePollTimer);
   _acPurchaseCheckoutId = checkoutRequestId;
 
@@ -1468,8 +1470,13 @@ function _acPollPurchaseStatus(moduleId, checkoutRequestId) {
       setTimeout(() => { openAcademyPurchase(moduleId); }, 1800);
     } else if (attempts >= maxAttempts) {
       clearInterval(_acPurchasePollTimer); _acPurchasePollTimer = null;
-      if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
-      if (descEl) descEl.textContent = 'Still waiting — check your phone, or close this and try again.';
+      // Deliberately NOT calling PaymentEvents.off() here — active DB
+      // polling stops, but the module unlock is applied entirely
+      // server-side (academy_purchase_reconciliation.apply_nexus_status_to_academy_purchase)
+      // whenever the webhook or reconciler resolves this checkout, so we
+      // stay subscribed to the push and let tick() run one more time,
+      // silently, whenever that happens — no further polling required.
+      if (descEl) descEl.textContent = 'Still confirming — this will unlock automatically once M-Pesa confirms, or you can check back shortly.';
     }
   }
 
