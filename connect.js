@@ -368,9 +368,16 @@ function _cnInjectStyles() {
 
     /* ── Tab nav (pills) ──────────────────────────────────────────────── */
     .cn-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
-    .cn-tab{padding:9px 15px;border-radius:24px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .cn-tab{padding:9px 15px;border-radius:24px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;}
     .cn-tab:hover:not(.active){border-color:rgba(255,255,255,.22);color:var(--white);}
     .cn-tab.active{background:var(--cn-accent-soft);border-color:var(--cn-accent);color:var(--white);}
+    @media(max-width:768px){
+      .cn-tabs{
+        flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+        margin:0 -14px 18px;padding:0 14px 4px;
+      }
+      .cn-tabs::-webkit-scrollbar{display:none;}
+    }
 
     /* ── Cards ────────────────────────────────────────────────────────── */
     .cn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
@@ -672,7 +679,15 @@ function _cnJourneySteps(role) {
 }
 
 function _cnGuideCollapsed() {
-  try { return localStorage.getItem('cnGuideCollapsed') === '1'; } catch (_) { return false; }
+  try {
+    const stored = localStorage.getItem('cnGuideCollapsed');
+    if (stored !== null) return stored === '1';
+  } catch (_) { /* fall through to default below */ }
+  // No explicit preference set yet: keep the guide open for a first-time
+  // joiner (they need the steps) but default it collapsed for someone
+  // who's already joined this role — they already know how it works, and
+  // showing it fresh every visit was pure repeat-visit noise.
+  return !!_cnJoinedRoles[_cnRole];
 }
 
 function _cnToggleGuide() {
@@ -977,12 +992,6 @@ function _cnRenderShell(sec) {
       <div class="cn-hero-eyebrow">${hero.eyebrow} · EndaViral Marketplace</div>
       <div class="cn-hero-title">${esc(hero.title)}</div>
       <div class="cn-hero-sub">${esc(hero.sub)}</div>
-      <div class="cn-hero-badges">
-        <span class="cn-hero-badge">🔒 Payments protected</span>
-        <span class="cn-hero-badge">💸 M-Pesa payouts</span>
-        <span class="cn-hero-badge">✅ 15% fee — only on completed work</span>
-        <span class="cn-hero-badge">⭐ Rated by both sides</span>
-      </div>
     </div>
     ${showToggle ? `
     <div class="cn-role-toggle">
