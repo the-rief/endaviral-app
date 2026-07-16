@@ -63,8 +63,6 @@ let _cnRole = 'creator';          // 'creator' | 'business'
 let _cnLandingPicked = false;     // true once a first-time visitor has picked a side this session
 let _cnUnreadByCampaign = {};     // campaign_id -> unread_count, refreshed by _cnPollUnread
 let _cnLastUnreadSnapshot = null; // JSON snapshot of the last poll's unread data — lets _cnPollUnread skip re-rendering when nothing actually changed
-let _cnUnreadPollTimer = null;
-let _cnVisibilityListener = null; // handle to the visibilitychange listener, so we can remove it when polling stops
 let _cnTab  = 'discover';         // active sub-tab
 let _cnCampaigns = [];            // last-loaded list for the active tab
 let _cnCurrentCampaign = null;    // full detail of the open modal's campaign
@@ -864,54 +862,24 @@ async function initConnectPage() {
   _cnRenderShell(sec);
   await _cnPollUnread();
   if (!_cnShowingLanding()) await _cnLoadActiveTab();
-  _cnStartUnreadPolling();
 }
 
 // ─── Unread message/prompt badges (nav item + per-card) ────────────────────
-// Polled on a light interval so a business/creator sees "someone messaged
-// you" or "a payment is waiting on your action" without needing to open
-// every campaign. Self-clearing: the interval checks whether the Connect
-// section is still on-screen and stops itself once the user navigates away,
-// same pattern as the admin panel's balance-refresh timer in index.html.
+// Fetched once when the Connect section is opened (see call site above),
+// then kept current purely by the SSE 'new_message' push (auth.js ->
+// _cnPollUnread()) — no timer. This is a genuine event-triggered refresh:
+// it only runs because a message actually arrived, not because the tab
+// happens to be sitting open.
 //
-// Compute-hour fix: this was the single biggest driver of Neon staying
-// awake — it ran every 25s with no regard for whether the tab was even
-// visible, so a creator/business who left Connect open in a background tab
-// kept the DB alive indefinitely. Two changes:
-//   1. 25s -> 60s (roughly halves the request volume on its own)
-//   2. Skip the tick entirely (and don't count it against the DB) when the
-//      tab isn't visible, per the Page Visibility API. Polling resumes
-//      immediately on refocus via the visibilitychange listener below, so
-//      badges still feel fresh the moment someone comes back to the tab.
-function _cnStartUnreadPolling() {
-  if (_cnUnreadPollTimer) clearInterval(_cnUnreadPollTimer);
-  _cnUnreadPollTimer = setInterval(() => {
-    const sec = document.getElementById('sec-connect');
-    if (!sec || !sec.classList.contains('active')) {
-      clearInterval(_cnUnreadPollTimer);
-      _cnUnreadPollTimer = null;
-      if (_cnVisibilityListener) {
-        document.removeEventListener('visibilitychange', _cnVisibilityListener);
-        _cnVisibilityListener = null;
-      }
-      return;
-    }
-    if (document.hidden) return; // tab backgrounded — skip this tick, don't wake the DB
-    _cnPollUnread();
-  }, 60000);
-
-  // Catch up immediately when the user comes back to a backgrounded tab,
-  // instead of waiting up to 60s for the next tick.
-  if (!_cnVisibilityListener) {
-    _cnVisibilityListener = () => {
-      const sec = document.getElementById('sec-connect');
-      if (!document.hidden && sec && sec.classList.contains('active')) {
-        _cnPollUnread();
-      }
-    };
-    document.addEventListener('visibilitychange', _cnVisibilityListener);
-  }
-}
+// KNOWN GAP: the SSE push from connect.py only fires for
+// type:"new_message" (chat messages). If a "payment/funding action
+// needed" state can change WITHOUT a chat message being sent alongside it
+// (e.g. connect_service.apply_nexus_status_to_funding flips something
+// server-side with no matching sse.push), that badge won't update until
+// the next time the user re-opens or re-navigates into Connect. Worth
+// confirming connect_service.py pushes an SSE event on funding-status
+// changes too — if it doesn't yet, that's the one to add rather than
+// bringing back a timer here.
 
 async function _cnPollUnread() {
   try {

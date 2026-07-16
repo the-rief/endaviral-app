@@ -1814,7 +1814,6 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="page-section" id="sec-services">
         <div class="sec-hd">
           <div><div class="sec-title">SERVICE CATALOG</div><div class="sec-sub">Browse by platform, filter by type — sorted cheapest first</div></div>
-          <button class="btn-secondary" onclick="loadServices(true)" title="Force-reload service catalog">&#8635; Refresh</button>
         </div>
 
         <!-- Platform grid: high-frequency platforms only; the rest live behind "More platforms" -->
@@ -2792,8 +2791,6 @@ const SUBCATS = {
 
 let allServices = [];
 let allOrders = [];
-let _servicesCacheTs = 0;          // timestamp of last successful /services fetch
-const SERVICES_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 let currentSvc = null;
 let depCheckoutId = null;
 let depPollInterval = null;
@@ -3113,26 +3110,14 @@ function navTo(page) {
   if (page === 'tickets') loadTickets();
   if (page === 'wallet') loadWalletPage();
   if (page === 'admin') {
-    loadAdminUsers();
-    loadExecutiveSnapshot().catch(()=>{});
-    loadAdminStats().catch(()=>{});
-    loadAdminSupport().catch(()=>{});
-    // Auto-refresh balance every 3 min while admin panel is open.
-    // (Was 30s — that alone was the biggest driver of Neon compute-hour
-    // usage on the free tier, since it keeps the DB awake continuously
-    // any time an admin has this tab open. 3 min is still fresh enough
-    // for a panel-balance/stat check, and cuts DB wake-ups ~6x.)
-    if (window._adminStatsTimer) clearInterval(window._adminStatsTimer);
-    window._adminStatsTimer = setInterval(() => {
-      if (document.getElementById('sec-admin').classList.contains('active')) {
-        loadExecutiveSnapshot().catch(()=>{});
-        loadAdminStats().catch(()=>{});
-      } else {
-        clearInterval(window._adminStatsTimer);
-      }
-    }, 180000);
-  } else {
-    if (window._adminStatsTimer) { clearInterval(window._adminStatsTimer); window._adminStatsTimer = null; }
+    // Reload whichever sub-tab is actually on-screen right now — "Users"
+    // the first time the panel is ever opened this session, or whatever
+    // the admin last clicked into if they navigated away and back.
+    // Still only ever touches the DB for ONE tab's worth of data, never
+    // all of them, the way the old eager-load-everything version did.
+    const activeTabEl = document.querySelector('.admin-tab.active');
+    const match = activeTabEl?.getAttribute('onclick')?.match(/adminTab\('([^']+)'/);
+    adminTab(match ? match[1] : 'users', activeTabEl || document.querySelector('.admin-tab'));
   }
   if (page === 'account') { initAccountPage(); }
   if (page === 'affiliate') { if (typeof initAffiliatePage === 'function') initAffiliatePage(); }
@@ -3196,9 +3181,11 @@ function renderDashOrders(orders) {
 }
 
 async function loadServices(force = false) {
-  const now = Date.now();
-  // Skip network fetch if cache is still warm and we have data
-  if (!force && allServices.length > 0 && (now - _servicesCacheTs) < SERVICES_CACHE_TTL) {
+  // No time-based expiry: services never change on their own, only via an
+  // admin sync (which calls loadServices(true) itself — see syncServices()
+  // in admin.js). So once loaded, this cache is good for the rest of the
+  // session; nothing here should ever hit the DB again on its own.
+  if (!force && allServices.length > 0) {
     buildPlatformTabs();
     applyFilters();
     return;
@@ -3208,7 +3195,6 @@ async function loadServices(force = false) {
     allServices = (data.services || data.data || data || [])
       .filter(s => !/^tiktok auto\b/i.test(s.name || s.service_name || ''))
       .map(s => ({ ...s, _platKey: getPlatformKey(s), _subcatKey: getSubcatKey(s) }));
-    _servicesCacheTs = Date.now();
     buildPlatformTabs();
     applyFilters();
   } catch(_) {

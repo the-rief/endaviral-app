@@ -135,12 +135,12 @@ async function doRegister() {
 }
 
 // ── Real-time push (SSE) ──────────────────────────────────────────────────────
-// Replaces the two poll loops this used to rely on: admin.js's 30s
-// _bgTicketWatchTick and connect.js's 60s _cnStartUnreadPolling. Both of
-// those "do the actual work" functions still exist and still work exactly
-// as before — they're just triggered by a push event now instead of a
-// timer, so the moment a message arrives is the moment the UI updates,
-// with no wasted requests in between.
+// Replaces every poll loop this used to rely on: admin.js's ticket-list
+// watcher, its per-thread 15s poll, and connect.js's unread-badge poll.
+// Those "do the actual work" functions still exist — they're just called
+// by a push event now instead of a timer, so the moment something
+// actually happens is the moment the UI updates, with zero requests in
+// between while nothing has changed.
 let _evtSource = null;
 let _evtReconnectTimer = null;
 
@@ -157,7 +157,13 @@ async function startEventStream() {
         if (typeof _cnPollUnread === 'function') _cnPollUnread();
       } else if (evt.type === 'new_ticket_message' || evt.type === 'ticket_reply') {
         if (typeof _bgTicketWatchTick === 'function') _bgTicketWatchTick();
-        if (typeof evRefreshThreads === 'function') evRefreshThreads();
+        // Refresh the open thread itself if this push is for the one
+        // currently on-screen (thread_id is included in both push types
+        // from support_chat.py) — this is what replaces the old 15s
+        // per-thread poll.
+        if (typeof _refreshOpenTicketThread === 'function' && evt.thread_id) {
+          _refreshOpenTicketThread(evt.thread_id);
+        }
       }
     };
     _evtSource.onerror = () => {

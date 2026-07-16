@@ -1007,7 +1007,7 @@ async function syncServices() {
     if (rateHidden) detailParts.push(`${rateHidden} rate`);
     const msg = `Synced! ${visible} visible · ${hidden} hidden (${detailParts.join(', ')}) · Markup: ${markupPct}%`;
     toast(msg, 'success');
-    loadAdminServices(); loadServices();
+    loadAdminServices(); loadServices(true);
   } catch(e) { toast(e.message, 'error'); }
   finally { btn.textContent = '⟳ Sync & Apply'; btn.disabled = false; }
 }
@@ -1017,11 +1017,11 @@ async function toggleSvcVisibility(svcId, currentlyActive) {
   try {
     await api(`/admin/services/${svcId}/toggle`, { method:'POST', body:JSON.stringify({is_active: !isActive}) });
     toast(isActive ? 'Service hidden from users' : 'Service now visible to users', 'success');
-    loadAdminServices();
+    loadAdminServices(); loadServices(true);
   } catch(e) {
     // Backend endpoint may not exist yet — update locally for now
     toast('Visibility toggled (refresh to confirm)', 'success');
-    loadAdminServices();
+    loadAdminServices(); loadServices(true);
   }
 }
 
@@ -1034,7 +1034,7 @@ async function deleteSvc(svcId) {
     // Soft-hide if hard delete not supported
     toast('Service removed from view', 'success');
   }
-  loadAdminServices();
+  loadAdminServices(); loadServices(true);
 }
 
 async function loadAdminProviders() {
@@ -1428,7 +1428,7 @@ async function adminDoInitiateThread(userEmail) {
 let _allTickets     = [];
 let _ticketsFilter  = 'all';
 let _activeTicketId = null;
-let _ticketPollTimer = null;
+
 
 async function loadTickets() {
   const el = document.getElementById('ticketsList');
@@ -1508,7 +1508,6 @@ async function openTicketThread(threadId) {
   document.getElementById('ttMessages').innerHTML =
     '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
   await _loadTicketThread(threadId);
-  _startTicketPoll();
 }
 
 async function _loadTicketThread(threadId) {
@@ -1630,7 +1629,6 @@ async function submitNewTicket() {
 }
 
 function closeTicketThread() {
-  _stopTicketPoll();
   _activeTicketId = null;
   const modal = document.getElementById('ticketThreadModal');
   modal.classList.remove('show');
@@ -1638,20 +1636,15 @@ function closeTicketThread() {
   document.body.style.overflow = '';
   loadTickets();
 }
-function _startTicketPoll() {
-  // Compute-hour fix: this was 6s regardless of whether the browser tab
-  // was even focused — an admin with a ticket thread open in the
-  // background kept the DB awake 10x/min for no reason. 15s is still
-  // plenty responsive for a live support conversation, and skipping ticks
-  // while the tab is hidden removes most of the background-tab cost.
-  _stopTicketPoll();
-  _ticketPollTimer = setInterval(async () => {
-    if (document.hidden) return;
-    if (_activeTicketId) await _loadTicketThread(_activeTicketId);
-  }, 15000);
-}
-function _stopTicketPoll() {
-  if (_ticketPollTimer) { clearInterval(_ticketPollTimer); _ticketPollTimer = null; }
+// Refreshes the currently open ticket thread. Called from two places now:
+// (1) openTicketThread(), for the initial load, and (2) auth.js's SSE
+// handler, the instant a 'ticket_reply' push arrives for THIS thread_id —
+// no timer, so a thread with nothing new arriving never touches the DB
+// just because the modal happens to be open.
+function _refreshOpenTicketThread(threadId) {
+  if (_activeTicketId && _activeTicketId === threadId) {
+    _loadTicketThread(_activeTicketId);
+  }
 }
 function _getTicketUser() {
   try { return JSON.parse(localStorage.getItem('ev_user') || '{}'); } catch(_) { return {}; }
@@ -1659,34 +1652,19 @@ function _getTicketUser() {
 
 /* ══════════════════════════════════════════════════════════════════
    BACKGROUND TICKET WATCHER
-   Polls all customer threads every 30s while logged in, so customers
-   see a new admin reply even if they never open the tickets section.
-
-   COMPUTE-HOUR FIX (this was the biggest single driver we found):
-   The short-circuit below was meant to stop polling once nothing's
-   open, but its condition was `threads.length > 0 && every(...)`.
-   For a user with ZERO tickets — the common case, most users never
-   open one — `threads.length > 0` is false, so _bgAllThreadsClosed
-   was always false, so the skip check never fired. Every logged-in
-   user, with or without a single ticket, polled /support/threads
-   every 30s for their entire session, forever, with no way to stop
-   short of logging out. That's almost certainly what was keeping
-   Neon awake around the clock regardless of the other fixes.
-   Two changes: (1) treat zero threads as "quiet" too, so a user who
-   never opens a ticket fetches once and then goes silent, and
-   (2) skip ticks while the tab is hidden, same pattern as the other
-   pollers.
+   No timer anymore. _bgTicketWatchTick() runs exactly twice per kind
+   of moment: once on login (initApp's one-off catch-up, for anything
+   that arrived while logged out), and once per SSE push whenever a
+   'new_ticket_message' / 'ticket_reply' event actually arrives (see
+   auth.js's startEventStream handler). A user who never opens a ticket,
+   or has nothing new, causes zero /support/threads requests beyond
+   that single login check.
 ══════════════════════════════════════════════════════════════════ */
-let _bgTicketWatchTimer = null;
 const _bgTicketSeenCount = {}; // { threadId: msgCount }
 
-function _startBgTicketWatch() {
-  if (_bgTicketWatchTimer) return;
-  _bgTicketWatchTimer = setInterval(_bgTicketWatchTick, 30000);
-}
-function _stopBgTicketWatch() {
-  if (_bgTicketWatchTimer) { clearInterval(_bgTicketWatchTimer); _bgTicketWatchTimer = null; }
-}
+// Kept as a no-op for doLogout()'s existing call site — there's no
+// timer to stop anymore, but logout shouldn't need to know that.
+function _stopBgTicketWatch() {}
 
 async function _bgTicketWatchTick() {
   if (!token) return;
