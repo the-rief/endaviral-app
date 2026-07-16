@@ -664,6 +664,42 @@ tbody td{padding:13px 16px;font-size:14px;}
   white-space:nowrap;
 }
 
+.platform-more-btn{
+  display:block;width:100%;background:none;border:1px dashed var(--border);color:var(--muted);
+  font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;padding:9px;border-radius:10px;
+  cursor:pointer;margin-bottom:14px;transition:all .15s;
+}
+.platform-more-btn:hover{border-color:rgba(61,212,74,.4);color:var(--white);}
+.platform-grid-extra{margin-bottom:18px;}
+
+.svc-colors-box{margin-bottom:14px;}
+.svc-colors-toggle{
+  display:flex;align-items:center;justify-content:space-between;width:100%;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;
+  padding:9px 14px;font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:600;
+  color:var(--muted);cursor:pointer;transition:all .15s;
+}
+.svc-colors-toggle:hover{color:var(--white);border-color:rgba(255,255,255,.18);}
+.svc-colors-body{
+  display:flex;flex-wrap:wrap;gap:14px;align-items:center;
+  padding:10px 14px;margin-top:6px;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;font-size:12.5px;
+}
+
+@media(max-width:768px){
+  /* Both platform rows become one swipeable strip instead of tall
+     multi-column grids — the core row alone used to run 3-4 rows on a
+     phone before you ever reached the search box or a service card. */
+  .platform-grid{
+    display:flex;grid-template-columns:unset;flex-wrap:nowrap;gap:8px;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;
+    margin:0 -14px 14px;padding:0 14px 2px;
+  }
+  .platform-grid::-webkit-scrollbar{display:none;}
+  .platform-tile{flex:0 0 78px;padding:10px 4px;font-size:10px;}
+  .platform-tile .pt-icon{font-size:20px;}
+}
+
 /* ── Subcategory grid ── */
 .subcat-grid{
   display:grid;
@@ -884,10 +920,8 @@ tbody td{padding:13px 16px;font-size:14px;}
   .wallet-top-grid,
   .wallet-main-grid{grid-template-columns:1fr !important;}
 
-  /* Platform grid: 2 columns on tablet */
-  .platform-grid{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;}
-  .platform-tile{padding:12px 6px;font-size:11px;}
-  .platform-tile .pt-icon{font-size:22px;}
+  /* Platform grid: handled by the horizontal-scroll rule earlier in this
+     stylesheet (single swipeable row instead of a tall multi-row grid) */
 
   /* Subcat grid: 2 columns on tablet */
   .subcat-grid{grid-template-columns:repeat(2,1fr);gap:7px;}
@@ -923,10 +957,8 @@ tbody td{padding:13px 16px;font-size:14px;}
   #ordersTable thead th:nth-child(7),
   #ordersTable tbody td:nth-child(7){ display:none; }
 
-  /* ── Platform tile grid: 2-col on mobile ── */
-  .platform-grid{ grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:14px; }
-  .platform-tile{ padding:12px 6px; font-size:11px; }
-  .platform-tile .pt-icon{ font-size:22px; }
+  /* ── Platform tile grid: handled by the horizontal-scroll rule earlier
+     in this stylesheet ── */
   .subcat-grid{ grid-template-columns:repeat(2,1fr); gap:7px; }
 
   /* ── Wallet / Account grids: single column ── */
@@ -1087,10 +1119,9 @@ tbody td{padding:13px 16px;font-size:14px;}
 /* ════ ≤380px — TINY PHONE ════ */
 @media(max-width:380px){
   .stats-grid{ grid-template-columns:1fr; }
-  .platform-grid{ grid-template-columns:repeat(2,1fr); gap:7px; }
   .subcat-grid{   grid-template-columns:repeat(2,1fr); gap:6px; }
-  .platform-tile{ padding:10px 4px; font-size:10px; }
-  .platform-tile .pt-icon{ font-size:20px; }
+  .platform-tile{ flex-basis:68px; padding:8px 4px; font-size:9.5px; }
+  .platform-tile .pt-icon{ font-size:18px; }
   .subcat-tile{ padding:8px 4px; }
   .services-grid{ grid-template-columns:1fr; }
 }
@@ -1785,8 +1816,10 @@ tbody td{padding:13px 16px;font-size:14px;}
           <button class="btn-secondary" onclick="loadServices(true)" title="Force-reload service catalog">&#8635; Refresh</button>
         </div>
 
-        <!-- Platform grid -->
+        <!-- Platform grid: high-frequency platforms only; the rest live behind "More platforms" -->
         <div class="platform-grid" id="platformTabs"></div>
+        <button class="platform-more-btn" id="platformMoreBtn" onclick="_toggleMorePlatforms()" style="display:none;"></button>
+        <div class="platform-grid platform-grid-extra" id="platformTabsExtra" style="display:none;"></div>
 
         <!-- Sub-category grid -->
         <div class="subcat-grid" id="subcatBar"></div>
@@ -1797,13 +1830,30 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="sort-badge"><span class="sort-arrow">↑</span> Cheapest first</div>
         </div>
 
-        <!-- Service Colors legend -->
-        <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px 14px;margin-bottom:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;font-size:12.5px;">
-          <span style="font-weight:600;color:var(--white);opacity:.85;">Service Colors:</span>
-          <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#facc15;display:inline-block;"></span><strong style="color:#facc15;">Basic</strong> <span style="opacity:.7;">— cheapest, drops more likely</span></span>
-          <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#22c55e;display:inline-block;"></span><strong style="color:#22c55e;">Medium</strong> <span style="opacity:.7;">— balanced, better stability</span></span>
-          <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#3b82f6;display:inline-block;"></span><strong style="color:#3b82f6;">Elite</strong> <span style="opacity:.7;">— priciest, best for long-term results</span></span>
+        <!-- Service Colors legend — collapsed by default; this is reference
+             info (what "Basic/Medium/Elite" in a service name means), not
+             something a returning user needs to see on every visit. -->
+        <div class="svc-colors-box">
+          <button class="svc-colors-toggle" id="svcColorsToggle" onclick="_toggleSvcColors()">
+            <span>ⓘ What do the service tiers mean?</span>
+            <span id="svcColorsChevron">▾</span>
+          </button>
+          <div class="svc-colors-body" id="svcColorsBody" style="display:none;">
+            <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#facc15;display:inline-block;"></span><strong style="color:#facc15;">Basic</strong> <span style="opacity:.7;">— cheapest, drops more likely</span></span>
+            <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#22c55e;display:inline-block;"></span><strong style="color:#22c55e;">Medium</strong> <span style="opacity:.7;">— balanced, better stability</span></span>
+            <span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#3b82f6;display:inline-block;"></span><strong style="color:#3b82f6;">Elite</strong> <span style="opacity:.7;">— priciest, best for long-term results</span></span>
+          </div>
         </div>
+        <script>
+          (function(){
+            try {
+              if (localStorage.getItem('svcColorsCollapsed') === '0') {
+                document.getElementById('svcColorsBody').style.display = 'flex';
+                document.getElementById('svcColorsChevron').textContent = '▴';
+              }
+            } catch (_) { /* default stays collapsed */ }
+          })();
+        </script>
 
         <div id="servicesContainer">
           <div class="loading-spinner"><div class="spinner"></div><span>Loading services…</span></div>
@@ -2682,12 +2732,12 @@ const API = 'https://api-endaviral.onrender.com/api/v1';
 
 const PLATFORMS = [
   { key: 'all',        label: 'All',         emoji: '🌐', cls: 'ot', keywords: [] },
-  { key: 'instagram',  label: 'Instagram',   emoji: '📸', cls: 'ig', keywords: ['instagram'] },
-  { key: 'tiktok',     label: 'TikTok',      emoji: '🎵', cls: 'tt', keywords: ['tiktok','tik tok'] },
-  { key: 'youtube',    label: 'YouTube',     emoji: '▶️', cls: 'yt', keywords: ['youtube'] },
-  { key: 'facebook',   label: 'Facebook',    emoji: '👥', cls: 'fb', keywords: ['facebook'] },
-  { key: 'twitter',    label: 'Twitter/X',   emoji: '𝕏',  cls: 'tw', keywords: ['twitter','tweet'] },
-  { key: 'telegram',   label: 'Telegram',    emoji: '✈️', cls: 'tk', keywords: ['telegram'] },
+  { key: 'instagram',  label: 'Instagram',   emoji: '📸', cls: 'ig', keywords: ['instagram'], core: true },
+  { key: 'tiktok',     label: 'TikTok',      emoji: '🎵', cls: 'tt', keywords: ['tiktok','tik tok'], core: true },
+  { key: 'youtube',    label: 'YouTube',     emoji: '▶️', cls: 'yt', keywords: ['youtube'], core: true },
+  { key: 'facebook',   label: 'Facebook',    emoji: '👥', cls: 'fb', keywords: ['facebook'], core: true },
+  { key: 'twitter',    label: 'Twitter/X',   emoji: '𝕏',  cls: 'tw', keywords: ['twitter','tweet'], core: true },
+  { key: 'telegram',   label: 'Telegram',    emoji: '✈️', cls: 'tk', keywords: ['telegram'], core: true },
   { key: 'spotify',    label: 'Spotify',     emoji: '🎧', cls: 'sp', keywords: ['spotify'] },
   { key: 'snapchat',   label: 'Snapchat',    emoji: '👻', cls: 'sc', keywords: ['snapchat'] },
   { key: 'linkedin',   label: 'LinkedIn',    emoji: '💼', cls: 'li', keywords: ['linkedin'] },
@@ -3183,41 +3233,65 @@ function buildPlatformTabs() {
   allServices.forEach(s => { counts[s._platKey] = (counts[s._platKey] || 0) + 1; });
   counts['all'] = allServices.length;
   const tabs = document.getElementById('platformTabs');
+  const extra = document.getElementById('platformTabsExtra');
+  const moreBtn = document.getElementById('platformMoreBtn');
   tabs.innerHTML = '';
+  extra.innerHTML = '';
 
-  // Platform → icon map (SVG-style text icons matching reference image)
-  const ICONS = {
-    all:       '⊞',
-    instagram: '📷',
-    tiktok:    '♪',
-    youtube:   '▶',
-    facebook:  '𝐟',
-    twitter:   '✕',
-    telegram:  '✈',
-    spotify:   '♫',
-    snapchat:  '👻',
-    linkedin:  'in',
-    threads:   '🧵',
-    discord:   '🎮',
-    twitch:    '🟣',
-    kick:      '🟢',
-    soundcloud:'☁',
-    vimeo:     '🎬',
-    quora:     '❓',
-    onlyfans:  '🔒',
-    other:     '✳',
-  };
-
-  PLATFORMS.forEach(p => {
-    const count = counts[p.key] || 0;
-    if (p.key !== 'all' && count === 0) return;
+  function makeTile(p) {
     const div = document.createElement('div');
     div.className = 'platform-tile' + (p.key === 'all' ? ' active' : '');
     div.dataset.platform = p.key;
     div.innerHTML = `<span class="pt-icon">${p.emoji}</span><span class="pt-label">${p.label}</span>`;
     div.onclick = () => selectPlatform(p.key);
-    tabs.appendChild(div);
+    return div;
+  }
+
+  // Core row: "All" + the handful of platforms that carry most order
+  // volume, so the eye lands on what people actually pick most instead of
+  // weighing 20 near-identical tiles equally. Everything else — real but
+  // low-frequency platforms (Kick, Quora, OnlyFans, ...) — collapses behind
+  // "More platforms" instead of adding 4+ extra rows to every visit.
+  let extraCount = 0;
+  PLATFORMS.forEach(p => {
+    const count = counts[p.key] || 0;
+    if (p.key !== 'all' && count === 0) return;
+    const isCore = p.key === 'all' || p.core;
+    if (isCore) {
+      tabs.appendChild(makeTile(p));
+    } else {
+      extra.appendChild(makeTile(p));
+      extraCount++;
+    }
   });
+
+  if (extraCount > 0) {
+    moreBtn.style.display = '';
+    _renderMorePlatformsBtn(extraCount);
+  } else {
+    moreBtn.style.display = 'none';
+  }
+}
+
+function _morePlatformsExpanded() {
+  try { return sessionStorage.getItem('platformMoreExpanded') === '1'; } catch (_) { return false; }
+}
+
+function _renderMorePlatformsBtn(extraCount) {
+  const moreBtn = document.getElementById('platformMoreBtn');
+  const extra = document.getElementById('platformTabsExtra');
+  const expanded = _morePlatformsExpanded();
+  extra.style.display = expanded ? '' : 'none';
+  moreBtn.textContent = expanded ? 'Show fewer platforms ▴' : `More platforms (${extraCount}) ▾`;
+}
+
+function _toggleMorePlatforms() {
+  const expanded = !_morePlatformsExpanded();
+  try { sessionStorage.setItem('platformMoreExpanded', expanded ? '1' : '0'); } catch (_) { /* ignore */ }
+  const extra = document.getElementById('platformTabsExtra');
+  extra.style.display = expanded ? '' : 'none';
+  const extraCount = extra.children.length;
+  document.getElementById('platformMoreBtn').textContent = expanded ? 'Show fewer platforms ▴' : `More platforms (${extraCount}) ▾`;
 }
 
 function selectPlatform(key) {
@@ -3274,6 +3348,15 @@ function selectSubcat(key) {
   activeSubcat = key;
   document.querySelectorAll('.subcat-tile').forEach(b => b.classList.toggle('active', b.dataset.subcat === key));
   applyFilters();
+}
+
+function _toggleSvcColors() {
+  const body = document.getElementById('svcColorsBody');
+  const chevron = document.getElementById('svcColorsChevron');
+  const collapsed = body.style.display !== 'none';
+  body.style.display = collapsed ? 'none' : 'flex';
+  chevron.textContent = collapsed ? '▾' : '▴';
+  try { localStorage.setItem('svcColorsCollapsed', collapsed ? '1' : '0'); } catch (_) { /* ignore */ }
 }
 
 function applyFilters() {
