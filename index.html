@@ -3528,11 +3528,12 @@ function startPaymentPoll() {
         stopPaymentPoll();
         const failMsg = 'Payment was ' + status.status + '. If you entered your PIN and were charged, please raise this to admin.';
         showOrderResult(false, failMsg);
-        _autoRaisePaymentTicket({
-          orderId: pendingOrderId,
-          checkoutId: pendingCheckoutId,
-          reason: 'Payment ' + status.status + ' after STK push — customer may have been charged'
-        });
+        // No _autoRaisePaymentTicket() here anymore — the backend now
+        // raises this ticket itself the instant ANY of its three
+        // resolution paths (this poll, the Nexus webhook, or the
+        // background reconciler) observes failed/cancelled, via
+        // payment_reconciliation.py's auto_raise_ticket(). Doing it here
+        // too would just create a duplicate ticket for the same event.
       }
     } catch(_) {}
   }
