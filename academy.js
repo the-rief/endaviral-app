@@ -336,18 +336,22 @@ const ACADEMY_MODULES = [
           'Pairing a boosted post with existing engagement services amplifies both — Facebook\'s ad and recommendation systems respond to accounts that already show activity.',
         ]},
       ]},
-      { id: 'x1', title: 'Growing on X (Twitter)', minutes: 3, body: [
-        { type: 'p', text: "X's timeline moves fast, so consistency and replies matter more here than almost any other platform." },
+      { id: 'x1', title: 'Growing on X (Twitter)', minutes: 4, body: [
+        { type: 'p', text: "X's timeline moves fast, so consistency and replies matter more here than almost any other platform — and going into 2026, X has been unusually open about exactly how much more." },
         { type: 'ul', items: [
-          'Replies and retweets carry more algorithmic weight than likes — engaging in your niche\'s conversations grows an account faster than posting alone.',
+          'X\'s own ranking weights (confirmed through its open-sourced code) put replies at roughly 10–15x the value of a single like, and a genuine back-and-forth conversation — you reply, they reply again — scores higher still. A post with 20 replies routinely outranks one with 200 likes and no conversation.',
+          'The algorithm judges a post hardest in its first 30–60 minutes — a burst of early replies and reposts in that window is what decides whether X expands distribution or lets a post quietly die, which is exactly why timing your post for when your existing followers are active matters so much.',
+          'A link placed in the main post gets meaningfully less reach than the same post without one — X visibly favors keeping people on-platform, so put links in a reply underneath the post instead of the post itself.',
           'Threads that open with a strong first line get significantly more read-through than single tweets.',
           'Follower quality (people who actually engage) matters more here than count — vanity followers rarely convert to reach.',
         ]},
       ]},
-      { id: 'tg1', title: 'Telegram Channel Growth', minutes: 3, body: [
-        { type: 'p', text: 'Telegram works differently — it\'s less about discovery and more about converting an audience you already have into a closer community.' },
+      { id: 'tg1', title: 'Telegram Channel Growth', minutes: 4, body: [
+        { type: 'p', text: 'Telegram works differently — it\'s less about discovery and more about converting an audience you already have into a closer community. There\'s also no ranking algorithm deciding who sees your post: Telegram delivers every post directly to subscribers in order, so real visibility comes down to whether people actually open and read, not whether a feed algorithm chose to show it.' },
         { type: 'ul', items: [
-          'Member count matters less than post view rate — a channel with high view-per-post is far more valuable to brands or for monetization than a large silent one.',
+          'Member count matters less than post view rate — a healthy channel typically sees roughly 20–40% of its subscriber count actually view each post within a day, and that number (not the subscriber count) is what determines real reach and what a sponsor is actually paying for.',
+          'An engagement rate (reactions, comments, forwards) above roughly 10% signals an unusually loyal audience — the kind advertisers and cross-promotion partners specifically look for over raw size.',
+          'Sponsored-post rates in 2026 are typically quoted per 1,000 subscribers (commonly cited in the $5–50 range depending on niche and engagement) rather than a flat fee — knowing your own view rate lets you negotiate from real numbers instead of guessing.',
           "Cross-promote your Telegram channel from Instagram, TikTok or YouTube — it's rarely a discovery platform on its own.",
           'Use it as the "closer" step in a funnel — the place followers go to get exclusive content, deals or direct access to you.',
         ]},
@@ -371,7 +375,7 @@ const ACADEMY_MODULES = [
         { type: 'p', text: "Every platform has terms of service around inauthentic activity. The safest approach isn't avoiding growth services — it's understanding what actually gets flagged, and in 2026 the platforms are unusually specific and public about exactly what that is." },
         { type: 'ul', items: [
           'Sudden, isolated spikes in one single metric (only followers, only likes) are what typically draw attention — not gradual, mixed growth.',
-          'Coordinated engagement-pod patterns (groups of accounts scripted to like/comment on each other on cue) are now actively detected by Instagram\'s and other platforms\' AI systems — that\'s the real risk category, not engagement services using real or high-quality accounts.',
+          'Coordinated engagement-pod patterns (groups of accounts scripted to like/comment on each other on cue) are now actively detected by Instagram\'s and other platforms\' AI systems — that\'s the real risk category, not engagement services using real or high-quality accounts. Instagram\'s specific 2026 penalty for this category isn\'t a warning: accounts flagged for it lose Explore and Reels recommendation eligibility outright, not just a temporary dip.',
           'Reading a service description before buying tells you which risk category it falls into — this is exactly why Lesson 1.2 on service names matters.',
         ]},
       ]},
@@ -405,33 +409,41 @@ const ACADEMY_MODULES = [
     id: 'business', icon: '🏢', title: 'Social Media for Business Owners',
     blurb: 'Turn followers into paying customers',
     lessons: [
-      { id: 'biz1', title: 'Why Social Proof Sells for Local Businesses', minutes: 4, body: [
+      { id: 'biz1', title: 'Why Social Proof Sells for Local Businesses', minutes: 5, body: [
         { type: 'p', text: 'A customer scrolling past your page makes a trust decision in seconds — before reading a single review, they\'re already reading your follower count, your engagement, and how "alive" the page looks.' },
         { type: 'ul', items: [
+          'This isn\'t a guess: independent review-industry research consistently finds that upwards of 9 in 10 shoppers check reviews or page activity before buying, and that the first handful of proof points (the first 5 reviews, the first burst of comments) move a buying decision more than everything after them — proof matters most when there\'s the least of it.',
+          'The same research shows displaying visible proof can lift conversion by well over 100% versus a page with none — and the effect is even stronger on higher-priced products or services, exactly the kind most Kenyan SMEs are trying to sell.',
           'A business page with visible activity (followers, likes, comments) reads as "established" to a first-time visitor — the same way a busy shop reads as trustworthy compared to an empty one.',
           'This isn\'t about faking success — it\'s about removing the hesitation a genuinely good business loses customers to simply because its page looks new or quiet.',
           'The businesses that treat their page\'s look as seriously as their storefront\'s look tend to convert page visitors into customers at a noticeably higher rate.',
         ]},
       ]},
-      { id: 'biz2', title: 'The Cold-Start Problem: Getting Noticed With Zero Reviews', minutes: 4, body: [
+      { id: 'biz2', title: 'The Cold-Start Problem: Getting Noticed With Zero Reviews', minutes: 5, body: [
         { type: 'p', text: 'Every business starts with the same problem: no reviews, no followers, no proof — and customers overwhelmingly prefer businesses that other customers have already trusted.' },
         { type: 'ul', items: [
+          'Before spending anything, claim your free Google Business Profile — surveys of Kenyan SMEs going into 2026 consistently flag it as the single most underused free tool, and it puts you on Google Maps and in local search results, which is often where a cold customer looks you up before ever visiting your social page.',
+          'Ask every customer for a review the same day they buy, not weeks later — a request made while the experience is fresh converts far better than one sent later, and a review requested in person or by a quick follow-up message is much more likely to actually get written.',
           'A page that starts with some baseline engagement (likes, followers, page reviews) breaks the chicken-and-egg cycle where nobody wants to be your first customer.',
           'This matters most in the first weeks of a page\'s life — the same boost has far more relative impact on a brand-new page than on one that\'s already established.',
           'Many Kenyan SMEs treat a small kick-start order the same as any other launch cost — signage, a logo, a first batch of business cards — a one-time investment to look ready for customers on day one.',
         ]},
       ]},
-      { id: 'biz3', title: 'A Content + Growth Calendar That Doesn\'t Cost a Fortune', minutes: 4, body: [
+      { id: 'biz3', title: 'A Content + Growth Calendar That Doesn\'t Cost a Fortune', minutes: 5, body: [
         { type: 'p', text: 'Consistent posting builds long-term trust, but it\'s slow on its own — pairing a simple weekly content plan with a small recurring boost on your best posts compounds much faster than either alone.' },
         { type: 'ul', items: [
+          'Short-form video is the highest-reach format on every major platform heading into 2026 — industry data shows video consistently out-engages static photo posts by a wide margin, and in Kenya specifically, TikTok and Reels reach a large share of internet users at essentially no media cost beyond your time.',
+          'Kenyan audiences increasingly reward content that feels real over content that feels like an ad — a quick, unpolished clip of you making the product, explaining a common mistake customers make, or showing a genuine testimonial tends to outperform a glossy studio ad, and it costs nothing extra to film.',
           'Pick your 1–2 best-performing post types (a product photo, a customer testimonial, a behind-the-scenes clip) and boost those specifically, rather than spreading a budget thin across everything.',
           'A modest, regular order on your top posts each month is easier to plan around than one large order — and it keeps your page looking consistently active rather than spiking and going quiet.',
           'Track which boosted posts actually drove enquiries or sales (not just likes) so next month\'s budget goes toward what\'s proven to work for your business specifically.',
         ]},
       ]},
-      { id: 'biz4', title: 'From Followers to Paying Customers: Closing the Loop', minutes: 4, body: [
+      { id: 'biz4', title: 'From Followers to Paying Customers: Closing the Loop', minutes: 5, body: [
         { type: 'p', text: 'Followers and engagement are only worth something if they turn into enquiries, bookings or sales — a page can look busy and still convert nobody if the last step is missing.' },
         { type: 'ul', items: [
+          'For most Kenyan businesses that last step should point straight at WhatsApp, not a generic "message us" — it\'s the platform nearly every one of your customers already has open, and a simple WhatsApp catalog link lets someone go from your post to browsing your products to ordering without ever leaving the chat.',
+          'The fewer manual steps between "I want this" and "I\'ve paid," the fewer customers you lose in between — businesses that let a customer pay directly rather than sending payment details back and forth report far less drop-off at the final step.',
           'A clear call-to-action (a WhatsApp link, a phone number, an order form) in your bio and in every boosted post is what actually turns page traffic into revenue.',
           'A page with credible social proof gets that call-to-action clicked far more often than an identical page with none — this is the whole reason the earlier lessons in this module matter.',
           'The Business Scale-Up Playbook (premium) goes much deeper here — a CAC/LTV budgeting framework built for Kenyan SME budgets, real patterns behind businesses that scaled with paid growth, how to combine paid ads with growth services for maximum ROI, and an honest breakdown of when an agency is worth paying for versus doing it yourself. Worth unlocking once you\'re past the cold-start stage and ready to treat this as a real revenue channel.',
@@ -503,27 +515,44 @@ const ACADEMY_MODULES = [
     id: 'capcut', icon: '✂️', title: 'CapCut Editing',
     blurb: 'Free, powerful, and built for short-form video',
     lessons: [
-      { id: 'cc1', title: 'Setting Up Your First Edit', minutes: 3, body: [
-        { type: 'p', text: 'CapCut is free, mobile-first, and purpose-built for the vertical short-form video every growth platform now favors — no prior editing experience needed to get a clean result.' },
+      { id: 'cc1', title: 'Setting Up Your First Edit', minutes: 5, body: [
+        { type: 'p', text: 'CapCut is free, mobile-first, and purpose-built for the vertical short-form video every growth platform now favors. Here\'s the actual sequence of taps that takes you from raw footage to a clean first cut — not just theory.' },
+        { type: 'h3', text: 'Step by step' },
+        { type: 'ol', items: [
+          'Open CapCut and tap the big "+ New Project" button, then select your clips from your camera roll — you can select several at once and CapCut lines them up on the timeline in the order you picked them.',
+          'Before touching anything else, tap "Ratio" in the tools row above the timeline and set it to 9:16 — doing this first means everything you add afterward (text, effects) is already framed correctly, instead of needing to be repositioned later.',
+          'Tap on a clip in the timeline to select it — a white outline appears, and the tools above the timeline switch to clip-specific options (Split, Speed, Volume, and more).',
+          'Drag the playhead (the vertical white line) to any point you want to cut, then tap the "Split" icon (it looks like two brackets facing each other) — this slices the clip in two at that exact frame without affecting anything else.',
+          'Tap the newly split section you want gone and hit the trash/delete icon — this is how you physically remove dead air, bad takes, or silence, not just "trim less important parts" as an abstract idea.',
+        ]},
         { type: 'ul', items: [
-          'Start every project in the 9:16 vertical canvas size — it\'s the correct format for Shorts, Reels and TikTok alike.',
-          'Trim dead space and silence from your raw footage first, before adding any effects — pacing matters more than polish, and pacing is what platforms\' completion-rate algorithms actually measure.',
-          'Keep your first few edits simple (cuts + captions only) — added effects are easy to layer in once the basics feel natural.',
+          'Pacing matters more than polish at this stage — a plain cuts-only edit with dead space removed already outperforms a heavily-effected edit that\'s still slow, since pacing is literally what platforms\' completion-rate algorithms measure.',
+          'Keep your first few edits to Split + Delete only — every other tool (transitions, effects, keyframes) is easy to layer in once this core loop feels automatic.',
         ]},
       ]},
-      { id: 'cc2', title: 'Auto-Captions in Under a Minute', minutes: 3, body: [
-        { type: 'p', text: 'Captions noticeably increase watch time, since most viewers watch short-form video with the sound off — CapCut\'s auto-caption tool makes adding them nearly instant.' },
+      { id: 'cc2', title: 'Auto-Captions in Under a Minute', minutes: 5, body: [
+        { type: 'p', text: 'Captions noticeably increase watch time, since most viewers watch short-form video with the sound off. Here\'s exactly where to find CapCut\'s caption tools and how to style them properly, not just "add captions."' },
+        { type: 'h3', text: 'Generating and styling captions' },
+        { type: 'ol', items: [
+          'With your clip on the timeline, tap "Text" in the tools row, then tap "Auto Captions" — CapCut transcribes your video\'s audio and drops timed caption clips directly onto a new track above your video.',
+          'Tap through each caption clip individually and fix any misheard words before you do anything else — auto-transcription gets most words right but rarely all of them, and a caption typo undercuts how polished a video feels faster than almost anything.',
+          'Tap a caption clip, then use the style panel on the right (or bottom on mobile) to set a large, high-contrast font — white text with a black outline or background box reads reliably on any footage.',
+          'Drag the caption block on the preview screen to sit in the middle third of the frame — the very top and bottom are commonly covered by each platform\'s own UI (like buttons, usernames, progress bars).',
+        ]},
         { type: 'ul', items: [
-          'Always proofread auto-generated captions before posting — even small typos undercut how polished a video feels.',
-          'Keep caption text large and high-contrast so it\'s readable on a small phone screen while scrolling.',
-          'Position captions in the middle third of the frame — top and bottom areas are often covered by platform UI elements, and on-screen text now also feeds directly into how TikTok and YouTube match your video to search queries.',
+          'On-screen caption text now also feeds directly into how TikTok and YouTube match your video to search queries — so getting the words right isn\'t just about readability anymore.',
+          'If your CapCut version or region doesn\'t show Auto Captions as free, you can still type captions manually with the plain "Text" tool — slower, but the styling and placement rules above still apply exactly the same.',
         ]},
       ]},
-      { id: 'cc3', title: 'Your First Reusable Template', minutes: 3, body: [
-        { type: 'p', text: 'Saving your caption style and basic structure as a reusable template is what makes editing fast enough to sustain regular posting.' },
+      { id: 'cc3', title: 'Your First Reusable Template', minutes: 5, body: [
+        { type: 'p', text: 'Re-doing the same styling decisions on every single video is what makes editing feel slow — CapCut has a specific feature built to stop that, and most beginners never find it.' },
+        { type: 'h3', text: 'Saving your actual style, not just remembering it' },
         { type: 'ul', items: [
-          'Save your preferred caption font, size, and color once you find a style you like, and reuse it across every future video.',
-          'Keep a consistent intro/outro structure (even 1–2 seconds) so your videos start feeling recognizable as "yours."',
+          'Once you land on a caption style you like (Lesson 2), tap the caption clip, open the style panel, and look for the "Save"/preset option — this stores your exact font, size, color, and position so you can apply it in one tap on your next project instead of rebuilding it from scratch.',
+          'When a finished project is one you\'re proud of the structure of, use CapCut\'s "Save as Template" option (in the project\'s share/export menu) — it locks in your layout, text placeholders, and timing while letting you drop in completely new footage for the next video, which is how creators reuse a winning format week after week.',
+          'Keep a consistent 1–2 second intro or outro structure across videos (even just your logo or a recurring title card) so your videos start feeling recognizable as "yours" before a viewer even reads a caption.',
+        ]},
+        { type: 'ul', items: [
           'CapCut Editing Mastery (premium) goes deeper on pacing for retention, sound design (the most-skipped step in most edits), CapCut\'s built-in AI tools worth actually using, and a full 15-minute edit workflow from raw footage to posted video.',
         ]},
       ]},
@@ -533,28 +562,31 @@ const ACADEMY_MODULES = [
     id: 'canva', icon: '🎨', title: 'Canva Design',
     blurb: 'Professional-looking graphics without a designer',
     lessons: [
-      { id: 'cv1', title: 'Picking the Right Template', minutes: 3, body: [
-        { type: 'p', text: 'Canva\'s templates give you a professional starting point instantly — the skill worth building isn\'t designing from scratch, it\'s picking and adapting the right template fast.' },
+      { id: 'cv1', title: 'Picking the Right Template', minutes: 4, body: [
+        { type: 'p', text: 'Canva\'s templates give you a professional starting point instantly — the skill worth building isn\'t designing from scratch, it\'s picking and adapting the right template fast. Here\'s exactly where to find the right one, not just "search for a template."' },
         { type: 'ul', items: [
-          'Search templates by platform (Instagram Post, Reel Cover, Facebook Post) so the dimensions are already correct for where you\'re posting.',
-          'Pick a template with a layout that matches your content type (a list, a quote, a photo showcase) rather than forcing your content into a mismatched design.',
+          'From the Canva home screen, type the exact placement into the search bar — "Instagram Post," "Reel Cover," "Facebook Post" — rather than a generic term. Canva opens the template gallery already set to that platform\'s correct pixel dimensions, so nothing needs resizing later.',
+          'Need a size Canva doesn\'t have a preset for? Tap "Custom size" next to the search bar and type the exact pixel dimensions yourself — useful for a specific ad placement or print flyer with a fixed spec.',
+          'Inside the template gallery, use the style filters along the top (Minimal, Bold, Photo-led, and similar) to narrow results to a look that matches your content type, rather than scrolling every result — a list-style post and a single striking photo need very different template layouts.',
           'Swap fonts and colors to match your own brand before publishing — an unedited template looks like everyone else\'s unedited template.',
         ]},
       ]},
-      { id: 'cv2', title: 'Text, Contrast & Readability', minutes: 3, body: [
-        { type: 'p', text: 'A design that looks great to you on a laptop can be unreadable on a small phone screen while someone scrolls — readability matters more than decoration.' },
+      { id: 'cv2', title: 'Text, Contrast & Readability', minutes: 4, body: [
+        { type: 'p', text: 'A design that looks great to you on a laptop can be unreadable on a small phone screen while someone scrolls — readability matters more than decoration, and Canva has a specific tool built to guarantee it regardless of what\'s behind the text.' },
         { type: 'ul', items: [
-          'Use high-contrast text/background combinations (dark text on light, or light text on dark) rather than similar tones that blend together.',
-          'Keep font sizes large enough to read at a glance — if you have to zoom in to read your own design, so will everyone else.',
+          'Select your text box, open the Effects panel, and choose "Background" — this drops a solid, adjustable-opacity color block directly behind the text. It\'s the fastest way to guarantee reliable contrast over a busy photo instead of hoping the underlying image happens to be plain enough.',
+          'As a plain-text alternative, use high-contrast color combinations (dark text on light, or light text on dark) rather than similar tones that blend together.',
+          'Drag a text box near the center or an edge and Canva\'s smart guides (thin pink alignment lines) snap it into place automatically — use them instead of eyeballing position, especially when a design needs to look identical to a previous one.',
           'Limit each design to one clear message — a design trying to say five things usually communicates none of them well.',
         ]},
       ]},
-      { id: 'cv3', title: 'Building Your First Brand Kit', minutes: 3, body: [
-        { type: 'p', text: 'Saving your colors and fonts as a Canva Brand Kit is the single fastest way to make every future design look consistent with the last.' },
+      { id: 'cv3', title: 'A Consistent Look Without Paying for Brand Kit', minutes: 4, body: [
+        { type: 'p', text: 'Canva\'s full Brand Kit (auto-applying your exact colors, fonts and logo across every new design) is a paid Canva Pro feature — but a free account can still get most of that consistency manually, once you know the two features that make it possible.' },
         { type: 'ul', items: [
-          'Pick 2–3 core colors and stick to them across every design — consistency reads as more professional than variety.',
-          'Upload your logo once and reuse it in the same position across templates so it becomes a recognizable visual anchor.',
-          'Canva Design for Creators — Advanced (premium) goes deeper on building a brand kit you\'ll actually keep using, templates engineered to convert rather than just look nice, and batch-designing a full week of posts in one sitting.',
+          'Upload your logo once to the Uploads tab — it stays there permanently across every future design, so you\'re never re-uploading the same file. Reuse it in the same corner position each time so it becomes a recognizable visual anchor.',
+          'Pick 2–3 core colors and note their exact hex codes (tap any color swatch to see and copy it) — reusing the same hex codes, not just "a similar blue," is what actually keeps every design looking like the same brand.',
+          'The fastest way to keep a layout truly consistent on a free account: duplicate your own previous design (three-dot menu → "Make a copy") instead of starting fresh each time — your fonts, colors and logo placement carry over automatically, since you\'re editing a copy of a design that already has them right.',
+          'Canva Design for Creators — Advanced (premium) goes deeper on the full paid Magic Studio AI toolset actually worth using, batch-designing a full week of posts with Bulk Create, and templates engineered to convert rather than just look nice.',
         ]},
       ]},
     ],
@@ -563,25 +595,28 @@ const ACADEMY_MODULES = [
     id: 'branding', icon: '👤', title: 'Personal Branding',
     blurb: 'Becoming known for something specific',
     lessons: [
-      { id: 'pb1', title: 'Why "Known For Something" Beats "Known For Everything"', minutes: 3, body: [
+      { id: 'pb1', title: 'Why "Known For Something" Beats "Known For Everything"', minutes: 4, body: [
         { type: 'p', text: 'Viewers remember creators who are clearly about one thing far more easily than ones who post a bit of everything — specificity is what makes a brand memorable, and it\'s now also what the algorithms reward. Instagram\'s "Your Algorithm" and TikTok\'s interest-graph both work by matching your content to a specific declared topic — a scattered account gives them nothing consistent to match against.' },
         { type: 'ul', items: [
+          'This shows up directly in the numbers, not just in theory: engagement-benchmark research going into 2026 consistently finds that focused, personal creator accounts out-engage broad, unfocused or brand-style accounts by roughly 5–10x in most categories — audiences reward a clear, describable identity far more than raw reach.',
           'Try to describe what you post in one short sentence — if it takes several sentences, your content is likely too scattered to build a clear brand or a clear algorithmic identity.',
           'A specific niche builds a smaller but far more loyal and engaged audience than a broad, unfocused one.',
           'You can always expand later — starting specific is easier to grow from than starting broad and trying to narrow down.',
         ]},
       ]},
-      { id: 'pb2', title: 'Consistency: The Unglamorous Growth Lever', minutes: 3, body: [
+      { id: 'pb2', title: 'Consistency: The Unglamorous Growth Lever', minutes: 4, body: [
         { type: 'p', text: 'The same profile photo, bio and posting style across every platform makes you instantly recognizable — inconsistency is one of the most common (and fixable) reasons a personal brand doesn\'t stick.' },
         { type: 'ul', items: [
+          'It\'s not just a nice-to-have: research on branding consistency tracked into 2026 links a consistent presence — same visuals, same voice, same message — to engagement roughly 3.5x higher than an inconsistent one, simply because familiarity makes people more willing to stop and engage.',
           'Use the same profile photo and bio wording everywhere so someone finding you on a second platform immediately recognizes you.',
           'Post on a predictable rhythm — audiences build a habit of checking in on creators who show up consistently.',
           'A recognizable visual or verbal habit (a phrase, a color, an intro) helps people remember you beyond a single post.',
         ]},
       ]},
-      { id: 'pb3', title: 'Making Your Profile Do the Selling For You', minutes: 3, body: [
+      { id: 'pb3', title: 'Making Your Profile Do the Selling For You', minutes: 4, body: [
         { type: 'p', text: 'Most new visitors decide whether to follow within seconds of landing on your profile — that first impression matters as much as any individual post, and it\'s directly tied to the "profile click" signal several platforms now weigh in their ranking.' },
         { type: 'ul', items: [
+          'An incomplete profile quietly throws away attention you already earned — across platforms, a profile with a real photo and a filled-in bio gets dramatically more views and follow-throughs than a bare one, so finishing these basics is one of the highest-return five minutes you\'ll spend on your brand.',
           'Make sure your bio clearly states what you do and who it\'s for — a vague bio wastes the attention you\'ve already earned.',
           'Pin your best 1–3 posts to the top of your profile — they\'re what most new visitors see first.',
           'Personal Branding Blueprint (premium) goes deeper on positioning your brand for real opportunities — brand deals, partnerships and audience trust — and turning "known for something" into "paid for something."',
