@@ -167,15 +167,41 @@ async function doRegister() {
 // — and gets to reset the delay — if it stays open past MIN_HEALTHY_MS.
 // A connection that dies faster than that keeps backing off exponentially
 // instead of hammering the ticket endpoint at a constant fast interval.
+//
+// FIX (visibility-aware pausing — this is the main Neon-cost fix): a tab
+// sitting in the background (minimized, other tab focused, phone screen
+// off) was still reconnecting on the same ~15s backoff-ceiling cadence as
+// a foregrounded tab, each cycle costing a DB round-trip in events.py's
+// get_current_user dependency (ticket mint) plus a second one validating
+// the ticket at stream-open — i.e. real Neon compute usage 24/7 for a tab
+// nobody is looking at, which is exactly what keeps compute from ever
+// autosuspending. The stream now stops trying to reconnect the instant
+// the tab goes hidden, and picks back up immediately when it's visible
+// again — no DB traffic at all while backgrounded.
+//
+// DIAGNOSTIC: onerror now logs how long the connection actually stayed
+// open (heldMs) before dying. If that number clusters just under
+// _EVT_MIN_HEALTHY_MS (20000) every time even while the tab is
+// foregrounded and visible, that points to a proxy/LB idle-timeout
+// racing events.py's HEARTBEAT_SECONDS rather than backgrounding — check
+// the console for this before touching the heartbeat value.
 let _evtSource = null;
 let _evtReconnectTimer = null;
 let _evtReconnectDelay = 1000;
 const _EVT_MAX_RECONNECT_DELAY = 15000;
 const _EVT_MIN_HEALTHY_MS = 20000; // must stay open this long to count as "healthy" and reset backoff
 
+function _evtJitter(ms) {
+  // +/-20% jitter so many tabs/users reconnecting after the same outage
+  // don't all hit /connect/events/ticket in lockstep.
+  const spread = ms * 0.2;
+  return Math.round(ms - spread + Math.random() * spread * 2);
+}
+
 async function startEventStream() {
   if (!token) return;
   if (_evtSource) return; // already connected — don't stack a second one
+  if (document.hidden) return; // tab backgrounded — visibilitychange handler resumes this on focus
   clearTimeout(_evtReconnectTimer);
   _evtReconnectTimer = null;
 
@@ -208,6 +234,12 @@ async function startEventStream() {
     _evtSource.onerror = () => {
       const heldMs = openedAt ? Date.now() - openedAt : 0;
       if (_evtSource) { _evtSource.close(); _evtSource = null; }
+      // Temporary diagnostic — safe to leave in, it's one console line per
+      // reconnect. Remove once the root cause is confirmed.
+      console.debug('[SSE] connection died after', heldMs, 'ms (hidden=' + document.hidden + ')');
+
+      if (document.hidden) return; // don't reconnect into a backgrounded tab — visibilitychange resumes this
+
       // A redeemed ticket is one-time-use, so EventSource's own native
       // retry (which reopens the same URL) won't work a second time —
       // close it and re-mint a fresh ticket instead, backing off unless
@@ -216,12 +248,13 @@ async function startEventStream() {
         ? 1000
         : Math.min(_evtReconnectDelay * 2, _EVT_MAX_RECONNECT_DELAY);
       clearTimeout(_evtReconnectTimer);
-      if (token) _evtReconnectTimer = setTimeout(startEventStream, _evtReconnectDelay);
+      if (token) _evtReconnectTimer = setTimeout(startEventStream, _evtJitter(_evtReconnectDelay));
     };
   } catch(e) {
+    if (document.hidden) return;
     _evtReconnectDelay = Math.min(_evtReconnectDelay * 2, _EVT_MAX_RECONNECT_DELAY);
     clearTimeout(_evtReconnectTimer);
-    if (token) _evtReconnectTimer = setTimeout(startEventStream, _evtReconnectDelay);
+    if (token) _evtReconnectTimer = setTimeout(startEventStream, _evtJitter(_evtReconnectDelay));
   }
 }
 
@@ -232,6 +265,22 @@ function stopEventStream() {
   if (_evtSource) { _evtSource.close(); _evtSource = null; }
   if (typeof PaymentEvents !== 'undefined' && PaymentEvents._clear) PaymentEvents._clear();
 }
+
+// Tab went to background → drop the connection and stop retrying (no more
+// DB traffic for this tab until the user actually comes back to it). Tab
+// came to foreground → reconnect right away rather than waiting out
+// whatever backoff delay was in flight.
+document.addEventListener('visibilitychange', () => {
+  if (!token) return;
+  if (document.hidden) {
+    clearTimeout(_evtReconnectTimer);
+    _evtReconnectTimer = null;
+    if (_evtSource) { _evtSource.close(); _evtSource = null; }
+  } else {
+    _evtReconnectDelay = 1000; // fresh start, don't carry over a stale backoff from before backgrounding
+    startEventStream();
+  }
+});
 
 function doLogout() {
   idleStop();
