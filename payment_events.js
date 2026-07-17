@@ -2,109 +2,80 @@
 // PaymentEvents — real-time payment status via SSE
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// Wraps the ticket-based stream from app/routers/events.py:
-//   1. POST /connect/events/ticket   – normal authenticated request, mints
-//      a one-time 60s ticket (EventSource can't send an Authorization header)
-//   2. GET  /connect/events?ticket=… – long-lived EventSource connection
+// FIX: this module used to open its OWN EventSource connection (with its
+// own /connect/events/ticket mint + its own reconnect loop), completely
+// separate from the one auth.js opens for new_message/ticket events. Every
+// payment flow (checkout, deposit, escrow funding, academy purchase) was
+// therefore running TWO parallel long-lived connections per tab, each
+// independently minting tickets and reconnecting on its own schedule —
+// doubling ticket-mint traffic (and whatever DB cost that carries) for the
+// whole duration of the payment flow, on top of the reconnect-storm issue
+// events.py's heartbeat fix addresses separately.
 //
-// This does NOT replace the existing poll loops in index.html
-// (startPaymentPoll / startDepPoll) — the backend's recommended pattern is
-// poll + push together, poll as the reliability fallback, push for instant
-// updates. This module just wakes a listener up the moment the backend
-// (Nexus's webhook, or the background reconciler) resolves a payment,
-// instead of it waiting for its next scheduled poll tick. Each listener's
-// callback re-checks /payments/status itself — this is a "check now"
-// nudge, not a second source of truth for the payment result.
+// There is exactly one /connect/events stream per logged-in tab now, owned
+// by auth.js's startEventStream(). payment_status events arrive on that
+// same stream alongside new_message/ticket events, and auth.js forwards
+// them here via PaymentEvents._dispatch(evt). This module no longer touches
+// EventSource, ticket minting, or reconnection at all — it's just the
+// checkoutRequestId -> callback registry that the rest of the app already
+// calls into.
 //
-// USAGE:
+// PUBLIC API IS UNCHANGED — no call sites in academy.js, bids.js, or
+// index.html need to change:
 //   PaymentEvents.onPaymentStatus(checkoutRequestId, (evt) => { ... });
 //   PaymentEvents.off(checkoutRequestId);   // call when you stop polling
 //
-// Requires `api`, `token`, and `API` to already be defined globally (see
-// the inline <script> block in index.html) — safe because this module only
-// *calls* them lazily, inside functions triggered by user actions, never
-// at parse time.
+// Each listener's callback re-checks /payments/status itself — this is a
+// "check now" nudge, not a second source of truth for the payment result,
+// same as before.
+//
+// Requires auth.js to be loaded (for the shared stream) — safe regardless
+// of <script> tag order since nothing here runs at parse time, only inside
+// functions called later, same as before.
 // ═══════════════════════════════════════════════════════════════════════════
 
 const PaymentEvents = (() => {
-  let source = null;
-  let reconnectTimer = null;
-  let reconnectDelay = 1000;          // starts at 1s, backs off to MAX below
-  const MAX_RECONNECT_DELAY = 15000;
-  let closed = true;                  // true until the first listener registers
-
-  const listeners = new Map();        // checkoutRequestId -> callback
-
-  async function _mintTicket() {
-    const res = await api('/connect/events/ticket', { method: 'POST' });
-    return res.ticket;
-  }
-
-  async function _connect() {
-    if (closed) return;
-    if (typeof token === 'undefined' || !token) return; // not logged in — nothing to stream
-    if (source) return; // already connected
-
-    let ticket;
-    try {
-      ticket = await _mintTicket();
-    } catch (_) {
-      _scheduleReconnect();
-      return;
-    }
-
-    const url = API + '/connect/events?ticket=' + encodeURIComponent(ticket);
-    source = new EventSource(url);
-
-    source.onopen = () => { reconnectDelay = 1000; };
-
-    source.onmessage = (msg) => {
-      let evt;
-      try { evt = JSON.parse(msg.data); } catch (_) { return; }
-      if (!evt || evt.type !== 'payment_status' || !evt.checkoutRequestId) return;
-      const cb = listeners.get(evt.checkoutRequestId);
-      if (cb) cb(evt);
-    };
-
-    source.onerror = () => {
-      if (source) { source.close(); source = null; }
-      if (!closed) _scheduleReconnect();
-    };
-  }
-
-  function _scheduleReconnect() {
-    if (reconnectTimer || closed) return;
-    reconnectTimer = setTimeout(() => {
-      reconnectTimer = null;
-      reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
-      _connect();
-    }, reconnectDelay);
-  }
+  const listeners = new Map(); // checkoutRequestId -> callback
 
   function onPaymentStatus(checkoutRequestId, cb) {
     if (!checkoutRequestId) return;
     listeners.set(checkoutRequestId, cb);
-    if (closed) {
-      closed = false;
-      reconnectDelay = 1000;
-      _connect();
-    }
+    // Make sure the shared stream is actually up. Normally it's already
+    // running (initApp() starts it on login, well before any payment flow
+    // can begin), but this is a harmless no-op if so — startEventStream()
+    // returns immediately when _evtSource is already set.
+    if (typeof startEventStream === 'function') startEventStream();
   }
 
   function off(checkoutRequestId) {
     if (!checkoutRequestId) return;
     listeners.delete(checkoutRequestId);
-    // Connection stays open even at zero listeners — cheap to hold and
-    // avoids a mint-ticket round trip every time a new payment starts.
-    // disconnect() below is for logout, where we actually want it gone.
+    // No connection to tear down here anymore — the shared stream stays
+    // open/closed based on login state, managed entirely by auth.js.
   }
 
-  function disconnect() {
-    closed = true;
+  // Called by auth.js's onmessage handler when a payment_status event
+  // arrives on the shared stream. Not part of the public API other modules
+  // should call directly.
+  function _dispatch(evt) {
+    if (!evt || !evt.checkoutRequestId) return;
+    const cb = listeners.get(evt.checkoutRequestId);
+    if (cb) cb(evt);
+  }
+
+  // Called by auth.js's stopEventStream() on logout — drops any listeners
+  // left over from an in-flight payment flow so a stale callback can't fire
+  // for the next user on a shared device.
+  function _clear() {
     listeners.clear();
-    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-    if (source) { source.close(); source = null; }
   }
 
-  return { onPaymentStatus, off, disconnect };
+  // Kept for backwards compatibility with any stray call site expecting
+  // the old explicit-disconnect API — the shared stream's lifecycle is
+  // owned by auth.js now, so this just clears listeners same as _clear().
+  function disconnect() {
+    _clear();
+  }
+
+  return { onPaymentStatus, off, disconnect, _dispatch, _clear };
 })();

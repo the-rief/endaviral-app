@@ -141,14 +141,49 @@ async function doRegister() {
 // by a push event now instead of a timer, so the moment something
 // actually happens is the moment the UI updates, with zero requests in
 // between while nothing has changed.
+//
+// FIX (single shared connection): this used to be TWO independent
+// EventSource connections per tab — this one, plus payment_events.js's own
+// _connect()/_mintTicket() — each minting its own ticket and running its
+// own reconnect loop. Every payment flow (checkout, deposit, escrow
+// funding, academy purchase) doubled the ticket-mint traffic and open
+// connection count for no reason; payment_status events arrive on the
+// exact same /connect/events stream as new_message/ticket events, there's
+// no reason a second physical connection existed. payment_events.js is
+// now a pure dispatch target — PaymentEvents._dispatch(evt) below — with
+// no connection of its own.
+//
+// FIX (backoff): reconnectDelay used to reset to its floor (1000ms) on
+// every successful onopen. That's fine for a connection that actually
+// stays open — but when the connection opens and then dies almost
+// immediately (proxy/LB idle-timeout killing it before the server's
+// heartbeat had a chance to land — see events.py's HEARTBEAT_SECONDS
+// comment), onopen still fires first, so the delay got reset to the
+// floor on every single cycle and never actually backed off. That's what
+// produced the observed-in-prod pattern of POST /connect/events/ticket
+// firing every ~5-6s continuously. The events.py heartbeat fix addresses
+// the root cause (connections dying), but this backoff floor is kept as
+// a second line of defense: a connection only counts as "actually held"
+// — and gets to reset the delay — if it stays open past MIN_HEALTHY_MS.
+// A connection that dies faster than that keeps backing off exponentially
+// instead of hammering the ticket endpoint at a constant fast interval.
 let _evtSource = null;
 let _evtReconnectTimer = null;
+let _evtReconnectDelay = 1000;
+const _EVT_MAX_RECONNECT_DELAY = 15000;
+const _EVT_MIN_HEALTHY_MS = 20000; // must stay open this long to count as "healthy" and reset backoff
 
 async function startEventStream() {
   if (!token) return;
+  if (_evtSource) return; // already connected — don't stack a second one
+  clearTimeout(_evtReconnectTimer);
+  _evtReconnectTimer = null;
+
+  let openedAt = 0;
   try {
     const { ticket } = await api('/connect/events/ticket', { method: 'POST' });
     _evtSource = new EventSource(`${API_BASE}/connect/events?ticket=${ticket}`);
+    _evtSource.onopen = () => { openedAt = Date.now(); };
     _evtSource.onmessage = (e) => {
       let evt;
       try { evt = JSON.parse(e.data); } catch(_) { return; }
@@ -164,25 +199,38 @@ async function startEventStream() {
         if (typeof _refreshOpenTicketThread === 'function' && evt.thread_id) {
           _refreshOpenTicketThread(evt.thread_id);
         }
+      } else if (evt.type === 'payment_status') {
+        if (typeof PaymentEvents !== 'undefined' && PaymentEvents._dispatch) {
+          PaymentEvents._dispatch(evt);
+        }
       }
     };
     _evtSource.onerror = () => {
+      const heldMs = openedAt ? Date.now() - openedAt : 0;
+      if (_evtSource) { _evtSource.close(); _evtSource = null; }
       // A redeemed ticket is one-time-use, so EventSource's own native
       // retry (which reopens the same URL) won't work a second time —
-      // close it and re-mint a fresh ticket instead.
-      if (_evtSource) { _evtSource.close(); _evtSource = null; }
+      // close it and re-mint a fresh ticket instead, backing off unless
+      // the connection actually held for a meaningful stretch first.
+      _evtReconnectDelay = heldMs >= _EVT_MIN_HEALTHY_MS
+        ? 1000
+        : Math.min(_evtReconnectDelay * 2, _EVT_MAX_RECONNECT_DELAY);
       clearTimeout(_evtReconnectTimer);
-      if (token) _evtReconnectTimer = setTimeout(startEventStream, 3000);
+      if (token) _evtReconnectTimer = setTimeout(startEventStream, _evtReconnectDelay);
     };
   } catch(e) {
+    _evtReconnectDelay = Math.min(_evtReconnectDelay * 2, _EVT_MAX_RECONNECT_DELAY);
     clearTimeout(_evtReconnectTimer);
-    if (token) _evtReconnectTimer = setTimeout(startEventStream, 5000);
+    if (token) _evtReconnectTimer = setTimeout(startEventStream, _evtReconnectDelay);
   }
 }
 
 function stopEventStream() {
   clearTimeout(_evtReconnectTimer);
+  _evtReconnectTimer = null;
+  _evtReconnectDelay = 1000;
   if (_evtSource) { _evtSource.close(); _evtSource = null; }
+  if (typeof PaymentEvents !== 'undefined' && PaymentEvents._clear) PaymentEvents._clear();
 }
 
 function doLogout() {
