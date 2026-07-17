@@ -1,10 +1,17 @@
-/buy-tiktok-views-kenya           /seo-landing-pages.html  200
-/buy-tiktok-followers-kenya       /seo-landing-pages.html  200
-/buy-instagram-followers-kenya    /seo-landing-pages.html  200
-/buy-youtube-watch-hours-kenya    /seo-landing-pages.html  200
-/telegram-members-kenya           /seo-landing-pages.html  200
-/buy-facebook-page-likes-kenya    /seo-landing-pages.html  200
-/how-to-get-verified-on-tiktok-kenya /blog.html 200
-/how-to-grow-on-instagram-in-kenya    /blog.html  200
-/youtube-watch-hours-kenya            /blog.html  200
-/best-time-to-post-on-instagram-kenya /blog.html  200
+# SEO landing pages — all rewrite (200) to seo-landing-pages.html
+/buy-tiktok-views-kenya                      /seo-landing-pages.html  200
+/buy-tiktok-followers-kenya                  /seo-landing-pages.html  200
+/buy-instagram-followers-kenya               /seo-landing-pages.html  200
+/buy-youtube-watch-hours-kenya                /seo-landing-pages.html  200
+/telegram-members-kenya                      /seo-landing-pages.html  200
+/buy-facebook-page-likes-kenya               /seo-landing-pages.html  200
+
+# Blog index + articles — all rewrite (200) to blog.html
+/blog                                        /blog.html  200
+/how-to-grow-on-tiktok-in-kenya              /blog.html  200
+/how-to-reach-10k-followers-on-tiktok-kenya  /blog.html  200
+/how-tiktok-monetization-works-kenya         /blog.html  200
+/how-to-grow-on-instagram-in-kenya           /blog.html  200
+/youtube-watch-hours-kenya                   /blog.html  200
+/best-time-to-post-on-instagram-kenya        /blog.html  200
+/how-to-get-verified-on-tiktok-kenya         /blog.html  200
