@@ -25,7 +25,7 @@ function adminTab(tab, el) {
   if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); }
   if (tab === 'stats') { loadExecutiveSnapshot(); loadAdminStats(); loadAdminRevenue(); loadAdminTrends(); loadAdminEngagement(); }
   if (tab === 'providers') loadAdminProviders();
-  if (tab === 'support') loadAdminSupport();
+  if (tab === 'support') openAdminSupportTab();
   if (tab === 'create-order') initAdminCreateOrder();
   if (tab === 'affiliate-payouts') affAdminSubTab('payouts');
   if (tab === 'academy') acAdminSubTab('overview');
@@ -1131,6 +1131,30 @@ async function adminBanUser(userId) {
 /* ══════════════════ ADMIN SUPPORT PANEL ══════════════════ */
 /* ═══════════════════ ADMIN SUPPORT PANEL ═══════════════════ */
 let activeSupportThreadId = null;
+
+// Entry point for the Support tab click specifically (adminTab() calls this,
+// not loadAdminSupport() directly). Auto-closes threads inactive 7+ days
+// first, then loads the list — so the list the admin sees already reflects
+// anything that just got closed. Scoped to the tab click on purpose: the
+// internal refreshes elsewhere in this file (after a reply, after a manual
+// status change, after admin_initiate_thread) call loadAdminSupport() on
+// its own and should NOT re-trigger the auto-close sweep every time.
+async function openAdminSupportTab() {
+  await autoCloseStaleSupportThreads();
+  loadAdminSupport();
+}
+
+async function autoCloseStaleSupportThreads() {
+  try {
+    const res = await api('/support/admin/threads/auto-close-stale', { method: 'POST' });
+    if (res && res.closed > 0) {
+      toast(`Auto-closed ${res.closed} ticket${res.closed === 1 ? '' : 's'} older than 7 days`, 'info');
+    }
+  } catch (e) {
+    // Non-fatal — don't block the thread list from loading if this fails
+    console.warn('Auto-close stale support threads failed:', e);
+  }
+}
 
 async function loadAdminSupport() {
   if (!currentUser || currentUser.role !== 'admin') return;
