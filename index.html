@@ -1757,11 +1757,11 @@ tbody td{padding:13px 16px;font-size:14px;}
       <!-- DASHBOARD -->
       <div class="page-section active" id="sec-dashboard">
 
-        <!-- ── Quick-start guide (only shown until the user has an order; JS toggles display) ── -->
+        <!-- ── Quick-start guide: always visible — copy switches from "place your first order" to "place your next order" once the user has placed one; see renderDashOrders() ── -->
         <div id="howToGuide" style="background:rgba(61,212,74,.05);border:1px solid rgba(61,212,74,.15);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
-          <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px;letter-spacing:.3px;">🚀 PLACE YOUR FIRST ORDER</div>
-          <button onclick="navTo('services')" style="width:100%;margin-bottom:10px;background:linear-gradient(135deg,#3dd44a,#28a035);color:#000;border:none;border-radius:10px;padding:13px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">👆 Start an order →</button>
-          <div style="font-size:12px;color:var(--muted);line-height:1.5;">
+          <div id="howToGuideTitle" style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px;letter-spacing:.3px;">🚀 PLACE YOUR FIRST ORDER</div>
+          <button id="howToGuideBtn" onclick="navTo('services')" style="width:100%;margin-bottom:10px;background:linear-gradient(135deg,#3dd44a,#28a035);color:#000;border:none;border-radius:10px;padding:13px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">👆 Start an order →</button>
+          <div id="howToGuideDesc" style="font-size:12px;color:var(--muted);line-height:1.5;">
             Pick a platform &amp; service → paste your <span style="color:var(--white);font-weight:600;">profile or post link</span> → pay with M-Pesa. Done in under a minute.
           </div>
         </div>
@@ -3162,8 +3162,12 @@ async function loadDashboard() {
 }
 
 function renderDashOrders(orders) {
-  const guide = document.getElementById('howToGuide');
-  if (guide) guide.style.display = orders.length ? 'none' : '';
+  // Guide stays visible always — copy just switches once the user has an
+  // order, so it becomes a standing "place your next order" shortcut
+  // instead of disappearing after the first purchase.
+  const title = document.getElementById('howToGuideTitle');
+  if (title) title.textContent = orders.length ? '🚀 PLACE YOUR NEXT ORDER' : '🚀 PLACE YOUR FIRST ORDER';
+
   if (!orders.length) {
     document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders yet. <a href="#" onclick="navTo(\'services\')" style="color:var(--green);">Place your first order →</a></p></div>';
     return;

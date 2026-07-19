@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════
  * ENDAVIRAL — ADMIN CREATOR ACADEMY ANALYTICS  v1.0
  *
- * Sub-tabs: Overview | Funnel | Revenue | Leaderboard
+ * Sub-tabs: Overview | Funnel | Revenue | Leaderboard | Feedback
  *
  * Depends on: api(), toast(), fmtKES(), esc()  — globals from index.html /
  * admin.js (same dependencies as admin_affiliate_payouts.js — this file is
@@ -16,6 +16,10 @@
  *   GET /academy/admin/stats/revenue     — M-Pesa premium-module revenue
  *                                           rollups + loyalty points economy
  *   GET /academy/admin/stats/leaderboard — top learners by XP
+ *   GET /academy/admin/feedback          — learner comments left after
+ *                                           finishing a module, newest
+ *                                           first, filterable by module
+ *                                           and star rating
  *
  * Entry point: acAdminSubTab(tab) — call from adminTab() in admin.js, e.g.:
  *   if (tab === 'academy') acAdminSubTab('overview');
@@ -53,11 +57,13 @@
  *     <button id="acSubTab-funnel"      onclick="acAdminSubTab('funnel')"      style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Funnel</button>
  *     <button id="acSubTab-revenue"     onclick="acAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
  *     <button id="acSubTab-leaderboard" onclick="acAdminSubTab('leaderboard')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Leaderboard</button>
+ *     <button id="acSubTab-feedback"    onclick="acAdminSubTab('feedback')"    style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Feedback</button>
  *   </div>
  *   <div id="acAdminPane-overview"><div id="adminAcademyOverview"></div></div>
  *   <div id="acAdminPane-funnel" style="display:none;"><div id="adminAcademyFunnel"></div></div>
  *   <div id="acAdminPane-revenue" style="display:none;"><div id="adminAcademyRevenue"></div></div>
  *   <div id="acAdminPane-leaderboard" style="display:none;"><div id="adminAcademyLeaderboard"></div></div>
+ *   <div id="acAdminPane-feedback" style="display:none;"><div id="adminAcademyFeedback"></div></div>
  * </div>
  * ════════════════════════════════════════════════════════════════════ */
 
@@ -68,7 +74,7 @@ let _acAdminCurrentSubTab = 'overview';
 function acAdminSubTab(tab) {
   _acAdminCurrentSubTab = tab;
 
-  ['overview', 'funnel', 'revenue', 'leaderboard'].forEach(t => {
+  ['overview', 'funnel', 'revenue', 'leaderboard', 'feedback'].forEach(t => {
     const el = document.getElementById('acSubTab-' + t);
     if (!el) return;
     el.style.borderBottomColor = t === tab ? 'var(--green)' : 'transparent';
@@ -76,7 +82,7 @@ function acAdminSubTab(tab) {
     el.style.fontWeight        = t === tab ? '800' : '700';
   });
 
-  ['overview', 'funnel', 'revenue', 'leaderboard'].forEach(t => {
+  ['overview', 'funnel', 'revenue', 'leaderboard', 'feedback'].forEach(t => {
     const p = document.getElementById('acAdminPane-' + t);
     if (p) p.style.display = t === tab ? '' : 'none';
   });
@@ -90,6 +96,7 @@ function acAdminSubTab(tab) {
     funnel:      { title: '🔻 ACADEMY FUNNEL',       sub: 'Where learners drop off, lesson by lesson',     fn: adminLoadAcademyFunnel },
     revenue:     { title: '💰 ACADEMY REVENUE',      sub: 'Premium module sales + loyalty points economy', fn: adminLoadAcademyRevenue },
     leaderboard: { title: '🏆 ACADEMY LEADERBOARD',  sub: 'Top learners ranked by XP',                     fn: adminLoadAcademyLeaderboard },
+    feedback:    { title: '💬 ACADEMY FEEDBACK',     sub: 'Comments learners left after finishing a module', fn: () => adminLoadAcademyFeedback(true) },
   }[tab];
 
   if (titleEl) titleEl.textContent = meta.title;
@@ -408,5 +415,103 @@ async function adminLoadAcademyLeaderboard() {
       </tr>`).join('')}
     </tbody>
   </table></div>`;
+  container.appendChild(el);
+}
+
+// ─── Feedback tab: learner comments left after finishing a module ───────────
+const _AC_FEEDBACK_PAGE_SIZE = 20;
+let _acFeedbackModuleFilter = '';
+let _acFeedbackRatingFilter = '';
+let _acFeedbackItems = [];
+let _acFeedbackOffset = 0;
+let _acFeedbackTotal = 0;
+
+function _acFeedbackQuery() {
+  const params = new URLSearchParams();
+  if (_acFeedbackModuleFilter) params.set('module_id', _acFeedbackModuleFilter);
+  if (_acFeedbackRatingFilter) params.set('rating', _acFeedbackRatingFilter);
+  params.set('limit', _AC_FEEDBACK_PAGE_SIZE);
+  params.set('offset', _acFeedbackOffset);
+  return params.toString();
+}
+
+function _acFeedbackStarsHtml(rating) {
+  if (!rating) return '<span style="color:var(--muted);font-size:12px;">No rating</span>';
+  return `<span style="color:#ffd700;letter-spacing:1px;">${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}</span>`;
+}
+
+// reset=true clears pagination and reloads from offset 0 (used on tab-open
+// and whenever a filter changes); reset=false appends the next page
+// ("Load more") onto what's already rendered.
+async function adminLoadAcademyFeedback(reset) {
+  const container = document.getElementById('adminAcademyFeedback');
+  if (!container) return;
+
+  if (reset) {
+    _acFeedbackOffset = 0;
+    _acFeedbackItems = [];
+    container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading feedback…</span></div>`;
+  }
+
+  const warnings = [];
+  const data = await _acSafeFetch(`/academy/admin/feedback?${_acFeedbackQuery()}`, 'Academy feedback', warnings);
+
+  if (warnings.length) {
+    container.innerHTML = '';
+    container.appendChild(_acWarnBanner(warnings, 'adminLoadAcademyFeedback'));
+    return;
+  }
+  if (!data) return;
+
+  _acFeedbackTotal = data.total || 0;
+  _acFeedbackItems = _acFeedbackItems.concat(data.items || []);
+  _acFeedbackOffset += (data.items || []).length;
+
+  const moduleOptions = (typeof ACADEMY_MODULES !== 'undefined' ? ACADEMY_MODULES : [])
+    .map(m => `<option value="${esc(m.id)}" ${m.id === _acFeedbackModuleFilter ? 'selected' : ''}>${esc(m.icon || '')} ${esc(m.title)}</option>`)
+    .join('');
+
+  const filterBarHtml = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+      <select id="acFeedbackModuleFilter" onchange="_acFeedbackModuleFilter=this.value;adminLoadAcademyFeedback(true)" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:12px;font-family:'Montserrat',sans-serif;">
+        <option value="">All modules</option>
+        ${moduleOptions}
+      </select>
+      <select id="acFeedbackRatingFilter" onchange="_acFeedbackRatingFilter=this.value;adminLoadAcademyFeedback(true)" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:12px;font-family:'Montserrat',sans-serif;">
+        <option value="">All ratings</option>
+        ${[5, 4, 3, 2, 1].map(n => `<option value="${n}" ${String(n) === _acFeedbackRatingFilter ? 'selected' : ''}>${'★'.repeat(n)} only</option>`).join('')}
+      </select>
+      ${data.avg_rating != null ? `<span style="margin-left:auto;font-size:12px;color:var(--muted);">Avg rating: <strong style="color:#ffd700;">★ ${data.avg_rating}</strong></span>` : ''}
+    </div>`;
+
+  container.innerHTML = '';
+  const el = document.createElement('div');
+
+  if (!_acFeedbackItems.length) {
+    el.innerHTML = filterBarHtml + `<div class="empty-state"><div class="icon">💬</div><p>No feedback yet.</p></div>`;
+    container.appendChild(el);
+    return;
+  }
+
+  const cardsHtml = _acFeedbackItems.map(f => `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+        <div>
+          <strong style="color:var(--white);font-size:13px;">${esc(f.learner)}</strong>
+          <span style="color:var(--muted);font-size:12px;"> · ${esc(f.module_icon || '')} ${esc(f.module_title)}</span>
+        </div>
+        <div style="text-align:right;">
+          ${_acFeedbackStarsHtml(f.rating)}
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${f.submitted_at ? new Date(f.submitted_at).toLocaleDateString() : ''}</div>
+        </div>
+      </div>
+      <div style="color:var(--white);font-size:13.5px;line-height:1.55;">${esc(f.comment)}</div>
+    </div>`).join('');
+
+  const loadMoreHtml = _acFeedbackOffset < _acFeedbackTotal
+    ? `<button class="btn-secondary" style="width:100%;margin-top:6px;" onclick="adminLoadAcademyFeedback(false)">Load more (${_acFeedbackTotal - _acFeedbackOffset} more)</button>`
+    : '';
+
+  el.innerHTML = filterBarHtml + cardsHtml + loadMoreHtml;
   container.appendChild(el);
 }

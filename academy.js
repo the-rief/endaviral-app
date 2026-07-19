@@ -46,6 +46,13 @@
  *     this project's index.html — see academyCertModal near
  *     academyLessonModal / academyPurchaseModal).
  *
+ * 10. Feedback modal — paste ★FEEDBACK_MODAL just before </body>, alongside
+ *     the other Academy modals. Backend: POST/GET /academy/modules/{id}/feedback
+ *     (see app/routers/academy.py). Opens automatically right after a
+ *     learner earns a module badge (see acMarkCurrentComplete()); can also
+ *     be opened manually via openAcademyFeedback(moduleId) — e.g. an
+ *     "Leave feedback" button on an already-completed module card.
+ *
  * ★NAVITEM
  * <div class="nav-item" onclick="navTo('academy')" id="academyNavItem">
  *   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -98,6 +105,21 @@
  *       <button class="btn-secondary" style="flex:1;" onclick="closeAcademyCertificate()">Close</button>
  *       <button class="btn-secondary" style="flex:1;" onclick="acDownloadCertificate()">⬇ Download</button>
  *       <button class="btn-primary" style="flex:2;background:#ffd700;color:#000;" onclick="acShareCertificate()">📤 Share</button>
+ *     </div>
+ *   </div>
+ * </div>
+ *
+ * ★FEEDBACK_MODAL
+ * <div class="modal-overlay" id="academyFeedbackModal">
+ *   <div class="modal" style="max-width:480px;">
+ *     <button class="modal-close" onclick="closeAcademyFeedback()">✕</button>
+ *     <div class="modal-title" style="margin-bottom:4px;" id="acFeedbackTitle">🏅 Module complete!</div>
+ *     <div class="modal-sub" style="margin-bottom:18px;" id="acFeedbackSub">How was it? Your feedback helps us improve the Academy.</div>
+ *     <div style="display:flex;gap:8px;justify-content:center;margin-bottom:18px;" id="acFeedbackStars"></div>
+ *     <textarea id="acFeedbackComment" maxlength="1000" rows="4" placeholder="Tell us what you liked, or what we could do better…" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-size:13.5px;font-family:'Montserrat',sans-serif;resize:vertical;"></textarea>
+ *     <div style="display:flex;gap:10px;margin-top:18px;">
+ *       <button class="btn-secondary" style="flex:1;" onclick="closeAcademyFeedback()">Skip</button>
+ *       <button class="btn-primary" style="flex:2;" id="acFeedbackSubmitBtn" onclick="submitAcademyFeedback()">Send Feedback</button>
  *     </div>
  *   </div>
  * </div>
@@ -1371,10 +1393,91 @@ async function acMarkCurrentComplete() {
   _acOpenModule(moduleId);
   _acUpdateBadges();
 
+  // Module just finished (badge earned) — prompt for feedback instead of
+  // auto-advancing (there's no next lesson in this module to advance to
+  // anyway). Skipped for the module content is on us to improve, but we
+  // never re-nag: openAcademyFeedback() itself avoids interrupting if the
+  // learner already left feedback for this module.
+  if (data.module_badge_earned) {
+    setTimeout(() => openAcademyFeedback(moduleId), 700);
+    return;
+  }
+
   // Auto-advance: if there's a next lesson in this module, offer it immediately.
   const idx = mod.lessons.findIndex(l => l.id === lessonId);
   const next = mod.lessons[idx + 1];
   if (next) setTimeout(() => openAcademyLesson(moduleId, next.id), 550);
+}
+
+// ─── Rendering: post-module feedback (comment + optional star rating) ────────
+let _acFeedbackModuleId = null;
+let _acFeedbackRating = null;
+
+async function openAcademyFeedback(moduleId) {
+  const mod = ACADEMY_MODULES.find(m => m.id === moduleId);
+  if (!mod) return;
+  _acFeedbackModuleId = moduleId;
+  _acFeedbackRating = null;
+
+  const titleEl = document.getElementById('acFeedbackTitle');
+  const subEl = document.getElementById('acFeedbackSub');
+  const commentEl = document.getElementById('acFeedbackComment');
+  const btn = document.getElementById('acFeedbackSubmitBtn');
+  if (titleEl) titleEl.textContent = `🏅 ${mod.title} complete!`;
+  if (subEl) subEl.textContent = 'How was it? Your feedback helps us improve the Academy.';
+  if (commentEl) commentEl.value = '';
+  if (btn) { btn.disabled = false; btn.textContent = 'Send Feedback'; }
+  _acRenderFeedbackStars(0);
+
+  // Prefill if the learner already left feedback for this module (e.g. they
+  // reopened it via a "Leave feedback" button, not the just-finished flow).
+  try {
+    const existing = await api(`/academy/modules/${encodeURIComponent(moduleId)}/feedback/me`);
+    if (existing && existing.comment) {
+      if (commentEl) commentEl.value = existing.comment;
+      _acRenderFeedbackStars(existing.rating || 0);
+      if (subEl) subEl.textContent = 'You already left feedback — feel free to update it.';
+    }
+  } catch (e) { /* non-fatal — just show a blank form */ }
+
+  document.getElementById('academyFeedbackModal').classList.add('show');
+}
+
+function closeAcademyFeedback() {
+  const overlay = document.getElementById('academyFeedbackModal');
+  if (overlay) overlay.classList.remove('show');
+}
+
+function _acRenderFeedbackStars(rating) {
+  _acFeedbackRating = rating || null;
+  const container = document.getElementById('acFeedbackStars');
+  if (!container) return;
+  container.innerHTML = [1, 2, 3, 4, 5].map(n => `
+    <span onclick="_acRenderFeedbackStars(${n})" style="cursor:pointer;font-size:28px;line-height:1;color:${n <= rating ? '#ffd700' : 'var(--border)'};transition:color .15s;">★</span>
+  `).join('');
+}
+
+async function submitAcademyFeedback() {
+  const moduleId = _acFeedbackModuleId;
+  if (!moduleId) return;
+  const commentEl = document.getElementById('acFeedbackComment');
+  const comment = commentEl ? commentEl.value.trim() : '';
+  if (comment.length < 3) { toast('Add a quick comment before sending', 'error'); return; }
+
+  const btn = document.getElementById('acFeedbackSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
+  try {
+    await api(`/academy/modules/${encodeURIComponent(moduleId)}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify({ comment, rating: _acFeedbackRating }),
+    });
+    toast('Thanks for the feedback! 🙏', 'success');
+    closeAcademyFeedback();
+  } catch (e) {
+    toast(e.message || 'Could not send feedback — try again.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Send Feedback'; }
+  }
 }
 // ─── Rendering: premium module purchase (M-Pesa STK, same pattern as wallet deposit) ─
 let _acPurchaseModuleId = null;
