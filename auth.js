@@ -104,8 +104,12 @@ async function doRegister() {
     document.getElementById('regEmail').focus();
     return;
   }
-  if (!email.toLowerCase().endsWith('@gmail.com')) {
-    err.textContent = 'Only Gmail addresses (@gmail.com) are accepted.';
+  // Real format check, not just "ends with @gmail.com" — that let things
+  // like "name @gmail.com" (stray space before the @) through, which then
+  // created an account whose welcome email silently failed to send.
+  const GMAIL_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9._%+-]*[a-zA-Z0-9])?@gmail\.com$/i;
+  if (!GMAIL_RE.test(email)) {
+    err.textContent = 'Please enter a valid Gmail address, e.g. name@gmail.com';
     err.classList.add('show');
     document.getElementById('regEmail').focus();
     return;
