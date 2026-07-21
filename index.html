@@ -3530,7 +3530,9 @@ function startPaymentPoll() {
         loadDashboard();
       } else if (status.status === 'failed' || status.status === 'cancelled') {
         stopPaymentPoll();
-        const failMsg = 'Payment was ' + status.status + '. If you entered your PIN and were charged, please raise this to admin.';
+        const failMsg = status.status === 'cancelled'
+          ? 'Payment was cancelled — you dismissed the M-Pesa prompt. No charge was made.'
+          : 'Payment failed (wrong PIN, insufficient funds, or timeout). No charge was made — feel free to try again.';
         showOrderResult(false, failMsg);
         // No _autoRaisePaymentTicket() here anymore — the backend now
         // raises this ticket itself the instant ANY of its three
