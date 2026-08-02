@@ -30,6 +30,7 @@ function adminTab(tab, el) {
   if (tab === 'affiliate-payouts') affAdminSubTab('payouts');
   if (tab === 'academy') acAdminSubTab('overview');
   if (tab === 'connect') cnAdminSubTab('overview');
+  if (tab === 'ccr-agents') ccrAdminInit();
 }
 
 async function loadAdminUsers() {
