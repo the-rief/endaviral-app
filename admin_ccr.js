@@ -1,6 +1,6 @@
 /* ════════════════════ ADMIN — CCR AGENTS PANEL ════════════════════
  * Customer Care Rep staff commissions: assign the role, edit each
- * agent's %, generate monthly commissions from platform revenue, pay them.
+ * agent's %, generate monthly commissions from platform profit, pay them.
  *
  * Depends on: api(), toast(), fmtKES(), esc() — globals from index.html / admin.js
  * Entry point: adminTab('ccr-agents', el) calls ccrAdminInit()
@@ -152,7 +152,7 @@ async function ccrGenerateCommissions() {
       body: JSON.stringify({ period_key: periodKey }),
     });
     toast(
-      `${res.period_key}: platform revenue ${fmtKES(res.platform_revenue_kes)} — ${res.generated} agent(s) paid, ${res.skipped} already accrued`,
+      `${res.period_key}: platform profit ${fmtKES(res.platform_profit_kes)} — ${res.generated} agent(s) paid, ${res.skipped} already accrued`,
       'success'
     );
     loadCCRAgents();
@@ -183,14 +183,14 @@ function renderCCRCommissions() {
     return;
   }
   el.innerHTML = `<table>
-    <thead><tr><th>Agent</th><th>Period</th><th>Revenue</th><th>Rate</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Agent</th><th>Period</th><th>Profit</th><th>Rate</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>${_ccrCommissionsCache.map(c => {
       const paid = c.status === 'paid';
       return `
       <tr>
         <td>${esc(c.agent_name || '—')}</td>
         <td>${esc(c.period_key)}</td>
-        <td>${fmtKES(c.platform_revenue_kes)}</td>
+        <td>${fmtKES(c.platform_profit_kes)}</td>
         <td>${(c.commission_rate * 100).toFixed(2)}%</td>
         <td style="color:var(--green);">${fmtKES(c.commission_amount_kes)}</td>
         <td><span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${paid ? 'rgba(61,212,74,.12)' : 'var(--navy)'};color:${paid ? 'var(--green)' : 'var(--muted)'};">${esc(c.status)}</span></td>

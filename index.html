@@ -2512,7 +2512,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="tbl-wrap" id="ccrAgentsTable" style="margin-bottom:28px;"><div class="loading-spinner"><div class="spinner"></div><span>Loading CCR agents…</span></div></div>
 
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;margin-top:8px;">
-            <div><div class="sec-title" style="font-size:14px;">MONTHLY COMMISSIONS</div><div class="sec-sub">Generates each active agent's % of total platform revenue for a month</div></div>
+            <div><div class="sec-title" style="font-size:14px;">MONTHLY COMMISSIONS</div><div class="sec-sub">Generates each active agent's % of total platform profit for a month</div></div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
               <input type="month" id="ccrPeriodInput" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;"/>
               <button class="btn-primary" style="margin-top:0;" onclick="ccrGenerateCommissions()">Generate for Month</button>
@@ -2534,7 +2534,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div style="font-size:18px;font-weight:800;">🎧 Assign CCR Role</div>
       <button onclick="ccrCloseAssign()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;">&times;</button>
     </div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Pick a user and set their commission rate. They'll start earning a share of total platform revenue once you generate commissions for a month.</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Pick a user and set their commission rate. They'll start earning a share of total platform profit once you generate commissions for a month.</div>
 
     <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:1px;">USER *</label>
     <select id="ccrAssignUserSelect" style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;color:var(--white);margin-bottom:14px;outline:none;font-family:'Montserrat',sans-serif;"></select>
