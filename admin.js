@@ -1158,7 +1158,7 @@ async function autoCloseStaleSupportThreads() {
 }
 
 async function loadAdminSupport() {
-  if (!currentUser || currentUser.role !== 'admin') return;
+  if (!currentUser || !(currentUser.role === 'admin' || currentUser.is_ccr_agent)) return;
   const status = document.getElementById('supportFilterStatus')?.value || '';
   const type   = document.getElementById('supportFilterType')?.value || '';
   const list   = document.getElementById('supportThreadList');
@@ -1866,17 +1866,17 @@ async function lookupCustomer() {
   const btn = document.getElementById('acoLookupBtn');
   btn.textContent = 'Looking up…'; btn.disabled = true;
   try {
-    const data = await api(`/admin/users?email=${encodeURIComponent(email)}`);
-    const users = data.users || data || [];
-    const user  = Array.isArray(users) ? users.find(u => u.email === email) : null;
-    if (!user) { toast('No user found with that email', 'error'); return; }
+    // Scoped endpoint (admins AND CCR agents can call this) — filters by
+    // exact email server-side, unlike /admin/users which only returns the
+    // most recent 100 users for a client-side .find().
+    const user = await api(`/admin/users/lookup?email=${encodeURIComponent(email)}`);
     _acoUser = user;
     document.getElementById('acoCustomerInfo').innerHTML = `
       <div style="padding:10px 14px;border-radius:10px;background:rgba(61,212,74,.07);
                   border:1px solid rgba(61,212,74,.2);font-size:13px;">
         ✅ <strong style="color:var(--white);">${esc(user.name || user.email)}</strong>
         <span style="color:var(--muted);"> · ID: ${esc((user.id||'').slice(0,8))}</span>
-        <span style="color:var(--green);"> · KES ${parseFloat(user.balance||0).toFixed(2)} bal</span>
+        <span style="color:var(--green);"> · ${fmtKES(user.wallet_balance)} bal</span>
       </div>`;
     document.getElementById('acoStep2').style.display = 'block';
     renderAcoServices();

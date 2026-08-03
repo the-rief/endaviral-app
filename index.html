@@ -1690,6 +1690,12 @@ tbody td{padding:13px 16px;font-size:14px;}
         My Tickets
         <span class="nav-badge" id="ticketsBadge" style="display:none">●</span>
       </div>
+      <div class="nav-item" onclick="navTo('ccr-agent')" id="ccrNavItem" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/>
+        </svg>
+        My Earnings
+      </div>
       <div class="nav-section">Account</div>
       <div class="nav-item" onclick="navTo('account')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1713,7 +1719,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="nav-section" id="adminNavSection" style="display:none">Admin</div>
       <div class="nav-item" id="adminNavItem" onclick="navTo('admin')" style="display:none">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Admin Panel
+        <span id="adminNavLabel">Admin Panel</span>
         <span class="nav-badge" id="adminBadge">!</span>
       </div>
       <div class="nav-item" onclick="navTo('affiliate')" id="affiliateNavItem">
@@ -2085,6 +2091,10 @@ tbody td{padding:13px 16px;font-size:14px;}
 .from-admin .tt-time { text-align: left; padding-left: 2px; }
 .from-user  .tt-time { text-align: right; padding-right: 2px; }
 </style>
+      <!-- CCR AGENT DASHBOARD (populated by ccr_agent.js) -->
+      <div class="page-section" id="sec-ccr-agent"></div>
+
+      <!-- WALLET -->
       <div class="page-section" id="sec-wallet">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;" class="wallet-top-grid">
           <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-label">Current Balance</div><div class="stat-val" id="wallet-balance">KES 0</div><div class="stat-sub">Available to spend</div></div>
@@ -2520,6 +2530,12 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
 
           <div class="tbl-wrap" id="ccrCommissionsTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading commissions…</span></div></div>
+
+          <div class="sec-hd" style="flex-wrap:wrap;gap:12px;margin-top:28px;">
+            <div><div class="sec-title" style="font-size:14px;">PAYOUT REQUESTS</div><div class="sec-sub">Agents can request their pending balance once every 7 days — review and approve or reject here</div></div>
+            <button class="btn-secondary" onclick="loadCCRPayoutRequests()">↻ Refresh</button>
+          </div>
+          <div class="tbl-wrap" id="ccrPayoutRequestsTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading payout requests…</span></div></div>
         </div>
 
       </div>
@@ -3139,11 +3155,23 @@ function togglePass(inputId, btn) {
   btn.style.color = show ? '#3dd44a' : '';
 }
 
-const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT', affiliate:'REFER & EARN', academy:'CREATOR ACADEMY', connect:'ENDAVIRAL MARKETPLACE' };
+const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT', affiliate:'REFER & EARN', academy:'CREATOR ACADEMY', connect:'ENDAVIRAL MARKETPLACE', 'ccr-agent':'MY EARNINGS' };
 
 function navTo(page) {
-  // Guard: only admins can navigate to the admin panel
-  if (page === 'admin' && (currentUser?.role !== 'admin')) {
+  // Re-applied on every navigation (see ccr_agent.js) since we don't own
+  // auth.js's login flow — this is the one hook point guaranteed to run
+  // after currentUser is populated, whatever auth.js's exact timing is.
+  if (typeof applyCCRNavVisibility === 'function') applyCCRNavVisibility();
+
+  // Guard: admins get the full admin panel; CCR agents get in too, but
+  // applyCCRAdminTabRestrictions() below hides every tab except Support
+  // and Create Order for them.
+  if (page === 'admin' && !(currentUser?.role === 'admin' || currentUser?.is_ccr_agent)) {
+    toast('Access denied', 'error');
+    return;
+  }
+  // Guard: My Earnings is CCR-agent-only
+  if (page === 'ccr-agent' && !(currentUser?.is_ccr_agent)) {
     toast('Access denied', 'error');
     return;
   }
@@ -3160,19 +3188,32 @@ function navTo(page) {
   if (page === 'tickets') loadTickets();
   if (page === 'wallet') loadWalletPage();
   if (page === 'admin') {
-    // Reload whichever sub-tab is actually on-screen right now — "Users"
-    // the first time the panel is ever opened this session, or whatever
-    // the admin last clicked into if they navigated away and back.
-    // Still only ever touches the DB for ONE tab's worth of data, never
-    // all of them, the way the old eager-load-everything version did.
+    // CCR-only agents (not full admins) only ever see Support + Create
+    // Order — every other admin tab (Users, Stats, Providers, Payouts,
+    // Academy, Connect, CCR Agents...) is hidden here.
+    if (typeof applyCCRAdminTabRestrictions === 'function') applyCCRAdminTabRestrictions();
+
+    const isFullAdmin = currentUser?.role === 'admin';
     const activeTabEl = document.querySelector('.admin-tab.active');
     const match = activeTabEl?.getAttribute('onclick')?.match(/adminTab\('([^']+)'/);
-    adminTab(match ? match[1] : 'users', activeTabEl || document.querySelector('.admin-tab'));
+    let tabName = match ? match[1] : (isFullAdmin ? 'users' : 'support');
+    if (!isFullAdmin && typeof CCR_ALLOWED_ADMIN_TABS !== 'undefined' && !CCR_ALLOWED_ADMIN_TABS.includes(tabName)) {
+      tabName = 'support';
+    }
+    // Reload whichever sub-tab is actually on-screen right now — "Users"
+    // the first time the panel is ever opened this session (or "Support"
+    // for a CCR-only agent), or whatever was last clicked if navigating
+    // away and back. Still only ever touches the DB for ONE tab's worth
+    // of data, never all of them, the way the old eager-load-everything
+    // version did.
+    const fallbackTabEl = [...document.querySelectorAll('.admin-tab')].find(t => t.style.display !== 'none');
+    adminTab(tabName, activeTabEl || fallbackTabEl);
   }
   if (page === 'account') { initAccountPage(); }
   if (page === 'affiliate') { if (typeof initAffiliatePage === 'function') initAffiliatePage(); }
   if (page === 'academy') { if (typeof initAcademyPage === 'function') initAcademyPage(); }
   if (page === 'connect') { if (typeof initConnectPage === 'function') initConnectPage(); }
+  if (page === 'ccr-agent') { if (typeof initCCRAgentPage === 'function') initCCRAgentPage(); }
   if (page === 'dashboard') { _maybeHideAffBanner(); }
 }
 
@@ -3880,6 +3921,7 @@ function resetDeposit() {
 <script src="admin.js"></script>
 <script src="admin_affiliate_payouts.js"></script>
 <script src="admin_ccr.js"></script>
+<script src="ccr_agent.js"></script>
 <script src="admin_academy_stats.js"></script>
 <script src="admin_connect_stats.js"></script>
 <script src="account.js"></script>

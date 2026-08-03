@@ -321,16 +321,28 @@ function initApp() {
   const name = u.name || u.username || u.email || 'User';
   document.getElementById('sbUsername').textContent = name;
   document.getElementById('sbAvatar').textContent = name.charAt(0).toUpperCase();
-  document.getElementById('sbRole').textContent = u.role === 'admin' ? '👑 Admin' : 'User';
-  if (u.role === 'admin') {
+  document.getElementById('sbRole').textContent = u.role === 'admin' ? '👑 Admin' : (u.is_ccr_agent ? '🎧 Support' : 'User');
+  const isAdmin = u.role === 'admin';
+  const isCCR = !!u.is_ccr_agent;
+  if (isAdmin || isCCR) {
     document.getElementById('adminNavSection').style.display = '';
     document.getElementById('adminNavItem').style.display = '';
+    // CCR-only agents only get Support + Create Order inside this panel
+    // (enforced in navTo()/applyCCRAdminTabRestrictions in ccr_agent.js)
+    // — relabel so "Admin Panel" doesn't overstate what they can reach.
+    const label = document.getElementById('adminNavLabel');
+    if (label) label.textContent = isAdmin ? 'Admin Panel' : 'Support Panel';
   } else {
     // Belt-and-suspenders: ensure admin nav and page are completely hidden for non-admins
     document.getElementById('adminNavSection').style.display = 'none';
     document.getElementById('adminNavItem').style.display = 'none';
     document.getElementById('sec-admin').style.display = 'none';
   }
+  // CCR agents (see ccr_agent.js) get the full normal-user platform plus a
+  // "My Earnings" nav item — called here so it's correct the moment the
+  // session is established, not just on the next navTo() (navTo also
+  // calls it as a backup in case this file's timing ever changes).
+  if (typeof applyCCRNavVisibility === 'function') applyCCRNavVisibility();
   loadDashboard();
   // loadServices is cache-aware (15-min TTL in index.html) -- will skip
   // the network fetch if the catalog is already warm. Safe to call here.

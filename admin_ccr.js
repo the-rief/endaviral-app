@@ -8,11 +8,13 @@
 
 let _ccrAgentsCache = [];
 let _ccrCommissionsCache = [];
+let _ccrPayoutRequestsCache = [];
 let _ccrUsersCache = []; // for the "assign role" user picker
 
 function ccrAdminInit() {
   loadCCRAgents();
   loadCCRCommissions();
+  loadCCRPayoutRequests();
 }
 
 // ─── Agents list ────────────────────────────────────────────────────────────
@@ -208,5 +210,82 @@ async function ccrPayCommission(commissionId) {
     toast(`Paid — new wallet balance ${fmtKES(res.new_wallet_balance)}`, 'success');
     loadCCRAgents();
     loadCCRCommissions();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ─── Payout requests (agent-initiated, weekly) ─────────────────────────────
+
+async function loadCCRPayoutRequests() {
+  const el = document.getElementById('ccrPayoutRequestsTable');
+  if (!el) return;
+  el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading payout requests…</span></div>';
+  try {
+    const rows = await api('/admin/ccr/payout-requests?limit=200');
+    _ccrPayoutRequestsCache = rows || [];
+    renderCCRPayoutRequests();
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+  }
+}
+
+function renderCCRPayoutRequests() {
+  const el = document.getElementById('ccrPayoutRequestsTable');
+  if (!el) return;
+  if (!_ccrPayoutRequestsCache.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">💸</div><p>No payout requests yet.</p></div>';
+    return;
+  }
+  const badge = (status) => {
+    const map = {
+      pending:  ['var(--navy)', 'var(--muted)'],
+      paid:     ['rgba(61,212,74,.12)', 'var(--green)'],
+      rejected: ['rgba(255,80,80,.12)', '#ff5050'],
+    };
+    const [bg, fg] = map[status] || map.pending;
+    return `<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${bg};color:${fg};">${esc(status)}</span>`;
+  };
+  el.innerHTML = `<table>
+    <thead><tr><th>Agent</th><th>Amount</th><th>M-Pesa Phone</th><th>Requested</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${_ccrPayoutRequestsCache.map(r => `
+      <tr>
+        <td><strong>${esc(r.agent_name || '—')}</strong><div style="font-size:12px;color:var(--muted);">${esc(r.agent_email || '')}</div></td>
+        <td style="color:var(--green);">${fmtKES(r.amount_kes)}</td>
+        <td>${esc(r.mpesa_phone || '—')}</td>
+        <td style="font-size:12px;color:var(--muted);">${r.requested_at ? new Date(r.requested_at).toLocaleString() : '—'}</td>
+        <td>${badge(r.status)}</td>
+        <td>
+          ${r.status === 'pending' ? `
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="action-btn" onclick="ccrApprovePayoutRequest('${esc(r.id)}')">Approve</button>
+              <button class="action-btn danger" onclick="ccrRejectPayoutRequest('${esc(r.id)}')">Reject</button>
+            </div>` : (r.admin_note ? `<span style="font-size:12px;color:var(--muted);">${esc(r.admin_note)}</span>` : '—')}
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+async function ccrApprovePayoutRequest(requestId) {
+  if (!confirm('Approve this payout? This credits the agent\'s wallet immediately and cannot be undone.')) return;
+  try {
+    const res = await api(`/admin/ccr/payout-requests/${requestId}/approve`, { method: 'POST' });
+    toast(`Paid ${fmtKES(res.amount_paid_kes)} — new wallet balance ${fmtKES(res.new_wallet_balance)}`, 'success');
+    loadCCRAgents();
+    loadCCRCommissions();
+    loadCCRPayoutRequests();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function ccrRejectPayoutRequest(requestId) {
+  const note = prompt('Reason for rejecting this payout request:');
+  if (note === null) return;
+  if (!note.trim()) { toast('A reason is required', 'error'); return; }
+  try {
+    await api(`/admin/ccr/payout-requests/${requestId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ note: note.trim() }),
+    });
+    toast('Payout request rejected', 'success');
+    loadCCRPayoutRequests();
   } catch (e) { toast(e.message, 'error'); }
 }
