@@ -528,5 +528,21 @@ function copyTempPassword() {
   });
 }
 
-if (token && currentUser) { initApp(); }
+if (token && currentUser) {
+  initApp(); // paint immediately with the cached session — no flash of the login screen
+  // currentUser above is a localStorage snapshot from this user's LAST
+  // login. If an admin granted (or revoked) their CCR role, changed
+  // is_admin, or their wallet balance moved since then, none of that is
+  // reflected until this refresh lands — this is the fix for "I assigned
+  // the CCR role but the agent still can't see the Support panel": they
+  // were logged in (or had a cached session) from before the assignment.
+  // Non-fatal if it fails — the cached session still works, just possibly
+  // stale until their next real login.
+  api('/auth/me').then(fresh => {
+    if (!fresh) return;
+    currentUser = { ...currentUser, ...fresh };
+    localStorage.setItem('ev_user', JSON.stringify(currentUser));
+    initApp(); // re-run with live role / is_ccr_agent / wallet_balance
+  }).catch(() => {});
+}
 else { document.getElementById('authWrap').style.display = 'block'; document.getElementById('appWrap').style.display = 'none'; }
