@@ -2900,7 +2900,7 @@ function _checkProviderLimit(amountKes, btnId, warningElId, minKes) {
     btn.style.opacity = '0.5';
     btn.style.cursor  = 'not-allowed';
     if (warnEl) {
-      warnEl.textContent = `Minimum amount is ${fmtKES(minKes)}.`;
+      warnEl.textContent = `Minimum amount is ${fmtKES(minKes)}. ADD QUANTITY.`;
       warnEl.style.display = 'block';
     }
     return false;
