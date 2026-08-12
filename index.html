@@ -2114,7 +2114,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div class="modal-field"><label>Custom Amount (KES)</label><input type="number" id="depAmount" value="500" min="20" oninput="onDepAmtInput()"/></div>
               <div class="big-amt"><span class="lbl">You're depositing</span><span class="val" id="depBigAmt">KES 500</span></div>
               <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="depPhone" placeholder="07XX XXX XXX"/></div></div>
-              <div id="depProviderWarn" style="display:none;background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.35);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:#ff9800;margin-bottom:10px;line-height:1.5;"></div>
+              <div id="depProviderWarn" style="display:none;font-size:11px;font-weight:500;color:#ff9800;margin-bottom:8px;line-height:1.4;"></div>
               <button class="btn-primary" id="depBtn" onclick="submitDeposit()">📱 SEND STK PUSH</button>
               <div class="trust-row">
                 <div class="trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Secured by Safaricom</div>
@@ -2705,11 +2705,6 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="modal-field"><label>Quantity</label><input type="number" id="omQty" placeholder="1000" oninput="calcOrderCost()"/></div>
       <div class="cost-preview"><span class="cost-lbl">Total Cost</span><span class="cost-val" id="omCost">KES 0</span></div>
       <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="omPhone" placeholder="07XX XXX XXX"/></div></div>
-      <div class="trust-row" style="margin-bottom:16px;">
-        <div class="trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Secured by Safaricom</div>
-        <div class="trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Pay per order</div>
-        <div class="trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Instant delivery</div>
-      </div>
       <details class="order-tips" style="margin-bottom:10px;">
         <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--green);letter-spacing:.5px;list-style:none;display:flex;align-items:center;gap:6px;user-select:none;">
           <span style="font-size:14px;">💡</span> HOW TO ORDER CORRECTLY <span style="margin-left:auto;font-size:10px;color:var(--muted);">Tap to expand</span>
@@ -2738,7 +2733,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closeOrderModal()">Cancel</button>
         <div style="flex:1;">
-          <div id="omProviderWarn" style="display:none;background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.35);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:#ff9800;margin-bottom:8px;line-height:1.5;"></div>
+          <div id="omProviderWarn" style="display:none;font-size:11px;font-weight:500;color:#ff9800;margin-bottom:8px;line-height:1.4;"></div>
           <button class="btn-primary" id="placeOrderBtn" onclick="placeOrder()" style="margin-top:0;width:100%;">📱 PAY &amp; ORDER</button>
         </div>
       </div>
@@ -2905,7 +2900,7 @@ function _checkProviderLimit(amountKes, btnId, warningElId, minKes) {
     btn.style.opacity = '0.5';
     btn.style.cursor  = 'not-allowed';
     if (warnEl) {
-      warnEl.textContent = `⚠️ Minimum amount is ${fmtKES(minKes)}.`;
+      warnEl.textContent = `Minimum amount is ${fmtKES(minKes)}.`;
       warnEl.style.display = 'block';
     }
     return false;
