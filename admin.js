@@ -217,6 +217,265 @@ function renderAdminServices() {
     </div>` : ''}`;
 }
 
+/* ══════════════════ BUSINESS HEALTH SCORE (global-standard composite) ══════════════════
+ * Answers "is the business winning or losing" in one glance by rolling five
+ * standard operator/investor signals into a single 0–100 score:
+ *   Growth (WoW sales)  30%  — is momentum up or down
+ *   Net Margin          25%  — profit ÷ sales
+ *   Retention            20%  — % of payers who order 2+ times
+ *   LTV : CAC            15%  — spend-to-date per payer vs. cost to acquire
+ *                                one (3x+ is the standard "healthy" bar)
+ *   Cash Runway          10%  — days until the provider panel balance
+ *                                (the thing that actually blocks orders)
+ *                                runs dry at the current burn rate
+ * Pulls from endpoints already used elsewhere on this tab (snapshot +
+ * trends) — no new backend endpoints required. Cached separately so this
+ * banner can refresh independently of the heavier panels below it.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+let _bizHealthCacheTs = 0;
+const BIZ_HEALTH_TTL = 180 * 1000;
+
+function _clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function _healthLabel(score) {
+  if (score >= 75) return { text: 'Thriving',         emoji: '🟢', color: 'var(--green)' };
+  if (score >= 50) return { text: 'Stable & Growing',  emoji: '🟢', color: 'var(--green)' };
+  if (score >= 30) return { text: 'Cooling Off',        emoji: '🟡', color: 'var(--orange)' };
+  return               { text: 'At Risk',                emoji: '🔴', color: 'var(--red)' };
+}
+
+function _healthSubMetric(label, score, valueText) {
+  const c = score >= 65 ? 'var(--green)' : score >= 40 ? 'var(--orange)' : 'var(--red)';
+  return `<div style="flex:1;min-width:130px;">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">${label}</div>
+    <div style="font-size:15px;font-weight:800;color:var(--white);margin-bottom:6px;">${valueText}</div>
+    <div style="height:5px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${_clamp(score,0,100)}%;background:${c};border-radius:4px;"></div></div>
+  </div>`;
+}
+
+async function loadBusinessHealth(force = false) {
+  const now = Date.now();
+  if (!force && _bizHealthCacheTs > 0 && (now - _bizHealthCacheTs) < BIZ_HEALTH_TTL) return;
+  const el = document.getElementById('businessHealthPanel');
+  if (!el) return;
+  try {
+    const [snap, trends] = await Promise.all([
+      api('/admin/stats/snapshot'),
+      api('/admin/stats/trends?days=30'),
+    ]);
+    _bizHealthCacheTs = Date.now();
+
+    const g        = trends.growth || {};
+    const burn      = trends.balance_burn || {};
+    const salesWow  = g.sales_wow_pct;
+    const netMargin = snap.net_margin_pct ?? 0;
+    const repeatRate = snap.repeat_rate_pct ?? 0;
+    const cac = snap.cac_kes;
+    const clv = snap.clv_kes ?? 0;
+    const ltvCac = (cac && cac > 0) ? (clv / cac) : null;
+
+    const growthScore    = (salesWow === null || salesWow === undefined) ? 50 : _clamp(50 + salesWow * 2, 0, 100);
+    const marginScore     = _clamp(netMargin * 2, 0, 100);
+    const retentionScore  = _clamp(repeatRate * 2.5, 0, 100);
+    const ltvCacScore     = ltvCac === null ? 50 : _clamp((ltvCac / 3) * 100, 0, 100);
+    let runwayScore = 100;
+    if (burn.burn_usd_per_day > 0 && burn.days_until_empty !== null && burn.days_until_empty !== undefined) {
+      runwayScore = burn.days_until_empty <= 3 ? 10 : burn.days_until_empty <= 7 ? 40 : burn.days_until_empty <= 14 ? 70 : 100;
+    }
+
+    const overall = Math.round(
+      growthScore * 0.30 + marginScore * 0.25 + retentionScore * 0.20 + ltvCacScore * 0.15 + runwayScore * 0.10
+    );
+    const lbl = _healthLabel(overall);
+
+    const notes = [];
+    if (salesWow !== null && salesWow !== undefined) {
+      notes.push(salesWow >= 0
+        ? `Sales are up ${salesWow}% week-over-week.`
+        : `Sales are down ${Math.abs(salesWow)}% week-over-week — worth a look.`);
+    }
+    notes.push(`Net margin is ${netMargin}%${netMargin < 15 ? ' — thin, watch provider costs' : '.'}`);
+    notes.push(`${repeatRate}% of paying customers place a 2nd order${repeatRate < 20 ? ' — retention is the weak link right now' : '.'}`);
+    if (ltvCac !== null) {
+      notes.push(`LTV : CAC is ${ltvCac.toFixed(1)}x${ltvCac < 3 ? ' — below the 3x benchmark considered healthy' : ' — above the 3x benchmark, a healthy ratio'}.`);
+    }
+    if (burn.burn_usd_per_day > 0 && burn.days_until_empty !== null && burn.days_until_empty !== undefined && burn.days_until_empty <= 14) {
+      notes.push(`⚠️ Provider panel balance runs out in ~${burn.days_until_empty} day${burn.days_until_empty === 1 ? '' : 's'} at the current burn rate.`);
+    }
+
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg, rgba(61,212,74,.05), var(--card));border:1px solid ${lbl.color};border-radius:16px;padding:22px 24px;">
+        <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:center;">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="width:88px;height:88px;border-radius:50%;border:6px solid ${lbl.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <div style="text-align:center;">
+                <div style="font-size:26px;font-weight:900;color:${lbl.color};line-height:1;">${overall}</div>
+                <div style="font-size:9px;color:var(--muted);">/ 100</div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Business Health</div>
+              <div style="font-size:20px;font-weight:900;color:${lbl.color};">${lbl.emoji} ${lbl.text}</div>
+            </div>
+          </div>
+          <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:2px;">
+            ${notes.map(n => `<div style="font-size:13px;color:var(--white);line-height:1.6;">💡 ${esc(n)}</div>`).join('')}
+          </div>
+        </div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
+          ${_healthSubMetric('Growth (WoW)', growthScore, (salesWow === null || salesWow === undefined) ? '—' : `${salesWow >= 0 ? '▲' : '▼'} ${Math.abs(salesWow)}%`)}
+          ${_healthSubMetric('Net Margin', marginScore, `${netMargin}%`)}
+          ${_healthSubMetric('Retention', retentionScore, `${repeatRate}%`)}
+          ${_healthSubMetric('LTV : CAC', ltvCacScore, ltvCac === null ? '—' : `${ltvCac.toFixed(1)}x`)}
+          ${_healthSubMetric('Cash Runway', runwayScore, (burn.days_until_empty === null || burn.days_until_empty === undefined) ? 'Healthy' : `${burn.days_until_empty}d`)}
+        </div>
+      </div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't compute business health. <button class="action-btn" onclick="loadBusinessHealth(true)">Retry</button></p></div>`;
+  }
+}
+
+/* ══════════════════ BUSINESS UNITS AT A GLANCE (Affiliates/CCR/Connect/Academy) ══════════════════
+ * The Stats tab used to only show core SMM-panel numbers, so anything
+ * happening in the other three revenue/cost centres (affiliate commissions,
+ * CCR agent commissions, Connect marketplace, Creator Academy) was invisible
+ * unless you dug into their own tabs. This pulls a compact summary of all
+ * four in parallel — reusing the exact endpoints those tabs already call —
+ * so a single glance at Stats shows the whole business, not just the panel.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+let _bizUnitsCacheTs = 0;
+const BIZ_UNITS_TTL = 180 * 1000;
+
+function _gotoAdminTab(tabName) {
+  const btn = document.querySelector(`.admin-tab[onclick*="'${tabName}'"]`);
+  if (btn) btn.click();
+}
+
+function _bizUnitCard({ icon, title, lines, tabName, warn }) {
+  return `<div style="background:var(--card);border:1px solid ${warn ? 'rgba(229,57,53,.35)' : 'var(--border)'};border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div style="font-size:13px;font-weight:800;color:var(--white);display:flex;align-items:center;gap:8px;">${icon} ${esc(title)}</div>
+      <button class="action-btn" onclick="_gotoAdminTab('${tabName}')">Open →</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;">
+      ${lines.map(l => `<div style="display:flex;justify-content:space-between;font-size:12px;">
+        <span style="color:var(--muted);">${esc(l.label)}</span>
+        <span style="color:${l.color || 'var(--white)'};font-weight:700;">${l.value}</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+async function loadBusinessUnitsGlance(force = false) {
+  const now = Date.now();
+  if (!force && _bizUnitsCacheTs > 0 && (now - _bizUnitsCacheTs) < BIZ_UNITS_TTL) return;
+  const el = document.getElementById('businessUnitsPanel');
+  if (!el) return;
+  el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading business units…</span></div>`;
+
+  const [affR, ccrR, cnStatR, cnRevR, acStatR, acRevR] = await Promise.allSettled([
+    api('/affiliate/admin/affiliates?limit=500'),
+    api('/admin/ccr/agents'),
+    api('/connect/admin/stats'),
+    api('/connect/admin/stats/revenue?weeks=8&months=6'),
+    api('/academy/admin/stats'),
+    api('/academy/admin/stats/revenue'),
+  ]);
+  _bizUnitsCacheTs = Date.now();
+
+  const ok = (r) => (r && r.status === 'fulfilled') ? r.value : null;
+  const failed = [affR, ccrR, cnStatR, cnRevR, acStatR, acRevR].filter(r => r.status === 'rejected').length;
+
+  const aff    = ok(affR)?.affiliates || [];
+  const ccr    = ok(ccrR) || [];
+  const cnStat = ok(cnStatR) || {};
+  const cnRev  = ok(cnRevR) || {};
+  const acStat = ok(acStatR) || {};
+  const acRev  = ok(acRevR) || {};
+
+  const affActive  = aff.filter(a => (a.total_referrals || 0) > 0).length;
+  const affEarned  = aff.reduce((s, a) => s + (a.total_earned_kes || 0), 0);
+  const affPending = aff.reduce((s, a) => s + (a.pending_kes || 0), 0);
+  const affPaid    = aff.reduce((s, a) => s + (a.paid_kes || 0), 0);
+
+  const ccrActive  = ccr.filter(c => c.status === 'active').length;
+  const ccrEarned  = ccr.reduce((s, c) => s + (c.total_earned_kes || 0), 0);
+  const ccrPending = ccr.reduce((s, c) => s + (c.pending_kes || 0), 0);
+  const ccrPaid    = ccr.reduce((s, c) => s + (c.paid_kes || 0), 0);
+
+  const cnCampaigns  = cnStat.total_campaigns || 0;
+  const cnRevenue    = cnRev.total_platform_revenue_kes || 0;
+  const cnDisputes   = cnStat.open_disputes || 0;
+  const cnPendingPay = (cnRev.payout_queue || {}).pending_amount_kes || 0;
+
+  const acLearners = acStat.learners_started || 0;
+  const acActive7d = acStat.active_learners_7d || 0;
+  const acRevenue  = acRev.total_revenue_kes || 0;
+  const acGrads    = acStat.graduates || 0;
+
+  const totalPartnerCost = affEarned + ccrEarned; // cost of growth: what affiliates + CCR agents have earned, all-time
+  const totalAuxRevenue  = cnRevenue + acRevenue;  // revenue outside the core SMM panel, all-time
+
+  const warnBanner = failed
+    ? `<div style="background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#ff6b6b;">⚠️ ${failed} of 4 business units couldn't be reached — showing what loaded. <button onclick="loadBusinessUnitsGlance(true)" style="background:none;border:none;color:#ff9a3c;font-size:12px;font-weight:700;cursor:pointer;">Retry</button></div>`
+    : '';
+
+  el.innerHTML = `
+    ${warnBanner}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px;">
+      <div style="background:rgba(255,112,67,.08);border:1px solid rgba(255,112,67,.2);border-radius:12px;padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:6px;">🤝 Cost of Growth</div>
+        <div style="font-size:20px;font-weight:900;color:var(--white);">${fmtKES(totalPartnerCost)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;">Affiliate + CCR commissions, all-time</div>
+      </div>
+      <div style="background:rgba(155,107,255,.08);border:1px solid rgba(155,107,255,.2);border-radius:12px;padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9b6bff;margin-bottom:6px;">🧩 Auxiliary Revenue</div>
+        <div style="font-size:20px;font-weight:900;color:var(--white);">${fmtKES(totalAuxRevenue)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;">Connect + Academy, all-time</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">
+      ${_bizUnitCard({
+        icon: '🤝', title: 'Affiliates', tabName: 'affiliate-payouts',
+        lines: [
+          { label: 'Active affiliates', value: `${affActive} / ${aff.length}` },
+          { label: 'Total earned', value: fmtKES(affEarned), color: 'var(--green)' },
+          { label: 'Pending payout', value: fmtKES(affPending), color: affPending > 0 ? 'var(--orange)' : 'var(--white)' },
+          { label: 'Paid out', value: fmtKES(affPaid) },
+        ],
+      })}
+      ${_bizUnitCard({
+        icon: '🎧', title: 'CCR Agents', tabName: 'ccr-agents',
+        lines: [
+          { label: 'Active agents', value: `${ccrActive} / ${ccr.length}` },
+          { label: 'Total earned', value: fmtKES(ccrEarned), color: 'var(--green)' },
+          { label: 'Pending payout', value: fmtKES(ccrPending), color: ccrPending > 0 ? 'var(--orange)' : 'var(--white)' },
+          { label: 'Paid out', value: fmtKES(ccrPaid) },
+        ],
+      })}
+      ${_bizUnitCard({
+        icon: '🛍️', title: 'Connect Marketplace', tabName: 'connect', warn: cnDisputes > 0,
+        lines: [
+          { label: 'Campaigns', value: cnCampaigns },
+          { label: 'Platform revenue', value: fmtKES(cnRevenue), color: 'var(--green)' },
+          { label: 'Open disputes', value: cnDisputes, color: cnDisputes > 0 ? 'var(--red)' : 'var(--white)' },
+          { label: 'Pending creator payouts', value: fmtKES(cnPendingPay), color: cnPendingPay > 0 ? 'var(--orange)' : 'var(--white)' },
+        ],
+      })}
+      ${_bizUnitCard({
+        icon: '🎓', title: 'Creator Academy', tabName: 'academy',
+        lines: [
+          { label: 'Learners started', value: acLearners },
+          { label: 'Active (7d)', value: acActive7d },
+          { label: 'Revenue', value: fmtKES(acRevenue), color: 'var(--green)' },
+          { label: 'Graduated', value: acGrads },
+        ],
+      })}
+    </div>`;
+}
+
 /* ══════════════════ EXECUTIVE SNAPSHOT (8-metric strip) ══════════════════
  * One call to GET /admin/stats/snapshot, one row of cards, always visible
  * at the top of Platform Stats regardless of which section below it a
