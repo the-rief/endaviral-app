@@ -1161,6 +1161,7 @@ async function loadAdminSupport() {
   if (!currentUser || !(currentUser.role === 'admin' || currentUser.is_ccr_agent)) return;
   const status = document.getElementById('supportFilterStatus')?.value || '';
   const type   = document.getElementById('supportFilterType')?.value || '';
+  const source = document.getElementById('supportFilterSource')?.value || '';
   const list   = document.getElementById('supportThreadList');
   if (!list) return;
   list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
@@ -1168,6 +1169,7 @@ async function loadAdminSupport() {
   let url = `/support/admin/threads?limit=60`;
   if (status) url += `&status=${status}`;
   if (type)   url += `&type=${type}`;
+  if (source) url += `&source=${source}`;
 
   try {
     const data = await api(url);
@@ -1189,12 +1191,22 @@ async function loadAdminSupport() {
       const userName = esc(t.user_name || t.user_email || '—');
       const tStatus  = esc(t.status);
       const tType    = esc(t.type);
-      return `<div class="support-thread-item" data-thread-id="${tid}" onclick="openSupportThread('${tid}')" style="padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(61,212,74,.04)'" onmouseout="this.style.background=''" >
+      const isSystem = t.source === 'system';
+      // System-raised threads get a distinct left-border + badge so they
+      // read as "our backend flagged this" at a glance, without being
+      // hidden from the default (unfiltered) queue — see support_chat.py.
+      const sourceBadge = isSystem
+        ? `<span style="font-size:9px;font-weight:700;color:#ffb347;background:rgba(255,179,71,.12);border-radius:5px;padding:2px 6px;white-space:nowrap;">⚙️ SYSTEM</span>`
+        : '';
+      return `<div class="support-thread-item" data-thread-id="${tid}" onclick="openSupportThread('${tid}')" style="padding:14px 16px 14px 13px;border-bottom:1px solid var(--border);border-left:3px solid ${isSystem ? '#ffb347' : 'transparent'};cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(61,212,74,.04)'" onmouseout="this.style.background=''" >
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
           <div style="font-size:12px;font-weight:700;color:var(--white);">${userName}</div>
           <span style="font-size:10px;font-weight:700;color:${sColor};white-space:nowrap;">${statusEmoji[t.status] || ''} ${tStatus.toUpperCase()}</span>
         </div>
-        <div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:4px;">${typeLabel[t.type] || tType}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <div style="font-size:11px;color:var(--green);font-weight:600;">${typeLabel[t.type] || tType}</div>
+          ${sourceBadge}
+        </div>
         <div style="font-size:11.5px;color:var(--muted);line-height:1.4;">${preview}</div>
         <div style="font-size:10px;color:#3a5570;margin-top:6px;">${t.message_count || 0} messages · ${t.created_at ? new Date(t.created_at).toLocaleDateString('en-KE') : ''}</div>
       </div>`;
@@ -1260,6 +1272,10 @@ async function openSupportThread(threadId) {
     const tStatus   = esc(t.status||'');
     const tStatusColor = statusColor[t.status] || '#7a8fad';
     const tTypeLabel = typeLabel[t.type] || tType;
+    const tIsSystem  = t.source === 'system';
+    const tSourceBadge = tIsSystem
+      ? `<span style="font-size:9px;font-weight:700;color:#ffb347;background:rgba(255,179,71,.12);border-radius:5px;padding:2px 7px;margin-left:8px;white-space:nowrap;">⚙️ AUTO-RAISED — no customer reply expected</span>`
+      : '';
 
     // linked order fields
     const lo = t.linked_order;
@@ -1289,7 +1305,7 @@ async function openSupportThread(threadId) {
           <div style="font-size:13px;font-weight:800;color:var(--white);">${userName}
             <span style="font-size:11px;color:var(--muted);font-weight:500;margin-left:8px;">${userEmail}</span>
           </div>
-          <div style="font-size:11px;color:var(--green);font-weight:600;margin-top:2px;">${tTypeLabel} · <span style="color:${tStatusColor}">${tStatus.toUpperCase()}</span></div>
+          <div style="font-size:11px;color:var(--green);font-weight:600;margin-top:2px;">${tTypeLabel} · <span style="color:${tStatusColor}">${tStatus.toUpperCase()}</span>${tSourceBadge}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px;">Wallet: KES ${(t.user?.wallet_balance||0).toFixed(0)} · Member since ${t.user?.member_since ? new Date(t.user.member_since).toLocaleDateString('en-KE') : '—'}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;">

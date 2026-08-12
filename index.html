@@ -2381,7 +2381,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="sec-hd">
             <div>
               <div class="sec-title">SUPPORT INBOX</div>
-              <div class="sec-sub">User support tickets — wrong orders, delays & general issues</div>
+              <div class="sec-sub">User support tickets — wrong orders, delays & general issues, plus ⚙️ auto-raised system alerts</div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
               <select id="supportFilterStatus" onchange="loadAdminSupport()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;">
@@ -2396,6 +2396,11 @@ tbody td{padding:13px 16px;font-size:14px;}
                 <option value="wrong_order">📦 Wrong Order</option>
                 <option value="delay">⏳ Delay</option>
                 <option value="other">💬 Other</option>
+              </select>
+              <select id="supportFilterSource" onchange="loadAdminSupport()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;">
+                <option value="">Customer + System</option>
+                <option value="customer">🧑 Customer only</option>
+                <option value="system">⚙️ System only</option>
               </select>
               <button class="btn-secondary" onclick="loadAdminSupport()">↻ Refresh</button>
             </div>
@@ -2512,7 +2517,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <!-- ══ CCR AGENTS ══ -->
         <div class="admin-panel" id="ap-ccr-agents">
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
-            <div><div class="sec-title">🎧 CCR AGENTS</div><div class="sec-sub">Assign the customer-care role, set commission %, and pay out monthly earnings</div></div>
+            <div><div class="sec-title">🎧 CCR AGENTS</div><div class="sec-sub">Assign the customer-care role, set commission %, and pay out daily earnings</div></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button class="btn-secondary" onclick="ccrOpenAssign()">+ Assign Role</button>
               <button class="btn-secondary" onclick="loadCCRAgents();loadCCRCommissions();">↻ Refresh</button>
@@ -2522,10 +2527,10 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="tbl-wrap" id="ccrAgentsTable" style="margin-bottom:28px;"><div class="loading-spinner"><div class="spinner"></div><span>Loading CCR agents…</span></div></div>
 
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;margin-top:8px;">
-            <div><div class="sec-title" style="font-size:14px;">MONTHLY COMMISSIONS</div><div class="sec-sub">Generates each active agent's % of total platform profit for a month</div></div>
+            <div><div class="sec-title" style="font-size:14px;">DAILY COMMISSIONS</div><div class="sec-sub">Generates each active agent's % of total platform profit for a day — only for agents who actually logged in that day — run once daily (e.g. via a nightly cron for the day that just closed) so pending earnings keep growing</div></div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-              <input type="month" id="ccrPeriodInput" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;"/>
-              <button class="btn-primary" style="margin-top:0;" onclick="ccrGenerateCommissions()">Generate for Month</button>
+              <input type="date" id="ccrPeriodInput" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;"/>
+              <button class="btn-primary" style="margin-top:0;" onclick="ccrGenerateCommissions()">Generate for Day</button>
             </div>
           </div>
 
@@ -2550,7 +2555,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div style="font-size:18px;font-weight:800;">🎧 Assign CCR Role</div>
       <button onclick="ccrCloseAssign()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;">&times;</button>
     </div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Pick a user and set their commission rate. They'll start earning a share of total platform profit once you generate commissions for a month.</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Pick a user and set their commission rate. They'll start earning a share of total platform profit once you generate commissions for a day.</div>
 
     <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:1px;">USER *</label>
     <select id="ccrAssignUserSelect" style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;color:var(--white);margin-bottom:14px;outline:none;font-family:'Montserrat',sans-serif;"></select>

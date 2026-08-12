@@ -2,15 +2,19 @@
  * What a Customer Care Rep sees, on top of the full normal-user platform
  * they already have (New Order, Orders, Wallet, Academy, Marketplace,
  * Refer & Earn — all unrestricted): a "My Earnings" nav item and page for
- * their commission, plus admin-panel access to the Support ticket queue
- * (granted server-side by get_support_staff in auth.py, not by anything
- * in this file).
+ * their commission, plus admin-panel access to the Support ticket queue,
+ * Create Order for Customer, and All Orders (granted server-side by
+ * get_support_staff in auth.py, not by anything in this file — the
+ * CCR_ALLOWED_ADMIN_TABS list below only controls which tab *buttons*
+ * are visible; the backend is the real gate).
  *
  * Depends on: api(), toast(), fmtKES(), esc(), currentUser (globals from
  * index.html / auth.js)
  * ══════════════════════════════════════════════════════════════════════ */
 
 let _ccrDashboardCache = null;
+let _ccrCalendarMonth = null;   // "YYYY-MM" currently displayed
+let _ccrCalendarCache = null;   // { month, commissions, days_worked, month_total_kes }
 
 /**
  * Called from auth.js's initApp() the moment a session is established
@@ -30,12 +34,14 @@ function applyCCRNavVisibility() {
 }
 
 // Admin-panel sub-tabs a CCR-only agent (not also a full admin) is allowed
-// to see: the ticket queue (support_chat.py, gated by get_support_staff)
-// and "Create Order for Customer" (orders.py's target_user_id path, now
-// also gated to admin OR active CCR agent). Everything else in the admin
-// panel — Users, All Orders, Services, Providers, Stats, Payouts, Academy,
-// Connect, CCR Agents itself — stays admin-only.
-const CCR_ALLOWED_ADMIN_TABS = ['support', 'create-order'];
+// to see: the ticket queue (support_chat.py, gated by get_support_staff),
+// "Create Order for Customer" (orders.py's target_user_id path), and
+// "All Orders" (admin.py's GET /admin/orders — same get_support_staff
+// gate) so an agent can look up any customer's order status/history while
+// working a ticket without needing a full admin to do it for them.
+// Everything else in the admin panel — Users, Services, Providers, Stats,
+// Payouts, Academy, Connect, CCR Agents itself — stays admin-only.
+const CCR_ALLOWED_ADMIN_TABS = ['support', 'create-order', 'allorders'];
 
 /**
  * Called from navTo() every time the admin page is opened. Admins are
@@ -65,6 +71,10 @@ async function initCCRAgentPage() {
     const data = await api('/ccr/dashboard');
     _ccrDashboardCache = data;
     renderCCRAgentPage();
+    // Calendar defaults back to the current month every time the page
+    // (re)loads — matches "Refresh" resetting to today rather than
+    // leaving the agent stranded on whatever month they last paged to.
+    loadCCRCalendar(new Date().toISOString().slice(0, 7));
   } catch (e) {
     el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
   }
@@ -117,8 +127,8 @@ function renderCCRAgentPage() {
         <div class="tbl-wrap">${renderCCRPayoutHistory(d.payout_requests)}</div>
       </div>
       <div>
-        <div class="sec-title" style="font-size:14px;margin-bottom:14px;">COMMISSION HISTORY</div>
-        <div class="tbl-wrap">${renderCCROwnCommissions(d.commissions)}</div>
+        <div class="sec-title" style="font-size:14px;margin-bottom:14px;">EARNINGS CALENDAR</div>
+        <div id="ccrCalendarWrap"><div class="loading-spinner"><div class="spinner"></div><span>Loading calendar…</span></div></div>
       </div>
     </div>
   `;
@@ -129,7 +139,7 @@ function renderCCROwnCommissions(commissions) {
     return `<div class="empty-state" style="padding:20px;"><div class="icon">🧾</div><p>No commissions generated yet.</p></div>`;
   }
   return `<table>
-    <thead><tr><th>Month</th><th>Amount</th><th>Status</th></tr></thead>
+    <thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
     <tbody>${commissions.map(c => {
       const paid = c.status === 'paid';
       return `
@@ -141,6 +151,92 @@ function renderCCROwnCommissions(commissions) {
     }).join('')}
     </tbody>
   </table>`;
+}
+
+// ─── Earnings calendar ──────────────────────────────────────────────────────
+// "My Earnings" no longer just lists commission rows chronologically — it
+// shows a real month grid so an agent can see at a glance which days they
+// worked (and what they made) vs which days have a gap. Backed by
+// GET /ccr/commissions?month=YYYY-MM (app/routers/ccr.py), which returns
+// only that agent's own rows for one calendar month.
+
+async function loadCCRCalendar(monthKey) {
+  const el = document.getElementById('ccrCalendarWrap');
+  if (!el) return;
+  el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading calendar…</span></div>';
+  try {
+    const data = await api(`/ccr/commissions?month=${encodeURIComponent(monthKey)}`);
+    _ccrCalendarMonth = data.month;
+    _ccrCalendarCache = data;
+    renderCCRCalendar();
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+  }
+}
+
+function ccrCalendarShiftMonth(delta) {
+  if (!_ccrCalendarMonth) return;
+  const [y, m] = _ccrCalendarMonth.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  const nextKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  loadCCRCalendar(nextKey);
+}
+
+function renderCCRCalendar() {
+  const el = document.getElementById('ccrCalendarWrap');
+  if (!el || !_ccrCalendarCache) return;
+
+  const monthKey = _ccrCalendarMonth;
+  const [y, m] = monthKey.split('-').map(Number);
+  const firstOfMonth = new Date(Date.UTC(y, m - 1, 1));
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  // ISO 8601: weeks start on Monday, everywhere except the US and a
+  // handful of others — JS's getUTCDay() is Sun=0..Sat=6, so shift it
+  // to Mon=0..Sun=6.
+  const startWeekday = (firstOfMonth.getUTCDay() + 6) % 7;
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const monthLabel = firstOfMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+  const byDay = {};
+  (_ccrCalendarCache.commissions || []).forEach(c => { byDay[c.period_key] = c; });
+
+  let cells = '';
+  for (let i = 0; i < startWeekday; i++) cells += `<div></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayKey = `${monthKey}-${String(d).padStart(2, '0')}`;
+    const c = byDay[dayKey];
+    const isToday = dayKey === todayKey;
+    const isFuture = dayKey > todayKey;
+    if (c) {
+      const paid = c.status === 'paid';
+      cells += `
+        <div style="border:1px solid ${isToday ? 'var(--green)' : 'var(--border)'};border-radius:8px;padding:6px 4px;min-height:56px;background:${paid ? 'rgba(61,212,74,.14)' : 'rgba(61,212,74,.06)'};">
+          <div style="font-size:11px;color:var(--muted);">${d}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--green);margin-top:4px;">${fmtKES(c.commission_amount_kes)}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:1px;">${paid ? '✓ paid' : 'pending'}</div>
+        </div>`;
+    } else {
+      cells += `
+        <div style="border:1px solid var(--border);border-radius:8px;padding:6px 4px;min-height:56px;opacity:${isFuture ? '0.35' : '0.55'};">
+          <div style="font-size:11px;color:var(--muted);">${d}</div>
+          ${isFuture ? '' : '<div style="font-size:9px;color:var(--muted);margin-top:8px;">not worked</div>'}
+        </div>`;
+    }
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <button class="btn-secondary" style="padding:4px 12px;" onclick="ccrCalendarShiftMonth(-1)">‹</button>
+      <div style="font-weight:800;font-size:14px;">${monthLabel}</div>
+      <button class="btn-secondary" style="padding:4px 12px;" onclick="ccrCalendarShiftMonth(1)">›</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">${_ccrCalendarCache.days_worked} day(s) worked — <strong style="color:var(--green);">${fmtKES(_ccrCalendarCache.month_total_kes)}</strong> this month</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:10px;color:var(--muted);text-align:center;margin-bottom:4px;">
+      <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:18px;">${cells}</div>
+    <div class="tbl-wrap">${renderCCROwnCommissions(_ccrCalendarCache.commissions)}</div>
+  `;
 }
 
 function renderCCRPayoutHistory(requests) {

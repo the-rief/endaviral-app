@@ -12,6 +12,12 @@ let _ccrPayoutRequestsCache = [];
 let _ccrUsersCache = []; // for the "assign role" user picker
 
 function ccrAdminInit() {
+  const periodInput = document.getElementById('ccrPeriodInput');
+  // Default the date picker to today so "Generate for Day" is a one-click
+  // action for the common case (running it manually rather than via cron).
+  if (periodInput && !periodInput.value) {
+    periodInput.value = new Date().toISOString().slice(0, 10);
+  }
   loadCCRAgents();
   loadCCRCommissions();
   loadCCRPayoutRequests();
@@ -154,7 +160,7 @@ async function ccrGenerateCommissions() {
       body: JSON.stringify({ period_key: periodKey }),
     });
     toast(
-      `${res.period_key}: platform profit ${fmtKES(res.platform_profit_kes)} — ${res.generated} agent(s) paid, ${res.skipped} already accrued`,
+      `${res.period_key}: daily profit ${fmtKES(res.platform_profit_kes)} — ${res.generated} agent(s) paid, ${res.skipped} already accrued, ${res.skipped_no_login || 0} didn't log in`,
       'success'
     );
     loadCCRAgents();
@@ -185,7 +191,7 @@ function renderCCRCommissions() {
     return;
   }
   el.innerHTML = `<table>
-    <thead><tr><th>Agent</th><th>Period</th><th>Profit</th><th>Rate</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Agent</th><th>Date</th><th>Profit</th><th>Rate</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>${_ccrCommissionsCache.map(c => {
       const paid = c.status === 'paid';
       return `
