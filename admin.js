@@ -23,7 +23,7 @@ function adminTab(tab, el) {
   if (tab === 'users') loadAdminUsers();
   if (tab === 'allorders') loadAdminOrders();
   if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); }
-  if (tab === 'stats') { loadExecutiveSnapshot(); loadAdminStats(); loadAdminRevenue(); loadAdminTrends(); loadAdminEngagement(); }
+  if (tab === 'stats') { loadAdminCommandCenter(); }
   if (tab === 'providers') loadAdminProviders();
   if (tab === 'support') openAdminSupportTab();
   if (tab === 'create-order') initAdminCreateOrder();
@@ -476,218 +476,20 @@ async function loadBusinessUnitsGlance(force = false) {
     </div>`;
 }
 
-/* ══════════════════ EXECUTIVE SNAPSHOT (8-metric strip) ══════════════════
- * One call to GET /admin/stats/snapshot, one row of cards, always visible
- * at the top of Platform Stats regardless of which section below it a
- * stakeholder scrolls to. Deliberately separate from loadAdminStats() /
- * loadAdminRevenue() / etc — those own their own deeper drill-down views;
- * this is just the "8 numbers at a glance" summary. */
-let _adminSnapshotCacheTs = 0;
-const ADMIN_SNAPSHOT_TTL = 180 * 1000; // matches the stats auto-refresh interval
-
-async function loadExecutiveSnapshot(force = false) {
-  const now = Date.now();
-  if (!force && _adminSnapshotCacheTs > 0 && (now - _adminSnapshotCacheTs) < ADMIN_SNAPSHOT_TTL) return;
-  const el = document.getElementById('execSnapshotGrid');
-  if (!el) return;
-  try {
-    const s = await api('/admin/stats/snapshot');
-    _adminSnapshotCacheTs = Date.now();
-
-    const cacVal = s.cac_kes === null || s.cac_kes === undefined
-      ? '—'
-      : fmtKES(s.cac_kes);
-    const cacSub = s.cac_kes === null || s.cac_kes === undefined
-      ? 'no new payers this month'
-      : `${(s.cac_inputs?.new_paying_customers_this_month ?? 0)} new payer${(s.cac_inputs?.new_paying_customers_this_month === 1) ? '' : 's'} this month`;
-
-    el.innerHTML = `
-      <div class="stat-card green"><div class="stat-icon">📅</div><div class="stat-label">Today's Revenue</div><div class="stat-val">${fmtKES(s.today_revenue_kes)}</div><div class="stat-sub">profit booked today</div></div>
-      <div class="stat-card green" style="border-color:rgba(61,212,74,.6);"><div class="stat-icon">💰</div><div class="stat-label">Gross Profit</div><div class="stat-val">${fmtKES(s.gross_profit_kes)}</div><div class="stat-sub">all-time, ${s.markup_percent_used ? Math.round(s.markup_percent_used*100)+'% markup' : ''}</div></div>
-      <div class="stat-card orange"><div class="stat-icon">🏭</div><div class="stat-label">Provider Cost</div><div class="stat-val">${fmtKES(s.provider_cost_kes)}</div><div class="stat-sub">all-time, paid to provider</div></div>
-      <div class="stat-card blue"><div class="stat-icon">📐</div><div class="stat-label">Net Margin</div><div class="stat-val">${s.net_margin_pct}%</div><div class="stat-sub">profit ÷ sales</div></div>
-      <div class="stat-card blue"><div class="stat-icon">🔁</div><div class="stat-label">Repeat Customers</div><div class="stat-val">${s.repeat_rate_pct}%</div><div class="stat-sub">ordered 2+ times</div></div>
-      <div class="stat-card green"><div class="stat-icon">🧾</div><div class="stat-label">Avg. Order</div><div class="stat-val">${fmtKES(s.avg_order_value_kes)}</div><div class="stat-sub">all-time sales ÷ orders</div></div>
-      <div class="stat-card blue" title="ARPPU — spend-to-date per paying customer, not a projected forward LTV"><div class="stat-icon">💎</div><div class="stat-label">CLV</div><div class="stat-val">${fmtKES(s.clv_kes)}</div><div class="stat-sub">spend-to-date per payer</div></div>
-      <div class="stat-card orange" title="Affiliate commission accrued this month ÷ customers acquired this month — the only real acquisition cost tracked today"><div class="stat-icon">🎯</div><div class="stat-label">CAC</div><div class="stat-val">${cacVal}</div><div class="stat-sub">${cacSub}</div></div>`;
-  } catch (e) {
-    console.error('Executive snapshot load failed:', e);
-    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><p>Couldn't load the executive snapshot. <button class="action-btn" onclick="loadExecutiveSnapshot(true)">Retry</button></p></div>`;
-  }
-}
-
-let _adminStatsCacheTs = 0;
-const ADMIN_STATS_TTL  = 180 * 1000; // match the auto-refresh interval (was 30s)
-
-async function loadAdminStats(force = false) {
-  const now = Date.now();
-  if (!force && _adminStatsCacheTs > 0 && (now - _adminStatsCacheTs) < ADMIN_STATS_TTL) return;
-  const el = document.getElementById('adminStatsGrid');
-  const breakdownPanel = document.getElementById('filterBreakdownPanel');
-  try {
-    // Fetch both in parallel
-    const [statsData, breakdownData] = await Promise.all([
-      api('/admin/stats'),
-      api('/admin/stats/filter-breakdown'),
-    ]);
-    _adminStatsCacheTs = Date.now();
-
-    const s = statsData.stats || statsData;
-    const p = statsData.pricing || {};
-    const svcSummary = statsData.services || {};
-
-    // ── Main stat cards ───────────────────────────────────────────────────
-    const providerLine = s.active_provider
-      ? `<div class="stat-card" style="background:var(--card);border-color:var(--border);">
-           <div class="stat-icon">🔌</div>
-           <div class="stat-label">Active Provider</div>
-           <div class="stat-val" style="font-size:18px;">${s.active_provider}</div>
-         </div>` : '';
-
-    // ── Provider balance card logic ───────────────────────────────────────
-    const balUSD = s.panel_balance_usd;
-    const isLive = s.panel_balance_is_live;
-    const lastUpdated = s.panel_balance_last_updated;
-    let balCard = '';
-    if (balUSD !== null && balUSD !== undefined) {
-      const balNum = parseFloat(balUSD);
-      // Colour thresholds: green ≥ $10, orange $3–$10, red < $3
-      const balColor = balNum >= 10 ? 'var(--green)' : balNum >= 3 ? 'var(--orange)' : 'var(--red)';
-      const balBorder = balNum >= 10 ? 'var(--green)' : balNum >= 3 ? 'var(--orange)' : 'var(--red)';
-      const balCardClass = balNum >= 10 ? 'green' : balNum >= 3 ? 'orange' : 'red';
-      const liveTag = isLive
-        ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--green);background:rgba(61,212,74,.1);border:1px solid rgba(61,212,74,.2);padding:2px 7px;border-radius:10px;letter-spacing:.5px;">
-             <span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 2s infinite;"></span>LIVE
-           </span>`
-        : `<span style="font-size:10px;font-weight:700;color:var(--muted);background:rgba(122,143,173,.1);border:1px solid rgba(122,143,173,.2);padding:2px 7px;border-radius:10px;">CACHED</span>`;
-      const timeAgo = lastUpdated ? (() => {
-        const diff = Math.floor((Date.now() - new Date(lastUpdated)) / 1000);
-        if (diff < 60) return `${diff}s ago`;
-        if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-        return `${Math.floor(diff/3600)}h ago`;
-      })() : '';
-      const warningBar = balNum < 3
-        ? `<div style="margin-top:8px;padding:6px 10px;background:rgba(229,57,53,.12);border:1px solid rgba(229,57,53,.25);border-radius:8px;font-size:11px;color:#ff8a80;font-weight:600;">⚠️ Critical — customers cannot place orders</div>`
-        : balNum < 10
-        ? `<div style="margin-top:8px;padding:6px 10px;background:rgba(255,112,67,.10);border:1px solid rgba(255,112,67,.2);border-radius:8px;font-size:11px;color:var(--orange);font-weight:600;">⚠️ Low — top up soon</div>`
-        : '';
-      balCard = `
-        <div class="stat-card ${balCardClass}" style="border-color:${balBorder};grid-column:span 2;" title="Provider panel balance. Reduces with every order. Customers are blocked if this drops too low.">
-          <div class="stat-icon">🏦</div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-            <div class="stat-label" style="margin-bottom:0;">Panel Balance (${s.active_provider || 'Provider'})</div>
-            ${liveTag}
-          </div>
-          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
-            <div class="stat-val" id="panelBalVal" style="color:${balColor};font-size:34px;">$${balNum.toFixed(2)}</div>
-            <div style="font-size:13px;color:var(--muted);padding-bottom:4px;">USD${timeAgo ? ` · updated ${timeAgo}` : ''}</div>
-          </div>
-          ${warningBar}
-          <div style="margin-top:10px;height:4px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">
-            <div style="height:100%;width:${Math.min(100, (balNum/50)*100)}%;background:${balColor};border-radius:4px;transition:width 1s ease;"></div>
-          </div>
-          <div style="font-size:10px;color:rgba(122,143,173,.5);margin-top:4px;">bar = balance vs $50 reference</div>
-        </div>`;
-    }
-
-    el.innerHTML = `
-      <div class="stat-card green"><div class="stat-icon">💳</div><div class="stat-label">Total Sales</div><div class="stat-val">${fmtKES(s.total_sales ?? s.total_revenue ?? 0)}</div><div class="stat-sub">All paid orders</div></div>
-      <div class="stat-card green" style="border-color:rgba(61,212,74,.6);"><div class="stat-icon">💰</div><div class="stat-label">Your Revenue</div><div class="stat-val">${fmtKES(s.total_revenue ?? 0)}</div><div class="stat-sub">${s.markup_label ? s.markup_label + ' markup' : 'Profit only'}</div></div>
-      <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-label">Total Users</div><div class="stat-val">${s.total_users||s.users||0}</div></div>
-      <div class="stat-card orange"><div class="stat-icon">📦</div><div class="stat-label">Total Orders</div><div class="stat-val">${s.total_orders||s.orders||0}</div></div>
-      <div class="stat-card red"><div class="stat-icon">🔄</div><div class="stat-label">Active Orders</div><div class="stat-val">${s.active_orders||0}</div></div>
-      ${balCard}
-      ${providerLine}
-      <div class="stat-card green" title="Services your customers can currently see and order">
-        <div class="stat-icon">👁</div>
-        <div class="stat-label">Visible Services</div>
-        <div class="stat-val">${(svcSummary.visible_to_customers ?? breakdownData.visible ?? '—').toLocaleString()}</div>
-        <div class="stat-sub">of ${(svcSummary.total ?? breakdownData.total_services ?? '—').toLocaleString()} total</div>
-      </div>
-      <div class="stat-card red" title="Services hidden — not shown to customers">
-        <div class="stat-icon">🚫</div>
-        <div class="stat-label">Hidden Services</div>
-        <div class="stat-val">${(svcSummary.hidden_total ?? breakdownData.hidden_total ?? '—').toLocaleString()}</div>
-        <div class="stat-sub" style="color:rgba(229,57,53,.7);">filtered out</div>
-      </div>`;
-
-    // ── Filter breakdown panel ────────────────────────────────────────────
-    const bd = breakdownData;
-    const reasons = bd.hidden_by_reason || {};
-    const countryCount  = reasons.country_targeted  || 0;
-    const qtyCount      = reasons.min_qty_exceeded   || 0;
-    const rateCount     = reasons.rate_out_of_range  || 0;
-    const manualCount   = reasons.manually_hidden    || 0;
-
-    document.getElementById('filterSummaryCards').innerHTML = `
-      <div style="background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.2);border-radius:12px;padding:16px 18px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(229,57,53,.7);margin-bottom:6px;">🌍 Geo-Targeted</div>
-        <div style="font-size:28px;font-weight:800;color:#ff8a80;line-height:1;">${countryCount.toLocaleString()}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Country-specific services</div>
-      </div>
-      <div style="background:rgba(255,112,67,.08);border:1px solid rgba(255,112,67,.2);border-radius:12px;padding:16px 18px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,112,67,.7);margin-bottom:6px;">📊 Min Qty Too High</div>
-        <div style="font-size:28px;font-weight:800;color:var(--orange);line-height:1;">${qtyCount.toLocaleString()}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Exceed qty filter</div>
-      </div>
-      <div style="background:rgba(33,150,243,.08);border:1px solid rgba(33,150,243,.2);border-radius:12px;padding:16px 18px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(33,150,243,.7);margin-bottom:6px;">💲 Rate Out of Range</div>
-        <div style="font-size:28px;font-weight:800;color:var(--blue);line-height:1;">${rateCount.toLocaleString()}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Outside KES rate band</div>
-      </div>
-      <div style="background:rgba(122,143,173,.08);border:1px solid rgba(122,143,173,.2);border-radius:12px;padding:16px 18px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(122,143,173,.7);margin-bottom:6px;">🙈 Manually Hidden</div>
-        <div style="font-size:28px;font-weight:800;color:var(--muted);line-height:1;">${manualCount.toLocaleString()}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Hidden by admin</div>
-      </div>`;
-
-    // ── Country-by-category grid ──────────────────────────────────────────
-    const catMap = bd.country_targeted_by_category || {};
-    const samples = bd.country_targeted_samples || {};
-    const catEntries = Object.entries(catMap);
-
-    const catDetail = document.getElementById('countryFilterDetail');
-    const catGrid = document.getElementById('countryByCategoryGrid');
-
-    if (countryCount > 0 && catEntries.length > 0) {
-      catDetail.style.display = '';
-      catGrid.innerHTML = catEntries.map(([cat, count]) => {
-        const sampleList = (samples[cat] || []).slice(0, 3);
-        const sampleHtml = sampleList.length
-          ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);">
-               ${sampleList.map(n => `<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;" title="${n}">• ${n}</div>`).join('')}
-               ${(samples[cat]||[]).length > 3 ? `<div style="font-size:10px;color:rgba(122,143,173,.5);margin-top:2px;">+${(samples[cat]||[]).length - 3} more…</div>` : ''}
-             </div>`
-          : '';
-        return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-            <div style="font-size:13px;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cat}</div>
-            <div style="font-size:18px;font-weight:800;color:#ff8a80;flex-shrink:0;">${count.toLocaleString()}</div>
-          </div>
-          ${sampleHtml}
-        </div>`;
-      }).join('');
-    } else {
-      catDetail.style.display = 'none';
-    }
-
-    breakdownPanel.style.display = '';
-  } catch(e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
-    breakdownPanel.style.display = 'none';
-  }
-}
-
-
-/* ══════════════════ REVENUE: WEEKLY/MONTHLY + AFFILIATE NET (NEW) ══════════════════
- * "As a business person" view: calendar week/month sales & profit, an
- * insights list in plain English, and — the part /stats can't show — how
- * much of that profit is already spoken for by affiliate commissions, so
- * you can see what's actually left for the business.
- * ══════════════════════════════════════════════════════════════════════ */
-
-let _adminRevenueCacheTs = 0;
-const ADMIN_REVENUE_TTL = 5 * 60 * 1000;
+/* ══════════════════ BUSINESS HEALTH COMMAND CENTER ══════════════════
+ * Full "Platform Stats" tab, redone as a single command center.
+ *
+ * loadAdminCommandCenter() is the only entry point (called from adminTab()).
+ * It builds a skeleton into #ap-stats once, then fetches every stats
+ * endpoint in parallel and renders five sections — Overview, Revenue,
+ * Growth, Engagement, Services — that the user flips between instantly
+ * (no re-fetch on tab switch, only on manual refresh / TTL expiry / a
+ * day-window change on Growth or Engagement).
+ *
+ * Chart-drawing helpers (_compactKES, _miniBarChart, _sparklineSvg,
+ * _fmtShortDate, _comboChartSvg, _barChartSvg, _growthBadge) are shared
+ * by every section and unchanged in behaviour from the previous version.
+ * ══════════════════════════════════════════════════════════════════ */
 
 function _compactKES(v) {
   const abs = Math.abs(v);
@@ -725,103 +527,6 @@ function _miniBarChart(items, { key = 'net_revenue_kes', labelKey, color = '#3dd
 
   return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:${h}px;display:block;">${bars}${labels}</svg>`;
 }
-
-async function loadAdminRevenue(force = false) {
-  const now = Date.now();
-  if (!force && _adminRevenueCacheTs > 0 && (now - _adminRevenueCacheTs) < ADMIN_REVENUE_TTL) return;
-  const el = document.getElementById('adminRevenuePanel');
-  if (!el) return; // markup not present yet — safe no-op
-  el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading revenue…</span></div>`;
-
-  try {
-    const r = await api('/admin/stats/revenue?weeks=8&months=6');
-    _adminRevenueCacheTs = Date.now();
-
-    const weekly = r.weekly || [];
-    const monthly = r.monthly || [];
-    const ai = r.affiliate_impact || {};
-    const insights = r.insights || [];
-
-    const thisWeek = weekly[weekly.length - 1];
-    const lastWeek = weekly[weekly.length - 2];
-    const thisMonth = monthly[monthly.length - 1];
-    const lastMonth = monthly[monthly.length - 2];
-
-    const pct = (curr, prev) => (prev ? Math.round(((curr - prev) / prev) * 1000) / 10 : (curr ? 100 : null));
-
-    const weekCards = thisWeek ? `
-      <div class="stat-card green"><div class="stat-icon">📅</div><div class="stat-label">This Week — Sales</div><div class="stat-val">${fmtKES(thisWeek.sales_kes)}</div><div class="stat-sub">${lastWeek ? _growthBadge(pct(thisWeek.sales_kes, lastWeek.sales_kes)) + ' vs last week' : `${thisWeek.orders} orders`}</div></div>
-      <div class="stat-card green" style="border-color:rgba(61,212,74,.6);"><div class="stat-icon">💰</div><div class="stat-label">This Week — Profit</div><div class="stat-val">${fmtKES(thisWeek.revenue_kes)}</div><div class="stat-sub">${lastWeek ? _growthBadge(pct(thisWeek.revenue_kes, lastWeek.revenue_kes)) + ' vs last week' : 'before affiliate cost'}</div></div>
-      <div class="stat-card orange"><div class="stat-icon">🤝</div><div class="stat-label">This Week — Affiliate Cost</div><div class="stat-val">${fmtKES(thisWeek.affiliate_commission_kes)}</div><div class="stat-sub">owed to affiliates</div></div>
-      <div class="stat-card blue" style="border-color:rgba(33,150,243,.6);"><div class="stat-icon">🏆</div><div class="stat-label">This Week — Net to Business</div><div class="stat-val">${fmtKES(thisWeek.net_revenue_kes)}</div><div class="stat-sub">profit − affiliate cost</div></div>
-    ` : `<div class="empty-state"><p>No paid orders yet this week.</p></div>`;
-
-    const monthCards = thisMonth ? `
-      <div class="stat-card green"><div class="stat-icon">🗓️</div><div class="stat-label">This Month — Sales</div><div class="stat-val">${fmtKES(thisMonth.sales_kes)}</div><div class="stat-sub">${lastMonth ? _growthBadge(pct(thisMonth.sales_kes, lastMonth.sales_kes)) + ' vs last month' : `${thisMonth.orders} orders`}</div></div>
-      <div class="stat-card green" style="border-color:rgba(61,212,74,.6);"><div class="stat-icon">💰</div><div class="stat-label">This Month — Profit</div><div class="stat-val">${fmtKES(thisMonth.revenue_kes)}</div><div class="stat-sub">${lastMonth ? _growthBadge(pct(thisMonth.revenue_kes, lastMonth.revenue_kes)) + ' vs last month' : 'before affiliate cost'}</div></div>
-      <div class="stat-card orange"><div class="stat-icon">🤝</div><div class="stat-label">This Month — Affiliate Cost</div><div class="stat-val">${fmtKES(thisMonth.affiliate_commission_kes)}</div><div class="stat-sub">${ai.commission_pct_of_revenue_this_month || 0}% of profit</div></div>
-      <div class="stat-card blue" style="border-color:rgba(33,150,243,.6);"><div class="stat-icon">🏆</div><div class="stat-label">This Month — Net to Business</div><div class="stat-val">${fmtKES(thisMonth.net_revenue_kes)}</div><div class="stat-sub">profit − affiliate cost</div></div>
-    ` : `<div class="empty-state"><p>No paid orders yet this month.</p></div>`;
-
-    const insightsHtml = insights.map(txt => `
-      <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);">
-        <span style="font-size:16px;flex-shrink:0;">💡</span>
-        <span style="font-size:13px;color:var(--white);line-height:1.5;">${esc(txt)}</span>
-      </div>`).join('');
-
-    el.innerHTML = `
-      <div class="sec-hd" style="margin-bottom:16px;">
-        <div><div class="sec-title" style="font-size:16px;">💼 REVENUE — WEEKLY & MONTHLY</div><div class="sec-sub">What you made, and what's actually left after affiliates are paid</div></div>
-        <button class="btn-secondary" onclick="loadAdminRevenue(true)">↻ Refresh</button>
-      </div>
-
-      <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">THIS WEEK</div>
-      <div class="stats-grid" style="margin-bottom:24px;">${weekCards}</div>
-
-      <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">THIS MONTH</div>
-      <div class="stats-grid" style="margin-bottom:24px;">${monthCards}</div>
-
-      <div style="background:rgba(33,150,243,.06);border:1px solid rgba(33,150,243,.2);border-radius:12px;padding:16px 18px;margin-bottom:24px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(33,150,243,.8);margin-bottom:10px;">🤝 Affiliate Cost — All Time</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;">
-          <div><div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(ai.total_commission_owed_kes || 0)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Total owed to affiliates (accrued)</div></div>
-          <div><div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(ai.total_commission_paid_kes || 0)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Already paid out</div></div>
-          <div><div style="font-size:20px;font-weight:800;color:var(--orange);">${fmtKES((ai.total_commission_owed_kes || 0) - (ai.total_commission_paid_kes || 0))}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Accrued but not yet paid</div></div>
-        </div>
-      </div>
-
-      <div style="margin-bottom:24px;">
-        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">NET-TO-BUSINESS BY WEEK (last ${weekly.length})</div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
-          ${_miniBarChart(weekly, { key: 'net_revenue_kes', labelKey: 'week_start', color: '#3dd44a' })}
-        </div>
-      </div>
-
-      <div style="margin-bottom:24px;">
-        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">NET-TO-BUSINESS BY MONTH (last ${monthly.length})</div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
-          ${_miniBarChart(monthly, { key: 'net_revenue_kes', labelKey: 'month', color: '#3dd44a' })}
-        </div>
-      </div>
-
-      <div>
-        <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">📊 INSIGHTS</div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px 18px;">
-          ${insightsHtml}
-        </div>
-      </div>
-    `;
-  } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
-  }
-}
-
-
-/* ══════════════════ GROWTH & TRENDS (scaling analytics) ══════════════════ */
-
-let _adminTrendsCacheTs = 0;
-const ADMIN_TRENDS_TTL = 5 * 60 * 1000; // was 60s — trend/day-level data doesn't need to be that fresh
-let _adminTrendsWindow = 14;
 
 function _sparklineSvg(values, color, w = 600, h = 70) {
   if (!values.length) return '';
@@ -912,7 +617,7 @@ function _comboChartSvg(daily, { barColor = '#ff7043', lineColor = '#3dd44a', ba
     </svg>`;
 }
 
-// Bar-only chart (used for New Users — a count with no paired value metric).
+// Bar-only chart (used for New Users, DAU, avg spend — a count/value with no paired metric).
 function _barChartSvg(daily, { key = 'new_users', color = '#2196f3', label = 'new users', w = 700, h = 150 } = {}) {
   if (!daily.length) return `<div style="font-size:12px;color:var(--muted);padding:20px 0;text-align:center;">No data in this window.</div>`;
   const padTop = 18, padBottom = 22, padX = 4;
@@ -959,254 +664,612 @@ function _growthBadge(pct) {
   return `<span style="font-size:12px;font-weight:700;color:${color};">${arrow} ${Math.abs(pct)}%</span>`;
 }
 
-async function loadAdminTrends(force = false, days = null) {
-  if (days) _adminTrendsWindow = days;
-  const now = Date.now();
-  if (!force && _adminTrendsCacheTs > 0 && (now - _adminTrendsCacheTs) < ADMIN_TRENDS_TTL) return;
-  const el = document.getElementById('adminTrendsPanel');
-  if (!el) return; // markup not present yet — safe no-op
-  el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading trends…</span></div>`;
+/* ── Shared building blocks: KPI card + section panel ─────────────────── */
 
-  try {
-    const t = await api(`/admin/stats/trends?days=${_adminTrendsWindow}`);
-    _adminTrendsCacheTs = Date.now();
+function _chcKpi({ icon = '📊', label = '', value = '', sub = '', tone = 'neutral', trend = null, wide = false }) {
+  const toneMap = {
+    green:   { border: 'rgba(61,212,74,.35)',  bg: 'rgba(61,212,74,.06)',  fg: 'var(--green)' },
+    red:     { border: 'rgba(229,57,53,.35)',  bg: 'rgba(229,57,53,.06)',  fg: '#ff8a80' },
+    orange:  { border: 'rgba(255,112,67,.35)', bg: 'rgba(255,112,67,.06)', fg: 'var(--orange)' },
+    blue:    { border: 'rgba(33,150,243,.35)', bg: 'rgba(33,150,243,.06)', fg: 'var(--blue)' },
+    neutral: { border: 'var(--border)',        bg: 'var(--card)',         fg: 'var(--white)' },
+  };
+  const t = toneMap[tone] || toneMap.neutral;
+  const trendHtml = (trend !== null && trend !== undefined) ? `<div style="margin-top:6px;">${_growthBadge(trend)}</div>` : '';
+  return `
+    <div class="chc-kpi" style="grid-column:span ${wide ? 2 : 1};background:${t.bg};border:1px solid ${t.border};border-radius:14px;padding:16px 18px;">
+      <div style="font-size:19px;margin-bottom:8px;">${icon}</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">${esc(label)}</div>
+      <div style="font-size:23px;font-weight:800;color:${t.fg};line-height:1.15;">${value}</div>
+      ${sub ? `<div style="font-size:11px;color:var(--muted);margin-top:6px;">${sub}</div>` : ''}
+      ${trendHtml}
+    </div>`;
+}
 
-    const daily = t.daily || [];
-    const g = t.growth || {};
-    const funnel = t.funnel || {};
-    const topServices = t.top_services || [];
-    const customers = t.customers || {};
-    const burn = t.balance_burn || {};
-
-    // ── Burn-rate warning banner ────────────────────────────────────────────
-    let burnBanner = '';
-    if (burn.burn_usd_per_day && burn.burn_usd_per_day > 0) {
-      const critical = burn.days_until_empty !== null && burn.days_until_empty <= 3;
-      const warn = burn.days_until_empty !== null && burn.days_until_empty <= 7;
-      const bg = critical ? 'rgba(229,57,53,.10)' : warn ? 'rgba(255,112,67,.10)' : 'rgba(61,212,74,.08)';
-      const border = critical ? 'rgba(229,57,53,.3)' : warn ? 'rgba(255,112,67,.3)' : 'rgba(61,212,74,.25)';
-      const fg = critical ? '#ff8a80' : warn ? 'var(--orange)' : 'var(--green)';
-      burnBanner = `
-        <div style="background:${bg};border:1px solid ${border};border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-          <div>
-            <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${fg};margin-bottom:4px;">🔥 Panel Balance Burn Rate</div>
-            <div style="font-size:13px;color:var(--muted);">Spending ~<b style="color:${fg};">$${burn.burn_usd_per_day.toFixed(2)}/day</b>${burn.days_until_empty !== null ? ` · projected to run out in <b style="color:${fg};">${burn.days_until_empty} day${burn.days_until_empty == 1 ? '' : 's'}</b> at this pace` : ''}</div>
-          </div>
-        </div>`;
-    }
-
-    // ── Combo chart: Orders (bars) + Sales KES (line) per day ───────────────
-    const comboChart = _comboChartSvg(daily, {
-      barColor: '#ff7043',
-      lineColor: '#3dd44a',
-      barKey: 'orders',
-      valueKey: 'sales_kes',
-      barLabel: 'orders',
-      valueFmt: (v) => fmtKES(v),
-    });
-
-    const usersChart = _barChartSvg(daily, { key: 'new_users', color: '#2196f3', label: 'new users', h: 130 });
-
-    const comboCard = `
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:6px;">
-          <div>
-            <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Orders &amp; Sales — count + value per day</div>
-            <div style="display:flex;gap:14px;align-items:baseline;margin-top:4px;flex-wrap:wrap;">
-              <div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(g.this_week ? g.this_week.sales_kes : 0)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> sales/7d</span> ${_growthBadge(g.sales_wow_pct)}</div>
-              <div style="font-size:20px;font-weight:800;color:var(--white);">${g.this_week ? g.this_week.orders : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> orders/7d</span> ${_growthBadge(g.orders_wow_pct)}</div>
-            </div>
-          </div>
-          <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);">
-            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#ff7043;display:inline-block;"></span>Orders (count)</span>
-            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:2.5px;border-radius:2px;background:#3dd44a;display:inline-block;"></span>Sales KES (value)</span>
-          </div>
+function _chcPanel({ title = '', icon = '', sub = '', extra = '', body = '' }) {
+  return `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 22px;margin-bottom:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+        <div>
+          <div style="font-size:13px;font-weight:800;letter-spacing:.4px;color:var(--white);">${icon} ${esc(title)}</div>
+          ${sub ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${esc(sub)}</div>` : ''}
         </div>
-        ${comboChart}
+        ${extra}
       </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:20px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-          <div>
-            <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">New Users per day</div>
-            <div style="font-size:18px;font-weight:800;color:var(--white);margin-top:2px;">${g.this_week ? g.this_week.new_users : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> /7d</span> ${_growthBadge(g.users_wow_pct)}</div>
+      ${body}
+    </div>`;
+}
+
+/* ── State & orchestrator ──────────────────────────────────────────────── */
+
+const _chc = {
+  built: false,
+  section: 'overview',
+  loadedAt: 0,
+  trendsDays: 14,
+  engagementDays: 14,
+  data: {},
+  tickTimer: null,
+};
+const CHC_TTL = 180 * 1000; // matches previous auto-refresh cadence
+
+async function loadAdminCommandCenter(force = false) {
+  const root = document.getElementById('ap-stats');
+  if (!root) return;
+
+  if (!_chc.built) {
+    _chcBuildSkeleton(root);
+    _chc.built = true;
+  }
+
+  const now = Date.now();
+  if (!force && _chc.loadedAt && (now - _chc.loadedAt) < CHC_TTL) return;
+
+  _chcSetRefreshing(true);
+  const results = await Promise.allSettled([
+    api('/admin/stats/snapshot'),
+    api('/admin/stats'),
+    api('/admin/stats/filter-breakdown'),
+    api('/admin/stats/revenue?weeks=8&months=6'),
+    api(`/admin/stats/trends?days=${_chc.trendsDays}`),
+    api(`/admin/stats/engagement?days=${_chc.engagementDays}`),
+  ]);
+  const [snap, stats, breakdown, revenue, trends, engagement] = results;
+  _chc.data.snapshot   = snap.status === 'fulfilled' ? snap.value : null;
+  _chc.data.stats      = stats.status === 'fulfilled' ? stats.value : null;
+  _chc.data.breakdown  = breakdown.status === 'fulfilled' ? breakdown.value : null;
+  _chc.data.revenue    = revenue.status === 'fulfilled' ? revenue.value : null;
+  _chc.data.trends     = trends.status === 'fulfilled' ? trends.value : null;
+  _chc.data.engagement = engagement.status === 'fulfilled' ? engagement.value : null;
+  _chc.loadedAt = Date.now();
+
+  _chcRenderAlerts();
+  _chcRenderOverview();
+  _chcRenderRevenue();
+  _chcRenderGrowth();
+  _chcRenderEngagement();
+  _chcRenderServices();
+  _chcSetRefreshing(false);
+  _chcUpdateTimestamp();
+}
+
+function _chcBuildSkeleton(root) {
+  root.innerHTML = `
+    <style>
+      #ap-stats .chc-nav-btn { background:var(--card); color:var(--muted); border:1px solid var(--border); border-radius:10px; padding:8px 16px; font-size:12px; font-weight:700; cursor:pointer; transition:all .15s ease; white-space:nowrap; }
+      #ap-stats .chc-nav-btn:hover { color:var(--white); border-color:rgba(255,255,255,.25); }
+      #ap-stats .chc-nav-btn.active { background:var(--green); color:#04140a; border-color:var(--green); }
+      #ap-stats .chc-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
+      #ap-stats .chc-section { display:none; }
+      #ap-stats .chc-section.active { display:block; animation:chcFadeIn .25s ease; }
+      @keyframes chcFadeIn { from{opacity:0;transform:translateY(4px);} to{opacity:1;transform:translateY(0);} }
+      #ap-stats .chc-alert-chip { display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:600; }
+      #ap-stats .chc-two-col { display:grid; grid-template-columns:1.4fr 1fr; gap:16px; align-items:stretch; }
+      @media (max-width:820px){ #ap-stats .chc-two-col { grid-template-columns:1fr; } }
+    </style>
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:20px;font-weight:900;color:var(--white);">🎯 Business Health Command Center</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Revenue, growth, and engagement — everything that matters, in one place</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="chcUpdatedAt" style="font-size:11px;color:var(--muted);"></span>
+        <button class="btn-secondary" id="chcRefreshBtn" style="margin:0;padding:8px 16px;font-size:12px;" onclick="loadAdminCommandCenter(true)">⟳ Refresh</button>
+      </div>
+    </div>
+
+    <div id="chcAlerts" style="display:none;flex-wrap:wrap;gap:10px;margin-bottom:18px;"></div>
+
+    <div id="chcNav" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:16px;">
+      <button class="chc-nav-btn active" data-sec="overview" onclick="chcShowSection('overview',this)">📊 Overview</button>
+      <button class="chc-nav-btn" data-sec="revenue" onclick="chcShowSection('revenue',this)">💼 Revenue</button>
+      <button class="chc-nav-btn" data-sec="growth" onclick="chcShowSection('growth',this)">📈 Growth</button>
+      <button class="chc-nav-btn" data-sec="engagement" onclick="chcShowSection('engagement',this)">🔑 Engagement</button>
+      <button class="chc-nav-btn" data-sec="services" onclick="chcShowSection('services',this)">🧩 Services</button>
+    </div>
+
+    <div id="chcSection-overview" class="chc-section active"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+    <div id="chcSection-revenue" class="chc-section"></div>
+    <div id="chcSection-growth" class="chc-section"></div>
+    <div id="chcSection-engagement" class="chc-section"></div>
+    <div id="chcSection-services" class="chc-section"></div>
+  `;
+
+  if (_chc.tickTimer) clearInterval(_chc.tickTimer);
+  _chc.tickTimer = setInterval(_chcUpdateTimestamp, 30000);
+}
+
+function chcShowSection(name, btn) {
+  document.querySelectorAll('#ap-stats .chc-nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#ap-stats .chc-section').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  const sec = document.getElementById('chcSection-' + name);
+  if (sec) sec.classList.add('active');
+  _chc.section = name;
+}
+
+function _chcSetRefreshing(state) {
+  const btn = document.getElementById('chcRefreshBtn');
+  if (!btn) return;
+  btn.disabled = state;
+  btn.textContent = state ? '⟳ Refreshing…' : '⟳ Refresh';
+}
+
+function _chcUpdateTimestamp() {
+  const el = document.getElementById('chcUpdatedAt');
+  if (!el || !_chc.loadedAt) return;
+  const diff = Math.floor((Date.now() - _chc.loadedAt) / 1000);
+  let txt;
+  if (diff < 10) txt = 'Updated just now';
+  else if (diff < 60) txt = `Updated ${diff}s ago`;
+  else if (diff < 3600) txt = `Updated ${Math.floor(diff / 60)}m ago`;
+  else txt = `Updated ${Math.floor(diff / 3600)}h ago`;
+  el.textContent = txt;
+}
+
+/* ── Alerts strip: surfaces the handful of things that actually need action ── */
+
+function _chcRenderAlerts() {
+  const el = document.getElementById('chcAlerts');
+  if (!el) return;
+  const alerts = [];
+
+  const statsWrap = _chc.data.stats;
+  const st = statsWrap ? (statsWrap.stats || statsWrap) : null;
+  if (st) {
+    const bal = st.panel_balance_usd;
+    if (bal !== null && bal !== undefined) {
+      const balNum = parseFloat(bal);
+      if (balNum < 3) alerts.push({ tone: 'red', icon: '🚨', text: `Provider balance critical — $${balNum.toFixed(2)}. Customers cannot place orders.` });
+      else if (balNum < 10) alerts.push({ tone: 'orange', icon: '⚠️', text: `Provider balance low — $${balNum.toFixed(2)}. Top up soon.` });
+    }
+  }
+
+  const burn = (_chc.data.trends && _chc.data.trends.balance_burn) || {};
+  if (burn.days_until_empty !== null && burn.days_until_empty !== undefined) {
+    if (burn.days_until_empty <= 3) alerts.push({ tone: 'red', icon: '🔥', text: `Balance projected to run out in ${burn.days_until_empty} day${burn.days_until_empty === 1 ? '' : 's'} at current burn rate.` });
+    else if (burn.days_until_empty <= 7) alerts.push({ tone: 'orange', icon: '🔥', text: `Balance projected to run out in ${burn.days_until_empty} days at current burn rate.` });
+  }
+
+  const bd = _chc.data.breakdown || {};
+  const hiddenTotal = bd.hidden_total ?? 0;
+  const totalSvc = bd.total_services ?? 0;
+  if (totalSvc > 0 && (hiddenTotal / totalSvc) > 0.5) {
+    alerts.push({ tone: 'blue', icon: '🙈', text: `${hiddenTotal.toLocaleString()} of ${totalSvc.toLocaleString()} services are hidden from customers.` });
+  }
+
+  if (!alerts.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+  const toneColors = {
+    red:    { bg: 'rgba(229,57,53,.1)',  border: 'rgba(229,57,53,.3)',  fg: '#ff8a80' },
+    orange: { bg: 'rgba(255,112,67,.1)', border: 'rgba(255,112,67,.3)', fg: 'var(--orange)' },
+    blue:   { bg: 'rgba(33,150,243,.1)', border: 'rgba(33,150,243,.3)', fg: 'var(--blue)' },
+  };
+  el.style.display = 'flex';
+  el.innerHTML = alerts.map(a => {
+    const c = toneColors[a.tone];
+    return `<div class="chc-alert-chip" style="background:${c.bg};border:1px solid ${c.border};color:${c.fg};">${a.icon} ${esc(a.text)}</div>`;
+  }).join('');
+}
+
+/* ── Section: Overview (executive snapshot + core platform stats) ─────── */
+
+function _chcRenderOverview() {
+  const el = document.getElementById('chcSection-overview');
+  if (!el) return;
+  const s = _chc.data.snapshot;
+  const statsWrap = _chc.data.stats;
+  if (!s && !statsWrap) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load overview data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
+    return;
+  }
+
+  const st = statsWrap ? (statsWrap.stats || statsWrap) : {};
+  const svcSummary = statsWrap ? (statsWrap.services || {}) : {};
+  const bd = _chc.data.breakdown || {};
+
+  let snapshotKpis = '';
+  if (s) {
+    const cacVal = (s.cac_kes === null || s.cac_kes === undefined) ? '—' : fmtKES(s.cac_kes);
+    const cacSub = (s.cac_kes === null || s.cac_kes === undefined)
+      ? 'no new payers this month'
+      : `${(s.cac_inputs?.new_paying_customers_this_month ?? 0)} new payer${(s.cac_inputs?.new_paying_customers_this_month === 1) ? '' : 's'} this month`;
+    snapshotKpis = `
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:10px;">AT A GLANCE</div>
+      <div class="chc-kpi-grid" style="margin-bottom:24px;">
+        ${_chcKpi({ icon: '📅', label: "Today's Revenue", value: fmtKES(s.today_revenue_kes), sub: 'profit booked today', tone: 'green' })}
+        ${_chcKpi({ icon: '💰', label: 'Gross Profit (all-time)', value: fmtKES(s.gross_profit_kes), sub: s.markup_percent_used ? `${Math.round(s.markup_percent_used * 100)}% markup` : '', tone: 'green' })}
+        ${_chcKpi({ icon: '🏭', label: 'Provider Cost (all-time)', value: fmtKES(s.provider_cost_kes), sub: 'paid to provider', tone: 'orange' })}
+        ${_chcKpi({ icon: '📐', label: 'Net Margin', value: s.net_margin_pct + '%', sub: 'profit ÷ sales', tone: 'blue' })}
+        ${_chcKpi({ icon: '🔁', label: 'Repeat Customers', value: s.repeat_rate_pct + '%', sub: 'ordered 2+ times', tone: 'blue' })}
+        ${_chcKpi({ icon: '🧾', label: 'Avg. Order', value: fmtKES(s.avg_order_value_kes), sub: 'all-time sales ÷ orders', tone: 'green' })}
+        ${_chcKpi({ icon: '💎', label: 'CLV', value: fmtKES(s.clv_kes), sub: 'spend-to-date per payer', tone: 'blue' })}
+        ${_chcKpi({ icon: '🎯', label: 'CAC', value: cacVal, sub: cacSub, tone: 'orange' })}
+      </div>`;
+  }
+
+  let balCard = '';
+  const balUSD = st.panel_balance_usd;
+  if (balUSD !== null && balUSD !== undefined) {
+    const balNum = parseFloat(balUSD);
+    const isLive = st.panel_balance_is_live;
+    const lastUpdated = st.panel_balance_last_updated;
+    const balColor = balNum >= 10 ? 'var(--green)' : balNum >= 3 ? 'var(--orange)' : '#ff8a80';
+    const liveTag = isLive
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--green);background:rgba(61,212,74,.1);border:1px solid rgba(61,212,74,.2);padding:2px 7px;border-radius:10px;letter-spacing:.5px;"><span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 2s infinite;"></span>LIVE</span>`
+      : `<span style="font-size:10px;font-weight:700;color:var(--muted);background:rgba(122,143,173,.1);border:1px solid rgba(122,143,173,.2);padding:2px 7px;border-radius:10px;">CACHED</span>`;
+    const timeAgo = lastUpdated ? (() => {
+      const diff = Math.floor((Date.now() - new Date(lastUpdated)) / 1000);
+      if (diff < 60) return `${diff}s ago`;
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      return `${Math.floor(diff / 3600)}h ago`;
+    })() : '';
+    const warningBar = balNum < 3
+      ? `<div style="margin-top:12px;padding:8px 12px;background:rgba(229,57,53,.12);border:1px solid rgba(229,57,53,.25);border-radius:8px;font-size:12px;color:#ff8a80;font-weight:600;">⚠️ Critical — customers cannot place orders</div>`
+      : balNum < 10
+      ? `<div style="margin-top:12px;padding:8px 12px;background:rgba(255,112,67,.10);border:1px solid rgba(255,112,67,.2);border-radius:8px;font-size:12px;color:var(--orange);font-weight:600;">⚠️ Low — top up soon</div>`
+      : '';
+    balCard = `
+      <div style="background:var(--card);border:2px solid ${balColor};border-radius:16px;padding:22px 24px;height:100%;box-sizing:border-box;" title="Provider panel balance. Reduces with every order.">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <span style="font-size:20px;">🏦</span>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;">Panel Balance${st.active_provider ? ' · ' + esc(st.active_provider) : ''}</div>
+          ${liveTag}
+        </div>
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+          <div style="font-size:38px;font-weight:900;color:${balColor};">$${balNum.toFixed(2)}</div>
+          <div style="font-size:13px;color:var(--muted);">USD${timeAgo ? ` · updated ${timeAgo}` : ''}</div>
+        </div>
+        ${warningBar}
+        <div style="margin-top:14px;height:5px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${Math.min(100, (balNum / 50) * 100)}%;background:${balColor};border-radius:4px;transition:width 1s ease;"></div>
+        </div>
+        <div style="font-size:10px;color:rgba(122,143,173,.5);margin-top:4px;">bar = balance vs $50 reference</div>
+      </div>`;
+  } else {
+    balCard = `<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px;height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;">No provider balance data</div>`;
+  }
+
+  const coreKpis = `
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:10px;">PLATFORM CORE</div>
+    <div class="chc-kpi-grid">
+      ${_chcKpi({ icon: '💳', label: 'Total Sales', value: fmtKES(st.total_sales ?? st.total_revenue ?? 0), sub: 'All paid orders', tone: 'green' })}
+      ${_chcKpi({ icon: '💰', label: 'Your Revenue', value: fmtKES(st.total_revenue ?? 0), sub: st.markup_label ? `${st.markup_label} markup` : 'Profit only', tone: 'green' })}
+      ${_chcKpi({ icon: '👥', label: 'Total Users', value: (st.total_users || st.users || 0).toLocaleString(), tone: 'blue' })}
+      ${_chcKpi({ icon: '📦', label: 'Total Orders', value: (st.total_orders || st.orders || 0).toLocaleString(), tone: 'orange' })}
+      ${_chcKpi({ icon: '🔄', label: 'Active Orders', value: (st.active_orders || 0).toLocaleString(), tone: 'red' })}
+      ${_chcKpi({ icon: '👁', label: 'Visible Services', value: (svcSummary.visible_to_customers ?? bd.visible ?? 0).toLocaleString(), sub: `of ${(svcSummary.total ?? bd.total_services ?? 0).toLocaleString()} total`, tone: 'green' })}
+    </div>`;
+
+  el.innerHTML = `
+    ${snapshotKpis}
+    <div class="chc-two-col">
+      <div>${coreKpis}</div>
+      <div>${balCard}</div>
+    </div>
+  `;
+}
+
+/* ── Section: Revenue (weekly/monthly + affiliate net) ─────────────────── */
+
+function _chcRenderRevenue() {
+  const el = document.getElementById('chcSection-revenue');
+  if (!el) return;
+  const r = _chc.data.revenue;
+  if (!r) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load revenue data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
+    return;
+  }
+
+  const weekly = r.weekly || [];
+  const monthly = r.monthly || [];
+  const ai = r.affiliate_impact || {};
+  const insights = r.insights || [];
+
+  const thisWeek = weekly[weekly.length - 1];
+  const lastWeek = weekly[weekly.length - 2];
+  const thisMonth = monthly[monthly.length - 1];
+  const lastMonth = monthly[monthly.length - 2];
+  const pct = (curr, prev) => (prev ? Math.round(((curr - prev) / prev) * 1000) / 10 : (curr ? 100 : null));
+
+  const weekKpis = thisWeek ? `
+    <div class="chc-kpi-grid">
+      ${_chcKpi({ icon: '📅', label: 'Sales', value: fmtKES(thisWeek.sales_kes), sub: lastWeek ? '' : `${thisWeek.orders} orders`, trend: lastWeek ? pct(thisWeek.sales_kes, lastWeek.sales_kes) : null, tone: 'green' })}
+      ${_chcKpi({ icon: '💰', label: 'Profit', value: fmtKES(thisWeek.revenue_kes), sub: lastWeek ? '' : 'before affiliate cost', trend: lastWeek ? pct(thisWeek.revenue_kes, lastWeek.revenue_kes) : null, tone: 'green' })}
+      ${_chcKpi({ icon: '🤝', label: 'Affiliate Cost', value: fmtKES(thisWeek.affiliate_commission_kes), sub: 'owed to affiliates', tone: 'orange' })}
+      ${_chcKpi({ icon: '🏆', label: 'Net to Business', value: fmtKES(thisWeek.net_revenue_kes), sub: 'profit − affiliate cost', tone: 'blue' })}
+    </div>` : `<div class="empty-state"><p>No paid orders yet this week.</p></div>`;
+
+  const monthKpis = thisMonth ? `
+    <div class="chc-kpi-grid">
+      ${_chcKpi({ icon: '🗓️', label: 'Sales', value: fmtKES(thisMonth.sales_kes), sub: lastMonth ? '' : `${thisMonth.orders} orders`, trend: lastMonth ? pct(thisMonth.sales_kes, lastMonth.sales_kes) : null, tone: 'green' })}
+      ${_chcKpi({ icon: '💰', label: 'Profit', value: fmtKES(thisMonth.revenue_kes), sub: lastMonth ? '' : 'before affiliate cost', trend: lastMonth ? pct(thisMonth.revenue_kes, lastMonth.revenue_kes) : null, tone: 'green' })}
+      ${_chcKpi({ icon: '🤝', label: 'Affiliate Cost', value: fmtKES(thisMonth.affiliate_commission_kes), sub: `${ai.commission_pct_of_revenue_this_month || 0}% of profit`, tone: 'orange' })}
+      ${_chcKpi({ icon: '🏆', label: 'Net to Business', value: fmtKES(thisMonth.net_revenue_kes), sub: 'profit − affiliate cost', tone: 'blue' })}
+    </div>` : `<div class="empty-state"><p>No paid orders yet this month.</p></div>`;
+
+  const insightsHtml = insights.length ? insights.map(txt => `
+    <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:16px;flex-shrink:0;">💡</span>
+      <span style="font-size:13px;color:var(--white);line-height:1.5;">${esc(txt)}</span>
+    </div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0;">No insights yet.</div>`;
+
+  el.innerHTML = `
+    ${_chcPanel({ title: 'This Week', icon: '📅', body: weekKpis })}
+    ${_chcPanel({ title: 'This Month', icon: '🗓️', body: monthKpis })}
+    ${_chcPanel({
+      title: 'Affiliate Cost — All Time', icon: '🤝', body: `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;">
+        <div><div style="font-size:22px;font-weight:800;color:var(--white);">${fmtKES(ai.total_commission_owed_kes || 0)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Total owed to affiliates (accrued)</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:var(--white);">${fmtKES(ai.total_commission_paid_kes || 0)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Already paid out</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:var(--orange);">${fmtKES((ai.total_commission_owed_kes || 0) - (ai.total_commission_paid_kes || 0))}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Accrued but not yet paid</div></div>
+      </div>` })}
+    <div class="chc-two-col" style="grid-template-columns:1fr 1fr;">
+      ${_chcPanel({ title: 'Net-to-Business by Week', icon: '📊', sub: `last ${weekly.length}`, body: _miniBarChart(weekly, { key: 'net_revenue_kes', labelKey: 'week_start', color: '#3dd44a' }) })}
+      ${_chcPanel({ title: 'Net-to-Business by Month', icon: '📊', sub: `last ${monthly.length}`, body: _miniBarChart(monthly, { key: 'net_revenue_kes', labelKey: 'month', color: '#3dd44a' }) })}
+    </div>
+    ${_chcPanel({ title: 'Insights', icon: '💡', extra: `<button class="btn-secondary" style="margin:0;padding:7px 14px;font-size:11px;" onclick="loadAdminCommandCenter(true)">↻ Refresh</button>`, body: `<div style="padding:0 2px;">${insightsHtml}</div>` })}
+  `;
+}
+
+/* ── Section: Growth & Trends ───────────────────────────────────────────── */
+
+async function chcSetTrendsWindow(days) {
+  _chc.trendsDays = days;
+  const el = document.getElementById('chcSection-growth');
+  if (el) el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>`;
+  try {
+    _chc.data.trends = await api(`/admin/stats/trends?days=${days}`);
+  } catch (e) {
+    _chc.data.trends = null;
+  }
+  _chcRenderGrowth();
+  _chcRenderAlerts();
+}
+
+function _chcRenderGrowth() {
+  const el = document.getElementById('chcSection-growth');
+  if (!el) return;
+  const t = _chc.data.trends;
+  if (!t) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load growth data. <button class="action-btn" onclick="chcSetTrendsWindow(${_chc.trendsDays})">Retry</button></p></div>`;
+    return;
+  }
+
+  const daily = t.daily || [];
+  const g = t.growth || {};
+  const funnel = t.funnel || {};
+  const topServices = t.top_services || [];
+  const customers = t.customers || {};
+  const burn = t.balance_burn || {};
+
+  let burnBanner = '';
+  if (burn.burn_usd_per_day && burn.burn_usd_per_day > 0) {
+    const critical = burn.days_until_empty !== null && burn.days_until_empty <= 3;
+    const warn = burn.days_until_empty !== null && burn.days_until_empty <= 7;
+    const bg = critical ? 'rgba(229,57,53,.10)' : warn ? 'rgba(255,112,67,.10)' : 'rgba(61,212,74,.08)';
+    const border = critical ? 'rgba(229,57,53,.3)' : warn ? 'rgba(255,112,67,.3)' : 'rgba(61,212,74,.25)';
+    const fg = critical ? '#ff8a80' : warn ? 'var(--orange)' : 'var(--green)';
+    burnBanner = `
+      <div style="background:${bg};border:1px solid ${border};border-radius:12px;padding:14px 18px;margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${fg};margin-bottom:4px;">🔥 Panel Balance Burn Rate</div>
+        <div style="font-size:13px;color:var(--muted);">Spending ~<b style="color:${fg};">$${burn.burn_usd_per_day.toFixed(2)}/day</b>${burn.days_until_empty !== null ? ` · projected to run out in <b style="color:${fg};">${burn.days_until_empty} day${burn.days_until_empty == 1 ? '' : 's'}</b> at this pace` : ''}</div>
+      </div>`;
+  }
+
+  const comboChart = _comboChartSvg(daily, { barColor: '#ff7043', lineColor: '#3dd44a', barKey: 'orders', valueKey: 'sales_kes', barLabel: 'orders', valueFmt: (v) => fmtKES(v) });
+  const usersChart = _barChartSvg(daily, { key: 'new_users', color: '#2196f3', label: 'new users', h: 130 });
+
+  const funnelOrder = ['pending', 'processing', 'partial', 'completed', 'failed', 'cancelled'];
+  const funnelColors = { pending: '#7a8fad', processing: '#2196f3', partial: '#ff7043', completed: '#3dd44a', failed: '#e53935', cancelled: '#7a8fad' };
+  const funnelTotal = Object.values(funnel).reduce((a, b) => a + b, 0) || 1;
+  const funnelHtml = funnelOrder
+    .filter(k => funnel[k] !== undefined)
+    .map(k => {
+      const count = funnel[k] || 0;
+      const pctv = Math.round((count / funnelTotal) * 100);
+      return `<div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span style="color:var(--muted);text-transform:capitalize;">${esc(k)}</span>
+          <span style="color:var(--white);font-weight:700;">${count} <span style="color:var(--muted);font-weight:500;">(${pctv}%)</span></span>
+        </div>
+        <div style="height:6px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pctv}%;background:${funnelColors[k] || '#7a8fad'};border-radius:4px;"></div>
+        </div>
+      </div>`;
+    }).join('') || `<div style="font-size:12px;color:var(--muted);">No orders in this window.</div>`;
+
+  const topServicesHtml = topServices.length
+    ? topServices.map((s, i) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;${i < topServices.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,.05);' : ''}">
+          <div style="font-size:12px;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%;" title="${esc(s.service)}">${i + 1}. ${esc(s.service)}</div>
+          <div style="text-align:right;">
+            <div style="font-size:12px;font-weight:700;color:var(--green);">${fmtKES(s.revenue_kes)}</div>
+            <div style="font-size:10px;color:var(--muted);">${s.orders} order${s.orders === 1 ? '' : 's'}</div>
+          </div>
+        </div>`).join('')
+    : `<div style="font-size:12px;color:var(--muted);">No service revenue in this window.</div>`;
+
+  const windowPicker = `
+    <div style="display:flex;gap:6px;">
+      ${[7, 14, 30].map(d => `<button onclick="chcSetTrendsWindow(${d})" style="background:${d === _chc.trendsDays ? 'var(--green)' : 'var(--card)'};color:${d === _chc.trendsDays ? '#04140a' : 'var(--muted)'};border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">${d}D</button>`).join('')}
+    </div>`;
+
+  el.innerHTML = `
+    ${burnBanner}
+    ${_chcPanel({
+      title: 'Orders & Sales', icon: '📈', sub: 'count + value per day', extra: windowPicker, body: `
+        <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;">
+          <div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(g.this_week ? g.this_week.sales_kes : 0)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> sales/7d</span> ${_growthBadge(g.sales_wow_pct)}</div>
+          <div style="font-size:20px;font-weight:800;color:var(--white);">${g.this_week ? g.this_week.orders : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> orders/7d</span> ${_growthBadge(g.orders_wow_pct)}</div>
+          <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);margin-left:auto;">
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#ff7043;display:inline-block;"></span>Orders</span>
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:2.5px;border-radius:2px;background:#3dd44a;display:inline-block;"></span>Sales KES</span>
           </div>
         </div>
-        ${usersChart}
-      </div>`;
-
-    // ── Order status funnel ───────────────────────────────────────────────────
-    const funnelOrder = ['pending', 'processing', 'partial', 'completed', 'failed', 'cancelled'];
-    const funnelColors = { pending:'#7a8fad', processing:'#2196f3', partial:'#ff7043', completed:'#3dd44a', failed:'#e53935', cancelled:'#7a8fad' };
-    const funnelTotal = Object.values(funnel).reduce((a, b) => a + b, 0) || 1;
-    const funnelHtml = funnelOrder
-      .filter(k => funnel[k] !== undefined)
-      .map(k => {
-        const count = funnel[k] || 0;
-        const pct = Math.round((count / funnelTotal) * 100);
-        return `<div style="margin-bottom:10px;">
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
-            <span style="color:var(--muted);text-transform:capitalize;">${esc(k)}</span>
-            <span style="color:var(--white);font-weight:700;">${count} <span style="color:var(--muted);font-weight:500;">(${pct}%)</span></span>
-          </div>
-          <div style="height:6px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">
-            <div style="height:100%;width:${pct}%;background:${funnelColors[k] || '#7a8fad'};border-radius:4px;"></div>
-          </div>
-        </div>`;
-      }).join('') || `<div style="font-size:12px;color:var(--muted);">No orders in this window.</div>`;
-
-    // ── Top services table ───────────────────────────────────────────────────
-    const topServicesHtml = topServices.length
-      ? topServices.map((s, i) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;${i < topServices.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,.05);' : ''}">
-            <div style="font-size:12px;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%;" title="${esc(s.service)}">${i + 1}. ${esc(s.service)}</div>
-            <div style="text-align:right;">
-              <div style="font-size:12px;font-weight:700;color:var(--green);">${fmtKES(s.revenue_kes)}</div>
-              <div style="font-size:10px;color:var(--muted);">${s.orders} order${s.orders === 1 ? '' : 's'}</div>
-            </div>
-          </div>`).join('')
-      : `<div style="font-size:12px;color:var(--muted);">No service revenue in this window.</div>`;
-
-    // ── Repeat customer rate ──────────────────────────────────────────────────
-    const repeatCard = `
+        ${comboChart}` })}
+    ${_chcPanel({
+      title: 'New Users per Day', icon: '👤', body: `
+        <div style="font-size:18px;font-weight:800;color:var(--white);margin-bottom:8px;">${g.this_week ? g.this_week.new_users : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> /7d</span> ${_growthBadge(g.users_wow_pct)}</div>
+        ${usersChart}` })}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🧭 Order Status Funnel (${_chc.trendsDays}d)</div>
+        ${funnelHtml}
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🏆 Top 5 Services (${_chc.trendsDays}d)</div>
+        ${topServicesHtml}
+      </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">🔁 Repeat-Customer Rate</div>
         <div style="font-size:28px;font-weight:800;color:var(--white);">${customers.repeat_rate_pct ?? 0}%</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px;">${customers.repeat_customers || 0} of ${customers.customers_with_orders || 0} paying customers have ordered 2+ times</div>
-      </div>`;
-
-    // ── Average spend per paying user (in-window) ───────────────────────────
-    const avgSpendCard = `
+      </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">💵 Avg Spend / Paying User</div>
         <div style="font-size:28px;font-weight:800;color:var(--white);">${fmtKES(customers.avg_spend_per_user_kes || 0)}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;">across ${customers.paying_users_in_window || 0} paying user${(customers.paying_users_in_window || 0) === 1 ? '' : 's'} in last ${_adminTrendsWindow}d</div>
-      </div>`;
-
-    // ── Window picker (7D / 14D / 30D) ──────────────────────────────────────
-    const windowPicker = `
-      <div style="display:flex;gap:6px;">
-        ${[7, 14, 30].map(d => `<button onclick="loadAdminTrends(true, ${d})" style="background:${d === _adminTrendsWindow ? 'var(--green)' : 'var(--card)'};color:${d === _adminTrendsWindow ? '#04140a' : 'var(--muted)'};border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">${d}D</button>`).join('')}
-      </div>`;
-
-    // ── Assemble ──────────────────────────────────────────────────────────────
-    el.innerHTML = `
-      ${burnBanner}
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">📈 Growth & Trends</div>
-        ${windowPicker}
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">across ${customers.paying_users_in_window || 0} paying user${(customers.paying_users_in_window || 0) === 1 ? '' : 's'} in last ${_chc.trendsDays}d</div>
       </div>
-      ${comboCard}
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;" id="adminTrendsLowerGrid">
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🧭 Order Status Funnel (${_adminTrendsWindow}d)</div>
-          ${funnelHtml}
-        </div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🏆 Top 5 Services (${_adminTrendsWindow}d)</div>
-          ${topServicesHtml}
-        </div>
-        ${repeatCard}
-        ${avgSpendCard}
-      </div>`;
-  } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
-  }
+    </div>
+  `;
 }
 
-let _adminEngagementCacheTs = 0;
-const ADMIN_ENGAGEMENT_TTL = 5 * 60 * 1000; // day-level data — no need to hit Neon every 30s
-let _adminEngagementWindow = 14;
+/* ── Section: Engagement (logins & spend per user) ─────────────────────── */
 
-async function loadAdminEngagement(force = false, days = null) {
-  if (days) _adminEngagementWindow = days;
-  const now = Date.now();
-  if (!force && _adminEngagementCacheTs > 0 && (now - _adminEngagementCacheTs) < ADMIN_ENGAGEMENT_TTL) return;
-  const el = document.getElementById('adminEngagementPanel');
-  if (!el) return; // markup not present yet — safe no-op
-  el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading engagement…</span></div>`;
-
+async function chcSetEngagementWindow(days) {
+  _chc.engagementDays = days;
+  const el = document.getElementById('chcSection-engagement');
+  if (el) el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>`;
   try {
-    const t = await api(`/admin/stats/engagement?days=${_adminEngagementWindow}`);
-    _adminEngagementCacheTs = Date.now();
-
-    const daily = t.daily || [];
-    const allTime = t.all_time || {};
-
-    // ── Today / latest day snapshot ─────────────────────────────────────────
-    const latest = daily.length ? daily[daily.length - 1] : {};
-    const last7 = daily.slice(-7);
-    const dauAvg7 = last7.length
-      ? Math.round(last7.reduce((a, d) => a + (d.unique_logins || 0), 0) / last7.length)
-      : 0;
-
-    // ── DAU bar chart (unique logins per day) ───────────────────────────────
-    const dauChart = _barChartSvg(daily, { key: 'unique_logins', color: '#3dd44a', label: 'unique logins', h: 150 });
-
-    // ── Avg spend per active user per day — line-ish bar chart ──────────────
-    const spendChart = _barChartSvg(daily, {
-      key: 'avg_spend_per_active_user_kes',
-      color: '#2196f3',
-      label: 'avg KES/active user',
-      h: 150,
-    });
-
-    const dauCard = `
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:6px;">
-          <div>
-            <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">👥 Daily Active Users (unique logins)</div>
-            <div style="display:flex;gap:14px;align-items:baseline;margin-top:4px;flex-wrap:wrap;">
-              <div style="font-size:20px;font-weight:800;color:var(--white);">${latest.unique_logins || 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> logins today</span></div>
-              <div style="font-size:20px;font-weight:800;color:var(--white);">${dauAvg7}<span style="font-size:11px;color:var(--muted);font-weight:600;"> avg DAU / 7d</span></div>
-              <div style="font-size:13px;color:var(--muted);">${latest.new_logins || 0} new · ${latest.returning_logins || 0} returning today</div>
-            </div>
-          </div>
-        </div>
-        ${dauChart}
-      </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:20px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">💵 Avg Spend per Active User / day</div>
-        <div style="font-size:18px;font-weight:800;color:var(--white);margin-bottom:4px;">${fmtKES(latest.avg_spend_per_active_user_kes || 0)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> today</span></div>
-        ${spendChart}
-      </div>`;
-
-    // ── All-time ARPU / ARPPU / AOV cards ───────────────────────────────────
-    const arpuCards = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">📊 ARPU (all users)</div>
-          <div style="font-size:26px;font-weight:800;color:var(--white);">${fmtKES(allTime.arpu_kes || 0)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;">across ${allTime.total_users || 0} total users</div>
-        </div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">💎 ARPPU (paying users)</div>
-          <div style="font-size:26px;font-weight:800;color:var(--white);">${fmtKES(allTime.arppu_kes || 0)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;">across ${allTime.paying_users || 0} paying users</div>
-        </div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">🧾 Avg Order Value</div>
-          <div style="font-size:26px;font-weight:800;color:var(--white);">${fmtKES(allTime.avg_order_value_kes || 0)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;">all-time, paid orders only</div>
-        </div>
-      </div>`;
-
-    // ── Window picker (7D / 14D / 30D) ──────────────────────────────────────
-    const windowPicker = `
-      <div style="display:flex;gap:6px;align-items:center;">
-        ${[7, 14, 30].map(d => `<button onclick="loadAdminEngagement(true, ${d})" style="background:${d === _adminEngagementWindow ? 'var(--green)' : 'var(--card)'};color:${d === _adminEngagementWindow ? '#04140a' : 'var(--muted)'};border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">${d}D</button>`).join('')}
-        <button onclick="adminCleanupLoginEvents()" title="Delete login_events older than 90 days — keeps Neon storage usage bounded" style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">🧹 Cleanup</button>
-      </div>`;
-
-    el.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">🔑 Logins & Spend per User</div>
-        ${windowPicker}
-      </div>
-      ${dauCard}
-      ${arpuCards}`;
+    _chc.data.engagement = await api(`/admin/stats/engagement?days=${days}`);
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
+    _chc.data.engagement = null;
   }
+  _chcRenderEngagement();
+}
+
+function _chcRenderEngagement() {
+  const el = document.getElementById('chcSection-engagement');
+  if (!el) return;
+  const t = _chc.data.engagement;
+  if (!t) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load engagement data. <button class="action-btn" onclick="chcSetEngagementWindow(${_chc.engagementDays})">Retry</button></p></div>`;
+    return;
+  }
+
+  const daily = t.daily || [];
+  const allTime = t.all_time || {};
+  const latest = daily.length ? daily[daily.length - 1] : {};
+  const last7 = daily.slice(-7);
+  const dauAvg7 = last7.length ? Math.round(last7.reduce((a, d) => a + (d.unique_logins || 0), 0) / last7.length) : 0;
+
+  const dauChart = _barChartSvg(daily, { key: 'unique_logins', color: '#3dd44a', label: 'unique logins', h: 150 });
+  const spendChart = _barChartSvg(daily, { key: 'avg_spend_per_active_user_kes', color: '#2196f3', label: 'avg KES/active user', h: 150 });
+
+  const windowPicker = `
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      ${[7, 14, 30].map(d => `<button onclick="chcSetEngagementWindow(${d})" style="background:${d === _chc.engagementDays ? 'var(--green)' : 'var(--card)'};color:${d === _chc.engagementDays ? '#04140a' : 'var(--muted)'};border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">${d}D</button>`).join('')}
+      <button onclick="adminCleanupLoginEvents()" title="Delete login_events older than 90 days — keeps storage usage bounded" style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">🧹 Cleanup</button>
+    </div>`;
+
+  el.innerHTML = `
+    ${_chcPanel({
+      title: 'Daily Active Users', icon: '👥', sub: 'unique logins', extra: windowPicker, body: `
+        <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;">
+          <div style="font-size:20px;font-weight:800;color:var(--white);">${latest.unique_logins || 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> logins today</span></div>
+          <div style="font-size:20px;font-weight:800;color:var(--white);">${dauAvg7}<span style="font-size:11px;color:var(--muted);font-weight:600;"> avg DAU / 7d</span></div>
+          <div style="font-size:13px;color:var(--muted);">${latest.new_logins || 0} new · ${latest.returning_logins || 0} returning today</div>
+        </div>
+        ${dauChart}` })}
+    ${_chcPanel({
+      title: 'Avg Spend per Active User / day', icon: '💵', body: `
+        <div style="font-size:18px;font-weight:800;color:var(--white);margin-bottom:8px;">${fmtKES(latest.avg_spend_per_active_user_kes || 0)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> today</span></div>
+        ${spendChart}` })}
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:10px;">ALL-TIME AVERAGES</div>
+    <div class="chc-kpi-grid">
+      ${_chcKpi({ icon: '📊', label: 'ARPU (all users)', value: fmtKES(allTime.arpu_kes || 0), sub: `across ${allTime.total_users || 0} total users`, tone: 'blue' })}
+      ${_chcKpi({ icon: '💎', label: 'ARPPU (paying users)', value: fmtKES(allTime.arppu_kes || 0), sub: `across ${allTime.paying_users || 0} paying users`, tone: 'blue' })}
+      ${_chcKpi({ icon: '🧾', label: 'Avg Order Value', value: fmtKES(allTime.avg_order_value_kes || 0), sub: 'all-time, paid orders only', tone: 'green' })}
+    </div>
+  `;
+}
+
+/* ── Section: Services (visibility + filter breakdown) ─────────────────── */
+
+function _chcRenderServices() {
+  const el = document.getElementById('chcSection-services');
+  if (!el) return;
+  const statsWrap = _chc.data.stats;
+  const bd = _chc.data.breakdown;
+  if (!statsWrap || !bd) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load service data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
+    return;
+  }
+
+  const svcSummary = statsWrap.services || {};
+  const reasons = bd.hidden_by_reason || {};
+  const countryCount = reasons.country_targeted || 0;
+  const qtyCount = reasons.min_qty_exceeded || 0;
+  const rateCount = reasons.rate_out_of_range || 0;
+  const manualCount = reasons.manually_hidden || 0;
+
+  const summaryKpis = `
+    <div class="chc-kpi-grid" style="margin-bottom:22px;">
+      ${_chcKpi({ icon: '👁', label: 'Visible Services', value: (svcSummary.visible_to_customers ?? bd.visible ?? 0).toLocaleString(), sub: `of ${(svcSummary.total ?? bd.total_services ?? 0).toLocaleString()} total`, tone: 'green' })}
+      ${_chcKpi({ icon: '🚫', label: 'Hidden Services', value: (svcSummary.hidden_total ?? bd.hidden_total ?? 0).toLocaleString(), sub: 'filtered out', tone: 'red' })}
+      ${_chcKpi({ icon: '🌍', label: 'Geo-Targeted', value: countryCount.toLocaleString(), sub: 'country-specific services', tone: 'red' })}
+      ${_chcKpi({ icon: '📊', label: 'Min Qty Too High', value: qtyCount.toLocaleString(), sub: 'exceed qty filter', tone: 'orange' })}
+      ${_chcKpi({ icon: '💲', label: 'Rate Out of Range', value: rateCount.toLocaleString(), sub: 'outside KES rate band', tone: 'blue' })}
+      ${_chcKpi({ icon: '🙈', label: 'Manually Hidden', value: manualCount.toLocaleString(), sub: 'hidden by admin', tone: 'neutral' })}
+    </div>`;
+
+  const catMap = bd.country_targeted_by_category || {};
+  const samples = bd.country_targeted_samples || {};
+  const catEntries = Object.entries(catMap);
+  let catSection = '';
+  if (countryCount > 0 && catEntries.length > 0) {
+    const catGrid = catEntries.map(([cat, count]) => {
+      const sampleList = (samples[cat] || []).slice(0, 3);
+      const sampleHtml = sampleList.length
+        ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);">
+             ${sampleList.map(n => `<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;" title="${esc(n)}">• ${esc(n)}</div>`).join('')}
+             ${(samples[cat] || []).length > 3 ? `<div style="font-size:10px;color:rgba(122,143,173,.5);margin-top:2px;">+${(samples[cat] || []).length - 3} more…</div>` : ''}
+           </div>`
+        : '';
+      return `<div style="background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div style="font-size:13px;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(cat)}</div>
+          <div style="font-size:18px;font-weight:800;color:#ff8a80;flex-shrink:0;">${count.toLocaleString()}</div>
+        </div>
+        ${sampleHtml}
+      </div>`;
+    }).join('');
+    catSection = _chcPanel({ title: 'Geo-Targeted Services by Category', icon: '🌍', body: `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">${catGrid}</div>` });
+  }
+
+  el.innerHTML = `${summaryKpis}${catSection}`;
 }
 
 async function adminCleanupLoginEvents() {
@@ -1349,7 +1412,7 @@ async function switchProvider(slug, name) {
     const data = await api('/admin/providers/switch', { method: 'POST', body: JSON.stringify({ slug }) });
     toast(`✅ Switched to ${data.name}! New orders now go through ${data.name}.`, 'success');
     loadAdminProviders();
-    loadAdminStats();
+    if (_chc.built) loadAdminCommandCenter(true);
   } catch(e) {
     toast(`Failed to switch: ${e.message}`, 'error');
   }
