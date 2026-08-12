@@ -98,6 +98,10 @@ async function loadAdminOrders() {
         const userName   = esc(o.user_name||'');
         const svcName    = esc(o.service_name||o.service||'—');
         const userId     = esc(o.user_id||'');
+        const phone      = esc(o.phone||'');
+        const phoneDisplay = phone
+          ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">📞 ${phone} <button onclick="navigator.clipboard.writeText('${phone}').then(()=>toast('Phone copied!','success'))" title="Copy phone number" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button></div>`
+          : '';
         const date       = o.created_at ? new Date(o.created_at).toLocaleDateString() : '—';
         const startRemains = (o.start_count != null || o.remains != null)
           ? `${o.start_count != null ? parseInt(o.start_count).toLocaleString() : '—'} / ${o.remains != null ? parseInt(o.remains).toLocaleString() : '—'}`
@@ -111,6 +115,7 @@ async function loadAdminOrders() {
           <td style="font-size:13px;">
             <div style="font-weight:600;color:var(--white);">${userEmail}</div>
             ${userName && userName !== '—' ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${userName}</div>` : ''}
+            ${phoneDisplay}
           </td>
           <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${svcName}</td>
           <td style="max-width:160px;">${linkDisplay}</td>
