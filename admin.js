@@ -24,7 +24,6 @@ function adminTab(tab, el) {
   if (tab === 'allorders') loadAdminOrders();
   if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); }
   if (tab === 'stats') { loadAdminCommandCenter(); }
-  if (tab === 'business-health') bhAdminInit();
   if (tab === 'providers') loadAdminProviders();
   if (tab === 'support') openAdminSupportTab();
   if (tab === 'create-order') initAdminCreateOrder();
@@ -728,30 +727,55 @@ async function loadAdminCommandCenter(force = false) {
 
   _chcSetRefreshing(true);
   const results = await Promise.allSettled([
-    api('/admin/stats/snapshot'),
-    api('/admin/stats'),
-    api('/admin/stats/filter-breakdown'),
-    api('/admin/stats/revenue?weeks=8&months=6'),
-    api(`/admin/stats/trends?days=${_chc.trendsDays}`),
-    api(`/admin/stats/engagement?days=${_chc.engagementDays}`),
+    api('/admin/stats/snapshot'),                                 // 0
+    api('/admin/stats'),                                           // 1
+    api('/admin/stats/filter-breakdown'),                          // 2
+    api('/admin/stats/revenue?weeks=8&months=6'),                  // 3
+    api(`/admin/stats/trends?days=${_chc.trendsDays}`),            // 4
+    api(`/admin/stats/engagement?days=${_chc.engagementDays}`),    // 5
+    api('/connect/admin/stats'),                                   // 6
+    api('/connect/admin/stats/revenue?weeks=8&months=6'),          // 7
+    api('/academy/admin/stats'),                                   // 8
+    api('/academy/admin/stats/revenue?weeks=8&months=6'),          // 9
+    api('/affiliate/admin/affiliates?limit=500'),                  // 10
+    api('/admin/ccr/agents'),                                      // 11
   ]);
-  const [snap, stats, breakdown, revenue, trends, engagement] = results;
+  const [snap, stats, breakdown, revenue, trends, engagement,
+         connectStats, connectRevenue, academyStats, academyRevenue,
+         affiliates, ccrAgents] = results;
   _chc.data.snapshot   = snap.status === 'fulfilled' ? snap.value : null;
   _chc.data.stats      = stats.status === 'fulfilled' ? stats.value : null;
   _chc.data.breakdown  = breakdown.status === 'fulfilled' ? breakdown.value : null;
   _chc.data.revenue    = revenue.status === 'fulfilled' ? revenue.value : null;
   _chc.data.trends     = trends.status === 'fulfilled' ? trends.value : null;
   _chc.data.engagement = engagement.status === 'fulfilled' ? engagement.value : null;
+  _chc.data.connectStats    = connectStats.status === 'fulfilled' ? connectStats.value : null;
+  _chc.data.connectRevenue  = connectRevenue.status === 'fulfilled' ? connectRevenue.value : null;
+  _chc.data.academyStats    = academyStats.status === 'fulfilled' ? academyStats.value : null;
+  _chc.data.academyRevenue  = academyRevenue.status === 'fulfilled' ? academyRevenue.value : null;
+  _chc.data.affiliates      = affiliates.status === 'fulfilled' ? (affiliates.value?.affiliates || affiliates.value || []) : null;
+  _chc.data.ccrAgents       = ccrAgents.status === 'fulfilled' ? (ccrAgents.value || []) : null;
   _chc.loadedAt = Date.now();
 
   _chcRenderAlerts();
+  _chcRenderHealthScore();
   _chcRenderOverview();
   _chcRenderRevenue();
   _chcRenderGrowth();
   _chcRenderEngagement();
   _chcRenderServices();
+  _chcRenderUnits();
   _chcSetRefreshing(false);
   _chcUpdateTimestamp();
+}
+
+// Jump straight to another admin tab (e.g. from a Business Units card) by
+// finding its real nav element — adminTab() needs the clicked element to
+// move the `.active` class, so we locate it by its onclick signature rather
+// than requiring every caller to have a click event to hand.
+function _chcJump(tab) {
+  const navEl = document.querySelector(`.admin-tab[onclick*="'${tab}'"]`);
+  if (navEl) adminTab(tab, navEl);
 }
 
 function _chcBuildSkeleton(root) {
@@ -782,12 +806,15 @@ function _chcBuildSkeleton(root) {
 
     <div id="chcAlerts" style="display:none;flex-wrap:wrap;gap:10px;margin-bottom:18px;"></div>
 
+    <div id="chcHealthScore" style="margin-bottom:20px;"></div>
+
     <div id="chcNav" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:16px;">
       <button class="chc-nav-btn active" data-sec="overview" onclick="chcShowSection('overview',this)">📊 Overview</button>
       <button class="chc-nav-btn" data-sec="revenue" onclick="chcShowSection('revenue',this)">💼 Revenue</button>
       <button class="chc-nav-btn" data-sec="growth" onclick="chcShowSection('growth',this)">📈 Growth</button>
       <button class="chc-nav-btn" data-sec="engagement" onclick="chcShowSection('engagement',this)">🔑 Engagement</button>
       <button class="chc-nav-btn" data-sec="services" onclick="chcShowSection('services',this)">🧩 Services</button>
+      <button class="chc-nav-btn" data-sec="units" onclick="chcShowSection('units',this)">🏢 Business Units</button>
     </div>
 
     <div id="chcSection-overview" class="chc-section active"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
@@ -795,6 +822,7 @@ function _chcBuildSkeleton(root) {
     <div id="chcSection-growth" class="chc-section"></div>
     <div id="chcSection-engagement" class="chc-section"></div>
     <div id="chcSection-services" class="chc-section"></div>
+    <div id="chcSection-units" class="chc-section"></div>
   `;
 
   if (_chc.tickTimer) clearInterval(_chc.tickTimer);
@@ -860,6 +888,28 @@ function _chcRenderAlerts() {
     alerts.push({ tone: 'blue', icon: '🙈', text: `${hiddenTotal.toLocaleString()} of ${totalSvc.toLocaleString()} services are hidden from customers.` });
   }
 
+  const cn = _chc.data.connectStats;
+  if (cn && cn.open_disputes > 0) {
+    alerts.push({ tone: cn.open_disputes >= 3 ? 'red' : 'orange', icon: '⚖️', text: `${cn.open_disputes} open Connect dispute${cn.open_disputes === 1 ? '' : 's'} awaiting resolution.` });
+  }
+  const cnRev = _chc.data.connectRevenue;
+  const cnPQ = cnRev ? (cnRev.payout_queue || {}) : {};
+  if (cnPQ.pending_count > 0) {
+    alerts.push({ tone: 'blue', icon: '💸', text: `${cnPQ.pending_count} Connect creator payout${cnPQ.pending_count === 1 ? '' : 's'} pending — ${fmtKES(cnPQ.pending_amount_kes || 0)}.` });
+  }
+
+  const ccrAgents = _chc.data.ccrAgents;
+  if (ccrAgents && ccrAgents.length) {
+    const ccrPending = ccrAgents.reduce((s, a) => s + (a.pending_kes || 0), 0);
+    if (ccrPending > 0) alerts.push({ tone: 'blue', icon: '🎧', text: `${fmtKES(ccrPending)} in CCR agent commissions pending payout.` });
+  }
+
+  const affiliates = _chc.data.affiliates;
+  if (affiliates && affiliates.length) {
+    const affPending = affiliates.reduce((s, a) => s + (a.pending_kes || 0), 0);
+    if (affPending > 0) alerts.push({ tone: 'blue', icon: '🤝', text: `${fmtKES(affPending)} in affiliate commissions pending payout.` });
+  }
+
   if (!alerts.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
 
   const toneColors = {
@@ -872,6 +922,122 @@ function _chcRenderAlerts() {
     const c = toneColors[a.tone];
     return `<div class="chc-alert-chip" style="background:${c.bg};border:1px solid ${c.border};color:${c.fg};">${a.icon} ${esc(a.text)}</div>`;
   }).join('');
+}
+
+/* ── Health Score: a single, transparent verdict on the state of the business ──
+ * Built from four standard health lenses, not a proprietary black box:
+ *   Growth   (30 pts) — week-over-week sales trend
+ *   Margin   (25 pts) — net margin on sales
+ *   Runway   (25 pts) — days until provider balance is exhausted at current burn
+ *   Retention(20 pts) — % of customers who've ordered 2+ times
+ * Score and every input are shown together so the verdict is checkable, not
+ * just asserted.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+function _chcComputeHealthScore() {
+  const snap = _chc.data.snapshot;
+  const trends = _chc.data.trends;
+  if (!snap && !trends) return null;
+
+  const g = (trends && trends.growth) || {};
+  const burn = (trends && trends.balance_burn) || {};
+
+  // Growth (0-30): week-over-week sales trend
+  let growthPts = 15, growthNote = 'no trend data';
+  if (g.sales_wow_pct !== null && g.sales_wow_pct !== undefined) {
+    const p = g.sales_wow_pct;
+    growthPts = p >= 15 ? 30 : p >= 0 ? 20 : p >= -10 ? 10 : 0;
+    growthNote = `sales ${p >= 0 ? 'up' : 'down'} ${Math.abs(p)}% week-over-week`;
+  }
+
+  // Margin (0-25): net margin on sales
+  let marginPts = 12, marginNote = 'no margin data';
+  if (snap && snap.net_margin_pct !== null && snap.net_margin_pct !== undefined) {
+    const m = snap.net_margin_pct;
+    marginPts = m >= 40 ? 25 : m >= 25 ? 18 : m >= 10 ? 10 : 3;
+    marginNote = `${m}% net margin`;
+  }
+
+  // Runway (0-25): days until provider balance runs dry at current burn
+  let runwayPts = 25, runwayNote = 'not burning down / no data';
+  if (burn.days_until_empty !== null && burn.days_until_empty !== undefined) {
+    const d = burn.days_until_empty;
+    runwayPts = d >= 30 ? 25 : d >= 14 ? 18 : d >= 7 ? 10 : 0;
+    runwayNote = `~${d} day${d === 1 ? '' : 's'} of provider balance left at current burn`;
+  }
+
+  // Retention (0-20): % of customers who've ordered 2+ times
+  let retentionPts = 10, retentionNote = 'no retention data';
+  if (snap && snap.repeat_rate_pct !== null && snap.repeat_rate_pct !== undefined) {
+    const r = snap.repeat_rate_pct;
+    retentionPts = r >= 40 ? 20 : r >= 25 ? 14 : r >= 10 ? 7 : 2;
+    retentionNote = `${r}% of customers are repeat buyers`;
+  }
+
+  const score = Math.round(growthPts + marginPts + runwayPts + retentionPts);
+  let verdict, color, emoji;
+  if (score >= 80)      { verdict = 'Strong — growing and healthy';   color = 'var(--green)'; emoji = '🟢'; }
+  else if (score >= 60) { verdict = 'Stable';                          color = 'var(--cyan)';  emoji = '🟡'; }
+  else if (score >= 40) { verdict = 'At Risk — needs attention';       color = 'var(--orange)'; emoji = '🟠'; }
+  else                   { verdict = 'Critical — act now';             color = '#ff5050';       emoji = '🔴'; }
+
+  return {
+    score, verdict, color, emoji,
+    factors: [
+      { label: 'Growth',    pts: growthPts,    max: 30, note: growthNote },
+      { label: 'Margin',    pts: marginPts,    max: 25, note: marginNote },
+      { label: 'Runway',    pts: runwayPts,    max: 25, note: runwayNote },
+      { label: 'Retention', pts: retentionPts, max: 20, note: retentionNote },
+    ],
+  };
+}
+
+function _chcRenderHealthScore() {
+  const el = document.getElementById('chcHealthScore');
+  if (!el) return;
+  const h = _chcComputeHealthScore();
+  if (!h) { el.innerHTML = ''; return; }
+
+  const circumference = 2 * Math.PI * 52;
+  const dash = (h.score / 100) * circumference;
+
+  const factorRows = h.factors.map(f => {
+    const pct = Math.round((f.pts / f.max) * 100);
+    return `
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+          <span style="color:var(--white);font-weight:700;">${esc(f.label)}</span>
+          <span style="color:var(--muted);">${f.pts}/${f.max}</span>
+        </div>
+        <div style="height:5px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;margin-bottom:3px;">
+          <div style="height:100%;width:${pct}%;background:${h.color};border-radius:4px;"></div>
+        </div>
+        <div style="font-size:10.5px;color:var(--muted);">${esc(f.note)}</div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="background:linear-gradient(135deg, var(--card) 0%, var(--card2) 100%);border:1px solid ${h.color};border-radius:18px;padding:22px 26px;display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
+      <div style="flex-shrink:0;position:relative;width:120px;height:120px;">
+        <svg viewBox="0 0 120 120" style="width:120px;height:120px;transform:rotate(-90deg);">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"></circle>
+          <circle cx="60" cy="60" r="52" fill="none" stroke="${h.color}" stroke-width="10" stroke-linecap="round"
+                  stroke-dasharray="${dash.toFixed(1)} ${circumference.toFixed(1)}"></circle>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <div style="font-size:30px;font-weight:900;color:${h.color};line-height:1;">${h.score}</div>
+          <div style="font-size:10px;color:var(--muted);font-weight:700;">/ 100</div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:220px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Business Health Score</div>
+        <div style="font-size:19px;font-weight:900;color:${h.color};margin-bottom:10px;">${h.emoji} ${esc(h.verdict)}</div>
+        <div style="font-size:11px;color:var(--muted);">Built from four standard signals — growth, margin, cash runway, and repeat-customer retention — so the verdict is checkable, not a black box.</div>
+      </div>
+      <div style="flex:1.4;min-width:280px;display:grid;grid-template-columns:1fr 1fr;gap:0 24px;">
+        ${factorRows}
+      </div>
+    </div>`;
 }
 
 /* ── Section: Overview (executive snapshot + core platform stats) ─────── */
@@ -1271,6 +1437,142 @@ function _chcRenderServices() {
   }
 
   el.innerHTML = `${summaryKpis}${catSection}`;
+}
+
+/* ── Section: Business Units (cross-platform rollup) ────────────────────
+ * Pulls one lightweight snapshot from each business line — SMM core,
+ * Connect marketplace, Creator Academy, Affiliates, CCR agents — so admins
+ * get full visibility without hopping between six separate tabs. Every
+ * number here is all-time (each backend exposes different time windows,
+ * so all-time is the one honest basis for comparing them side by side).
+ * ─────────────────────────────────────────────────────────────────────── */
+
+function _chcUnitCard({ icon, name, tone, kpis, tab }) {
+  const toneMap = {
+    green: '#3dd44a', blue: '#2196f3', gold: 'var(--gold)', cyan: 'var(--cyan)', purple: '#9b6bff',
+  };
+  const color = toneMap[tone] || 'var(--white)';
+  return `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:19px;">${icon}</span>
+          <span style="font-size:13px;font-weight:800;color:var(--white);">${esc(name)}</span>
+        </div>
+        <button onclick="_chcJump('${tab}')" style="background:none;border:1px solid var(--border);border-radius:8px;color:${color};font-size:11px;font-weight:700;padding:5px 10px;cursor:pointer;">Open →</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;">
+        ${kpis.map(k => `
+          <div>
+            <div style="font-size:17px;font-weight:800;color:${color};line-height:1.15;">${k.value}</div>
+            <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${esc(k.label)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function _chcRenderUnits() {
+  const el = document.getElementById('chcSection-units');
+  if (!el) return;
+
+  const st = _chc.data.stats ? (_chc.data.stats.stats || _chc.data.stats) : {};
+  const smmRevenue = st.total_revenue ?? 0;
+
+  const acStats = _chc.data.academyStats || {};
+  const acRev = _chc.data.academyRevenue || {};
+  const academyRevenue = acRev.total_revenue_kes || 0;
+
+  const cn = _chc.data.connectStats || {};
+  const cnRev = _chc.data.connectRevenue || {};
+  const connectRevenue = cnRev.total_platform_revenue_kes || 0;
+
+  const affiliates = _chc.data.affiliates || [];
+  const affTotalEarned = affiliates.reduce((s, a) => s + (a.total_earned_kes || 0), 0);
+  const affActive = affiliates.filter(a => (a.total_referrals || 0) > 0).length;
+  const affPending = affiliates.reduce((s, a) => s + (a.pending_kes || 0), 0);
+
+  const ccrAgents = _chc.data.ccrAgents || [];
+  const ccrActive = ccrAgents.filter(a => a.status === 'active').length;
+  const ccrEarned = ccrAgents.reduce((s, a) => s + (a.total_earned_kes || 0), 0);
+  const ccrPending = ccrAgents.reduce((s, a) => s + (a.pending_kes || 0), 0);
+
+  const haveAnyRevenue = _chc.data.stats || _chc.data.academyRevenue || _chc.data.connectRevenue;
+  let mixSection = '';
+  if (haveAnyRevenue) {
+    const mixItems = [
+      { label: 'SMM Panel (profit)', value: smmRevenue, color: '#3dd44a' },
+      { label: 'Creator Academy',    value: academyRevenue, color: 'var(--gold)' },
+      { label: 'Connect Marketplace', value: connectRevenue, color: 'var(--cyan)' },
+    ];
+    const total = mixItems.reduce((s, m) => s + m.value, 0) || 1;
+    const mixRows = mixItems.map(m => {
+      const pct = Math.round((m.value / total) * 100);
+      return `
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;">
+            <span style="color:var(--white);font-weight:700;">${esc(m.label)}</span>
+            <span style="color:var(--muted);">${fmtKES(m.value)} <span style="color:${m.color};font-weight:700;">(${pct}%)</span></span>
+          </div>
+          <div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${m.color};border-radius:4px;"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    mixSection = _chcPanel({
+      title: 'Consolidated Revenue Mix (all-time)', icon: '📊', sub: 'SMM profit + Academy revenue + Connect platform revenue, side by side', body: `
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;">
+        <div style="font-size:30px;font-weight:900;color:var(--white);">${fmtKES(total)}</div>
+        <div style="font-size:12px;color:var(--muted);">combined across all business lines</div>
+      </div>
+      ${mixRows}`
+    });
+  }
+
+  const cards = [
+    _chcUnitCard({
+      icon: '🤝', name: 'Affiliates', tone: 'green', tab: 'affiliate-payouts',
+      kpis: [
+        { value: affiliates.length.toLocaleString(), label: 'total affiliates' },
+        { value: affActive.toLocaleString(), label: 'active (1+ referral)' },
+        { value: fmtKES(affTotalEarned), label: 'earned all-time' },
+        { value: fmtKES(affPending), label: 'pending payout' },
+      ],
+    }),
+    _chcUnitCard({
+      icon: '🎧', name: 'CCR Agents', tone: 'blue', tab: 'ccr-agents',
+      kpis: [
+        { value: ccrAgents.length.toLocaleString(), label: 'total agents' },
+        { value: ccrActive.toLocaleString(), label: 'active' },
+        { value: fmtKES(ccrEarned), label: 'earned all-time' },
+        { value: fmtKES(ccrPending), label: 'pending payout' },
+      ],
+    }),
+    _chcUnitCard({
+      icon: '🎓', name: 'Creator Academy', tone: 'gold', tab: 'academy',
+      kpis: [
+        { value: (acStats.learners_started || 0).toLocaleString(), label: 'learners started' },
+        { value: (acStats.active_learners_7d || 0).toLocaleString(), label: 'active last 7d' },
+        { value: (acStats.graduates || 0).toLocaleString(), label: 'graduated' },
+        { value: fmtKES(academyRevenue), label: 'revenue all-time' },
+      ],
+    }),
+    _chcUnitCard({
+      icon: '📣', name: 'Connect Marketplace', tone: 'cyan', tab: 'connect',
+      kpis: [
+        { value: (cn.total_campaigns || 0).toLocaleString(), label: 'campaigns total' },
+        { value: (cn.visibility?.visible_campaigns || 0).toLocaleString(), label: 'visible on /discover' },
+        { value: (cn.open_disputes || 0).toLocaleString(), label: 'open disputes' },
+        { value: fmtKES(connectRevenue), label: 'revenue all-time' },
+      ],
+    }),
+  ];
+
+  el.innerHTML = `
+    ${mixSection}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+      ${cards.join('')}
+    </div>`;
 }
 
 async function adminCleanupLoginEvents() {

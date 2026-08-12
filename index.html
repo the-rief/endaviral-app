@@ -975,8 +975,7 @@ tbody td{padding:13px 16px;font-size:14px;}
   #supportInboxWrap{ grid-template-columns:1fr !important; height:auto !important; }
   #supportThreadList{ border-right:none !important; border-bottom:1px solid var(--border); max-height:260px; }
   #supportChatPane{ height:420px !important; }
-  #adminStatsGrid.stats-grid{ grid-template-columns:1fr 1fr; }
-  #filterSummaryCards{ grid-template-columns:1fr 1fr !important; }
+  #ap-stats .chc-kpi-grid{ grid-template-columns:1fr 1fr; }
   #providersGrid{ grid-template-columns:1fr !important; }
 
   /* ── TICKETS: filter row scrolls horizontally, no wrapping ── */
@@ -1078,8 +1077,8 @@ tbody td{padding:13px 16px;font-size:14px;}
   .tx-name{ font-size:13px; }
 
   /* Admin */
-  #adminStatsGrid.stats-grid{ grid-template-columns:1fr; }
-  #filterSummaryCards{ grid-template-columns:1fr !important; }
+  #ap-stats .chc-kpi-grid{ grid-template-columns:1fr; }
+  #ap-stats .chc-two-col{ grid-template-columns:1fr !important; }
   .admin-tab{ padding:9px 14px; font-size:13px; }
   #ap-support .sec-hd > div{ flex-direction:column; gap:8px; width:100%; }
   #ap-support .sec-hd > div select{ width:100%; }
@@ -2195,7 +2194,6 @@ tbody td{padding:13px 16px;font-size:14px;}
       <!-- ADMIN -->
       <div class="page-section" id="sec-admin">
         <div class="admin-tabs">
-          <div class="admin-tab" onclick="adminTab('business-health',this)">🌍 Global Overview</div>
           <div class="admin-tab active" onclick="adminTab('users',this)">Users</div>
           <div class="admin-tab" onclick="adminTab('allorders',this)">All Orders</div>
           <div class="admin-tab" onclick="adminTab('services-mgmt',this)">Services</div>
@@ -2207,12 +2205,6 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="admin-tab" onclick="adminTab('academy', this)">🎓 Academy</div>
           <div class="admin-tab" onclick="adminTab('connect', this)">🤝 Connect</div>
           <div class="admin-tab" onclick="adminTab('ccr-agents', this)">🎧 CCR Agents</div>
-        </div>
-        <div class="admin-panel" id="ap-business-health">
-          <div class="sec-hd" style="margin-bottom:20px;">
-            <div><div class="sec-title">🌍 GLOBAL OVERVIEW</div><div class="sec-sub">Every revenue line combined — SMM, Connect, Academy, Affiliates & CCR — with one growth verdict. (For SMM-only drill-down, see the Stats tab.)</div></div>
-          </div>
-          <div id="businessHealthRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
         </div>
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
@@ -2331,44 +2323,10 @@ tbody td{padding:13px 16px;font-size:14px;}
         </div>
 
         <div class="admin-panel" id="ap-stats">
-          <div class="sec-hd" style="margin-bottom:20px;">
-            <div><div class="sec-title">PLATFORM STATS</div><div class="sec-sub">Live overview of your EndaViral platform</div></div>
-            <button class="btn-secondary" onclick="loadExecutiveSnapshot(true); loadAdminStats(true); loadAdminRevenue(true);">↻ Refresh</button>
-          </div>
-          <!-- Executive Snapshot: the 8 headline numbers, always at a glance -->
-          <div style="margin-bottom:12px;">
-            <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">📊 Executive Snapshot</div>
-            <div class="stats-grid" id="execSnapshotGrid"><div class="loading-spinner"><div class="spinner"></div><span>Loading snapshot…</span></div></div>
-          </div>
-          <div class="stats-grid" id="adminStatsGrid"><div class="loading-spinner"><div class="spinner"></div><span>Loading stats…</span></div></div>
-          <!-- Revenue: Weekly/Monthly + Affiliate Net + Insights Panel (NEW) -->
-          <div id="adminRevenuePanel" style="margin-top:28px;">
-            <div class="loading-spinner"><div class="spinner"></div><span>Loading revenue…</span></div>
-          </div>
-          <!-- Growth & Trends Panel (NEW) -->
-          <div id="adminTrendsPanel" style="margin-top:28px;">
-            <div class="loading-spinner"><div class="spinner"></div><span>Loading trends…</span></div>
-          </div>
-          <!-- Logins & Spend-per-user Panel (NEW) -->
-          <div id="adminEngagementPanel" style="margin-top:28px;">
-            <div class="loading-spinner"><div class="spinner"></div><span>Loading engagement…</span></div>
-          </div>
-          <!-- Filter Breakdown Panel -->
-          <div id="filterBreakdownPanel" style="display:none;margin-top:28px;">
-            <div class="sec-hd" style="margin-bottom:16px;">
-              <div>
-                <div class="sec-title" style="font-size:16px;">🌍 SERVICE FILTER BREAKDOWN</div>
-                <div class="sec-sub">Why services are hidden from Kenyan customers</div>
-              </div>
-            </div>
-            <!-- Summary cards row -->
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;" id="filterSummaryCards"></div>
-            <!-- Country filter detail -->
-            <div id="countryFilterDetail" style="display:none;">
-              <div style="font-size:13px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">Geo-targeted hidden by category</div>
-              <div id="countryByCategoryGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;"></div>
-            </div>
-          </div>
+          <!-- Fully JS-driven — loadAdminCommandCenter() (admin.js) builds the
+               header, alerts, health score, section nav and every panel below
+               into this container on first visit to the tab. -->
+          <div class="loading-spinner"><div class="spinner"></div><span>Loading command center…</span></div>
         </div>
         <div class="admin-panel" id="ap-providers">
           <div class="sec-hd">
@@ -3947,7 +3905,6 @@ function resetDeposit() {
 <script src="ccr_agent.js"></script>
 <script src="admin_academy_stats.js"></script>
 <script src="admin_connect_stats.js"></script>
-<script src="admin_business_health.js"></script>
 <script src="account.js"></script>
 <script src="auth.js"></script>
 
