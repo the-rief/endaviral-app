@@ -3485,8 +3485,24 @@ function openOrderModal(svc) {
   document.getElementById('omLink').placeholder = linkGuide.placeholder;
   document.getElementById('omLinkHint').textContent = linkGuide.hint;
   document.getElementById('omPhone').value = '';
-  document.getElementById('omQty').value = svc.min || svc.min_quantity || 100;
-  document.getElementById('omQty').min = svc.min || svc.min_quantity || 100;
+
+  // Starting quantity must satisfy BOTH the service's own minimum AND the
+  // KES 20 payment floor. Rather than defaulting to the service min and
+  // making the customer bump the quantity up themselves, work out how many
+  // units KES 20 actually buys at this service's rate and start there.
+  const svcMinQ = svc.min || svc.min_quantity || 100;
+  const rate = parseFloat(svc.rate || svc.price_per_1000 || svc.price || 0);
+  const MIN_ORDER_KES = 20;
+  let startQty = svcMinQ;
+  if (rate > 0) {
+    const qtyForMinKes = Math.ceil((MIN_ORDER_KES / rate) * 1000);
+    // Round up to a tidy step of 10 so the number doesn't look arbitrary.
+    const roundedQtyForMinKes = Math.ceil(qtyForMinKes / 10) * 10;
+    startQty = Math.max(svcMinQ, roundedQtyForMinKes);
+  }
+
+  document.getElementById('omQty').value = startQty;
+  document.getElementById('omQty').min = svcMinQ;
   document.getElementById('omQty').max = svc.max || svc.max_quantity || 1000000;
   // Fetch provider capacity (uses cache if warm), then re-evaluate cost limit
   fetchProviderMaxKes().then(() => calcOrderCost());
