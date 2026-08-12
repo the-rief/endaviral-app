@@ -2195,6 +2195,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <!-- ADMIN -->
       <div class="page-section" id="sec-admin">
         <div class="admin-tabs">
+          <div class="admin-tab" onclick="adminTab('business-health',this)">🌍 Global Overview</div>
           <div class="admin-tab active" onclick="adminTab('users',this)">Users</div>
           <div class="admin-tab" onclick="adminTab('allorders',this)">All Orders</div>
           <div class="admin-tab" onclick="adminTab('services-mgmt',this)">Services</div>
@@ -2206,6 +2207,12 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="admin-tab" onclick="adminTab('academy', this)">🎓 Academy</div>
           <div class="admin-tab" onclick="adminTab('connect', this)">🤝 Connect</div>
           <div class="admin-tab" onclick="adminTab('ccr-agents', this)">🎧 CCR Agents</div>
+        </div>
+        <div class="admin-panel" id="ap-business-health">
+          <div class="sec-hd" style="margin-bottom:20px;">
+            <div><div class="sec-title">🌍 GLOBAL OVERVIEW</div><div class="sec-sub">Every revenue line combined — SMM, Connect, Academy, Affiliates & CCR — with one growth verdict. (For SMM-only drill-down, see the Stats tab.)</div></div>
+          </div>
+          <div id="businessHealthRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
         </div>
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
@@ -3940,6 +3947,7 @@ function resetDeposit() {
 <script src="ccr_agent.js"></script>
 <script src="admin_academy_stats.js"></script>
 <script src="admin_connect_stats.js"></script>
+<script src="admin_business_health.js"></script>
 <script src="account.js"></script>
 <script src="auth.js"></script>
 

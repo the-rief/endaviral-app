@@ -24,6 +24,7 @@ function adminTab(tab, el) {
   if (tab === 'allorders') loadAdminOrders();
   if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); }
   if (tab === 'stats') { loadAdminCommandCenter(); }
+  if (tab === 'business-health') bhAdminInit();
   if (tab === 'providers') loadAdminProviders();
   if (tab === 'support') openAdminSupportTab();
   if (tab === 'create-order') initAdminCreateOrder();
