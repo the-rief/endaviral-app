@@ -3514,9 +3514,14 @@ function calcOrderCost() {
   if (!currentSvc) return;
   const qty = parseInt(document.getElementById('omQty').value) || 0;
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
-  const costKes = (qty / 1000) * rate;
+  const rawCostKes = (qty / 1000) * rate;
+  // Mirror the backend's actual STK amount: rounded up, 20 KES floor
+  // (see orders.py: stk_amount = max(20, int(charge_kes + 0.99))). The
+  // displayed "Total Cost" must always equal what gets charged, or the
+  // minimum-amount gate and the number on screen disagree.
+  const costKes = qty > 0 ? Math.max(20, Math.ceil(rawCostKes)) : 0;
   document.getElementById('omCost').textContent = fmtKES(costKes);
-  _checkProviderLimit(Math.ceil(costKes), 'placeOrderBtn', 'omProviderWarn', 20);
+  _checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 20);
 }
 
 
@@ -3559,7 +3564,7 @@ async function placeOrder() {
   if (!phone) { toast('Please enter your M-Pesa phone number', 'error'); return; }
   // Provider capacity hard-gate (safety net if button was somehow not disabled)
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
-  const costKes = Math.ceil((qty / 1000) * rate);
+  const costKes = Math.max(20, Math.ceil((qty / 1000) * rate));
   if (!_checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 20)) return;
   const btn = document.getElementById('placeOrderBtn');
   btn.textContent = 'Sending STK Push…';
