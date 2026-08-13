@@ -229,6 +229,52 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 .lp-pillar-learn .lp-pillar-btn{background:linear-gradient(135deg,#2196f3,#1467b3);color:#fff;box-shadow:0 8px 22px rgba(33,150,243,.3);}
 .lp-pillar-earn .lp-pillar-btn{background:linear-gradient(135deg,#ffb020,#f2891a);color:#1a1204;box-shadow:0 8px 22px rgba(255,176,32,.32);}
 .lp-pillar-btn:hover{transform:translateY(-2px);filter:brightness(1.08);}
+
+/* ═══ Creator Events Teaser — dynamic, real-data-only ═══ */
+.lp-evt-section{padding:100px 6%;}
+.lp-evt-wrap{max-width:1140px;margin:0 auto;display:flex;align-items:center;gap:64px;flex-wrap:wrap;}
+.lp-evt-copy{flex:1;min-width:300px;}
+.lp-evt-count{display:inline-flex;align-items:center;gap:8px;background:rgba(61,212,74,.1);border:1px solid rgba(61,212,74,.25);color:#6efb7a;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;padding:6px 15px 6px 11px;border-radius:30px;margin-bottom:20px;}
+.lp-evt-count .dot{width:6px;height:6px;border-radius:50%;background:#3dd44a;flex-shrink:0;animation:pulse 2s infinite;}
+.lp-evt-copy h2{color:#fff;font-size:clamp(28px,3.2vw,40px);font-weight:900;letter-spacing:-1px;line-height:1.15;margin-bottom:16px;}
+.lp-evt-copy h2 em{font-style:normal;color:#3dd44a;}
+.lp-evt-copy p{color:#7a9aad;font-size:15.5px;line-height:1.75;max-width:460px;margin-bottom:6px;}
+.lp-evt-meta-row{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0 30px;}
+.lp-evt-chip{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:#cfe6d6;font-size:13px;font-weight:600;padding:9px 15px;border-radius:10px;}
+.lp-evt-chip b{color:#fff;font-weight:700;}
+.lp-evt-cta-row{display:flex;align-items:center;flex-wrap:wrap;gap:16px;}
+.lp-evt-btn{position:relative;display:inline-flex;align-items:center;gap:9px;padding:15px 28px;border-radius:12px;background:linear-gradient(135deg,#3dd44a,#28a035);color:#04170a;font-size:14.5px;font-weight:800;text-decoration:none;box-shadow:0 10px 28px rgba(61,212,74,.32);transition:all .25s;font-family:'Montserrat',sans-serif;}
+.lp-evt-btn:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(61,212,74,.42);filter:brightness(1.06);}
+.lp-evt-more{font-size:12.5px;color:#7a9aad;font-weight:600;}
+
+/* floating ticket illustration */
+.lp-evt-ticket{position:relative;flex:0 0 auto;width:100%;max-width:400px;}
+.lp-evt-ticket-glow{position:absolute;inset:-32px;background:radial-gradient(circle at 28% 18%,rgba(61,212,74,.22),transparent 60%);filter:blur(28px);pointer-events:none;}
+.lp-evt-card{position:relative;background:linear-gradient(155deg,#0b0f0c,#0e1a12);border:1px solid rgba(61,212,74,.28);border-radius:20px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45);}
+.lp-evt-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#3dd44a,transparent);z-index:1;}
+.lp-evt-cover{height:106px;background-size:cover;background-position:center;position:relative;}
+.lp-evt-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,15,10,.15),rgba(10,15,10,.96));}
+.lp-evt-cover-fallback{background:repeating-linear-gradient(135deg,rgba(61,212,74,.10) 0 2px,transparent 2px 16px),linear-gradient(135deg,#0b0b0b,#101a10);}
+.lp-evt-body{padding:20px 22px 18px;position:relative;z-index:1;margin-top:-40px;}
+.lp-evt-eyebrow{font-size:10.5px;font-weight:800;letter-spacing:1.6px;color:#3dd44a;text-transform:uppercase;margin-bottom:6px;}
+.lp-evt-title{font-size:19px;font-weight:800;color:#fff;line-height:1.28;margin-bottom:12px;}
+.lp-evt-info{font-size:12.5px;color:#9fb3ab;line-height:1.9;margin-bottom:6px;}
+.lp-evt-urgency{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:700;color:#ffd166;margin-top:14px;}
+.lp-evt-urgency-bar{flex:1;height:5px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;}
+.lp-evt-urgency-fill{height:100%;background:linear-gradient(90deg,#3dd44a,#ffd166);border-radius:4px;}
+
+/* perforated stub strip along the bottom, echoing the real ticket design */
+.lp-evt-stub{position:relative;display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-top:2px dashed rgba(255,255,255,.16);background:rgba(61,212,74,.05);}
+.lp-evt-stub::before,.lp-evt-stub::after{content:'';position:absolute;top:-9px;width:18px;height:18px;border-radius:50%;background:#0a1a12;}
+.lp-evt-stub::before{left:-9px;}
+.lp-evt-stub::after{right:-9px;}
+.lp-evt-price{font-size:17px;font-weight:800;color:#fff;line-height:1.3;}
+.lp-evt-price span{display:block;font-size:9.5px;font-weight:700;color:#6b8f7d;letter-spacing:1.2px;text-transform:uppercase;}
+.lp-evt-qr{width:46px;height:46px;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+@media(max-width:640px){
+  .lp-evt-section{padding:70px 5%;}
+  .lp-evt-wrap{gap:36px;}
+}
 .lp-pillar-corner{position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.06),transparent 70%);pointer-events:none;}
 @media(max-width:900px){.lp-pillars-grid{grid-template-columns:1fr;}}
 
@@ -558,16 +604,18 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .dash-stat.ds-spent .ds-val{color:var(--green);}
 .dash-stat .ds-lbl{font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-.promo-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.promo-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:20px;}
 .promo-card{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;cursor:pointer;transition:border-color .2s,transform .15s;}
 .promo-card:active{transform:scale(.98);}
 .promo-icon{flex-shrink:0;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;}
 .promo-card.pc-green .promo-icon{background:rgba(61,212,74,.14);}
 .promo-card.pc-purple .promo-icon{background:rgba(155,107,255,.16);}
 .promo-card.pc-blue .promo-icon{background:rgba(74,168,255,.16);}
+.promo-card.pc-gold .promo-icon{background:rgba(255,193,7,.16);}
 .promo-card.pc-green:hover{border-color:rgba(61,212,74,.45);}
 .promo-card.pc-purple:hover{border-color:rgba(155,107,255,.45);}
 .promo-card.pc-blue:hover{border-color:rgba(74,168,255,.45);}
+.promo-card.pc-gold:hover{border-color:rgba(255,193,7,.45);}
 .promo-body{flex:1;min-width:0;}
 .promo-title{font-size:12.5px;font-weight:800;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .promo-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1173,6 +1221,7 @@ tbody td{padding:13px 16px;font-size:14px;}
     <div class="lp-nav-center">
       <a href="#pillars" class="lp-nav-link">Services</a>
       <a href="#academy" class="lp-nav-link">Creator Academy</a>
+      <a href="#creator-events" class="lp-nav-link">Creator Events</a>
       <a href="#marketplace" class="lp-nav-link">Marketplace</a>
       <a href="#faq" class="lp-nav-link">FAQ</a>
     </div>
@@ -1189,6 +1238,7 @@ tbody td{padding:13px 16px;font-size:14px;}
   <div class="lp-mobile-drawer" id="lpMobileDrawer">
     <a href="#pillars"     class="lp-mobile-link" onclick="closeLpMenu()">Services</a>
     <a href="#academy"     class="lp-mobile-link" onclick="closeLpMenu()">Creator Academy</a>
+    <a href="#creator-events" class="lp-mobile-link" onclick="closeLpMenu()">Creator Events</a>
     <a href="#marketplace" class="lp-mobile-link" onclick="closeLpMenu()">Marketplace</a>
     <a href="#faq"         class="lp-mobile-link" onclick="closeLpMenu()">FAQ</a>
     <div style="display:flex;flex-direction:column;gap:10px;padding:0 20px 20px;">
@@ -1379,6 +1429,51 @@ tbody td{padding:13px 16px;font-size:14px;}
         <a href="#" class="lp-pillar-btn" onclick="showReg();document.getElementById('regBox').scrollIntoView({behavior:'smooth'});return false;">Browse Marketplace →</a>
       </div>
 
+    </div>
+  </section>
+
+  <!-- ════════════ CREATOR EVENTS ════════════
+       The copy in .lp-evt-copy is static and ALWAYS visible — Creator
+       Events is a real, standing part of EndaViral even before the very
+       first one has been created, so this section should never look
+       empty or broken. Only the ticket-style card on the right
+       (#lpEvtTeaserVisual) is dynamic: it starts as an honest "nothing
+       scheduled yet" placeholder and is swapped for a REAL upcoming
+       event (see lpLoadEventsTeaser() in creator_events.js) once one is
+       published. Never shows fabricated/mock event data. -->
+  <section class="lp-dark-section lp-evt-section" id="creator-events">
+    <div class="lp-evt-wrap">
+      <div class="lp-evt-copy lp-reveal">
+        <div class="lp-evt-count"><span class="dot"></span>Creator Events</div>
+        <h2>We take EndaViral <em>on the road</em></h2>
+        <p>Beyond the app, EndaViral runs in-person Creator Events from time to time — workshops, live speakers, networking and giveaways, hosted in a different Kenyan city each round so it isn't always Nairobi's turn.</p>
+        <p>Tickets are affordable and booked straight from your dashboard, paid the same way as everything else here — M-Pesa.</p>
+        <div class="lp-evt-meta-row">
+          <div class="lp-evt-chip">🎤 <b>Workshops</b> &amp; speaker sessions</div>
+          <div class="lp-evt-chip">📍 <b>Different city</b> each time</div>
+          <div class="lp-evt-chip">🎟️ <b>M-Pesa</b> checkout, digital ticket</div>
+        </div>
+        <div class="lp-evt-cta-row">
+          <a href="#" class="lp-evt-btn" onclick="showReg();document.getElementById('regBox').scrollIntoView({behavior:'smooth'});return false;">Create Free Account →</a>
+          <span class="lp-evt-more" id="lpEvtMoreNote">Sign up and we'll show the next one in your dashboard.</span>
+        </div>
+      </div>
+
+      <div class="lp-evt-ticket lp-reveal">
+        <div class="lp-evt-ticket-glow"></div>
+        <div class="lp-evt-card" id="lpEvtTeaserVisual" onclick="showReg();document.getElementById('regBox').scrollIntoView({behavior:'smooth'});return false;" style="cursor:pointer;">
+          <div class="lp-evt-cover lp-evt-cover-fallback"></div>
+          <div class="lp-evt-body">
+            <div class="lp-evt-eyebrow">CREATOR EVENT</div>
+            <div class="lp-evt-title">Next city: to be announced</div>
+            <div class="lp-evt-info">📍 Rotates across Kenya — Nairobi, Mombasa, Kisumu &amp; more<br>🎤 Workshops · Networking · Giveaways</div>
+          </div>
+          <div class="lp-evt-stub">
+            <div class="lp-evt-price"><span>Status</span>Nothing scheduled yet</div>
+            <div class="lp-evt-qr" style="font-size:20px;">🔔</div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1707,6 +1802,13 @@ tbody td{padding:13px 16px;font-size:14px;}
         Creator Academy
         <span class="nav-badge" id="academyBadge" style="display:none;background:var(--green);color:#000;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:auto;"></span>
       </div>
+      <div class="nav-item" onclick="navTo('creator-events')" id="eventsNavItem">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3v4M8 3v4M2 11h20"/>
+        </svg>
+        Creator Events
+        <span class="nav-badge" id="eventsBadge" style="display:none;background:var(--green);color:#000;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:auto;"></span>
+      </div>
       <div class="nav-item" onclick="navTo('connect')" id="connectNavItem">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -1803,6 +1905,15 @@ tbody td{padding:13px 16px;font-size:14px;}
             <div class="promo-body">
               <div class="promo-title">Creators Marketplace</div>
               <div class="promo-desc">Get paid by real brands</div>
+            </div>
+            <div class="promo-arrow">→</div>
+          </div>
+
+          <div class="promo-card pc-gold" onclick="navTo('creator-events')" title="Creator Events">
+            <div class="promo-icon">🎤</div>
+            <div class="promo-body">
+              <div class="promo-title">Creator Events</div>
+              <div class="promo-desc" id="dashEventsDesc">In-person training with real speakers</div>
             </div>
             <div class="promo-arrow">→</div>
           </div>
@@ -2191,6 +2302,23 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="page-section" id="sec-academy"></div>
       <div class="page-section" id="sec-connect"></div>
 
+      <!-- CREATOR EVENTS -->
+      <div class="page-section" id="sec-creator-events">
+        <div class="sec-hd">
+          <div><div class="sec-title">CREATOR EVENTS</div><div class="sec-sub">In-person training — book your slot, pay with M-Pesa, download your ticket</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+          <button id="evSubTab-browse" onclick="evSubTab('browse')" style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Upcoming Events</button>
+          <button id="evSubTab-mytickets" onclick="evSubTab('mytickets')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">🎟️ My Tickets</button>
+        </div>
+        <div id="evPane-browse">
+          <div id="eventsGrid"><div class="loading-spinner"><div class="spinner"></div><span>Loading events…</span></div></div>
+        </div>
+        <div id="evPane-mytickets" style="display:none;">
+          <div id="myTicketsGrid"><div class="loading-spinner"><div class="spinner"></div><span>Loading your tickets…</span></div></div>
+        </div>
+      </div>
+
       <!-- ADMIN -->
       <div class="page-section" id="sec-admin">
         <div class="admin-tabs">
@@ -2205,6 +2333,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="admin-tab" onclick="adminTab('academy', this)">🎓 Academy</div>
           <div class="admin-tab" onclick="adminTab('connect', this)">🤝 Connect</div>
           <div class="admin-tab" onclick="adminTab('ccr-agents', this)">🎧 CCR Agents</div>
+          <div class="admin-tab" onclick="adminTab('creator-events', this)">🎤 Creator Events</div>
         </div>
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
@@ -2508,8 +2637,69 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="tbl-wrap" id="ccrPayoutRequestsTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading payout requests…</span></div></div>
         </div>
 
+        <!-- ══ CREATOR EVENTS (admin) ══ -->
+        <div class="admin-panel" id="ap-creator-events">
+          <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
+            <div><div class="sec-title">🎤 CREATOR EVENTS</div><div class="sec-sub">Create ticketed in-person training events, publish them, and track ticket sales</div></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn-secondary" onclick="adminEventOpenCreate()">+ New Event</button>
+              <button class="btn-secondary" onclick="loadAdminEvents()">↻ Refresh</button>
+            </div>
+          </div>
+          <div class="tbl-wrap" id="adminEventsList"><div class="loading-spinner"><div class="spinner"></div><span>Loading events…</span></div></div>
+        </div>
+
       </div>
 
+    </div>
+  </div>
+
+  <!-- ══════════════════ CREATOR EVENTS: ADMIN EDITOR MODAL ══════════════════ -->
+  <div class="modal-overlay" id="adminEventEditorModal" style="display:none;" onclick="if(event.target===this)adminEventCloseEditor()">
+    <div class="modal" style="max-width:640px;">
+      <button class="modal-close" onclick="adminEventCloseEditor()">✕</button>
+      <div class="modal-title" id="adminEventEditorTitle" style="margin-bottom:4px;">New Creator Event</div>
+      <div class="modal-sub" style="margin-bottom:18px;">Fill in the details — the event starts as a draft until you publish it</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="field" style="grid-column:1/-1;"><label>Title *</label><input type="text" id="evTitle" placeholder="Kenyan Creators Connect 2026"/></div>
+        <div class="field" style="grid-column:1/-1;"><label>Description</label><textarea id="evDescription" rows="3" style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-size:13.5px;font-family:'Montserrat',sans-serif;resize:vertical;" placeholder="What creators will get out of attending…"></textarea></div>
+        <div class="field" style="grid-column:1/-1;"><label>Cover Image URL</label><input type="text" id="evCoverImage" placeholder="https://…"/></div>
+
+        <div class="field"><label>Venue *</label><input type="text" id="evVenue" placeholder="KICC, Tsavo Ballroom"/></div>
+        <div class="field"><label>City *</label><input type="text" id="evCity" placeholder="Nairobi"/></div>
+
+        <div class="field"><label>Date *</label><input type="date" id="evDate"/></div>
+        <div class="field"><label>Start Time *</label><input type="text" id="evStartTime" placeholder="10:00 AM"/></div>
+        <div class="field"><label>End Time</label><input type="text" id="evEndTime" placeholder="5:00 PM"/></div>
+        <div class="field"><label>Ticket Price (KES) *</label><input type="number" id="evPrice" min="0" value="500"/></div>
+
+        <div class="field"><label>Capacity *</label><input type="number" id="evCapacity" min="1" value="50"/></div>
+        <div class="field"><label>Highlights (comma separated)</label><input type="text" id="evHighlights" placeholder="Workshops, Networking, Giveaways"/></div>
+
+        <div class="field" style="grid-column:1/-1;">
+          <label>Speakers (JSON array)</label>
+          <textarea id="evSpeakersJson" rows="3" style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-size:12.5px;font-family:monospace;resize:vertical;" placeholder='[{"name":"Jane Doe","bio":"...","topic":"Growth on TikTok","photo_url":""}]'>[]</textarea>
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <label>Sponsors (JSON array)</label>
+          <textarea id="evSponsorsJson" rows="2" style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-size:12.5px;font-family:monospace;resize:vertical;" placeholder='[{"name":"Safaricom","logo_url":""}]'>[]</textarea>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:22px;">
+        <button class="btn-secondary" style="flex:1;" onclick="adminEventCloseEditor()">Cancel</button>
+        <button class="btn-primary" style="flex:2;" onclick="adminEventSave()">Save Event</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ CREATOR EVENTS: ADMIN ATTENDEES MODAL ══════════════════ -->
+  <div class="modal-overlay" id="adminEventAttendeesModal" style="display:none;" onclick="if(event.target===this)adminEventCloseAttendees()">
+    <div class="modal" style="max-width:680px;">
+      <button class="modal-close" onclick="adminEventCloseAttendees()">✕</button>
+      <div class="modal-title" id="adminEventAttendeesTitle" style="margin-bottom:18px;">Attendees</div>
+      <div id="adminEventAttendeesBody"></div>
     </div>
   </div>
 
@@ -3084,8 +3274,8 @@ const lpTickerFeed = [
 })();
 
 // ── Scroll-reveal for landing page sections ──
-(function lpInitReveal(){
-  const targets = document.querySelectorAll('.lp-reveal');
+function lpObserveReveal(nodeList) {
+  const targets = nodeList || document.querySelectorAll('.lp-reveal');
   if (!targets.length) return;
   if (!('IntersectionObserver' in window)) { targets.forEach(t => t.classList.add('is-visible')); return; }
   const io = new IntersectionObserver((entries) => {
@@ -3097,7 +3287,8 @@ const lpTickerFeed = [
     });
   }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
   targets.forEach(t => io.observe(t));
-})();
+}
+lpObserveReveal();
 
 // Landing page mobile nav
 function toggleLpMenu() {
@@ -3120,7 +3311,7 @@ function togglePass(inputId, btn) {
   btn.style.color = show ? '#3dd44a' : '';
 }
 
-const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT', affiliate:'REFER & EARN', academy:'CREATOR ACADEMY', connect:'ENDAVIRAL MARKETPLACE', 'ccr-agent':'MY EARNINGS' };
+const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT', affiliate:'REFER & EARN', academy:'CREATOR ACADEMY', connect:'ENDAVIRAL MARKETPLACE', 'ccr-agent':'MY EARNINGS', 'creator-events':'CREATOR EVENTS' };
 
 function navTo(page) {
   // Re-applied on every navigation (see ccr_agent.js) since we don't own
@@ -3178,6 +3369,7 @@ function navTo(page) {
   if (page === 'affiliate') { if (typeof initAffiliatePage === 'function') initAffiliatePage(); }
   if (page === 'academy') { if (typeof initAcademyPage === 'function') initAcademyPage(); }
   if (page === 'connect') { if (typeof initConnectPage === 'function') initConnectPage(); }
+  if (page === 'creator-events') { if (typeof eventsInit === 'function') eventsInit(); }
   if (page === 'ccr-agent') { if (typeof initCCRAgentPage === 'function') initCCRAgentPage(); }
   if (page === 'dashboard') { _maybeHideAffBanner(); }
 }
@@ -4275,6 +4467,45 @@ async function _maybeHideAffBanner() {
 <script src="affiliate.js"></script>
 
 <!-- ── Creator Academy lesson modal ── -->
+<!-- ══════════════════ CREATOR EVENTS: DETAIL MODAL ══════════════════ -->
+<div class="modal-overlay" id="eventDetailModal" style="display:none;" onclick="if(event.target===this)eventCloseDetail()">
+  <div class="modal" style="max-width:560px;">
+    <button class="modal-close" onclick="eventCloseDetail()">✕</button>
+    <div id="eventDetailBody"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ CREATOR EVENTS: BUY MODAL ══════════════════ -->
+<div class="modal-overlay" id="eventBuyModal" style="display:none;" onclick="if(event.target===this)eventCloseBuy()">
+  <div class="modal" style="max-width:420px;">
+    <button class="modal-close" onclick="eventCloseBuy()">✕</button>
+    <div class="modal-title" id="eventBuyTitle" style="margin-bottom:4px;">Book Event</div>
+    <div class="modal-sub" style="margin-bottom:10px;">Pay via M-Pesa STK push — one ticket per person</div>
+    <div style="font-size:26px;font-weight:800;color:var(--green);margin-bottom:18px;" id="eventBuyPrice">KES 0</div>
+    <div class="field"><label>M-Pesa Phone Number</label><input type="tel" id="eventBuyPhone" placeholder="07XXXXXXXX"/></div>
+    <div style="font-size:13px;color:var(--muted);min-height:18px;margin:8px 0 4px;" id="eventBuyStatus"></div>
+    <button class="btn-primary" style="width:100%;" onclick="eventConfirmBuy()">Pay &amp; Book Slot</button>
+  </div>
+</div>
+
+<!-- ══════════════════ CREATOR EVENTS: TICKET MODAL (canvas-rendered, same
+     pattern as academyCertModal below) ══════════════════ -->
+<div class="modal-overlay" id="eventTicketModal" style="display:none;" onclick="if(event.target===this)eventCloseTicket()">
+  <div class="modal" style="max-width:640px;">
+    <button class="modal-close" onclick="eventCloseTicket()">✕</button>
+    <div class="modal-title" style="margin-bottom:4px;">🎟️ Your Ticket</div>
+    <div class="modal-sub" style="margin-bottom:18px;">Download it, share it, or show the QR straight from your phone at the door</div>
+    <div style="width:100%;overflow:auto;border-radius:16px;border:1px solid var(--border);">
+      <canvas id="evTicketCanvas" width="1200" height="590" style="width:100%;height:auto;display:block;"></canvas>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn-secondary" style="flex:1;" onclick="eventCloseTicket()">Close</button>
+      <button class="btn-secondary" style="flex:1;" onclick="downloadTicket()">⬇ Download</button>
+      <button class="btn-primary" style="flex:2;background:var(--green);color:#000;" onclick="shareTicket()">📤 Share</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="academyLessonModal">
   <div class="modal" style="max-width:560px;">
     <button class="modal-close" onclick="closeAcademyLesson()">✕</button>

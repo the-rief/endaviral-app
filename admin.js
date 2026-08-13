@@ -31,6 +31,7 @@ function adminTab(tab, el) {
   if (tab === 'academy') acAdminSubTab('overview');
   if (tab === 'connect') cnAdminSubTab('overview');
   if (tab === 'ccr-agents') ccrAdminInit();
+  if (tab === 'creator-events') { if (typeof adminEventsInit === 'function') adminEventsInit(); }
 }
 
 async function loadAdminUsers() {
