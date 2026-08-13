@@ -13,10 +13,17 @@ let _ccrUsersCache = []; // for the "assign role" user picker
 
 function ccrAdminInit() {
   const periodInput = document.getElementById('ccrPeriodInput');
-  // Default the date picker to today so "Generate for Day" is a one-click
-  // action for the common case (running it manually rather than via cron).
-  if (periodInput && !periodInput.value) {
-    periodInput.value = new Date().toISOString().slice(0, 10);
+  // Default (and cap) the date picker to yesterday — the most recent day
+  // that's actually closed. Today can't be generated: its profit isn't
+  // final until the day ends, and each (agent, day) can only ever be
+  // generated once, so a partial mid-day snapshot would freeze that day's
+  // commission forever and silently drop every order placed afterward.
+  // Today's commissions are handled automatically the next time this tab
+  // (or an agent's My Earnings) is opened after midnight UTC.
+  if (periodInput) {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    periodInput.max = yesterday;
+    if (!periodInput.value) periodInput.value = yesterday;
   }
   loadCCRAgents();
   loadCCRCommissions();
