@@ -764,10 +764,12 @@ async function loadAdminCommandCenter(force = false) {
     api('/admin/allocations/titan'),                                // 13
     api('/admin/allocations/owner-pay'),                            // 14
     api('/admin/allocations/expenses'),                             // 15
+    api('/admin/allocations/panel-growth'),                         // 16
+    api('/admin/allocations/tax-reserve'),                          // 17
   ]);
   const [snap, stats, breakdown, revenue, trends, engagement,
          connectStats, connectRevenue, academyStats, academyRevenue,
-         affiliates, ccrAgents, platforms, titan, ownerPay, expenses] = results;
+         affiliates, ccrAgents, platforms, titan, ownerPay, expenses, panelGrowth, taxReserve] = results;
   _chc.data.snapshot   = snap.status === 'fulfilled' ? snap.value : null;
   _chc.data.stats      = stats.status === 'fulfilled' ? stats.value : null;
   _chc.data.breakdown  = breakdown.status === 'fulfilled' ? breakdown.value : null;
@@ -784,6 +786,8 @@ async function loadAdminCommandCenter(force = false) {
   _chc.data.titan           = titan.status === 'fulfilled' ? titan.value : null;
   _chc.data.ownerPay        = ownerPay.status === 'fulfilled' ? ownerPay.value : null;
   _chc.data.expenses        = expenses.status === 'fulfilled' ? expenses.value : null;
+  _chc.data.panelGrowth     = panelGrowth.status === 'fulfilled' ? panelGrowth.value : null;
+  _chc.data.taxReserve      = taxReserve.status === 'fulfilled' ? taxReserve.value : null;
   _chc.loadedAt = Date.now();
 
   _chcRenderAlerts();
@@ -1488,45 +1492,49 @@ function _mfTitanBody(ledger, titanKesThisPeriod) {
   `;
 }
 
-/* Shared renderer for the Owner Pay and Operating Expenses ledgers — same
- * shape (allocated / withdrawn / remaining + a manual log), just different
- * copy and colour. `kind` is 'owner' or 'expense' and picks which pair of
- * mfLog / mfLogCustom functions the buttons call. */
+/* Shared renderer for all 4 Money Flow bucket ledgers (owner / expense /
+ * panel / tax) — same shape (allocated / withdrawn / remaining + a manual
+ * log), just different copy and colour per bucket. */
+const _MF_KIND_CFG = {
+  owner:   { fnSuffix: 'Owner',   color: 'var(--blue)',   verb: 'Withdrawn',  noun: 'withdrawals',  logNote: 'Owner withdrawal' },
+  expense: { fnSuffix: 'Expense', color: 'var(--white)',  verb: 'Spent',      noun: 'expenses',      logNote: 'expense' },
+  panel:   { fnSuffix: 'Panel',   color: 'var(--green)',  verb: 'Withdrawn',  noun: 'withdrawals',  logNote: 'panel/growth withdrawal' },
+  tax:     { fnSuffix: 'Tax',     color: 'var(--orange)', verb: 'Set aside',  noun: 'tax entries',  logNote: 'tax reserve entry' },
+};
+
 function _mfWithdrawalBody(summary, kind, thisWindowKes) {
+  const cfg = _MF_KIND_CFG[kind];
   const s = summary || { allocated_kes: 0, withdrawn_kes: 0, remaining_kes: 0, allocation_pct: 0, withdrawals: [] };
   const allocated = s.allocated_kes || 0;
   const withdrawn = s.withdrawn_kes || 0;
   const remaining = s.remaining_kes || 0;
   const bar = allocated > 0 ? Math.max(0, Math.min(100, (withdrawn / allocated) * 100)) : 0;
   const entries = (s.withdrawals || []).slice(0, 8);
-  const noun = kind === 'owner' ? 'withdrawals' : 'expenses';
-  const fnSuffix = kind === 'owner' ? 'Owner' : 'Expense';
-  const color = kind === 'owner' ? 'var(--blue)' : 'var(--white)';
 
   const rows = entries.length ? entries.map(w => `
     <div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
       <span style="color:var(--muted);">${esc(new Date(w.date).toLocaleDateString())} — ${esc(w.note || '')}</span>
       <span style="font-weight:700;color:var(--white);">${fmtKES(w.amount_kes)}</span>
-    </div>`).join('') : `<div style="font-size:11.5px;color:var(--muted);padding:6px 0;">No ${noun} logged yet.</div>`;
+    </div>`).join('') : `<div style="font-size:11.5px;color:var(--muted);padding:6px 0;">No ${cfg.noun} logged yet.</div>`;
 
   return `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:14px;">
       <div><div style="font-size:22px;font-weight:800;color:var(--white);">${fmtKES(allocated)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Allocated all-time (${s.allocation_pct}% of net profit)</div></div>
-      <div><div style="font-size:22px;font-weight:800;color:var(--orange);">${fmtKES(withdrawn)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">${kind === 'owner' ? 'Withdrawn' : 'Spent'} so far</div></div>
-      <div><div style="font-size:22px;font-weight:800;color:${color};">${fmtKES(remaining)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Remaining balance</div></div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--orange);">${fmtKES(withdrawn)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">${cfg.verb} so far</div></div>
+      <div><div style="font-size:22px;font-weight:800;color:${cfg.color};">${fmtKES(remaining)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Remaining balance</div></div>
     </div>
     <div style="height:10px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden;margin-bottom:6px;">
-      <div style="height:100%;width:${bar}%;background:${color};border-radius:5px;"></div>
+      <div style="height:100%;width:${bar}%;background:${cfg.color};border-radius:5px;"></div>
     </div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${allocated ? Math.round(bar) : 0}% drawn down</div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
-      <button class="btn-secondary" style="margin:0;padding:8px 14px;font-size:12px;" onclick="mfLog${fnSuffix}(${(thisWindowKes || 0).toFixed(2)})">+ Log this window's allocation (${fmtKES(thisWindowKes || 0)})</button>
-      <input type="number" id="mfCustom${fnSuffix}Input" placeholder="Custom amount (KES)" style="width:170px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:8px 10px;font-size:12px;" />
-      <button class="btn-secondary" style="margin:0;padding:8px 14px;font-size:12px;" onclick="mfLogCustom${fnSuffix}()">+ Log custom amount</button>
+      <button class="btn-secondary" style="margin:0;padding:8px 14px;font-size:12px;" onclick="mfLog${cfg.fnSuffix}(${(thisWindowKes || 0).toFixed(2)})">+ Log this window's allocation (${fmtKES(thisWindowKes || 0)})</button>
+      <input type="number" id="mfCustom${cfg.fnSuffix}Input" placeholder="Custom amount (KES)" style="width:170px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:8px 10px;font-size:12px;" />
+      <button class="btn-secondary" style="margin:0;padding:8px 14px;font-size:12px;" onclick="mfLogCustom${cfg.fnSuffix}()">+ Log custom amount</button>
     </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Recent ${noun}</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Recent ${cfg.noun}</div>
     ${rows}
-    <div style="font-size:10.5px;color:var(--muted);margin-top:12px;line-height:1.6;">Logging a ${kind === 'owner' ? 'withdrawal' : 'expense'} here is a manual record for tracking your ${kind === 'owner' ? "draw against the owner's" : "spend against the operating expenses"} bucket — it doesn't move money anywhere itself.</div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:12px;line-height:1.6;">Logging here is a manual record for tracking this bucket's balance — it doesn't move money anywhere itself.</div>
   `;
 }
 
@@ -1621,6 +1629,8 @@ function _chcRenderMoneyFlow() {
   // idiom as Titan above — see /admin/allocations/owner-pay|expenses).
   const ownerLedger = _chc.data.ownerPay || { allocated_kes: 0, withdrawn_kes: 0, remaining_kes: 0, allocation_pct: titanPct, withdrawals: [] };
   const expenseLedger = _chc.data.expenses || { allocated_kes: 0, withdrawn_kes: 0, remaining_kes: 0, allocation_pct: opexPct, withdrawals: [] };
+  const panelLedger = _chc.data.panelGrowth || { allocated_kes: 0, withdrawn_kes: 0, remaining_kes: 0, allocation_pct: growthPct, withdrawals: [] };
+  const taxLedger = _chc.data.taxReserve || { allocated_kes: 0, withdrawn_kes: 0, remaining_kes: 0, allocation_pct: taxPct, withdrawals: [] };
 
   // Safe to withdraw: the Owner Pay/Titan bucket, net of everything still
   // owed out to affiliates/CCR/Connect — conservative on purpose.
@@ -1716,6 +1726,12 @@ function _chcRenderMoneyFlow() {
 
     ${_chcPanel({ title: 'Operating Expenses — Spend', icon: '🧾', sub: '20% bucket: allocated vs. what you\u2019ve actually spent',
       body: `<div id="mfExpenseBody">${_mfWithdrawalBody(expenseLedger, 'expense', opexKes)}</div>` })}
+
+    ${_chcPanel({ title: 'Panel Balance & Growth — Withdrawals', icon: '📡', sub: '20% bucket: allocated vs. what you\u2019ve actually pulled out',
+      body: `<div id="mfPanelBody">${_mfWithdrawalBody(panelLedger, 'panel', growthBucketKes)}</div>` })}
+
+    ${_chcPanel({ title: 'Tax Reserve — Payments', icon: '🏛️', sub: '15% bucket: allocated vs. what you\u2019ve actually set aside/paid',
+      body: `<div id="mfTaxBody">${_mfWithdrawalBody(taxLedger, 'tax', taxKes)}</div>` })}
   `;
 }
 
@@ -1801,6 +1817,50 @@ async function _mfPostExpenseWithdrawal(amount, note) {
     _chcRenderMoneyFlow();
   } catch (e) {
     alert('Could not log expense: ' + (e.message || e));
+  }
+}
+
+async function mfLogPanel(amount) {
+  await _mfPostPanelWithdrawal(amount, "This window's Panel Balance & Growth allocation");
+}
+
+async function mfLogCustomPanel() {
+  const input = document.getElementById('mfCustomPanelInput');
+  const amount = parseFloat(input?.value);
+  if (!amount) return;
+  await _mfPostPanelWithdrawal(amount, 'Manual panel/growth withdrawal');
+}
+
+async function _mfPostPanelWithdrawal(amount, note) {
+  try {
+    _chc.data.panelGrowth = await api('/admin/allocations/panel-growth/withdraw', { method: 'POST', body: JSON.stringify({ amount_kes: amount, note }) });
+    const input = document.getElementById('mfCustomPanelInput');
+    if (input) input.value = '';
+    _chcRenderMoneyFlow();
+  } catch (e) {
+    alert('Could not log panel/growth withdrawal: ' + (e.message || e));
+  }
+}
+
+async function mfLogTax(amount) {
+  await _mfPostTaxWithdrawal(amount, "This window's Tax Reserve allocation");
+}
+
+async function mfLogCustomTax() {
+  const input = document.getElementById('mfCustomTaxInput');
+  const amount = parseFloat(input?.value);
+  if (!amount) return;
+  await _mfPostTaxWithdrawal(amount, 'Manual tax reserve entry');
+}
+
+async function _mfPostTaxWithdrawal(amount, note) {
+  try {
+    _chc.data.taxReserve = await api('/admin/allocations/tax-reserve/withdraw', { method: 'POST', body: JSON.stringify({ amount_kes: amount, note }) });
+    const input = document.getElementById('mfCustomTaxInput');
+    if (input) input.value = '';
+    _chcRenderMoneyFlow();
+  } catch (e) {
+    alert('Could not log tax reserve entry: ' + (e.message || e));
   }
 }
 
