@@ -688,10 +688,11 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
   .dash-stat .ds-val{font-size:16px;}
   .dash-stat .ds-lbl{font-size:8.5px;}
 
-  /* All 3 promo cards stay visible side-by-side — stacked vertically
-     inside each card (icon, title, short desc) since there's no room
-     for the horizontal icon+desc+arrow layout at a third of phone width. */
-  .promo-strip{gap:8px;margin-bottom:18px;align-items:stretch;}
+  /* 5 promo cards collapse into a 3-then-2 grid (not a single stacked
+     column) — stacked vertically inside each card (icon, title, short
+     desc) since there's no room for the horizontal icon+desc+arrow
+     layout at a third of phone width. */
+  .promo-strip{grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px;align-items:stretch;}
   .promo-card{flex-direction:column;align-items:center;text-align:center;gap:5px;padding:11px 6px;}
   .promo-icon{width:30px;height:30px;font-size:14px;}
   .promo-title{font-size:9.5px;white-space:normal;line-height:1.2;}
@@ -797,16 +798,14 @@ tbody td{padding:13px 16px;font-size:14px;}
 }
 
 @media(max-width:768px){
-  /* Both platform rows become one swipeable strip instead of tall
-     multi-column grids — the core row alone used to run 3-4 rows on a
-     phone before you ever reached the search box or a service card. */
+  /* Core platform row becomes a clean 4-column grid (2 rows for 7
+     tiles) instead of a horizontal scroll strip that cut tiles off at
+     the edge of the screen. */
   .platform-grid{
-    display:flex;grid-template-columns:unset;flex-wrap:nowrap;gap:8px;
-    overflow-x:auto;-webkit-overflow-scrolling:touch;
-    margin:0 -14px 14px;padding:0 14px 2px;
+    display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+    overflow-x:visible;margin:0 0 14px;padding:0;
   }
-  .platform-grid::-webkit-scrollbar{display:none;}
-  .platform-tile{flex:0 0 78px;padding:10px 4px;font-size:10px;}
+  .platform-tile{padding:10px 4px;font-size:10px;}
   .platform-tile .pt-icon{font-size:20px;}
 }
 

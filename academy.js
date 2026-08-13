@@ -994,6 +994,17 @@ function _acInjectHomeStyles() {
     .ac-stat-val{font-size:13.5px;font-weight:800;color:var(--white);}
     .ac-stat-sub{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4;}
 
+    /* All 3 stat cards (streak / badges / points) stay in a single row
+       on mobile instead of wrapping 2-then-1 — smaller padding/icon/text
+       so three fit side by side at phone width. */
+    @media(max-width:768px){
+      .ac-stats{grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
+      .ac-stat{padding:10px 8px;border-radius:12px;}
+      .ac-stat-icon{width:26px;height:26px;font-size:12px;margin-bottom:7px;}
+      .ac-stat-val{font-size:11.5px;}
+      .ac-stat-sub{font-size:9.5px;margin-top:2px;line-height:1.3;}
+    }
+
     .ac-group-hd{display:flex;align-items:center;gap:9px;margin:4px 0 12px;}
     .ac-group-hd .t{font-size:12px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--white);}
     .ac-group-hd .n{background:var(--navy);border:1px solid var(--border);border-radius:20px;padding:1px 9px;font-size:10.5px;color:var(--muted);font-weight:700;}
