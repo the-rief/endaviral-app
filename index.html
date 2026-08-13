@@ -275,6 +275,66 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
   .lp-evt-section{padding:70px 5%;}
   .lp-evt-wrap{gap:36px;}
 }
+
+/* ═══ Hire EndaViral — paid consult, signature: the incoming-call card ═══
+   Distinct from the Creator Events ticket metaphor on purpose: this
+   product's entire pitch is "no dashboard, no forms — we ring your
+   phone." The gold accent borrows from the existing "Earn" pillar
+   token (#ffb020/#ffd166) rather than reusing the events' green, so
+   the section reads as its own thing at a glance; the CTA itself stays
+   green because green = "pay" everywhere else on this page. */
+.lp-hire-section{padding:100px 6%;}
+.lp-hire-wrap{max-width:1140px;margin:0 auto;display:flex;align-items:center;gap:64px;flex-wrap:wrap;}
+.lp-hire-copy{flex:1;min-width:300px;}
+.lp-hire-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(255,176,32,.12);border:1px solid rgba(255,176,32,.32);color:#ffd166;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;padding:6px 15px 6px 11px;border-radius:30px;margin-bottom:20px;}
+.lp-hire-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:#ffb020;flex-shrink:0;}
+@media(prefers-reduced-motion:no-preference){.lp-hire-eyebrow .dot{animation:pulse 2s infinite;}}
+.lp-hire-copy h2{color:#fff;font-size:clamp(28px,3.2vw,40px);font-weight:900;letter-spacing:-1px;line-height:1.15;margin-bottom:16px;}
+.lp-hire-copy h2 em{font-style:normal;color:#ffd166;}
+.lp-hire-copy p{color:#7a9aad;font-size:15.5px;line-height:1.75;max-width:460px;margin-bottom:12px;}
+
+/* the process itself is a real 3-step sequence, so numbering earns its place here */
+.lp-hire-steps{list-style:none;margin:26px 0 32px;padding:0;display:flex;flex-direction:column;gap:14px;max-width:440px;}
+.lp-hire-steps li{display:flex;align-items:flex-start;gap:14px;}
+.lp-hire-steps .hs-num{flex-shrink:0;width:30px;height:30px;border-radius:9px;background:rgba(255,176,32,.12);border:1px solid rgba(255,176,32,.3);color:#ffd166;font-size:12.5px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);}
+.lp-hire-steps .hs-text{padding-top:3px;}
+.lp-hire-steps .hs-text b{color:#fff;font-size:14px;font-weight:700;display:block;margin-bottom:2px;}
+.lp-hire-steps .hs-text span{color:#7a9aad;font-size:13px;line-height:1.55;}
+
+.lp-hire-cta-row{display:flex;align-items:center;flex-wrap:wrap;gap:16px;}
+.lp-hire-btn{position:relative;display:inline-flex;align-items:center;gap:9px;padding:15px 28px;border-radius:12px;background:linear-gradient(135deg,#3dd44a,#28a035);color:#04170a;font-size:14.5px;font-weight:800;text-decoration:none;box-shadow:0 10px 28px rgba(61,212,74,.32);transition:all .25s;font-family:'Montserrat',sans-serif;}
+.lp-hire-btn:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(61,212,74,.42);filter:brightness(1.06);}
+.lp-hire-more{font-size:12.5px;color:#7a9aad;font-weight:600;}
+
+/* ── Signature: the incoming-call card ── */
+.lp-hire-phone-wrap{position:relative;flex:0 0 auto;width:100%;max-width:320px;}
+.lp-hire-phone-glow{position:absolute;inset:-36px;background:radial-gradient(circle at 50% 30%,rgba(255,176,32,.18),transparent 62%);filter:blur(30px);pointer-events:none;}
+.lp-hire-device{position:relative;background:linear-gradient(165deg,#0d1117,#0a0e14);border:1px solid rgba(255,255,255,.08);border-radius:34px;padding:14px;box-shadow:0 30px 80px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.04);}
+.lp-hire-screen{position:relative;background:radial-gradient(circle at 50% -10%,#1a2e1c 0%,#0c1710 55%,#0a1a12 100%);border-radius:24px;padding:30px 22px 24px;text-align:center;overflow:hidden;min-height:340px;display:flex;flex-direction:column;align-items:center;}
+.lp-hire-screen::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(61,212,74,.06) 1px,transparent 1px);background-size:22px 22px;pointer-events:none;}
+.lp-hire-fee-tag{position:absolute;top:14px;right:14px;background:rgba(255,176,32,.15);border:1px solid rgba(255,176,32,.35);color:#ffd166;font-size:10.5px;font-weight:800;letter-spacing:.6px;padding:5px 10px;border-radius:20px;z-index:1;}
+.lp-hire-callbar{position:relative;z-index:1;font-size:10.5px;font-weight:700;letter-spacing:1.8px;color:#6b8f7d;text-transform:uppercase;margin-bottom:26px;}
+.lp-hire-avatar-ring{position:relative;width:88px;height:88px;margin-bottom:18px;z-index:1;}
+.lp-hire-avatar-ring::before,.lp-hire-avatar-ring::after{content:'';position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(255,176,32,.4);}
+@media(prefers-reduced-motion:no-preference){
+  .lp-hire-avatar-ring::before{animation:hire-ring-pulse 2.4s ease-out infinite;}
+  .lp-hire-avatar-ring::after{animation:hire-ring-pulse 2.4s ease-out infinite;animation-delay:1.2s;}
+}
+.lp-hire-avatar{position:absolute;inset:10px;border-radius:50%;background:linear-gradient(135deg,#ffb020,#f2891a);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:22px;font-weight:900;color:#1a1204;box-shadow:0 8px 20px rgba(255,176,32,.35);}
+@keyframes hire-ring-pulse{0%{transform:scale(1);opacity:.7;}100%{transform:scale(1.5);opacity:0;}}
+.lp-hire-callername{position:relative;z-index:1;font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;}
+.lp-hire-callersub{position:relative;z-index:1;font-size:12.5px;color:#9fb3ab;margin-bottom:2px;}
+.lp-hire-ringing{position:relative;z-index:1;font-size:11.5px;color:#6b8f7d;font-weight:600;margin-top:2px;margin-bottom:auto;padding-top:14px;}
+.lp-hire-actions{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:46px;margin-top:22px;}
+.lp-hire-act-btn{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:none;cursor:pointer;transition:transform .2s;font-family:inherit;}
+.lp-hire-act-btn:hover{transform:translateY(-3px) scale(1.05);}
+.lp-hire-decline{background:linear-gradient(135deg,#ff5d5d,#c9302c);box-shadow:0 8px 20px rgba(201,48,44,.4);}
+.lp-hire-accept{background:linear-gradient(135deg,#3dd44a,#28a035);box-shadow:0 8px 20px rgba(61,212,74,.4);}
+.lp-hire-act-label{position:relative;z-index:1;font-size:10px;color:#4d6b5c;font-weight:600;margin-top:10px;letter-spacing:.3px;}
+@media(max-width:640px){
+  .lp-hire-section{padding:70px 5%;}
+  .lp-hire-wrap{gap:36px;}
+}
 .lp-pillar-corner{position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.06),transparent 70%);pointer-events:none;}
 @media(max-width:900px){.lp-pillars-grid{grid-template-columns:1fr;}}
 
@@ -1222,6 +1282,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <a href="#pillars" class="lp-nav-link">Services</a>
       <a href="#academy" class="lp-nav-link">Creator Academy</a>
       <a href="#creator-events" class="lp-nav-link">Creator Events</a>
+      <a href="#hire-endaviral" class="lp-nav-link">Hire EndaViral</a>
       <a href="#marketplace" class="lp-nav-link">Marketplace</a>
       <a href="#faq" class="lp-nav-link">FAQ</a>
     </div>
@@ -1239,6 +1300,7 @@ tbody td{padding:13px 16px;font-size:14px;}
     <a href="#pillars"     class="lp-mobile-link" onclick="closeLpMenu()">Services</a>
     <a href="#academy"     class="lp-mobile-link" onclick="closeLpMenu()">Creator Academy</a>
     <a href="#creator-events" class="lp-mobile-link" onclick="closeLpMenu()">Creator Events</a>
+    <a href="#hire-endaviral" class="lp-mobile-link" onclick="closeLpMenu()">Hire EndaViral</a>
     <a href="#marketplace" class="lp-mobile-link" onclick="closeLpMenu()">Marketplace</a>
     <a href="#faq"         class="lp-mobile-link" onclick="closeLpMenu()">FAQ</a>
     <div style="display:flex;flex-direction:column;gap:10px;padding:0 20px 20px;">
@@ -1471,6 +1533,57 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="lp-evt-stub">
             <div class="lp-evt-price"><span>Status</span>Nothing scheduled yet</div>
             <div class="lp-evt-qr" style="font-size:20px;">🔔</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════ HIRE ENDAVIRAL: PAID CONSULTATION ════════════
+       Signature element: an incoming-call card, not a ticket — this
+       product's whole pitch is "no dashboard, we ring your phone,"
+       so the visual says that directly instead of borrowing the
+       Creator Events ticket metaphor. -->
+  <section class="lp-dark-section lp-hire-section" id="hire-endaviral">
+    <div class="lp-hire-wrap">
+      <div class="lp-hire-copy lp-reveal">
+        <div class="lp-hire-eyebrow"><span class="dot"></span>Hire EndaViral</div>
+        <h2>Don't have time to grow your socials? <em>We'll do it for you</em></h2>
+        <p>Book a paid strategy consultation and our team reviews your social media presence, flags growth opportunities, and recommends a plan - content, branding, monetisation and a clear next step.</p>
+        <p>Want it off your plate entirely? We can agree to run your growth month-to-month after the call.</p>
+
+        <ol class="lp-hire-steps">
+          <li><span class="hs-num">01</span><span class="hs-text"><b>Pay KES 500</b><span>Via M-Pesa, right from this page.</span></span></li>
+          <li><span class="hs-num">02</span><span class="hs-text"><b>We call you</b><span>Our team rings your number for a 30–45 min session on Google Meet.</span></span></li>
+          <li><span class="hs-num">03</span><span class="hs-text"><b>Walk away with a plan</b><span>Content, growth and monetisation moves you can act on the same day.</span></span></li>
+        </ol>
+
+        <div class="lp-hire-cta-row">
+          <a href="#" class="lp-hire-btn" onclick="consultOpenBooking();return false;">Book Your Call — KES 500 →</a>
+          <span class="lp-hire-more">Real strategist on the line — not a bot.</span>
+        </div>
+      </div>
+
+      <div class="lp-hire-phone-wrap lp-reveal">
+        <div class="lp-hire-phone-glow"></div>
+        <div class="lp-hire-device">
+          <div class="lp-hire-screen">
+            <div class="lp-hire-fee-tag">KES 500</div>
+            <div class="lp-hire-callbar">Incoming call</div>
+            <div class="lp-hire-avatar-ring"><div class="lp-hire-avatar">EV</div></div>
+            <div class="lp-hire-callername">EndaViral Growth Team</div>
+            <div class="lp-hire-callersub">Consultation · Google Meet</div>
+            <div class="lp-hire-ringing">Ringing the number you give us…</div>
+            <div class="lp-hire-actions">
+              <div style="text-align:center;">
+                <button class="lp-hire-act-btn lp-hire-decline" aria-label="Not now" onclick="event.preventDefault();">✕</button>
+                <div class="lp-hire-act-label">Not now</div>
+              </div>
+              <div style="text-align:center;">
+                <button class="lp-hire-act-btn lp-hire-accept" aria-label="Book this call" onclick="consultOpenBooking();">📞</button>
+                <div class="lp-hire-act-label">Book call</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1917,6 +2030,15 @@ tbody td{padding:13px 16px;font-size:14px;}
             </div>
             <div class="promo-arrow">→</div>
           </div>
+
+          <div class="promo-card pc-green" onclick="consultOpenBooking()" title="Hire EndaViral">
+            <div class="promo-icon">💼</div>
+            <div class="promo-body">
+              <div class="promo-title">Hire EndaViral</div>
+              <div class="promo-desc">KES 500 consult — we grow your socials</div>
+            </div>
+            <div class="promo-arrow">→</div>
+          </div>
         </div>
 
         <div class="sec-hd">
@@ -2334,6 +2456,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="admin-tab" onclick="adminTab('connect', this)">🤝 Connect</div>
           <div class="admin-tab" onclick="adminTab('ccr-agents', this)">🎧 CCR Agents</div>
           <div class="admin-tab" onclick="adminTab('creator-events', this)">🎤 Creator Events</div>
+          <div class="admin-tab" onclick="adminTab('consultations', this)">💼 Consultations</div>
         </div>
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
@@ -2656,8 +2779,39 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="tbl-wrap" id="adminCityRequestsPanel"><div class="loading-spinner"><div class="spinner"></div><span>Loading city requests…</span></div></div>
         </div>
 
+        <!-- ══ HIRE ENDAVIRAL: CONSULTATIONS (admin) ══ -->
+        <div class="admin-panel" id="ap-consultations">
+          <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
+            <div><div class="sec-title">💼 CONSULTATIONS</div><div class="sec-sub">Paid KES 500 "Hire EndaViral" consults — call these people and set up a Google Meet</div></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <select id="consultStageFilter" onchange="loadAdminConsultations()" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;">
+                <option value="">All paid bookings</option>
+                <option value="to_contact">To contact</option>
+                <option value="contacted">Contacted</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="completed">Completed</option>
+              </select>
+              <button class="btn-secondary" onclick="loadAdminConsultations()">↻ Refresh</button>
+            </div>
+          </div>
+          <div id="consultStatsRow" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;"></div>
+          <div class="tbl-wrap" id="adminConsultationsList"><div class="loading-spinner"><div class="spinner"></div><span>Loading consultations…</span></div></div>
+        </div>
+
       </div>
 
+    </div>
+  </div>
+
+  <!-- ══════════════════ CONSULTATIONS: ADMIN SCHEDULE MODAL ══════════════════ -->
+  <div class="modal-overlay" id="consultScheduleModal" style="display:none;" onclick="if(event.target===this)adminConsultCloseSchedule()">
+    <div class="modal" style="max-width:420px;">
+      <button class="modal-close" onclick="adminConsultCloseSchedule()">✕</button>
+      <div class="modal-title" style="margin-bottom:4px;">Schedule Consultation</div>
+      <div class="modal-sub" style="margin-bottom:18px;">Sets the Meet time and marks this lead as contacted</div>
+      <div class="field"><label>Date &amp; Time</label><input type="datetime-local" id="consultScheduleAt"/></div>
+      <div class="field"><label>Google Meet Link</label><input type="text" id="consultMeetLink" placeholder="https://meet.google.com/xxx-xxxx-xxx"/></div>
+      <button class="btn-primary" style="width:100%;" onclick="adminConsultSaveSchedule()">Save</button>
     </div>
   </div>
 
@@ -4112,6 +4266,7 @@ function resetDeposit() {
 <script src="account.js"></script>
 <script src="auth.js"></script>
 <script src="admin_creator_events.js"></script>
+<script src="admin_consultation.js"></script>
 
 <!-- ═══════════════════ CHAT WIDGET ═══════════════════ -->
 <style>
@@ -4500,6 +4655,23 @@ async function _maybeHideAffBanner() {
   </div>
 </div>
 
+<!-- ══════════════════ HIRE ENDAVIRAL: CONSULTATION BOOKING MODAL ══════════════════ -->
+<div class="modal-overlay" id="consultBookModal" style="display:none;" onclick="if(event.target===this)consultCloseBooking()">
+  <div class="modal" style="max-width:440px;">
+    <button class="modal-close" onclick="consultCloseBooking()">✕</button>
+    <div class="modal-title" style="margin-bottom:4px;">💼 Hire EndaViral</div>
+    <div class="modal-sub" style="margin-bottom:10px;">Book a 30–45 min consult on Google Meet — pay KES 500, we'll call you to set it up.</div>
+    <div style="font-size:26px;font-weight:800;color:var(--green);margin-bottom:14px;">KES 500</div>
+    <div class="field"><label>Your Name</label><input type="text" id="consultName" placeholder="Jane Wanjiru"/></div>
+    <div class="field"><label>M-Pesa Phone Number</label><input type="tel" id="consultPhone" placeholder="07XXXXXXXX"/></div>
+    <div class="field"><label>Email (optional)</label><input type="email" id="consultEmail" placeholder="jane@business.co.ke"/></div>
+    <div class="field"><label>Business Name (optional)</label><input type="text" id="consultBusiness" placeholder="Your business"/></div>
+    <div class="field"><label>What do you want help with? (optional)</label><textarea id="consultNotes" rows="3" placeholder="e.g. growing our Instagram, TikTok strategy, brand deals..."></textarea></div>
+    <div style="font-size:13px;color:var(--muted);min-height:18px;margin:8px 0 4px;" id="consultBookStatus"></div>
+    <button class="btn-primary" style="width:100%;" onclick="consultConfirmBooking()">Pay &amp; Book Consultation</button>
+  </div>
+</div>
+
 <!-- ══════════════════ CREATOR EVENTS: TICKET MODAL (canvas-rendered, same
      pattern as academyCertModal below) ══════════════════ -->
 <div class="modal-overlay" id="eventTicketModal" style="display:none;" onclick="if(event.target===this)eventCloseTicket()">
@@ -4605,6 +4777,7 @@ async function _maybeHideAffBanner() {
 <script src="bids.js"></script>
 <script src="receipt.js"></script>
 <script src="creator_events.js"></script>
+<script src="consultation.js"></script>
 
 </body>
 </html>
