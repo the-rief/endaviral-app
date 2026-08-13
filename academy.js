@@ -196,7 +196,7 @@ const ACADEMY_MODULES = [
     ],
   },
   {
-    id: 'ig', icon: '📸', title: 'Instagram Growth Playbook',
+    id: 'ig', icon: '📸', title: 'Instagram Growth Guide',
     blurb: 'Turn the algorithm in your favor',
     lessons: [
       { id: 'ig1', title: 'How the Algorithm Actually Ranks You', minutes: 5, body: [
@@ -253,7 +253,7 @@ const ACADEMY_MODULES = [
     ],
   },
   {
-    id: 'tiktok', icon: '🎵', title: 'TikTok Growth Playbook',
+    id: 'tiktok', icon: '🎵', title: 'TikTok Growth Guide',
     blurb: 'Crack the For You Page',
     lessons: [
       { id: 'tt1', title: 'Cracking the For You Page', minutes: 5, body: [
@@ -289,18 +289,18 @@ const ACADEMY_MODULES = [
         ]},
       ]},
       { id: 'tt5', title: 'The Cold-Start Test Pool: What Actually Happens in Your Video\'s First Hour', minutes: 4, body: [
-        { type: 'p', text: 'Most creators think TikTok either "picks you" or it doesn\'t. In reality, every single upload goes through the same measurable pipeline — and knowing the actual mechanics changes how you use every tool in this module.' },
+        { type: 'p', text: 'Most creators think TikTok either "picks you" or it doesn\'t. In reality, every single upload goes through the same measurable pipeline — and knowing the actual mechanics changes how you use every tool in this course.' },
         { type: 'ul', items: [
           'TikTok\'s 2026 system shows a new video to a stratified test pool of roughly 200–500 viewers, drawn from a mix of your followers and category browsers — late 2025 changes mean your own followers now see it first, before strangers do.',
           'To graduate out of that first pool into a 5,000–10,000 viewer expansion round, a video typically needs completion rate above roughly 35% and at least one engagement signal — a share, save, or substantial comment — firing above about 1.5% of viewers. Fall short, and the video quietly stops circulating: the so-called "200-view jail."',
           'This is exactly why timing a small, paced boost in that first hour matters more on TikTok than almost anywhere else — you\'re not gaming a black box, you\'re helping a video clear a specific, known threshold before the test window closes.',
-          'The Advanced TikTok Growth & Algorithm Playbook (premium) breaks down how to read your own analytics like TikTok\'s growth team does, how to engineer a video specifically for rewatches, how to batch a week of content in one sitting, and the full 2026 algorithm reset — including the shift toward follower-first testing and TikTok Shop\'s growing role in distribution. If cracking the test pool consistently (not just once) is the goal, that\'s where the real depth lives.',
+          'The Advanced TikTok Growth & Algorithm Guide (premium) breaks down how to read your own analytics like TikTok\'s growth team does, how to engineer a video specifically for rewatches, how to batch a week of content in one sitting, and the full 2026 algorithm reset — including the shift toward follower-first testing and TikTok Shop\'s growing role in distribution. If cracking the test pool consistently (not just once) is the goal, that\'s where the real depth lives.',
         ]},
       ]},
     ],
   },
   {
-    id: 'yt', icon: '▶️', title: 'YouTube Growth Playbook',
+    id: 'yt', icon: '▶️', title: 'YouTube Growth Guide',
     blurb: 'Subscribers, retention & safe monetization',
     lessons: [
       { id: 'yt1', title: 'Subscribers vs Views — Sequencing', minutes: 5, body: [
@@ -418,7 +418,7 @@ const ACADEMY_MODULES = [
         ]},
       ]},
       { id: 's4', title: 'Buying Growth the Safe Way', minutes: 3, body: [
-        { type: 'p', text: 'Everything in this module points to the same conclusion: buying growth isn\'t the risky part — buying it carelessly is. Done the way this Academy teaches, it\'s one of the lowest-risk ways to solve the cold-start problem.' },
+        { type: 'p', text: 'Everything in this course points to the same conclusion: buying growth isn\'t the risky part — buying it carelessly is. Done the way this Academy teaches, it\'s one of the lowest-risk ways to solve the cold-start problem.' },
         { type: 'ul', items: [
           'Stick to gradual, mixed orders (Lesson 6.2) on services with real or high-quality accounts (Lesson 1.2) and the risk profile barely differs from organic growth that happened to arrive quickly.',
           'Treat every order as amplifying a specific post rather than replacing a content plan (Lesson 6.3) — that\'s what keeps growth looking natural rather than suspicious.',
@@ -467,8 +467,8 @@ const ACADEMY_MODULES = [
           'For most Kenyan businesses that last step should point straight at WhatsApp, not a generic "message us" — it\'s the platform nearly every one of your customers already has open, and a simple WhatsApp catalog link lets someone go from your post to browsing your products to ordering without ever leaving the chat.',
           'The fewer manual steps between "I want this" and "I\'ve paid," the fewer customers you lose in between — businesses that let a customer pay directly rather than sending payment details back and forth report far less drop-off at the final step.',
           'A clear call-to-action (a WhatsApp link, a phone number, an order form) in your bio and in every boosted post is what actually turns page traffic into revenue.',
-          'A page with credible social proof gets that call-to-action clicked far more often than an identical page with none — this is the whole reason the earlier lessons in this module matter.',
-          'The Business Scale-Up Playbook (premium) goes much deeper here — a CAC/LTV budgeting framework built for Kenyan SME budgets, real patterns behind businesses that scaled with paid growth, how to combine paid ads with growth services for maximum ROI, and an honest breakdown of when an agency is worth paying for versus doing it yourself. Worth unlocking once you\'re past the cold-start stage and ready to treat this as a real revenue channel.',
+          'A page with credible social proof gets that call-to-action clicked far more often than an identical page with none — this is the whole reason the earlier lessons in this course matter.',
+          'The Business Scale-Up Guide (premium) goes much deeper here — a CAC/LTV budgeting framework built for Kenyan SME budgets, real patterns behind businesses that scaled with paid growth, how to combine paid ads with growth services for maximum ROI, and an honest breakdown of when an agency is worth paying for versus doing it yourself. Worth unlocking once you\'re past the cold-start stage and ready to treat this as a real revenue channel.',
         ]},
       ]},
     ],
@@ -498,7 +498,7 @@ const ACADEMY_MODULES = [
         { type: 'ul', items: [
           'Film in the vertical 9:16 safe zone from the start so the same clip works across all three without re-cropping.',
           'Export a clean, unwatermarked version each time — every platform now programmatically detects and suppresses a rival platform\'s watermark.',
-          'The sweet spot differs by platform in 2026: TikTok now rewards completion rate up to roughly 70%, which favors tighter clips; YouTube Shorts favor 30–45 seconds since anything under ~15 seconds can\'t clear its watch-time bar; Instagram Reels reward 7–15 second loops that get rewatched. The Shorts, Reels & TikTok: One Playbook (premium) breaks down exactly how to re-cut one piece of footage into three length- and pacing-optimized versions without reshooting.',
+          'The sweet spot differs by platform in 2026: TikTok now rewards completion rate up to roughly 70%, which favors tighter clips; YouTube Shorts favor 30–45 seconds since anything under ~15 seconds can\'t clear its watch-time bar; Instagram Reels reward 7–15 second loops that get rewatched. The Shorts, Reels & TikTok: One Guide (premium) breaks down exactly how to re-cut one piece of footage into three length- and pacing-optimized versions without reshooting.',
         ]},
       ]},
     ],
@@ -671,7 +671,7 @@ const ACADEMY_MODULES = [
     // after app/routers/academy.py confirms a SUCCESS purchase (or a points
     // redemption) for this (user, module) pair. Do NOT paste lesson body
     // text back into this file.
-    id: 'business_pro', icon: '📊', title: 'The Business Scale-Up Playbook',
+    id: 'business_pro', icon: '📊', title: 'The Business Scale-Up Guide',
     blurb: 'Turn a growing page into a growing business',
     premium: true,
     priceKes: ACADEMY_BUSINESS_PRO_PRICE_KES,
@@ -688,7 +688,7 @@ const ACADEMY_MODULES = [
   // (not bundled together). Teaser only; body text lives in
   // academy_premium_content.py, same gating pattern as money/business_pro.
   {
-    id: 'tiktok_pro', icon: '🎵', title: 'Advanced TikTok Growth & Algorithm Playbook',
+    id: 'tiktok_pro', icon: '🎵', title: 'Advanced TikTok Growth & Algorithm Guide',
     blurb: 'Beyond the basics — engineered virality',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
@@ -724,7 +724,7 @@ const ACADEMY_MODULES = [
     ],
   },
   {
-    id: 'shorts_pro', icon: '🎬', title: 'Shorts, Reels & TikTok: One Playbook',
+    id: 'shorts_pro', icon: '🎬', title: 'Shorts, Reels & TikTok: One Guide',
     blurb: 'One short-form video, three platforms, three algorithms',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
@@ -782,7 +782,7 @@ const ACADEMY_MODULES = [
     ],
   },
   {
-    id: 'affiliate_pro', icon: '💵', title: 'Affiliate Marketing Playbook',
+    id: 'affiliate_pro', icon: '💵', title: 'Affiliate Marketing Guide',
     blurb: 'Beyond the referral link — a real income channel',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
@@ -809,13 +809,13 @@ const ACADEMY_MODULES = [
     // is only ever served after academy.py confirms a SUCCESS purchase (or
     // a points redemption) for this (user, module) pair. Do NOT paste
     // lesson body text back into this file.
-    id: 'brand_pricing_pro', icon: '💼', title: 'Charging Brands: The Kenya Pricing Playbook',
+    id: 'brand_pricing_pro', icon: '💼', title: 'Charging Brands: The Kenya Pricing Guide',
     blurb: 'Know your worth, quote it with confidence, and get it in writing',
     premium: true, priceKes: ACADEMY_BRAND_PRICING_PRO_PRICE_KES,
     lessons: [
       { id: 'cbp1', title: 'Know Your Worth: The Numbers Brands Actually Pay For', minutes: 7, body: null },
       { id: 'cbp2', title: 'Building Your Rate Card & Media Kit', minutes: 6, body: null },
-      { id: 'cbp3', title: 'The Negotiation Playbook: Getting Paid What You\'re Worth', minutes: 6, body: null },
+      { id: 'cbp3', title: 'The Negotiation Guide: Getting Paid What You\'re Worth', minutes: 6, body: null },
       { id: 'cbp4', title: 'The Fine Print: Usage Rights, Exclusivity & Getting Paid on Time', minutes: 6, body: null },
       { id: 'cbp5', title: 'Pricing Mistakes That Cost Kenyan Creators Money — and Taxes Nobody Explains', minutes: 7, body: null },
     ],
@@ -1130,7 +1130,7 @@ function _acRenderHome(sec, state) {
       <div class="ac-hero-copy">
         <div class="ac-hero-kicker">CREATOR ACADEMY</div>
         <div class="ac-hero-title">Free lessons on growing your social media</div>
-        <div class="ac-hero-sub">Watch short lessons, earn points as you go, plus deep-dive premium modules</div>
+        <div class="ac-hero-sub">Watch short lessons, earn points as you go, plus deep-dive premium courses</div>
       </div>
       <div class="ac-hero-level">
         <div class="ac-hero-level-top"><span>${level.icon}</span><span>${esc(level.name)}</span></div>
@@ -1147,8 +1147,8 @@ function _acRenderHome(sec, state) {
   <div class="ac-premium-teaser" onclick="_acScrollToPremium()">
     <div class="ac-premium-teaser-icon">💎</div>
     <div class="ac-premium-teaser-body">
-      <div class="ac-premium-teaser-title">${lockedMods.length} Premium Modules — from KSh ${Math.min(...lockedMods.map(m => m.priceKes || ACADEMY_PREMIUM_PRICE_KES))}</div>
-      <div class="ac-premium-teaser-sub">Deeper, step-by-step playbooks beyond the free lessons. Pay with M-Pesa or use your reward points.</div>
+      <div class="ac-premium-teaser-title">${lockedMods.length} Premium Courses — from KSh ${Math.min(...lockedMods.map(m => m.priceKes || ACADEMY_PREMIUM_PRICE_KES))}</div>
+      <div class="ac-premium-teaser-sub">Deeper, step-by-step guides beyond the free lessons. Pay with M-Pesa or use your reward points.</div>
     </div>
     <div class="ac-premium-teaser-arrow">↓</div>
   </div>` : ''}
@@ -1158,7 +1158,7 @@ function _acRenderHome(sec, state) {
     <div class="ac-grad-icon">🎓</div>
     <div style="flex:1;min-width:180px;">
       <div style="font-size:13px;font-weight:900;color:var(--white);margin-bottom:3px;">Academy Graduate</div>
-      <div style="font-size:12px;color:#a9b8cc;line-height:1.5;">You finished every module — claim your graduation certificate</div>
+      <div style="font-size:12px;color:#a9b8cc;line-height:1.5;">You finished every course — claim your graduation certificate</div>
     </div>
     <button class="ac-grad-btn" onclick="acOpenCertificate('graduation')">Get Certificate →</button>
   </div>` : ''}
@@ -1172,7 +1172,7 @@ function _acRenderHome(sec, state) {
     <div class="ac-stat" style="${_acModAccent('locked')}">
       <div class="ac-stat-icon">🏅</div>
       <div class="ac-stat-val">${state.moduleBadges.length}/${ACADEMY_MODULES.length} badges</div>
-      <div class="ac-stat-sub">${state.graduated ? 'Academy Graduate 🎓' : 'Finish a module to earn one'}</div>
+      <div class="ac-stat-sub">${state.graduated ? 'Academy Graduate 🎓' : 'Finish a course to earn one'}</div>
     </div>
     <div class="ac-stat" style="${_acModAccent('done')}">
       <div class="ac-stat-icon">⭐</div>
@@ -1181,13 +1181,13 @@ function _acRenderHome(sec, state) {
     </div>
   </div>
 
-  <div class="ac-group-hd"><span class="t">📘 Learning Path</span><span class="n">${freeMods.length} modules</span><span class="line"></span></div>
+  <div class="ac-group-hd"><span class="t">📘 Learning Path</span><span class="n">${freeMods.length} courses</span><span class="line"></span></div>
   <div class="ac-modgrid">
     ${freeMods.map(mod => _acRenderModCard(mod, state)).join('')}
   </div>
 
   ${lockedMods.length ? `
-  <div class="ac-group-hd" id="ac-premium-section"><span class="t">🔒 Premium Modules</span><span class="n">${lockedMods.length} to unlock</span><span class="line"></span></div>
+  <div class="ac-group-hd" id="ac-premium-section"><span class="t">🔒 Premium Courses</span><span class="n">${lockedMods.length} to unlock</span><span class="line"></span></div>
   <div class="ac-modgrid">
     ${lockedMods.map(mod => _acRenderModCard(mod, state)).join('')}
   </div>` : ''}`;
@@ -1314,7 +1314,7 @@ async function _acOpenModule(moduleId) {
   <div class="ac-grad-banner" style="max-width:640px;">
     <div class="ac-grad-icon">🎓</div>
     <div style="flex:1;min-width:180px;">
-      <div style="font-size:13px;font-weight:900;color:var(--white);">Module complete — your certificate is ready</div>
+      <div style="font-size:13px;font-weight:900;color:var(--white);">Course complete — your certificate is ready</div>
       <div style="font-size:11.5px;color:#a9b8cc;margin-top:2px;">Download it or share it straight to your socials</div>
     </div>
     <button class="ac-grad-btn" onclick="acOpenCertificate('${mod.id}')">Get Certificate →</button>
@@ -1422,7 +1422,7 @@ async function acMarkCurrentComplete() {
     if (data.graduated && !wasGraduated) {
       toast('🎓 Academy Graduate! You completed every lesson.', 'success');
     } else if (data.module_badge_earned) {
-      toast(`🏅 Module badge earned: ${mod.title}! +${ACADEMY_XP_PER_MODULE} bonus points`, 'success');
+      toast(`🏅 Course badge earned: ${mod.title}! +${ACADEMY_XP_PER_MODULE} bonus points`, 'success');
     } else if (data.leveled_up) {
       const newLevel = _acLevelFor(data.xp);
       toast(`${newLevel.icon} Leveled up! You're now a ${newLevel.name}`, 'success');
@@ -1585,7 +1585,7 @@ async function submitAcademyPurchase() {
   }
 
   if (data.already_purchased) {
-    toast('You already own this module!', 'success');
+    toast('You already own this course!', 'success');
     closeAcademyPurchase();
     await _acFetchState(true);
     _acUpdateBadges();
@@ -1602,7 +1602,7 @@ async function submitAcademyPurchase() {
   const descEl = document.getElementById('acPurchaseStatusDesc');
   if (iconEl) iconEl.textContent = '📱';
   if (titleEl2) titleEl2.textContent = 'WAITING FOR PAYMENT';
-  if (descEl) descEl.innerHTML = 'A prompt has been sent to your phone.<br>Enter your M-Pesa PIN to unlock this module.';
+  if (descEl) descEl.innerHTML = 'A prompt has been sent to your phone.<br>Enter your M-Pesa PIN to unlock this course.';
 
   _acPollPurchaseStatus(moduleId, data.checkout_request_id);
 }
@@ -1634,7 +1634,7 @@ function _acPollPurchaseStatus(moduleId, checkoutRequestId) {
       if (iconEl) iconEl.textContent = '✅';
       if (titleEl) titleEl.textContent = 'MODULE UNLOCKED';
       if (descEl) descEl.textContent = 'Payment confirmed — enjoy the lessons!';
-      toast('🎉 Module unlocked!', 'success');
+      toast('🎉 Course unlocked!', 'success');
       setTimeout(async () => {
         closeAcademyPurchase();
         await _acFetchState(true);
@@ -1694,7 +1694,7 @@ async function acRedeemWithPoints(moduleId) {
   }
 
   if (data.already_unlocked) {
-    toast('You already own this module!', 'success');
+    toast('You already own this course!', 'success');
   } else if (data.unlocked) {
     toast(`⭐ Unlocked with ${data.points_spent} points! ${data.points_remaining} left.`, 'success');
   }
