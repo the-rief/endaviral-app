@@ -708,6 +708,17 @@ const _chc = {
   loadedAt: 0,
   trendsDays: 14,
   engagementDays: 14,
+  reserveDays: 30,
+  // Profit First (Michalowicz) Target Allocation Percentages for businesses
+  // under $250K revenue — Profit 5% / Owner's Pay 50% / Tax 15% / OpEx 30%
+  // (OpEx is always "whatever's left", per the framework). Editable — these
+  // are a widely-used starting point, not a rule.
+  pfProfitPct: 5,
+  pfOwnerPct: 50,
+  pfTaxPct: 15,
+  // SBA-recommended marketing spend for businesses under $5M revenue is
+  // 7-8% of gross sales; editable, defaults to the middle of that range.
+  marketingPct: 8,
   data: {},
   tickTimer: null,
 };
@@ -739,10 +750,11 @@ async function loadAdminCommandCenter(force = false) {
     api('/academy/admin/stats/revenue?weeks=8&months=6'),          // 9
     api('/affiliate/admin/affiliates?limit=500'),                  // 10
     api('/admin/ccr/agents'),                                      // 11
+    api(`/admin/stats/platforms?days=${_chc.trendsDays}`),         // 12
   ]);
   const [snap, stats, breakdown, revenue, trends, engagement,
          connectStats, connectRevenue, academyStats, academyRevenue,
-         affiliates, ccrAgents] = results;
+         affiliates, ccrAgents, platforms] = results;
   _chc.data.snapshot   = snap.status === 'fulfilled' ? snap.value : null;
   _chc.data.stats      = stats.status === 'fulfilled' ? stats.value : null;
   _chc.data.breakdown  = breakdown.status === 'fulfilled' ? breakdown.value : null;
@@ -755,6 +767,7 @@ async function loadAdminCommandCenter(force = false) {
   _chc.data.academyRevenue  = academyRevenue.status === 'fulfilled' ? academyRevenue.value : null;
   _chc.data.affiliates      = affiliates.status === 'fulfilled' ? (affiliates.value?.affiliates || affiliates.value || []) : null;
   _chc.data.ccrAgents       = ccrAgents.status === 'fulfilled' ? (ccrAgents.value || []) : null;
+  _chc.data.platforms       = platforms.status === 'fulfilled' ? platforms.value : null;
   _chc.loadedAt = Date.now();
 
   _chcRenderAlerts();
@@ -1196,9 +1209,201 @@ function _chcRenderRevenue() {
       ${_chcPanel({ title: 'Net-to-Business by Week', icon: '📊', sub: `last ${weekly.length}`, body: _miniBarChart(weekly, { key: 'net_revenue_kes', labelKey: 'week_start', color: '#3dd44a' }) })}
       ${_chcPanel({ title: 'Net-to-Business by Month', icon: '📊', sub: `last ${monthly.length}`, body: _miniBarChart(monthly, { key: 'net_revenue_kes', labelKey: 'month', color: '#3dd44a' }) })}
     </div>
+    ${_chcPanel({
+      title: 'Owner Draw & Cash Allocation', icon: '💰', sub: 'Built on the Profit First framework (Michalowicz) — Profit / Owner\u2019s Pay / Tax / OpEx target allocation for sub-$250K-revenue businesses', extra: `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--muted);">Reserve</span>
+          <input type="number" id="chcReserveDaysInput" value="${_chc.reserveDays}" min="0" max="90" step="1"
+                 oninput="_chcRecalcOwnerDraw()"
+                 style="width:48px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:4px 6px;font-size:12px;text-align:center;" />
+          <span style="font-size:11px;color:var(--muted);">days balance</span>
+        </div>`,
+      body: `
+        <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.06);">
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:10.5px;color:var(--muted);">Profit %
+            <input type="number" id="chcPfProfitInput" value="${_chc.pfProfitPct}" min="0" max="100" step="1" oninput="_chcRecalcOwnerDraw()"
+                   style="width:56px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--green);padding:5px 6px;font-size:13px;font-weight:700;text-align:center;" />
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:10.5px;color:var(--muted);">Owner's Pay %
+            <input type="number" id="chcPfOwnerInput" value="${_chc.pfOwnerPct}" min="0" max="100" step="1" oninput="_chcRecalcOwnerDraw()"
+                   style="width:56px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--blue);padding:5px 6px;font-size:13px;font-weight:700;text-align:center;" />
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:10.5px;color:var(--muted);">Tax %
+            <input type="number" id="chcPfTaxInput" value="${_chc.pfTaxPct}" min="0" max="100" step="1" oninput="_chcRecalcOwnerDraw()"
+                   style="width:56px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--orange);padding:5px 6px;font-size:13px;font-weight:700;text-align:center;" />
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:10.5px;color:var(--muted);">OpEx % <span style="color:rgba(122,143,173,.6);">(auto)</span>
+            <input type="number" id="chcPfOpexDisplay" value="0" disabled
+                   style="width:56px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 6px;font-size:13px;font-weight:700;text-align:center;" />
+          </label>
+        </div>
+        <div id="chcOwnerDrawBody"></div>`,
+    })}
+    ${_chcPanel({
+      title: 'Recommended Marketing Budget', icon: '📣', sub: 'SBA guidance: 7\u201310% of gross revenue for businesses under $5M; 10\u201320% if you\u2019re in growth mode', extra: `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="number" id="chcMarketingPctInput" value="${_chc.marketingPct}" min="0" max="100" step="0.5" oninput="_chcRecalcOwnerDraw()"
+                 style="width:52px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:4px 6px;font-size:12px;text-align:center;" />
+          <span style="font-size:11px;color:var(--muted);">% of gross sales</span>
+        </div>`,
+      body: `<div id="chcMarketingBody"></div>`,
+    })}
     ${_chcPanel({ title: 'Insights', icon: '💡', extra: `<button class="btn-secondary" style="margin:0;padding:7px 14px;font-size:11px;" onclick="loadAdminCommandCenter(true)">↻ Refresh</button>`, body: `<div style="padding:0 2px;">${insightsHtml}</div>` })}
   `;
+  _chcRecalcOwnerDraw();
 }
+
+/* ── Owner Draw & Cash Allocation ──────────────────────────────────────────
+ * Two questions, one panel: "how much can the business retain" and "how much
+ * can I pay myself as CEO". Two layers:
+ *   1) Known obligations come off first — unpaid affiliate/CCR commissions,
+ *      pending Connect creator payouts, and a provider-balance reserve sized
+ *      to N days of current burn. These are real numbers, not estimates.
+ *   2) What's left is split using Profit First (Michalowicz) Target
+ *      Allocation Percentages — the widely-used small-business cash system:
+ *      Profit / Owner's Pay / Tax / OpEx, defaulting to the sub-$250K-revenue
+ *      tier (5/50/15/30). OpEx always absorbs the remainder, per the
+ *      framework. All four %s are editable — they're a cited starting point,
+ *      not a rule for your specific business.
+ * This does NOT know your actual KRA tax obligation. Kenya has two live
+ * regimes with very different math: flat 3% Turnover Tax on GROSS turnover
+ * for MSMEs between KES 1M-25M/year (if elected), or 30% corporate tax on
+ * NET profit otherwise — set the Tax % input to whichever applies to you,
+ * ideally with your accountant, not the framework's default.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+function _chcRecalcOwnerDraw() {
+  const reserveInput = document.getElementById('chcReserveDaysInput');
+  const profitInput  = document.getElementById('chcPfProfitInput');
+  const ownerInput   = document.getElementById('chcPfOwnerInput');
+  const taxInput     = document.getElementById('chcPfTaxInput');
+  const marketingInput = document.getElementById('chcMarketingPctInput');
+  const opexDisplay  = document.getElementById('chcPfOpexDisplay');
+  const body = document.getElementById('chcOwnerDrawBody');
+  const marketingBody = document.getElementById('chcMarketingBody');
+  if (!body) return;
+
+  const reserveDays = Math.max(0, Math.min(90, parseInt(reserveInput?.value, 10) || 0));
+  let profitPct = Math.max(0, Math.min(100, parseFloat(profitInput?.value) || 0));
+  let ownerPct  = Math.max(0, Math.min(100, parseFloat(ownerInput?.value) || 0));
+  let taxPct    = Math.max(0, Math.min(100, parseFloat(taxInput?.value) || 0));
+  if (profitPct + ownerPct + taxPct > 100) {
+    // Scale the three down proportionally so OpEx never goes negative —
+    // OpEx is defined as "whatever's left", it can't itself be negative.
+    const scale = 100 / (profitPct + ownerPct + taxPct);
+    profitPct = Math.round(profitPct * scale * 10) / 10;
+    ownerPct  = Math.round(ownerPct * scale * 10) / 10;
+    taxPct    = Math.round(taxPct * scale * 10) / 10;
+  }
+  const opexPct = Math.round((100 - profitPct - ownerPct - taxPct) * 10) / 10;
+  const marketingPct = Math.max(0, Math.min(100, parseFloat(marketingInput?.value) || 0));
+
+  _chc.reserveDays = reserveDays;
+  _chc.pfProfitPct = profitPct;
+  _chc.pfOwnerPct = ownerPct;
+  _chc.pfTaxPct = taxPct;
+  _chc.marketingPct = marketingPct;
+  if (opexDisplay) opexDisplay.value = opexPct;
+
+  const r = _chc.data.revenue;
+  const monthly = r ? (r.monthly || []) : [];
+  const thisMonth = monthly[monthly.length - 1];
+  const monthProfit = thisMonth ? thisMonth.revenue_kes : 0;
+  const monthSales = thisMonth ? thisMonth.sales_kes : 0;
+
+  const ai = r ? (r.affiliate_impact || {}) : {};
+  const affLiability = Math.max(0, (ai.total_commission_owed_kes || 0) - (ai.total_commission_paid_kes || 0));
+
+  const ccrAgents = _chc.data.ccrAgents || [];
+  const ccrLiability = ccrAgents.reduce((s, a) => s + (a.pending_kes || 0), 0);
+
+  const cnRev = _chc.data.connectRevenue;
+  const cnLiability = cnRev ? ((cnRev.payout_queue || {}).pending_amount_kes || 0) : 0;
+
+  const statsWrap = _chc.data.stats;
+  const usdToKes = statsWrap ? ((statsWrap.pricing || {}).usd_to_kes || 0) : 0;
+  const burn = (_chc.data.trends && _chc.data.trends.balance_burn) || {};
+  const burnUsdPerDay = burn.burn_usd_per_day || 0;
+  const reserveKes = burnUsdPerDay * reserveDays * usdToKes;
+
+  const knownObligations = affLiability + ccrLiability + cnLiability + reserveKes;
+  const adjustedBase = Math.max(0, monthProfit - knownObligations);
+
+  // Marketing benchmark is independent of the P&L split above — it's sized
+  // off gross sales (per SBA/Gartner convention), not the profit remainder.
+  if (marketingBody) {
+    const recommendedMarketing = monthSales * (marketingPct / 100);
+    marketingBody.innerHTML = thisMonth ? `
+      <div style="display:flex;align-items:baseline;gap:10px;">
+        <div style="font-size:24px;font-weight:900;color:var(--white);">${fmtKES(recommendedMarketing)}</div>
+        <div style="font-size:11px;color:var(--muted);">${marketingPct}% of ${fmtKES(monthSales)} in gross sales this month</div>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.5;">This system doesn't track actual ad/marketing spend anywhere yet, so this is a target to budget against, not a comparison to what you've spent. Ask if you want real expense tracking added.</div>
+    ` : `<div style="font-size:12px;color:var(--muted);">No sales yet this month.</div>`;
+  }
+
+  if (!thisMonth) {
+    body.innerHTML = `<div style="font-size:12px;color:var(--muted);">No paid orders yet this month — nothing to allocate yet.</div>`;
+    return;
+  }
+
+  const obligationRows = [
+    { label: "This month's profit (after provider cost)", value: monthProfit, sign: 1 },
+    { label: 'Affiliate commissions owed (unpaid)', value: affLiability, sign: -1 },
+    { label: 'CCR agent commissions pending', value: ccrLiability, sign: -1 },
+    { label: 'Connect creator payouts pending', value: cnLiability, sign: -1 },
+    { label: `Panel balance reserve (${reserveDays}d at $${burnUsdPerDay.toFixed(2)}/day)`, value: reserveKes, sign: -1 },
+  ];
+  const obligationRowsHtml = obligationRows.map(row => `
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px;">
+      <span style="color:var(--muted);">${esc(row.label)}</span>
+      <span style="color:${row.sign < 0 ? '#ff8a80' : 'var(--white)'};font-weight:700;">${row.sign < 0 ? '−' : ''}${fmtKES(row.value)}</span>
+    </div>`).join('');
+
+  const splitRows = [
+    { label: 'Profit (retained earnings)', pct: profitPct, color: 'var(--green)' },
+    { label: "Owner's Pay — what you can draw", pct: ownerPct, color: 'var(--blue)' },
+    { label: 'Tax reserve', pct: taxPct, color: 'var(--orange)' },
+    { label: 'Operating Expenses (staff, tools, marketing, etc.)', pct: opexPct, color: 'var(--muted)' },
+  ];
+  const splitRowsHtml = splitRows.map(s => `
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+        <span style="color:var(--white);font-weight:700;">${esc(s.label)}</span>
+        <span style="color:${s.color};font-weight:800;">${fmtKES(adjustedBase * s.pct / 100)} <span style="color:var(--muted);font-weight:500;">(${s.pct}%)</span></span>
+      </div>
+      <div style="height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;"></div>
+      </div>
+    </div>`).join('');
+
+  const retained = adjustedBase * (profitPct + taxPct + opexPct) / 100;
+  const ownerDraw = adjustedBase * ownerPct / 100;
+
+  body.innerHTML = `
+    <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Step 1 — known obligations off the top</div>
+    ${obligationRowsHtml}
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 18px;">
+      <span style="font-size:12.5px;font-weight:800;color:var(--white);">Adjusted base to allocate</span>
+      <span style="font-size:18px;font-weight:900;color:var(--white);">${fmtKES(adjustedBase)}</span>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Step 2 — Profit First split of what's left</div>
+    ${splitRowsHtml}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08);">
+      <div>
+        <div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Business retains</div>
+        <div style="font-size:22px;font-weight:900;color:var(--green);">${fmtKES(retained)}</div>
+      </div>
+      <div>
+        <div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">You can pay yourself</div>
+        <div style="font-size:22px;font-weight:900;color:var(--blue);">${fmtKES(ownerDraw)}</div>
+      </div>
+    </div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:12px;line-height:1.6;">⚠️ Set Tax % to whichever KRA regime actually applies to you — flat 3% Turnover Tax on gross turnover (MSMEs, KES 1M\u201325M/year, if elected) or 30% corporate tax on net profit otherwise. This tool doesn't know which one you're on. Get real tax advice before drawing this in full.</div>
+  `;
+}
+
+
 
 /* ── Section: Growth & Trends ───────────────────────────────────────────── */
 
@@ -1206,11 +1411,12 @@ async function chcSetTrendsWindow(days) {
   _chc.trendsDays = days;
   const el = document.getElementById('chcSection-growth');
   if (el) el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>`;
-  try {
-    _chc.data.trends = await api(`/admin/stats/trends?days=${days}`);
-  } catch (e) {
-    _chc.data.trends = null;
-  }
+  const [trendsRes, platformsRes] = await Promise.allSettled([
+    api(`/admin/stats/trends?days=${days}`),
+    api(`/admin/stats/platforms?days=${days}`),
+  ]);
+  _chc.data.trends    = trendsRes.status === 'fulfilled' ? trendsRes.value : null;
+  _chc.data.platforms = platformsRes.status === 'fulfilled' ? platformsRes.value : null;
   _chcRenderGrowth();
   _chcRenderAlerts();
 }
@@ -1283,6 +1489,40 @@ function _chcRenderGrowth() {
       ${[7, 14, 30].map(d => `<button onclick="chcSetTrendsWindow(${d})" style="background:${d === _chc.trendsDays ? 'var(--green)' : 'var(--card)'};color:${d === _chc.trendsDays ? '#04140a' : 'var(--muted)'};border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">${d}D</button>`).join('')}
     </div>`;
 
+  // ── SMM sales by platform (Instagram/TikTok/YouTube/...) ──────────────
+  // Service.category has no dedicated platform column, so /admin/stats/platforms
+  // infers it by keyword match — good enough to see where growth/decline is
+  // concentrated, not guaranteed 100% precise on every provider category name.
+  const pf = _chc.data.platforms;
+  let platformPanel = '';
+  if (pf && pf.platforms && pf.platforms.length) {
+    const maxSales = Math.max(...pf.platforms.map(p => p.sales_kes), 1);
+    const platformColors = ['#e1306c', '#25f4ee', '#ff0000', '#1877f2', '#1da1f2', '#22d3ee', '#3dd44a', '#ffb020', '#9b6bff', '#7a8fad'];
+    const rows = pf.platforms.map((p, i) => {
+      const barPct = Math.round((p.sales_kes / maxSales) * 100);
+      const color = platformColors[i % platformColors.length];
+      return `
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:4px;">
+            <span style="color:var(--white);font-weight:700;">${esc(p.platform)}</span>
+            <span style="display:flex;align-items:center;gap:8px;">
+              <span style="color:var(--muted);">${p.orders} order${p.orders === 1 ? '' : 's'} · ${fmtKES(p.sales_kes)} <span style="color:${color};font-weight:700;">(${p.pct_of_sales}%)</span></span>
+              ${_growthBadge(p.sales_change_pct)}
+            </span>
+          </div>
+          <div style="height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${barPct}%;background:${color};border-radius:4px;"></div>
+          </div>
+        </div>`;
+    }).join('');
+    platformPanel = _chcPanel({
+      title: 'SMM Sales by Platform', icon: '📱', sub: `last ${pf.window_days}d, vs the prior ${pf.window_days}d — inferred from service category, not a guaranteed-exact platform tag`,
+      body: rows,
+    });
+  } else {
+    platformPanel = _chcPanel({ title: 'SMM Sales by Platform', icon: '📱', body: `<div style="font-size:12px;color:var(--muted);">No platform data for this window.</div>` });
+  }
+
   el.innerHTML = `
     ${burnBanner}
     ${_chcPanel({
@@ -1296,6 +1536,7 @@ function _chcRenderGrowth() {
           </div>
         </div>
         ${comboChart}` })}
+    ${platformPanel}
     ${_chcPanel({
       title: 'New Users per Day', icon: '👤', body: `
         <div style="font-size:18px;font-weight:800;color:var(--white);margin-bottom:8px;">${g.this_week ? g.this_week.new_users : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> /7d</span> ${_growthBadge(g.users_wow_pct)}</div>
