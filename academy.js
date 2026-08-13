@@ -1010,6 +1010,22 @@ function _acInjectHomeStyles() {
     .ac-group-hd .n{background:var(--navy);border:1px solid var(--border);border-radius:20px;padding:1px 9px;font-size:10.5px;color:var(--muted);font-weight:700;}
     .ac-group-hd .line{flex:1;height:1px;background:var(--border);}
 
+    .ac-premium-teaser{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;background:linear-gradient(120deg,rgba(255,215,0,.14),rgba(255,193,7,.05) 60%);border:1px solid rgba(255,215,0,.4);border-radius:16px;padding:15px 16px;margin-bottom:20px;cursor:pointer;transition:border-color .2s,transform .15s;}
+    .ac-premium-teaser:active{transform:scale(.98);}
+    .ac-premium-teaser:hover{border-color:rgba(255,215,0,.65);}
+    .ac-premium-teaser-icon{flex-shrink:0;width:42px;height:42px;border-radius:12px;background:rgba(255,215,0,.18);border:1px solid rgba(255,215,0,.4);display:flex;align-items:center;justify-content:center;font-size:20px;}
+    .ac-premium-teaser-body{flex:1;min-width:0;}
+    .ac-premium-teaser-title{font-size:13.5px;font-weight:900;color:var(--white);line-height:1.3;}
+    .ac-premium-teaser-sub{font-size:11.5px;color:#c9b98a;margin-top:3px;line-height:1.4;}
+    .ac-premium-teaser-arrow{flex-shrink:0;width:28px;height:28px;border-radius:50%;background:rgba(255,215,0,.16);color:#ffd700;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;animation:ac-teaser-bounce 1.8s ease-in-out infinite;}
+    @keyframes ac-teaser-bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(3px);}}
+    @media(max-width:768px){
+      .ac-premium-teaser{padding:12px 13px;gap:11px;}
+      .ac-premium-teaser-icon{width:36px;height:36px;font-size:17px;}
+      .ac-premium-teaser-title{font-size:12px;}
+      .ac-premium-teaser-sub{font-size:10.5px;}
+    }
+
     .ac-modgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:14px;margin-bottom:28px;}
     .ac-modcard{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;}
     .ac-modcard:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(0,0,0,.38);border-color:rgba(155,107,255,.55);}
@@ -1055,6 +1071,11 @@ function _acModAccent(kind) {
   if (kind === 'done')   return "--ac-c:#3dd44a;--ac-cbg:rgba(61,212,74,.14);--ac-cbd:rgba(61,212,74,.3);";
   if (kind === 'active')  return "--ac-c:#9b6bff;--ac-cbg:rgba(155,107,255,.14);--ac-cbd:rgba(155,107,255,.3);";
   return "--ac-c:#7a8fad;--ac-cbg:rgba(122,143,173,.12);--ac-cbd:var(--border);";
+}
+
+function _acScrollToPremium() {
+  const el = document.getElementById('ac-premium-section');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function _acRenderModCard(mod, state) {
@@ -1122,6 +1143,16 @@ function _acRenderHome(sec, state) {
     </div>
   </div>
 
+  ${lockedMods.length ? `
+  <div class="ac-premium-teaser" onclick="_acScrollToPremium()">
+    <div class="ac-premium-teaser-icon">💎</div>
+    <div class="ac-premium-teaser-body">
+      <div class="ac-premium-teaser-title">${lockedMods.length} Premium Modules — from KSh ${Math.min(...lockedMods.map(m => m.priceKes || ACADEMY_PREMIUM_PRICE_KES))}</div>
+      <div class="ac-premium-teaser-sub">Deeper, step-by-step playbooks beyond the free lessons. Pay with M-Pesa or use your reward points.</div>
+    </div>
+    <div class="ac-premium-teaser-arrow">↓</div>
+  </div>` : ''}
+
   ${state.graduated ? `
   <div class="ac-grad-banner">
     <div class="ac-grad-icon">🎓</div>
@@ -1156,7 +1187,7 @@ function _acRenderHome(sec, state) {
   </div>
 
   ${lockedMods.length ? `
-  <div class="ac-group-hd"><span class="t">🔒 Premium Modules</span><span class="n">${lockedMods.length} to unlock</span><span class="line"></span></div>
+  <div class="ac-group-hd" id="ac-premium-section"><span class="t">🔒 Premium Modules</span><span class="n">${lockedMods.length} to unlock</span><span class="line"></span></div>
   <div class="ac-modgrid">
     ${lockedMods.map(mod => _acRenderModCard(mod, state)).join('')}
   </div>` : ''}`;
