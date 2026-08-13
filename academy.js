@@ -922,7 +922,7 @@ async function _acUpdateBadges() {
   const desc = document.getElementById('dashAcademyDesc');
   const btn  = document.getElementById('dashAcademyBtn');
   if (desc) {
-    if (done === 0) desc.textContent = 'Learn how to grow on every platform — free lessons, XP & badges';
+    if (done === 0) desc.textContent = 'Learn how to grow on every platform — free lessons & badges';
     else if (pct >= 100) desc.textContent = "You've completed the Academy 🎓 — revisit any lesson anytime";
     else desc.textContent = `${done}/${total} lessons done · ${_acLevelFor(state.xp).icon} ${_acLevelFor(state.xp).name}`;
   }
@@ -1073,7 +1073,7 @@ function _acRenderModCard(mod, state) {
     <div class="ac-mod-top">
       <div class="ac-mod-icon">${mod.icon}</div>
       ${badge ? `<span onclick="event.stopPropagation();acOpenCertificate('${mod.id}')" class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.3);color:#ffd700;cursor:pointer;">🎓 Certificate</span>` : ''}
-      ${(!badge && locked) ? `<span class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.32);color:#ffd700;">🔒 KSh ${price}${ptsCost ? ` · ⭐ ${ptsCost}pts` : ''}</span>` : ''}
+      ${(!badge && locked) ? `<span class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.32);color:#ffd700;">🔒 KSh ${price}${ptsCost ? ` · or ⭐ ${ptsCost} reward points` : ''}</span>` : ''}
       ${(!badge && !locked && kind === 'done') ? `<span class="ac-mod-pill" style="background:rgba(61,212,74,.14);border:1px solid rgba(61,212,74,.3);color:var(--green);">✓ Done</span>` : ''}
     </div>
     <div class="ac-mod-title">${esc(mod.title)}</div>
@@ -1108,12 +1108,12 @@ function _acRenderHome(sec, state) {
       <div class="ac-hero-crest">🎓</div>
       <div class="ac-hero-copy">
         <div class="ac-hero-kicker">CREATOR ACADEMY</div>
-        <div class="ac-hero-title">Learn a little, earn XP, level up</div>
-        <div class="ac-hero-sub">Free lessons on growing every platform, plus deep-dive premium modules</div>
+        <div class="ac-hero-title">Free lessons on growing your social media</div>
+        <div class="ac-hero-sub">Watch short lessons, earn points as you go, plus deep-dive premium modules</div>
       </div>
       <div class="ac-hero-level">
         <div class="ac-hero-level-top"><span>${level.icon}</span><span>${esc(level.name)}</span></div>
-        <div class="ac-hero-level-xp">${state.xp} XP${nextLvl ? ` <span class="ac-hero-level-next">· ${xpToNext} to next level</span>` : ' · Max level'}</div>
+        <div class="ac-hero-level-xp">${state.xp} learning points${nextLvl ? ` <span class="ac-hero-level-next">· ${xpToNext} more to level up</span>` : ' · Max level'}</div>
       </div>
     </div>
     <div class="ac-hero-progress">
@@ -1136,17 +1136,17 @@ function _acRenderHome(sec, state) {
     <div class="ac-stat" style="${_acModAccent('active')}">
       <div class="ac-stat-icon">🔥</div>
       <div class="ac-stat-val">${streak} day${streak === 1 ? '' : 's'}</div>
-      <div class="ac-stat-sub">Learning streak</div>
+      <div class="ac-stat-sub">Days in a row you've studied</div>
     </div>
     <div class="ac-stat" style="${_acModAccent('locked')}">
       <div class="ac-stat-icon">🏅</div>
       <div class="ac-stat-val">${state.moduleBadges.length}/${ACADEMY_MODULES.length} badges</div>
-      <div class="ac-stat-sub">${state.graduated ? 'Academy Graduate 🎓' : 'Finish modules to earn badges'}</div>
+      <div class="ac-stat-sub">${state.graduated ? 'Academy Graduate 🎓' : 'Finish a module to earn one'}</div>
     </div>
     <div class="ac-stat" style="${_acModAccent('done')}">
       <div class="ac-stat-icon">⭐</div>
-      <div class="ac-stat-val">${(state.pointsBalance || 0).toLocaleString()} pts</div>
-      <div class="ac-stat-sub">Earned on every order · spend to unlock modules</div>
+      <div class="ac-stat-val">${(state.pointsBalance || 0).toLocaleString()} reward points</div>
+      <div class="ac-stat-sub">You get these from placing orders — use them to unlock paid lessons</div>
     </div>
   </div>
 
@@ -1346,7 +1346,7 @@ function openAcademyLesson(moduleId, lessonId) {
   if (xpEl) xpEl.textContent = ACADEMY_XP_PER_LESSON;
   if (btn) {
     if (complete) { btn.textContent = '✓ Completed'; btn.disabled = true; btn.style.opacity = '.7'; }
-    else { btn.innerHTML = `Mark Complete +<span id="acLessonXp">${ACADEMY_XP_PER_LESSON}</span> XP`; btn.disabled = false; btn.style.opacity = '1'; }
+    else { btn.innerHTML = `Mark Complete +<span id="acLessonXp">${ACADEMY_XP_PER_LESSON}</span> points`; btn.disabled = false; btn.style.opacity = '1'; }
   }
 
   document.getElementById('academyLessonModal').classList.add('show');
@@ -1391,12 +1391,12 @@ async function acMarkCurrentComplete() {
     if (data.graduated && !wasGraduated) {
       toast('🎓 Academy Graduate! You completed every lesson.', 'success');
     } else if (data.module_badge_earned) {
-      toast(`🏅 Module badge earned: ${mod.title}! +${ACADEMY_XP_PER_MODULE} bonus XP`, 'success');
+      toast(`🏅 Module badge earned: ${mod.title}! +${ACADEMY_XP_PER_MODULE} bonus points`, 'success');
     } else if (data.leveled_up) {
       const newLevel = _acLevelFor(data.xp);
       toast(`${newLevel.icon} Leveled up! You're now a ${newLevel.name}`, 'success');
     } else {
-      toast(`+${data.xp_gained || ACADEMY_XP_PER_LESSON} XP earned!`, 'success');
+      toast(`+${data.xp_gained || ACADEMY_XP_PER_LESSON} points earned!`, 'success');
     }
   }
 
