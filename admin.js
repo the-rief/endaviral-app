@@ -719,6 +719,7 @@ const _chc = {
   mfOpexPct: 20,
   mfTaxPct: 15,
   mfRunwayTargetDays: 30,
+  mfExpandedBucket: null,
   // Profit First (Michalowicz) Target Allocation Percentages for businesses
   // under $250K revenue — Profit 5% / Owner's Pay 50% / Tax 15% / OpEx 30%
   // (OpEx is always "whatever's left", per the framework). Editable — these
@@ -1492,50 +1493,62 @@ function _mfTitanBody(ledger, titanKesThisPeriod) {
   `;
 }
 
-/* Shared renderer for all 4 Money Flow bucket ledgers (owner / expense /
- * panel / tax) — same shape (allocated / withdrawn / remaining + a manual
- * log), just different copy and colour per bucket. */
+/* Compact table renderer for all 4 Money Flow bucket ledgers — one row per
+ * bucket (allocated / withdrawn / remaining + a mini progress bar), with
+ * the log-form and history tucked behind a "Manage" toggle instead of
+ * always-open panels. `kind` picks which pair of mfLog / mfLogCustom
+ * functions the row's buttons call. */
 const _MF_KIND_CFG = {
-  owner:   { fnSuffix: 'Owner',   color: 'var(--blue)',   verb: 'Withdrawn',  noun: 'withdrawals',  logNote: 'Owner withdrawal' },
-  expense: { fnSuffix: 'Expense', color: 'var(--white)',  verb: 'Spent',      noun: 'expenses',      logNote: 'expense' },
-  panel:   { fnSuffix: 'Panel',   color: 'var(--green)',  verb: 'Withdrawn',  noun: 'withdrawals',  logNote: 'panel/growth withdrawal' },
-  tax:     { fnSuffix: 'Tax',     color: 'var(--orange)', verb: 'Set aside',  noun: 'tax entries',  logNote: 'tax reserve entry' },
+  owner:   { fnSuffix: 'Owner',   color: 'var(--blue)',   noun: 'withdrawals' },
+  expense: { fnSuffix: 'Expense', color: 'var(--white)',  noun: 'expenses' },
+  panel:   { fnSuffix: 'Panel',   color: 'var(--green)',  noun: 'withdrawals' },
+  tax:     { fnSuffix: 'Tax',     color: 'var(--orange)', noun: 'entries' },
 };
 
-function _mfWithdrawalBody(summary, kind, thisWindowKes) {
+function _mfBucketRow(kind, icon, label, ledger, thisWindowKes) {
   const cfg = _MF_KIND_CFG[kind];
-  const s = summary || { allocated_kes: 0, withdrawn_kes: 0, remaining_kes: 0, allocation_pct: 0, withdrawals: [] };
+  const s = ledger || { allocated_kes: 0, withdrawn_kes: 0, remaining_kes: 0, withdrawals: [] };
   const allocated = s.allocated_kes || 0;
   const withdrawn = s.withdrawn_kes || 0;
   const remaining = s.remaining_kes || 0;
-  const bar = allocated > 0 ? Math.max(0, Math.min(100, (withdrawn / allocated) * 100)) : 0;
-  const entries = (s.withdrawals || []).slice(0, 8);
+  const pct = allocated > 0 ? Math.max(0, Math.min(100, (withdrawn / allocated) * 100)) : 0;
+  const expanded = _chc.mfExpandedBucket === kind;
+  const entries = (s.withdrawals || []).slice(0, 6);
 
-  const rows = entries.length ? entries.map(w => `
-    <div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+  const historyHtml = entries.length ? entries.map(w => `
+    <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);">
       <span style="color:var(--muted);">${esc(new Date(w.date).toLocaleDateString())} — ${esc(w.note || '')}</span>
       <span style="font-weight:700;color:var(--white);">${fmtKES(w.amount_kes)}</span>
-    </div>`).join('') : `<div style="font-size:11.5px;color:var(--muted);padding:6px 0;">No ${cfg.noun} logged yet.</div>`;
+    </div>`).join('') : `<div style="font-size:11px;color:var(--muted);padding:4px 0;">Nothing logged yet.</div>`;
 
   return `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:14px;">
-      <div><div style="font-size:22px;font-weight:800;color:var(--white);">${fmtKES(allocated)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Allocated all-time (${s.allocation_pct}% of net profit)</div></div>
-      <div><div style="font-size:22px;font-weight:800;color:var(--orange);">${fmtKES(withdrawn)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">${cfg.verb} so far</div></div>
-      <div><div style="font-size:22px;font-weight:800;color:${cfg.color};">${fmtKES(remaining)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Remaining balance</div></div>
-    </div>
-    <div style="height:10px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden;margin-bottom:6px;">
-      <div style="height:100%;width:${bar}%;background:${cfg.color};border-radius:5px;"></div>
-    </div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${allocated ? Math.round(bar) : 0}% drawn down</div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
-      <button class="btn-secondary" style="margin:0;padding:8px 14px;font-size:12px;" onclick="mfLog${cfg.fnSuffix}(${(thisWindowKes || 0).toFixed(2)})">+ Log this window's allocation (${fmtKES(thisWindowKes || 0)})</button>
-      <input type="number" id="mfCustom${cfg.fnSuffix}Input" placeholder="Custom amount (KES)" style="width:170px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:8px 10px;font-size:12px;" />
-      <button class="btn-secondary" style="margin:0;padding:8px 14px;font-size:12px;" onclick="mfLogCustom${cfg.fnSuffix}()">+ Log custom amount</button>
-    </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Recent ${cfg.noun}</div>
-    ${rows}
-    <div style="font-size:10.5px;color:var(--muted);margin-top:12px;line-height:1.6;">Logging here is a manual record for tracking this bucket's balance — it doesn't move money anywhere itself.</div>
-  `;
+    <div style="border-bottom:1px solid rgba(255,255,255,.05);">
+      <div class="mf-bucket-row" style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr auto;gap:10px;padding:10px 4px;align-items:center;">
+        <div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--white);">${icon} ${esc(label)}</div>
+          <div style="height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:5px;width:92%;"><div style="height:100%;width:${pct}%;background:${cfg.color};"></div></div>
+        </div>
+        <div style="font-size:12.5px;font-weight:700;color:var(--white);">${fmtKES(allocated)}</div>
+        <div style="font-size:12.5px;font-weight:700;color:var(--orange);">${fmtKES(withdrawn)}</div>
+        <div style="font-size:12.5px;font-weight:800;color:${cfg.color};">${fmtKES(remaining)}</div>
+        <button class="btn-secondary" style="margin:0;padding:6px 10px;font-size:11px;white-space:nowrap;" onclick="mfToggleBucket('${kind}')">${expanded ? 'Close' : 'Manage'}</button>
+      </div>
+      ${expanded ? `
+        <div style="padding:0 4px 14px;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="btn-secondary" style="margin:0;padding:7px 12px;font-size:11.5px;" onclick="mfLog${cfg.fnSuffix}(${(thisWindowKes || 0).toFixed(2)})">+ Log window's allocation (${fmtKES(thisWindowKes || 0)})</button>
+            <input type="number" id="mfCustom${cfg.fnSuffix}Input" placeholder="Custom amount (KES)" style="width:140px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:7px 8px;font-size:11.5px;" />
+            <button class="btn-secondary" style="margin:0;padding:7px 12px;font-size:11.5px;" onclick="mfLogCustom${cfg.fnSuffix}()">+ Log</button>
+          </div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Recent ${cfg.noun}</div>
+          ${historyHtml}
+        </div>` : ''}
+    </div>`;
+}
+
+function mfToggleBucket(kind) {
+  _chc.mfExpandedBucket = (_chc.mfExpandedBucket === kind) ? null : kind;
+  _chcRenderMoneyFlow();
 }
 
 function _chcRenderMoneyFlow() {
@@ -1721,17 +1734,15 @@ function _chcRenderMoneyFlow() {
         </div>`,
       body: `<div id="mfTitanBody">${_mfTitanBody(titanLedger, titanKes)}</div>` })}
 
-    ${_chcPanel({ title: "Owner's Pay — Withdrawals", icon: '👤', sub: '45% bucket: allocated vs. what you\u2019ve actually drawn',
-      body: `<div id="mfOwnerBody">${_mfWithdrawalBody(ownerLedger, 'owner', titanKes)}</div>` })}
-
-    ${_chcPanel({ title: 'Operating Expenses — Spend', icon: '🧾', sub: '20% bucket: allocated vs. what you\u2019ve actually spent',
-      body: `<div id="mfExpenseBody">${_mfWithdrawalBody(expenseLedger, 'expense', opexKes)}</div>` })}
-
-    ${_chcPanel({ title: 'Panel Balance & Growth — Withdrawals', icon: '📡', sub: '20% bucket: allocated vs. what you\u2019ve actually pulled out',
-      body: `<div id="mfPanelBody">${_mfWithdrawalBody(panelLedger, 'panel', growthBucketKes)}</div>` })}
-
-    ${_chcPanel({ title: 'Tax Reserve — Payments', icon: '🏛️', sub: '15% bucket: allocated vs. what you\u2019ve actually set aside/paid',
-      body: `<div id="mfTaxBody">${_mfWithdrawalBody(taxLedger, 'tax', taxKes)}</div>` })}
+    ${_chcPanel({ title: 'Business Account — Withdrawals', icon: '🏦', sub: 'Each bucket\u2019s share of all-time net profit, minus what you\u2019ve logged as withdrawn', body: `
+      <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr auto;gap:10px;padding:0 4px 8px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">
+        <span>Bucket</span><span>Allocated</span><span>Withdrawn</span><span>Remaining</span><span></span>
+      </div>
+      ${_mfBucketRow('owner', '👤', "Owner's Pay", ownerLedger, titanKes)}
+      ${_mfBucketRow('expense', '🧾', 'Operating Expenses', expenseLedger, opexKes)}
+      ${_mfBucketRow('panel', '📡', 'Panel Balance & Growth', panelLedger, growthBucketKes)}
+      ${_mfBucketRow('tax', '🏛️', 'Tax Reserve', taxLedger, taxKes)}
+    ` })}
   `;
 }
 
