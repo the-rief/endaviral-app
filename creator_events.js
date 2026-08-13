@@ -111,7 +111,7 @@ function renderEventsGrid() {
   const el = document.getElementById('eventsGrid');
   if (!el) return;
   if (!_eventsCache.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">🎤</div><p>No upcoming events right now — check back soon.</p></div>';
+    el.innerHTML = _evCityRequestHero();
     return;
   }
   el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">${_eventsCache.map(ev => `
@@ -138,7 +138,86 @@ function renderEventsGrid() {
         </div>
       </div>
     </div>
-  `).join('')}</div>`;
+  `).join('')}</div>${_evCityRequestBanner()}`;
+}
+
+// ─── "Bring an event to my city" demand-capture form ─────────────────────
+// Two presentations of the same idea, both posting to
+// POST /events/city-requests: a big creative hero when there are zero
+// upcoming events (replaces the old flat "check back soon" empty state),
+// and a compact banner tacked onto the bottom of the grid once events
+// exist, so we keep collecting demand signal even when the calendar isn't
+// empty. Both render into the SAME element ids (#cityReqCity/#cityReqTopics/
+// #cityReqFormWrap) because only one of the two is ever in the DOM at once
+// — #eventsGrid is fully replaced on every render.
+
+function _evCityRequestHero() {
+  return `
+  <div style="max-width:640px;margin:10px auto 0;text-align:center;">
+    <div style="font-size:52px;line-height:1;margin-bottom:10px;">🎤✨</div>
+    <div style="font-size:21px;font-weight:800;color:var(--white);margin-bottom:8px;">No events on the calendar — yet.</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:26px;line-height:1.6;">
+      EndaViral Creator Events rotate from city to city, and <strong style="color:var(--green);">you</strong> get to decide where we go next.
+      Tell us your city and what you'd love to learn, and we'll bring the training to you.
+    </div>
+    <div id="cityReqFormWrap" style="background:var(--navy);border:1px solid var(--border);border-radius:16px;padding:26px;text-align:left;">
+      <div style="font-size:12px;font-weight:800;color:var(--green);letter-spacing:.05em;margin-bottom:16px;">📍 REQUEST YOUR CITY</div>
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Which city should we bring the next Creator Event to?</label>
+      <input id="cityReqCity" type="text" placeholder="e.g. Kisumu, Eldoret, Mombasa…" maxlength="100"
+        style="width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;background:var(--card);border:1px solid var(--border);color:var(--white);font-size:14px;margin-bottom:16px;font-family:inherit;">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">What would you love to learn there?</label>
+      <textarea id="cityReqTopics" rows="3" placeholder="e.g. Growing on TikTok, M-Pesa payments for creators, landing brand deals…" maxlength="1000"
+        style="width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;background:var(--card);border:1px solid var(--border);color:var(--white);font-size:14px;margin-bottom:18px;resize:vertical;font-family:inherit;"></textarea>
+      <button class="btn-primary" style="width:100%;" onclick="evSubmitCityRequest(this)">🚀 Submit My Request</button>
+    </div>
+  </div>`;
+}
+
+function _evCityRequestBanner() {
+  return `
+  <div style="margin-top:22px;background:var(--navy);border:1px solid var(--border);border-radius:14px;padding:18px 20px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <span style="font-size:22px;">📍</span>
+      <div>
+        <div style="font-size:14px;font-weight:800;color:var(--white);">Want us in your city next?</div>
+        <div style="font-size:12px;color:var(--muted);">Tell us where to go and what to teach — top requests shape our next stop.</div>
+      </div>
+    </div>
+    <div id="cityReqFormWrap" style="display:flex;gap:10px;flex-wrap:wrap;">
+      <input id="cityReqCity" type="text" placeholder="Your city…" maxlength="100"
+        style="flex:1;min-width:140px;padding:10px 12px;border-radius:9px;background:var(--card);border:1px solid var(--border);color:var(--white);font-size:13px;font-family:inherit;">
+      <input id="cityReqTopics" type="text" placeholder="What you'd love to learn…" maxlength="1000"
+        style="flex:2;min-width:200px;padding:10px 12px;border-radius:9px;background:var(--card);border:1px solid var(--border);color:var(--white);font-size:13px;font-family:inherit;">
+      <button class="action-btn" onclick="evSubmitCityRequest(this)">Submit</button>
+    </div>
+  </div>`;
+}
+
+async function evSubmitCityRequest(btn) {
+  const cityEl = document.getElementById('cityReqCity');
+  const topicsEl = document.getElementById('cityReqTopics');
+  const city = (cityEl?.value || '').trim();
+  const topics = (topicsEl?.value || '').trim();
+  if (!city) { toast('Tell us which city 🙂', 'error'); cityEl?.focus(); return; }
+
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  try {
+    const res = await api('/events/city-requests', { method: 'POST', body: JSON.stringify({ city, topics }) });
+    const wrap = document.getElementById('cityReqFormWrap');
+    if (wrap) {
+      wrap.innerHTML = `
+        <div style="text-align:center;padding:6px 4px;width:100%;">
+          <div style="font-size:38px;margin-bottom:8px;">🎉</div>
+          <div style="font-size:15px;font-weight:800;color:var(--white);margin-bottom:4px;">Request received!</div>
+          <div style="font-size:13px;color:var(--muted);">${esc(res.message || `We've logged ${city} — thanks for the vote!`)}</div>
+        </div>`;
+    }
+    toast('Thanks! Your city request was submitted 🎉', 'success');
+  } catch (e) {
+    toast(e.message || 'Failed to submit your request', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
 }
 
 // Keeps the dashboard promo card + sidebar badge honest: shows the count

@@ -17,6 +17,7 @@ let _adminEventsEditingId = null; // null = creating new
 
 function adminEventsInit() {
   loadAdminEvents();
+  loadAdminCityRequests();
 }
 
 // ─── List ───────────────────────────────────────────────────────────────
@@ -242,4 +243,62 @@ function adminEventCloseAttendees() {
   if (!modal) return;
   modal.classList.remove('show');
   modal.style.display = 'none';
+}
+
+// ─── City requests — demand signal from the public empty-state form ──────
+// Fed by GET /admin/events/city-requests. Shows a "top requested cities"
+// leaderboard plus the raw list of every submission (city, what they want
+// to learn, who asked, when), so this data can actually drive where the
+// next Creator Event gets scheduled.
+
+async function loadAdminCityRequests() {
+  const el = document.getElementById('adminCityRequestsPanel');
+  if (!el) return;
+  el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading city requests…</span></div>';
+  try {
+    const data = await api('/admin/events/city-requests');
+    renderAdminCityRequests(data);
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+  }
+}
+
+function renderAdminCityRequests(data) {
+  const el = document.getElementById('adminCityRequestsPanel');
+  if (!el) return;
+  const requests = data.requests || [];
+  const topCities = data.top_cities || [];
+
+  if (!requests.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">📍</div><p>No city requests yet — they\'ll show up here once creators submit them from the Creator Events page.</p></div>';
+    return;
+  }
+
+  const leaderboard = topCities.length ? `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;">
+      ${topCities.map((c, i) => `
+        <div style="background:var(--card,var(--navy));border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;">
+          ${i === 0 ? '<div style="position:absolute;top:-9px;right:10px;font-size:16px;">🏆</div>' : ''}
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">#${i + 1}</div>
+          <div style="font-size:16px;font-weight:800;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(c.city)}">${esc(c.city)}</div>
+          <div style="font-size:20px;font-weight:800;color:var(--green);margin-top:4px;">${c.count} <span style="font-size:11px;color:var(--muted);font-weight:600;">vote${c.count === 1 ? '' : 's'}</span></div>
+        </div>`).join('')}
+    </div>` : '';
+
+  const rows = requests.map(r => `
+    <tr>
+      <td><strong>${esc(r.city)}</strong></td>
+      <td style="max-width:340px;font-size:13px;color:var(--muted);white-space:pre-wrap;">${esc(r.topics || '—')}</td>
+      <td style="font-size:13px;">${esc(r.requester_name || '—')}${r.requester_email ? `<div style="font-size:11px;color:var(--muted);">${esc(r.requester_email)}</div>` : ''}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</td>
+    </tr>`).join('');
+
+  el.innerHTML = `
+    <div style="font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;">🏆 TOP REQUESTED CITIES</div>
+    ${leaderboard}
+    <div style="font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--muted);margin:20px 0 10px;">📋 ALL REQUESTS (${requests.length})</div>
+    <table>
+      <thead><tr><th>City</th><th>Wants to learn</th><th>Requested by</th><th>Date</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
