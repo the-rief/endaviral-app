@@ -81,7 +81,13 @@ function adminEventOpenCreate() {
   _adminEventsEditingId = null;
   _resetEventForm();
   document.getElementById('adminEventEditorTitle').textContent = 'New Creator Event';
-  document.getElementById('adminEventEditorModal').style.display = 'flex';
+  const modal = document.getElementById('adminEventEditorModal');
+  modal.style.display = 'flex';
+  // .modal-overlay is opacity:0/pointer-events:none by default (see CSS) —
+  // every other modal in this app becomes visible/clickable via the
+  // .show class, not by toggling `display` alone. Without this the modal
+  // "opens" but stays invisible and unclickable.
+  requestAnimationFrame(() => modal.classList.add('show'));
 }
 
 function adminEventOpenEdit(eventId) {
@@ -90,12 +96,16 @@ function adminEventOpenEdit(eventId) {
   _adminEventsEditingId = eventId;
   _fillEventForm(ev);
   document.getElementById('adminEventEditorTitle').textContent = `Edit: ${ev.title}`;
-  document.getElementById('adminEventEditorModal').style.display = 'flex';
+  const modal = document.getElementById('adminEventEditorModal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('show'));
 }
 
 function adminEventCloseEditor() {
   const modal = document.getElementById('adminEventEditorModal');
-  if (modal) modal.style.display = 'none';
+  if (!modal) return;
+  modal.classList.remove('show');
+  modal.style.display = 'none';
 }
 
 function _resetEventForm() {
@@ -195,6 +205,7 @@ async function adminEventOpenAttendees(eventId) {
   if (!modal || !body) return;
   document.getElementById('adminEventAttendeesTitle').textContent = ev ? `Attendees: ${ev.title}` : 'Attendees';
   modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('show'));
   body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
   try {
     const [attendees, stats] = await Promise.all([
@@ -228,5 +239,7 @@ async function adminEventOpenAttendees(eventId) {
 
 function adminEventCloseAttendees() {
   const modal = document.getElementById('adminEventAttendeesModal');
-  if (modal) modal.style.display = 'none';
+  if (!modal) return;
+  modal.classList.remove('show');
+  modal.style.display = 'none';
 }
