@@ -166,8 +166,12 @@ async function ccrGenerateCommissions() {
       method: 'POST',
       body: JSON.stringify({ period_key: periodKey }),
     });
+    const parts = [`${res.generated} agent(s) paid`];
+    if (res.topped_up) parts.push(`${res.topped_up} topped up (late-settled orders)`);
+    if (res.skipped_paid) parts.push(`${res.skipped_paid} already paid out — unaffected`);
+    if (res.skipped_no_login) parts.push(`${res.skipped_no_login} didn't log in`);
     toast(
-      `${res.period_key}: daily profit ${fmtKES(res.platform_profit_kes)} — ${res.generated} agent(s) paid, ${res.skipped} already accrued, ${res.skipped_no_login || 0} didn't log in`,
+      `${res.period_key}: daily profit ${fmtKES(res.platform_profit_kes)} — ${parts.join(', ')}`,
       'success'
     );
     loadCCRAgents();
