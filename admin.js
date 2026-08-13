@@ -1447,11 +1447,21 @@ function _chcRenderServices() {
  * so all-time is the one honest basis for comparing them side by side).
  * ─────────────────────────────────────────────────────────────────────── */
 
-function _chcUnitCard({ icon, name, tone, kpis, tab }) {
+function _chcUnitCard({ icon, name, tone, kpis, tab, trend }) {
   const toneMap = {
     green: '#3dd44a', blue: '#2196f3', gold: 'var(--gold)', cyan: 'var(--cyan)', purple: '#9b6bff',
   };
   const color = toneMap[tone] || 'var(--white)';
+
+  let trendHtml = '';
+  if (trend) {
+    if (trend.pct === null || trend.pct === undefined) {
+      trendHtml = `<div style="font-size:10.5px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);">📉 ${esc(trend.label)}: no trend data available yet — snapshot only</div>`;
+    } else {
+      trendHtml = `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);">${esc(trend.label)} ${_growthBadge(trend.pct)}</div>`;
+    }
+  }
+
   return `
     <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -1468,6 +1478,7 @@ function _chcUnitCard({ icon, name, tone, kpis, tab }) {
             <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${esc(k.label)}</div>
           </div>`).join('')}
       </div>
+      ${trendHtml}
     </div>`;
 }
 
@@ -1481,10 +1492,25 @@ function _chcRenderUnits() {
   const acStats = _chc.data.academyStats || {};
   const acRev = _chc.data.academyRevenue || {};
   const academyRevenue = acRev.total_revenue_kes || 0;
+  const acMonthly = acRev.monthly || [];
+  const acThisMonth = acMonthly[acMonthly.length - 1];
+  const acLastMonth = acMonthly[acMonthly.length - 2];
+  const acMomPct = (acThisMonth && acLastMonth)
+    ? (acLastMonth.revenue_kes ? Math.round(((acThisMonth.revenue_kes - acLastMonth.revenue_kes) / acLastMonth.revenue_kes) * 1000) / 10 : (acThisMonth.revenue_kes ? 100 : null))
+    : null;
 
   const cn = _chc.data.connectStats || {};
   const cnRev = _chc.data.connectRevenue || {};
   const connectRevenue = cnRev.total_platform_revenue_kes || 0;
+  // Connect's monthly breakdown is escrow *funding* volume, not booked platform
+  // revenue (the endpoint doesn't split commission by month) — labeled as such
+  // below so the trend isn't mistaken for a revenue growth figure.
+  const cnMonthly = cnRev.monthly || [];
+  const cnThisMonth = cnMonthly[cnMonthly.length - 1];
+  const cnLastMonth = cnMonthly[cnMonthly.length - 2];
+  const cnMomPct = (cnThisMonth && cnLastMonth)
+    ? (cnLastMonth.funded_kes ? Math.round(((cnThisMonth.funded_kes - cnLastMonth.funded_kes) / cnLastMonth.funded_kes) * 1000) / 10 : (cnThisMonth.funded_kes ? 100 : null))
+    : null;
 
   const affiliates = _chc.data.affiliates || [];
   const affTotalEarned = affiliates.reduce((s, a) => s + (a.total_earned_kes || 0), 0);
@@ -1520,7 +1546,7 @@ function _chcRenderUnits() {
     }).join('');
 
     mixSection = _chcPanel({
-      title: 'Consolidated Revenue Mix (all-time)', icon: '📊', sub: 'SMM profit + Academy revenue + Connect platform revenue, side by side', body: `
+      title: 'Consolidated Revenue Mix (all-time)', icon: '📊', sub: 'SMM profit + Academy revenue + Connect platform revenue — totals only, no unit here shares a common monthly close date', body: `
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;">
         <div style="font-size:30px;font-weight:900;color:var(--white);">${fmtKES(total)}</div>
         <div style="font-size:12px;color:var(--muted);">combined across all business lines</div>
@@ -1538,6 +1564,7 @@ function _chcRenderUnits() {
         { value: fmtKES(affTotalEarned), label: 'earned all-time' },
         { value: fmtKES(affPending), label: 'pending payout' },
       ],
+      trend: { label: 'Month-over-month', pct: null },
     }),
     _chcUnitCard({
       icon: '🎧', name: 'CCR Agents', tone: 'blue', tab: 'ccr-agents',
@@ -1547,6 +1574,7 @@ function _chcRenderUnits() {
         { value: fmtKES(ccrEarned), label: 'earned all-time' },
         { value: fmtKES(ccrPending), label: 'pending payout' },
       ],
+      trend: { label: 'Month-over-month', pct: null },
     }),
     _chcUnitCard({
       icon: '🎓', name: 'Creator Academy', tone: 'gold', tab: 'academy',
@@ -1556,6 +1584,7 @@ function _chcRenderUnits() {
         { value: (acStats.graduates || 0).toLocaleString(), label: 'graduated' },
         { value: fmtKES(academyRevenue), label: 'revenue all-time' },
       ],
+      trend: { label: 'Revenue, month-over-month', pct: acMomPct },
     }),
     _chcUnitCard({
       icon: '📣', name: 'Connect Marketplace', tone: 'cyan', tab: 'connect',
@@ -1565,6 +1594,7 @@ function _chcRenderUnits() {
         { value: (cn.open_disputes || 0).toLocaleString(), label: 'open disputes' },
         { value: fmtKES(connectRevenue), label: 'revenue all-time' },
       ],
+      trend: { label: 'Escrow funding, month-over-month', pct: cnMomPct },
     }),
   ];
 
