@@ -1,9 +1,16 @@
 /* ════════════════════ HIRE ENDAVIRAL: CONSULTATION BOOKING ════════════════════
- * Public, no-login KES 500 consult booking. Pays via M-Pesa STK push, polls
- * for confirmation, then just tells the person the team will call them to
- * set up the Google Meet — no in-app scheduling here at all.
+ * KES 500 consult booking — requires the customer to be logged in. Pays via
+ * M-Pesa STK push, polls for confirmation, then just tells the person the
+ * team will call them to set up the Google Meet — no in-app scheduling here
+ * at all.
  *
- * Depends on: api(), toast() — globals from index.html
+ * consultOpenBooking() is shared by the logged-in dashboard tile AND the
+ * public marketing landing page CTA — since the landing page has no session,
+ * it redirects to the login box instead of opening the form when `token` is
+ * unset. The booking endpoint enforces this server-side too (see
+ * consultation.py), so this is a UX nicety, not the only guard.
+ *
+ * Depends on: api(), toast(), token, currentUser — globals from index.html
  * HTML this expects: #consultBookModal + the field ids referenced below
  * (see the modal markup added next to the Creator Events buy modal).
  * ════════════════════════════════════════════════════════════════════════ */
@@ -13,9 +20,15 @@ let _consultPollTimer = null;
 function consultOpenBooking() {
   const modal = document.getElementById('consultBookModal');
   if (!modal) return;
-  document.getElementById('consultName').value = '';
-  document.getElementById('consultPhone').value = '';
-  document.getElementById('consultEmail').value = '';
+  if (!token) {
+    toast('Please log in or create a free account to book a consultation', 'error');
+    const loginBox = document.getElementById('loginBox');
+    if (loginBox) loginBox.scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+  document.getElementById('consultName').value = currentUser?.display_name || '';
+  document.getElementById('consultPhone').value = currentUser?.phone || '';
+  document.getElementById('consultEmail').value = currentUser?.email || '';
   document.getElementById('consultBusiness').value = '';
   document.getElementById('consultNotes').value = '';
   document.getElementById('consultBookStatus').textContent = '';
