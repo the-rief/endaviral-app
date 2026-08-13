@@ -709,6 +709,16 @@ const _chc = {
   trendsDays: 14,
   engagementDays: 14,
   reserveDays: 30,
+  // Money Flow tab state — period toggle + the 45/20/20/15 allocation split
+  // (Owner Pay/Titan, Panel Balance & Growth, Operating Expenses, Tax
+  // Reserve) requested for the profit-allocation view. Independent of the
+  // Profit First inputs below, which power the separate Owner Draw panel.
+  mfPeriod: 'weekly',
+  mfTitanPct: 45,
+  mfGrowthPct: 20,
+  mfOpexPct: 20,
+  mfTaxPct: 15,
+  mfRunwayTargetDays: 30,
   // Profit First (Michalowicz) Target Allocation Percentages for businesses
   // under $250K revenue — Profit 5% / Owner's Pay 50% / Tax 15% / OpEx 30%
   // (OpEx is always "whatever's left", per the framework). Editable — these
@@ -751,10 +761,11 @@ async function loadAdminCommandCenter(force = false) {
     api('/affiliate/admin/affiliates?limit=500'),                  // 10
     api('/admin/ccr/agents'),                                      // 11
     api(`/admin/stats/platforms?days=${_chc.trendsDays}`),         // 12
+    api('/admin/allocations/titan'),                                // 13
   ]);
   const [snap, stats, breakdown, revenue, trends, engagement,
          connectStats, connectRevenue, academyStats, academyRevenue,
-         affiliates, ccrAgents, platforms] = results;
+         affiliates, ccrAgents, platforms, titan] = results;
   _chc.data.snapshot   = snap.status === 'fulfilled' ? snap.value : null;
   _chc.data.stats      = stats.status === 'fulfilled' ? stats.value : null;
   _chc.data.breakdown  = breakdown.status === 'fulfilled' ? breakdown.value : null;
@@ -768,12 +779,14 @@ async function loadAdminCommandCenter(force = false) {
   _chc.data.affiliates      = affiliates.status === 'fulfilled' ? (affiliates.value?.affiliates || affiliates.value || []) : null;
   _chc.data.ccrAgents       = ccrAgents.status === 'fulfilled' ? (ccrAgents.value || []) : null;
   _chc.data.platforms       = platforms.status === 'fulfilled' ? platforms.value : null;
+  _chc.data.titan           = titan.status === 'fulfilled' ? titan.value : null;
   _chc.loadedAt = Date.now();
 
   _chcRenderAlerts();
   _chcRenderHealthScore();
   _chcRenderOverview();
   _chcRenderRevenue();
+  _chcRenderMoneyFlow();
   _chcRenderGrowth();
   _chcRenderEngagement();
   _chcRenderServices();
@@ -824,6 +837,7 @@ function _chcBuildSkeleton(root) {
     <div id="chcNav" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:16px;">
       <button class="chc-nav-btn active" data-sec="overview" onclick="chcShowSection('overview',this)">📊 Overview</button>
       <button class="chc-nav-btn" data-sec="revenue" onclick="chcShowSection('revenue',this)">💼 Revenue</button>
+      <button class="chc-nav-btn" data-sec="moneyflow" onclick="chcShowSection('moneyflow',this)">💵 Money Flow</button>
       <button class="chc-nav-btn" data-sec="growth" onclick="chcShowSection('growth',this)">📈 Growth</button>
       <button class="chc-nav-btn" data-sec="engagement" onclick="chcShowSection('engagement',this)">🔑 Engagement</button>
       <button class="chc-nav-btn" data-sec="services" onclick="chcShowSection('services',this)">🧩 Services</button>
@@ -832,6 +846,7 @@ function _chcBuildSkeleton(root) {
 
     <div id="chcSection-overview" class="chc-section active"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
     <div id="chcSection-revenue" class="chc-section"></div>
+    <div id="chcSection-moneyflow" class="chc-section"></div>
     <div id="chcSection-growth" class="chc-section"></div>
     <div id="chcSection-engagement" class="chc-section"></div>
     <div id="chcSection-services" class="chc-section"></div>
@@ -1403,6 +1418,300 @@ function _chcRecalcOwnerDraw() {
   `;
 }
 
+
+/* ══════════════════ MONEY FLOW — Profit Allocation ══════════════════
+ * "Where does every shilling go": Total Sales → Provider Costs → Gross
+ * Profit → Net Profit → split 45/20/20/15 into Owner Pay/Project Titan,
+ * Panel Balance & Business Growth, Operating Expenses, and Tax Reserve.
+ * Weekly/monthly figures come straight off /admin/stats/revenue; all-time
+ * comes off /admin/stats/snapshot + /admin/stats. The 45/20/20/15 split
+ * itself is a live recommendation, recomputed on every render — it isn't
+ * money this system moves anywhere. Titan/brick funding is the one bucket
+ * tracked as a real ledger (target + logged contributions) via
+ * /admin/allocations/titan, since that's money meant to permanently leave
+ * the business.
+ * ══════════════════════════════════════════════════════════════════ */
+
+function mfSetPeriod(period, btn) {
+  _chc.mfPeriod = period;
+  _chcRenderMoneyFlow();
+}
+
+function _mfAllocRow(label, kes, pct, color) {
+  return `
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+        <span style="color:var(--white);font-weight:700;">${esc(label)}</span>
+        <span style="color:${color};font-weight:800;">${fmtKES(kes)} <span style="color:var(--muted);font-weight:500;">(${pct}%)</span></span>
+      </div>
+      <div style="height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${Math.max(0,Math.min(100,pct))}%;background:${color};border-radius:4px;"></div>
+      </div>
+    </div>`;
+}
+
+function _mfTitanBody(ledger, titanKesThisPeriod) {
+  const target = ledger.target_kes || 0;
+  const funded = ledger.funded_kes || 0;
+  const pct = ledger.progress_pct;
+  const bar = target > 0 ? Math.max(0, Math.min(100, (funded / target) * 100)) : 0;
+  const contributions = (ledger.contributions || []).slice(0, 8);
+  const rows = contributions.length ? contributions.map(c => `
+    <div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+      <span style="color:var(--muted);">${esc(new Date(c.date).toLocaleDateString())} — ${esc(c.note || '')}</span>
+      <span style="font-weight:700;color:${c.amount_kes < 0 ? '#ff8a80' : 'var(--white)'};">${c.amount_kes < 0 ? '\u2212' : '+'}${fmtKES(Math.abs(c.amount_kes))}</span>
+    </div>`).join('') : `<div style="font-size:11.5px;color:var(--muted);padding:6px 0;">No contributions logged yet.</div>`;
+
+  return `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:14px;">
+      <div><div style="font-size:22px;font-weight:800;color:var(--white);">${fmtKES(funded)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Funded so far</div></div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--white);">${target ? fmtKES(target) : '\u2014 not set'}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Target</div></div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--blue);">${target ? fmtKES(Math.max(0, target - funded)) : '\u2014'}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Remaining</div></div>
+    </div>
+    ${target ? `
+      <div style="height:10px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden;margin-bottom:6px;">
+        <div style="height:100%;width:${bar}%;background:var(--blue);border-radius:5px;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${pct !== null && pct !== undefined ? pct : 0}% funded</div>` : `<div style="margin-bottom:16px;"></div>`}
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
+      <button class="btn-secondary" style="margin:0;padding:8px 14px;font-size:12px;" onclick="mfLogTitanContribution(${(titanKesThisPeriod || 0).toFixed(2)})">+ Log this window's allocation (${fmtKES(titanKesThisPeriod || 0)})</button>
+      <input type="number" id="mfCustomContribInput" placeholder="Custom amount (KES)" style="width:170px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:8px 10px;font-size:12px;" />
+      <button class="btn-secondary" style="margin:0;padding:8px 14px;font-size:12px;" onclick="mfLogCustomContribution()">+ Log custom amount</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Recent contributions</div>
+    ${rows}
+    <div style="font-size:10.5px;color:var(--muted);margin-top:12px;line-height:1.6;">Logging a contribution here is a manual record for tracking progress — it doesn't move money anywhere itself.</div>
+  `;
+}
+
+function _chcRenderMoneyFlow() {
+  const el = document.getElementById('chcSection-moneyflow');
+  if (!el) return;
+
+  const statsWrap = _chc.data.stats;
+  const r = _chc.data.revenue;
+  const snap = _chc.data.snapshot;
+
+  const periodNav = `
+    <div id="mfPeriodNav" style="display:flex;gap:8px;margin-bottom:18px;">
+      ${['weekly','monthly','alltime'].map(p => `<button class="chc-nav-btn ${p===_chc.mfPeriod?'active':''}" onclick="mfSetPeriod('${p}',this)">${p==='weekly'?'This Week':p==='monthly'?'This Month':'All-Time'}</button>`).join('')}
+    </div>`;
+
+  if (!statsWrap || !r || !snap) {
+    el.innerHTML = `${periodNav}<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load money flow data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
+    return;
+  }
+
+  const st = statsWrap.stats || {};
+  const usdToKes = (statsWrap.pricing || {}).usd_to_kes || 0;
+  const weekly = r.weekly || [];
+  const monthly = r.monthly || [];
+  const ai = r.affiliate_impact || {};
+
+  let fig = null;
+  if (_chc.mfPeriod === 'weekly') {
+    const wk = weekly[weekly.length - 1];
+    if (wk) fig = { label: `Week of ${_fmtShortDate(wk.week_start)}`, sales: wk.sales_kes, grossProfit: wk.revenue_kes, providerCost: wk.sales_kes - wk.revenue_kes, affiliateCost: wk.affiliate_commission_kes };
+  } else if (_chc.mfPeriod === 'monthly') {
+    const mo = monthly[monthly.length - 1];
+    if (mo) fig = { label: mo.month, sales: mo.sales_kes, grossProfit: mo.revenue_kes, providerCost: mo.sales_kes - mo.revenue_kes, affiliateCost: mo.affiliate_commission_kes };
+  } else {
+    fig = { label: 'All-time', sales: st.total_sales || 0, grossProfit: snap.gross_profit_kes || 0, providerCost: snap.provider_cost_kes || 0, affiliateCost: ai.total_commission_owed_kes || 0 };
+  }
+
+  if (!fig) {
+    el.innerHTML = `${periodNav}<div class="empty-state"><p>No paid orders yet in this window.</p></div>`;
+    return;
+  }
+
+  const netProfit = Math.max(0, fig.grossProfit - fig.affiliateCost);
+
+  // Outstanding liabilities — running totals (not period-scoped: CCR/Connect
+  // payouts aren't split by week/month server-side yet, so these always show
+  // the current outstanding balance regardless of which period is selected).
+  const affLiability = Math.max(0, (ai.total_commission_owed_kes || 0) - (ai.total_commission_paid_kes || 0));
+  const ccrAgents = _chc.data.ccrAgents || [];
+  const ccrLiability = ccrAgents.reduce((s, a) => s + (a.pending_kes || 0), 0);
+  const cnRev = _chc.data.connectRevenue;
+  const cnLiability = cnRev ? ((cnRev.payout_queue || {}).pending_amount_kes || 0) : 0;
+  const totalLiabilities = affLiability + ccrLiability + cnLiability;
+
+  // 45 / 20 / 20 / 15 allocation split of Net Profit — normalized to 100 if
+  // the editable inputs don't add up (same pattern as the Owner Draw panel).
+  let titanPct = _chc.mfTitanPct, growthPct = _chc.mfGrowthPct, opexPct = _chc.mfOpexPct, taxPct = _chc.mfTaxPct;
+  const sumPct = titanPct + growthPct + opexPct + taxPct;
+  if (sumPct > 0 && Math.round(sumPct * 10) !== 1000) {
+    const scale = 100 / sumPct;
+    titanPct = Math.round(titanPct * scale * 10) / 10;
+    growthPct = Math.round(growthPct * scale * 10) / 10;
+    opexPct = Math.round(opexPct * scale * 10) / 10;
+    taxPct = Math.round((100 - titanPct - growthPct - opexPct) * 10) / 10;
+  }
+  const titanKes = netProfit * titanPct / 100;
+  const growthBucketKes = netProfit * growthPct / 100;
+  const opexKes = netProfit * opexPct / 100;
+  const taxKes = netProfit * taxPct / 100;
+  const businessPct = Math.round((growthPct + opexPct + taxPct) * 10) / 10;
+  const businessKes = growthBucketKes + opexKes + taxKes;
+
+  // Panel balance + runway + recommended top-up
+  const balUsd = (st.panel_balance_usd !== null && st.panel_balance_usd !== undefined) ? parseFloat(st.panel_balance_usd) : null;
+  const balKes = (balUsd !== null) ? balUsd * usdToKes : null;
+  const burn = (_chc.data.trends && _chc.data.trends.balance_burn) || {};
+  const burnUsdPerDay = burn.burn_usd_per_day || 0;
+  const runwayDays = (burn.days_until_empty !== undefined) ? burn.days_until_empty : null;
+  const targetRunway = _chc.mfRunwayTargetDays;
+  const recommendedTopupUsd = Math.max(0, (targetRunway * burnUsdPerDay) - (balUsd || 0));
+  const recommendedTopupKes = recommendedTopupUsd * usdToKes;
+  // Split of the Panel Balance & Growth bucket: enough to cover the
+  // recommended top-up first, remainder is free for reinvestment.
+  const panelTopupFromBucket = Math.min(growthBucketKes, recommendedTopupKes);
+  const reinvestKes = Math.max(0, growthBucketKes - panelTopupFromBucket);
+
+  // Titan/brick funding ledger (server-tracked)
+  const titanLedger = _chc.data.titan || { target_kes: 0, funded_kes: 0, remaining_kes: 0, progress_pct: null, contributions: [] };
+
+  // Safe to withdraw: the Owner Pay/Titan bucket, net of everything still
+  // owed out to affiliates/CCR/Connect — conservative on purpose.
+  const safeToWithdraw = Math.max(0, titanKes - totalLiabilities);
+
+  el.innerHTML = `
+    <style>
+      #ap-stats .mf-split-bar { display:flex; height:38px; border-radius:10px; overflow:hidden; margin:14px 0; }
+      #ap-stats .mf-alloc-input { width:56px;background:var(--navy);border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:13px;font-weight:700;text-align:center; }
+    </style>
+    ${periodNav}
+
+    ${_chcPanel({ title: fig.label, icon: '💵', sub: 'Full money flow for this window', body: `
+      <div class="chc-kpi-grid">
+        ${_chcKpi({ icon: '🧾', label: 'Total Sales', value: fmtKES(fig.sales), tone: 'neutral' })}
+        ${_chcKpi({ icon: '📦', label: 'Provider Costs', value: fmtKES(fig.providerCost), tone: 'orange' })}
+        ${_chcKpi({ icon: '💰', label: 'Gross Profit', value: fmtKES(fig.grossProfit), tone: 'green' })}
+        ${_chcKpi({ icon: '🏆', label: 'Net Profit', value: fmtKES(netProfit), sub: 'gross profit \u2212 affiliate cost this window', tone: 'blue' })}
+      </div>` })}
+
+    ${_chcPanel({ title: '45% vs 55% Split', icon: '⚖️', sub: 'How every KES of Net Profit this window is divided', body: `
+      <div class="mf-split-bar">
+        <div style="width:${titanPct}%;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#04140a;font-weight:900;font-size:13px;">${titanPct}%</div>
+        <div style="width:${businessPct}%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#04140a;font-weight:900;font-size:13px;">${businessPct}%</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--muted);margin-bottom:18px;">
+        <span><span style="color:var(--blue);font-weight:800;">\u25a0</span> Owner Pay / Project Titan (bricks) \u2014 ${fmtKES(titanKes)}</span>
+        <span><span style="color:var(--green);font-weight:800;">\u25a0</span> Stays in the business \u2014 ${fmtKES(businessKes)}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:16px;">
+        <label style="display:flex;flex-direction:column;gap:4px;font-size:10.5px;color:var(--muted);">Titan / Owner %
+          <input class="mf-alloc-input" type="number" id="mfTitanInput" value="${titanPct}" min="0" max="100" step="1" oninput="_mfRecalc()" style="color:var(--blue);" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:4px;font-size:10.5px;color:var(--muted);">Panel Balance & Growth %
+          <input class="mf-alloc-input" type="number" id="mfGrowthInput" value="${growthPct}" min="0" max="100" step="1" oninput="_mfRecalc()" style="color:var(--green);" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:4px;font-size:10.5px;color:var(--muted);">Operating Expenses %
+          <input class="mf-alloc-input" type="number" id="mfOpexInput" value="${opexPct}" min="0" max="100" step="1" oninput="_mfRecalc()" style="color:var(--white);" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:4px;font-size:10.5px;color:var(--muted);">Tax Reserve %
+          <input class="mf-alloc-input" type="number" id="mfTaxInput" value="${taxPct}" min="0" max="100" step="1" oninput="_mfRecalc()" style="color:var(--orange);" />
+        </label>
+      </div>
+      ${_mfAllocRow('Owner Pay / Project Titan (bricks)', titanKes, titanPct, 'var(--blue)')}
+      ${_mfAllocRow('Panel Balance & Business Growth', growthBucketKes, growthPct, 'var(--green)')}
+      ${_mfAllocRow('Operating Expenses', opexKes, opexPct, 'var(--white)')}
+      ${_mfAllocRow('Tax Reserve', taxKes, taxPct, 'var(--orange)')}
+      <div style="font-size:10.5px;color:var(--muted);margin-top:10px;line-height:1.6;">These percentages are a target split of Net Profit for this window \u2014 a planning tool, not a ledger of money actually moved. Only Titan/brick funding below is tracked as a running total you log yourself.</div>
+    ` })}
+
+    <div class="chc-two-col">
+      ${_chcPanel({ title: 'Safe to Withdraw', icon: '🟢', sub: 'Titan / Owner Pay bucket, net of outstanding liabilities', body: `
+        <div style="font-size:30px;font-weight:900;color:var(--green);">${fmtKES(safeToWithdraw)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6;">${fmtKES(titanKes)} (${titanPct}% of Net Profit) \u2212 ${fmtKES(totalLiabilities)} outstanding liabilities</div>` })}
+      ${_chcPanel({ title: 'Affiliate & Other Liabilities', icon: '🤝', sub: 'Everything owed out, not yet paid', body: `
+        <div style="display:grid;gap:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--muted);">Affiliate commission (unpaid)</span><span style="font-weight:700;color:var(--white);">${fmtKES(affLiability)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--muted);">CCR agent commission (pending)</span><span style="font-weight:700;color:var(--white);">${fmtKES(ccrLiability)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--muted);">Connect creator payouts (pending)</span><span style="font-weight:700;color:var(--white);">${fmtKES(cnLiability)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13.5px;padding-top:8px;border-top:1px solid var(--border);"><span style="font-weight:800;color:var(--white);">Total</span><span style="font-weight:900;color:var(--orange);">${fmtKES(totalLiabilities)}</span></div>
+        </div>` })}
+    </div>
+
+    ${_chcPanel({
+      title: 'Panel Balance & Top-Up', icon: '📡', sub: `Live balance on ${esc(st.active_provider || 'active provider')}`, extra: `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--muted);">Target runway</span>
+          <input type="number" id="mfRunwayInput" value="${targetRunway}" min="1" max="90" step="1" oninput="_mfRecalcRunway()"
+                 style="width:48px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:4px 6px;font-size:12px;text-align:center;" />
+          <span style="font-size:11px;color:var(--muted);">days</span>
+        </div>`,
+      body: `
+        <div class="chc-kpi-grid">
+          ${_chcKpi({ icon: '💳', label: 'Panel Balance', value: balKes !== null ? fmtKES(balKes) : '\u2014', sub: balUsd !== null ? `$${balUsd.toFixed(2)} USD` : 'No balance data', tone: 'blue' })}
+          ${_chcKpi({ icon: '⏳', label: 'Runway', value: (runwayDays !== null && runwayDays !== undefined) ? `${runwayDays}d` : '\u2014', sub: burnUsdPerDay ? `burning $${burnUsdPerDay.toFixed(2)}/day` : 'not enough history yet', tone: (runwayDays !== null && runwayDays !== undefined && runwayDays <= 7) ? 'red' : 'neutral' })}
+          ${_chcKpi({ icon: '🔋', label: 'Recommended Top-Up', value: fmtKES(recommendedTopupKes), sub: `$${recommendedTopupUsd.toFixed(2)} to reach ${targetRunway}d runway`, tone: 'orange' })}
+        </div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:14px;line-height:1.6;">Of the ${fmtKES(growthBucketKes)} Panel Balance & Growth bucket this window, ${fmtKES(panelTopupFromBucket)} covers the recommended top-up above \u2014 the remaining ${fmtKES(reinvestKes)} is free for Business Growth / Reinvestment.</div>
+      ` })}
+
+    ${_chcPanel({
+      title: 'Project Titan / Brick Funding Progress', icon: '🧱', extra: `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--muted);">Target</span>
+          <input type="number" id="mfTitanTargetInput" value="${titanLedger.target_kes || 0}" min="0" step="1000"
+                 style="width:110px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:4px 8px;font-size:12px;text-align:right;" />
+          <button class="btn-secondary" style="margin:0;padding:6px 12px;font-size:11px;" onclick="mfSaveTitanTarget()">Save</button>
+        </div>`,
+      body: `<div id="mfTitanBody">${_mfTitanBody(titanLedger, titanKes)}</div>` })}
+  `;
+}
+
+function _mfRecalc() {
+  const titanInput = document.getElementById('mfTitanInput');
+  const growthInput = document.getElementById('mfGrowthInput');
+  const opexInput = document.getElementById('mfOpexInput');
+  const taxInput = document.getElementById('mfTaxInput');
+  _chc.mfTitanPct = Math.max(0, Math.min(100, parseFloat(titanInput?.value) || 0));
+  _chc.mfGrowthPct = Math.max(0, Math.min(100, parseFloat(growthInput?.value) || 0));
+  _chc.mfOpexPct = Math.max(0, Math.min(100, parseFloat(opexInput?.value) || 0));
+  _chc.mfTaxPct = Math.max(0, Math.min(100, parseFloat(taxInput?.value) || 0));
+  _chcRenderMoneyFlow();
+}
+
+function _mfRecalcRunway() {
+  const input = document.getElementById('mfRunwayInput');
+  _chc.mfRunwayTargetDays = Math.max(1, Math.min(90, parseInt(input?.value, 10) || 30));
+  _chcRenderMoneyFlow();
+}
+
+async function mfSaveTitanTarget() {
+  const input = document.getElementById('mfTitanTargetInput');
+  const target = Math.max(0, parseFloat(input?.value) || 0);
+  try {
+    await api('/admin/allocations/titan/target', { method: 'POST', body: JSON.stringify({ target_kes: target }) });
+    _chc.data.titan = await api('/admin/allocations/titan');
+    _chcRenderMoneyFlow();
+  } catch (e) {
+    alert('Could not save Titan target: ' + (e.message || e));
+  }
+}
+
+async function mfLogTitanContribution(amount) {
+  await _mfPostContribution(amount, "This window's Titan/Owner Pay allocation");
+}
+
+async function mfLogCustomContribution() {
+  const input = document.getElementById('mfCustomContribInput');
+  const amount = parseFloat(input?.value);
+  if (!amount) return;
+  await _mfPostContribution(amount, 'Manual contribution');
+}
+
+async function _mfPostContribution(amount, note) {
+  try {
+    await api('/admin/allocations/titan/contribute', { method: 'POST', body: JSON.stringify({ amount_kes: amount, note }) });
+    _chc.data.titan = await api('/admin/allocations/titan');
+    _chcRenderMoneyFlow();
+  } catch (e) {
+    alert('Could not log contribution: ' + (e.message || e));
+  }
+}
 
 
 /* ── Section: Growth & Trends ───────────────────────────────────────────── */
