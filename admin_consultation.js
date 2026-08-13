@@ -121,11 +121,11 @@ function adminConsultOpenSchedule(id) {
   const b = _adminConsultCache.find(x => x.id === id);
   document.getElementById('consultScheduleAt').value = b?.scheduled_at ? b.scheduled_at.slice(0, 16) : '';
   document.getElementById('consultMeetLink').value = b?.meet_link || '';
-  document.getElementById('consultScheduleModal').style.display = 'flex';
+  document.getElementById('consultScheduleModal').classList.add('show');
 }
 
 function adminConsultCloseSchedule() {
-  document.getElementById('consultScheduleModal').style.display = 'none';
+  document.getElementById('consultScheduleModal').classList.remove('show');
   _adminConsultSchedulingId = null;
 }
 

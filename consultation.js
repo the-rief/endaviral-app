@@ -19,12 +19,12 @@ function consultOpenBooking() {
   document.getElementById('consultBusiness').value = '';
   document.getElementById('consultNotes').value = '';
   document.getElementById('consultBookStatus').textContent = '';
-  modal.style.display = 'flex';
+  modal.classList.add('show');
 }
 
 function consultCloseBooking() {
   const modal = document.getElementById('consultBookModal');
-  if (modal) modal.style.display = 'none';
+  if (modal) modal.classList.remove('show');
   if (_consultPollTimer) { clearInterval(_consultPollTimer); _consultPollTimer = null; }
 }
 

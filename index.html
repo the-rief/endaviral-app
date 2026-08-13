@@ -2804,7 +2804,7 @@ tbody td{padding:13px 16px;font-size:14px;}
   </div>
 
   <!-- ══════════════════ CONSULTATIONS: ADMIN SCHEDULE MODAL ══════════════════ -->
-  <div class="modal-overlay" id="consultScheduleModal" style="display:none;" onclick="if(event.target===this)adminConsultCloseSchedule()">
+  <div class="modal-overlay" id="consultScheduleModal" onclick="if(event.target===this)adminConsultCloseSchedule()">
     <div class="modal" style="max-width:420px;">
       <button class="modal-close" onclick="adminConsultCloseSchedule()">✕</button>
       <div class="modal-title" style="margin-bottom:4px;">Schedule Consultation</div>
@@ -4656,7 +4656,7 @@ async function _maybeHideAffBanner() {
 </div>
 
 <!-- ══════════════════ HIRE ENDAVIRAL: CONSULTATION BOOKING MODAL ══════════════════ -->
-<div class="modal-overlay" id="consultBookModal" style="display:none;" onclick="if(event.target===this)consultCloseBooking()">
+<div class="modal-overlay" id="consultBookModal" onclick="if(event.target===this)consultCloseBooking()">
   <div class="modal" style="max-width:440px;">
     <button class="modal-close" onclick="consultCloseBooking()">✕</button>
     <div class="modal-title" style="margin-bottom:4px;">💼 Hire EndaViral</div>
