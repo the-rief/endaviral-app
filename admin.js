@@ -762,10 +762,12 @@ async function loadAdminCommandCenter(force = false) {
     api('/admin/ccr/agents'),                                      // 11
     api(`/admin/stats/platforms?days=${_chc.trendsDays}`),         // 12
     api('/admin/allocations/titan'),                                // 13
+    api('/admin/allocations/owner-pay'),                            // 14
+    api('/admin/allocations/expenses'),                             // 15
   ]);
   const [snap, stats, breakdown, revenue, trends, engagement,
          connectStats, connectRevenue, academyStats, academyRevenue,
-         affiliates, ccrAgents, platforms, titan] = results;
+         affiliates, ccrAgents, platforms, titan, ownerPay, expenses] = results;
   _chc.data.snapshot   = snap.status === 'fulfilled' ? snap.value : null;
   _chc.data.stats      = stats.status === 'fulfilled' ? stats.value : null;
   _chc.data.breakdown  = breakdown.status === 'fulfilled' ? breakdown.value : null;
@@ -780,6 +782,8 @@ async function loadAdminCommandCenter(force = false) {
   _chc.data.ccrAgents       = ccrAgents.status === 'fulfilled' ? (ccrAgents.value || []) : null;
   _chc.data.platforms       = platforms.status === 'fulfilled' ? platforms.value : null;
   _chc.data.titan           = titan.status === 'fulfilled' ? titan.value : null;
+  _chc.data.ownerPay        = ownerPay.status === 'fulfilled' ? ownerPay.value : null;
+  _chc.data.expenses        = expenses.status === 'fulfilled' ? expenses.value : null;
   _chc.loadedAt = Date.now();
 
   _chcRenderAlerts();
@@ -1484,6 +1488,48 @@ function _mfTitanBody(ledger, titanKesThisPeriod) {
   `;
 }
 
+/* Shared renderer for the Owner Pay and Operating Expenses ledgers — same
+ * shape (allocated / withdrawn / remaining + a manual log), just different
+ * copy and colour. `kind` is 'owner' or 'expense' and picks which pair of
+ * mfLog / mfLogCustom functions the buttons call. */
+function _mfWithdrawalBody(summary, kind, thisWindowKes) {
+  const s = summary || { allocated_kes: 0, withdrawn_kes: 0, remaining_kes: 0, allocation_pct: 0, withdrawals: [] };
+  const allocated = s.allocated_kes || 0;
+  const withdrawn = s.withdrawn_kes || 0;
+  const remaining = s.remaining_kes || 0;
+  const bar = allocated > 0 ? Math.max(0, Math.min(100, (withdrawn / allocated) * 100)) : 0;
+  const entries = (s.withdrawals || []).slice(0, 8);
+  const noun = kind === 'owner' ? 'withdrawals' : 'expenses';
+  const fnSuffix = kind === 'owner' ? 'Owner' : 'Expense';
+  const color = kind === 'owner' ? 'var(--blue)' : 'var(--white)';
+
+  const rows = entries.length ? entries.map(w => `
+    <div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+      <span style="color:var(--muted);">${esc(new Date(w.date).toLocaleDateString())} — ${esc(w.note || '')}</span>
+      <span style="font-weight:700;color:var(--white);">${fmtKES(w.amount_kes)}</span>
+    </div>`).join('') : `<div style="font-size:11.5px;color:var(--muted);padding:6px 0;">No ${noun} logged yet.</div>`;
+
+  return `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:14px;">
+      <div><div style="font-size:22px;font-weight:800;color:var(--white);">${fmtKES(allocated)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Allocated all-time (${s.allocation_pct}% of net profit)</div></div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--orange);">${fmtKES(withdrawn)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">${kind === 'owner' ? 'Withdrawn' : 'Spent'} so far</div></div>
+      <div><div style="font-size:22px;font-weight:800;color:${color};">${fmtKES(remaining)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Remaining balance</div></div>
+    </div>
+    <div style="height:10px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden;margin-bottom:6px;">
+      <div style="height:100%;width:${bar}%;background:${color};border-radius:5px;"></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${allocated ? Math.round(bar) : 0}% drawn down</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
+      <button class="btn-secondary" style="margin:0;padding:8px 14px;font-size:12px;" onclick="mfLog${fnSuffix}(${(thisWindowKes || 0).toFixed(2)})">+ Log this window's allocation (${fmtKES(thisWindowKes || 0)})</button>
+      <input type="number" id="mfCustom${fnSuffix}Input" placeholder="Custom amount (KES)" style="width:170px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:8px 10px;font-size:12px;" />
+      <button class="btn-secondary" style="margin:0;padding:8px 14px;font-size:12px;" onclick="mfLogCustom${fnSuffix}()">+ Log custom amount</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Recent ${noun}</div>
+    ${rows}
+    <div style="font-size:10.5px;color:var(--muted);margin-top:12px;line-height:1.6;">Logging a ${kind === 'owner' ? 'withdrawal' : 'expense'} here is a manual record for tracking your ${kind === 'owner' ? "draw against the owner's" : "spend against the operating expenses"} bucket — it doesn't move money anywhere itself.</div>
+  `;
+}
+
 function _chcRenderMoneyFlow() {
   const el = document.getElementById('chcSection-moneyflow');
   if (!el) return;
@@ -1570,6 +1616,11 @@ function _chcRenderMoneyFlow() {
 
   // Titan/brick funding ledger (server-tracked)
   const titanLedger = _chc.data.titan || { target_kes: 0, funded_kes: 0, remaining_kes: 0, progress_pct: null, contributions: [] };
+
+  // Owner Pay & Operating Expenses withdrawal ledgers (server-tracked, same
+  // idiom as Titan above — see /admin/allocations/owner-pay|expenses).
+  const ownerLedger = _chc.data.ownerPay || { allocated_kes: 0, withdrawn_kes: 0, remaining_kes: 0, allocation_pct: titanPct, withdrawals: [] };
+  const expenseLedger = _chc.data.expenses || { allocated_kes: 0, withdrawn_kes: 0, remaining_kes: 0, allocation_pct: opexPct, withdrawals: [] };
 
   // Safe to withdraw: the Owner Pay/Titan bucket, net of everything still
   // owed out to affiliates/CCR/Connect — conservative on purpose.
@@ -1659,6 +1710,12 @@ function _chcRenderMoneyFlow() {
           <button class="btn-secondary" style="margin:0;padding:6px 12px;font-size:11px;" onclick="mfSaveTitanTarget()">Save</button>
         </div>`,
       body: `<div id="mfTitanBody">${_mfTitanBody(titanLedger, titanKes)}</div>` })}
+
+    ${_chcPanel({ title: "Owner's Pay — Withdrawals", icon: '👤', sub: '45% bucket: allocated vs. what you\u2019ve actually drawn',
+      body: `<div id="mfOwnerBody">${_mfWithdrawalBody(ownerLedger, 'owner', titanKes)}</div>` })}
+
+    ${_chcPanel({ title: 'Operating Expenses — Spend', icon: '🧾', sub: '20% bucket: allocated vs. what you\u2019ve actually spent',
+      body: `<div id="mfExpenseBody">${_mfWithdrawalBody(expenseLedger, 'expense', opexKes)}</div>` })}
   `;
 }
 
@@ -1701,6 +1758,50 @@ async function mfLogCustomContribution() {
   const amount = parseFloat(input?.value);
   if (!amount) return;
   await _mfPostContribution(amount, 'Manual contribution');
+}
+
+async function mfLogOwner(amount) {
+  await _mfPostOwnerWithdrawal(amount, "This window's Owner Pay allocation");
+}
+
+async function mfLogCustomOwner() {
+  const input = document.getElementById('mfCustomOwnerInput');
+  const amount = parseFloat(input?.value);
+  if (!amount) return;
+  await _mfPostOwnerWithdrawal(amount, 'Manual owner withdrawal');
+}
+
+async function _mfPostOwnerWithdrawal(amount, note) {
+  try {
+    _chc.data.ownerPay = await api('/admin/allocations/owner-pay/withdraw', { method: 'POST', body: JSON.stringify({ amount_kes: amount, note }) });
+    const input = document.getElementById('mfCustomOwnerInput');
+    if (input) input.value = '';
+    _chcRenderMoneyFlow();
+  } catch (e) {
+    alert('Could not log owner withdrawal: ' + (e.message || e));
+  }
+}
+
+async function mfLogExpense(amount) {
+  await _mfPostExpenseWithdrawal(amount, "This window's Operating Expenses allocation");
+}
+
+async function mfLogCustomExpense() {
+  const input = document.getElementById('mfCustomExpenseInput');
+  const amount = parseFloat(input?.value);
+  if (!amount) return;
+  await _mfPostExpenseWithdrawal(amount, 'Manual expense');
+}
+
+async function _mfPostExpenseWithdrawal(amount, note) {
+  try {
+    _chc.data.expenses = await api('/admin/allocations/expenses/withdraw', { method: 'POST', body: JSON.stringify({ amount_kes: amount, note }) });
+    const input = document.getElementById('mfCustomExpenseInput');
+    if (input) input.value = '';
+    _chcRenderMoneyFlow();
+  } catch (e) {
+    alert('Could not log expense: ' + (e.message || e));
+  }
 }
 
 async function _mfPostContribution(amount, note) {
