@@ -3164,7 +3164,12 @@ async function _apiRequest(path, opts = {}) {
       } else if (Array.isArray(data.detail)) {
         // Extract the human-readable 'msg' from each validation error
         msg = data.detail.map(e => {
-          const field = e.loc && e.loc.length > 1 ? e.loc[e.loc.length - 1] : null;
+          let field = e.loc && e.loc.length > 1 ? e.loc[e.loc.length - 1] : null;
+          if (typeof field === 'number') {
+            // loc ended in an array index (e.g. speakers.0) — use the parent field name instead
+            field = e.loc.length > 2 ? e.loc[e.loc.length - 2] : null;
+          }
+          field = field != null ? String(field) : null;
           const label = field ? field.charAt(0).toUpperCase() + field.slice(1) + ': ' : '';
           return label + (e.msg || 'Invalid value');
         }).join(' · ');
