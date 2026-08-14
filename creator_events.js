@@ -135,13 +135,14 @@ function renderEventsGrid() {
   el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">${_eventsCache.map(ev => `
     <div class="event-card" style="background:var(--navy);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;">
       ${ev.cover_image_url ? `<img src="${esc(ev.cover_image_url)}" alt="" style="width:100%;height:150px;object-fit:cover;">` : `
-      <div style="position:relative;width:100%;height:150px;overflow:hidden;background:linear-gradient(150deg,#0b0b0b,#0e1a10);">
-        <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(115deg,rgba(61,212,74,.14) 0 2px,transparent 2px 18px);opacity:.5;"></div>
-        <div style="position:absolute;inset:0;background:radial-gradient(circle at 30% 22%,rgba(61,212,74,.28),transparent 60%);"></div>
-        <div style="position:absolute;top:14px;left:16px;font-size:11px;font-weight:900;color:rgba(255,255,255,.4);letter-spacing:.3px;">EndaViral</div>
+      <div style="position:relative;width:100%;height:150px;overflow:hidden;background:linear-gradient(160deg,#161f2e 0%,#0f1720 55%,#0a0f14 100%);">
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 38%,rgba(61,212,74,.22),transparent 65%);"></div>
+        <div style="position:absolute;inset:9px;border:1px solid rgba(255,215,0,.28);border-radius:9px;"></div>
+        <div style="position:absolute;top:16px;left:0;right:0;text-align:center;font-size:10px;font-weight:800;color:#ffd700;letter-spacing:.28em;">CREATOR&nbsp;EVENT</div>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-          <div style="width:56px;height:56px;border-radius:50%;border:1.5px solid rgba(61,212,74,.55);background:rgba(61,212,74,.1);display:flex;align-items:center;justify-content:center;font-size:24px;">🎤</div>
+          <div style="width:52px;height:52px;border-radius:50%;border:1.5px solid #ffd700;background:radial-gradient(circle,rgba(61,212,74,.22),rgba(0,0,0,.25));display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 18px rgba(61,212,74,.28);">🎤</div>
         </div>
+        <div style="position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:9px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.15em;">ENDAVIRAL</div>
       </div>`}
       <div style="padding:16px;display:flex;flex-direction:column;gap:8px;flex:1;">
         <div style="font-size:11px;color:var(--green);font-weight:700;letter-spacing:.05em;">CREATOR EVENT</div>
@@ -265,6 +266,38 @@ function _evUpdateDashTeaser() {
 
 // ─── Detail + buy modal ─────────────────────────────────────────────────
 
+// Event descriptions are typically typed as one long block mixing plain
+// sentences with emoji-marked bullet points (e.g. "...learn how to: ✅ Grow
+// your audience 💰 Turn your content ..."). Dumped into a single <p>,
+// default HTML whitespace collapsing turns that into an unreadable run-on
+// paragraph — any line breaks the admin typed get swallowed too. This
+// splits the text into readable chunks: real newlines are honored, and a
+// line break is also inserted before any emoji that visually opens a new
+// bullet (emoji followed by a capitalized word), so each point renders as
+// its own row instead of bleeding into the next sentence.
+function _evFormatDescription(text) {
+  if (!text) return '';
+  const raw = String(text);
+  const EMOJI_BULLET = /\s*(\p{Extended_Pictographic})\s*(?=[A-Z])/gu;
+  const withBreaks = raw.replace(/\r\n|\r/g, '\n').replace(EMOJI_BULLET, '\n$1 ');
+  const lines = withBreaks.split('\n').map(l => l.trim()).filter(Boolean);
+
+  if (lines.length <= 1) {
+    return `<p style="color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 12px;">${esc(raw)}</p>`;
+  }
+
+  return lines.map(line => {
+    const m = line.match(/^(\p{Extended_Pictographic})\s*(.+)$/u);
+    if (m) {
+      return `<div style="display:flex;gap:10px;align-items:flex-start;padding:4px 0;">
+        <span style="font-size:15px;line-height:1.5;flex:none;">${m[1]}</span>
+        <span style="color:var(--muted);font-size:14px;line-height:1.5;">${esc(m[2])}</span>
+      </div>`;
+    }
+    return `<p style="color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 10px;">${esc(line)}</p>`;
+  }).join('');
+}
+
 function eventOpenDetail(eventId) {
   const ev = _eventsCache.find(e => e.id === eventId);
   if (!ev) return;
@@ -275,7 +308,7 @@ function eventOpenDetail(eventId) {
   body.innerHTML = `
     ${ev.cover_image_url ? `<img src="${esc(ev.cover_image_url)}" style="width:100%;border-radius:10px;margin-bottom:12px;">` : ''}
     <h3 style="margin:0 0 6px;">${esc(ev.title)}</h3>
-    <p style="color:var(--muted);font-size:14px;">${esc(ev.description || '')}</p>
+    <div style="margin:6px 0 12px;">${_evFormatDescription(ev.description)}</div>
     <div style="font-size:14px;margin:10px 0;">📅 ${esc(ev.event_date)} · ⏰ ${esc(ev.start_time_label)}${ev.end_time_label ? ' – ' + esc(ev.end_time_label) : ''}<br>📍 ${esc(ev.venue)}, ${esc(ev.city)}</div>
     ${(ev.speakers || []).length ? `
       <h4 style="margin:14px 0 6px;">Speakers</h4>
