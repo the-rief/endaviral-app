@@ -951,6 +951,17 @@ tbody td{padding:13px 16px;font-size:14px;}
 .modal-field label{display:block;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
 .modal-field input,.modal-field textarea{width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;transition:border-color .2s;resize:vertical;}
 .modal-field input:focus,.modal-field textarea:focus{border-color:var(--green);}
+.modal-field select{
+  width:100%;background-color:var(--navy);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a8fad' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;background-size:14px;
+  border:1px solid var(--border);border-radius:10px;padding:12px 40px 12px 14px;
+  color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;
+  transition:border-color .2s;cursor:pointer;
+  -webkit-appearance:none;-moz-appearance:none;appearance:none;
+}
+.modal-field select:focus{border-color:var(--green);}
+.modal-field select option{background:var(--card);color:var(--white);}
 .cost-preview{background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:14px;margin:16px 0;display:flex;justify-content:space-between;align-items:center;}
 .cost-lbl{font-size:13px;color:var(--muted);}
 .cost-val{font-family:'Montserrat',sans-serif;font-size:22px;color:var(--green);letter-spacing:.5px;}
@@ -2173,10 +2184,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 
     <div class="modal-field">
       <label>Issue Type</label>
-      <select id="ntType" style="width:100%;background:rgba(255,255,255,.05);
-              border:1px solid var(--border);border-radius:10px;padding:12px 14px;
-              color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;
-              outline:none;">
+      <select id="ntType">
         <option value="wrong_order">📦 Wrong Order (wrong link / qty / service)</option>
         <option value="delay">⏳ Delayed Service (no delivery after 24h)</option>
       </select>
@@ -2198,7 +2206,7 @@ tbody td{padding:13px 16px;font-size:14px;}
                border-radius:10px;padding:12px 14px;color:var(--white);
                font-family:'Montserrat',sans-serif;font-size:14px;outline:none;">
       <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;">
-        For faster assistance, leave your number and we'll call you. Otherwise our team will just reply here on your ticket.
+        For faster help, feel free to leave your number and we'll give you a call. If you'd rather not, that's totally fine — our team will reply right here on your ticket.
       </div>
     </div>
 
@@ -3942,25 +3950,29 @@ function calcOrderCost() {
 
 
 // ── Auto-raise support ticket on payment failure ──────────────────────────────
+// Posts to /support/threads/auto-raise (not /support/threads) so this lands
+// as a SYSTEM-sourced ticket, same bucket as the backend's own
+// auto_raise_ticket() calls — NOT a customer-authored "Wrong Order" ticket.
+// That keeps it correctly hidden by the admin inbox's "Customer only" filter
+// and gives it the same ⚙️ SYSTEM badge, even though the browser is the one
+// reporting it (this covers the STK push request itself erroring out, and
+// the payment poll timing out — both happen before any backend event exists
+// to catch them; see support_chat.py's SOURCE note for why).
 async function _autoRaisePaymentTicket({ phone, link, qty, orderId, checkoutId, reason }) {
   if (!token) return; // not logged in, skip silently
   try {
-    const parts = [];
-    parts.push('🚨 Automatic payment failure report');
-    if (reason)     parts.push('Reason: ' + reason);
-    if (orderId)    parts.push('Order ID: ' + orderId);
-    if (checkoutId) parts.push('Checkout ID: ' + checkoutId);
-    if (phone)      parts.push('Phone: ' + phone);
-    if (link)       parts.push('Link: ' + link);
-    if (qty)        parts.push('Qty: ' + qty);
-    parts.push('Time: ' + new Date().toISOString());
-    const firstMessage = parts.join('\n');
-
     const API_BASE = (typeof API !== 'undefined' ? API : 'https://api-endaviral.onrender.com/api/v1');
-    const res = await fetch(API_BASE + '/support/threads', {
+    const res = await fetch(API_BASE + '/support/threads/auto-raise', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ issue_types: ['wrong_order'], first_message: firstMessage })
+      body: JSON.stringify({
+        reason: reason || 'Payment failure',
+        order_id: orderId || null,
+        checkout_id: checkoutId || null,
+        phone: phone || null,
+        link: link || null,
+        quantity: qty || null,
+      })
     });
     if (res.ok) {
       window._bgAllThreadsClosed = false; // new open thread exists — resume background watching
@@ -4563,13 +4575,13 @@ body:has(.bw-overlay.show) #ev-chat-widget{
 
         <div>
           <textarea class="ev-nt-textarea" id="ev-nt-desc" placeholder="Describe your issue… (e.g. Order ID, what happened, correct link if relevant)"></textarea>
-          <div class="ev-nt-hint">Leave both boxes unticked if it's something else — we'll still get your message.</div>
+          <div class="ev-nt-hint">It's fine to leave both unticked if it's something else — just describe it below and we'll take it from there.</div>
         </div>
 
         <div class="ev-nt-phone-row">
           <label class="ev-nt-phone-label" for="ev-nt-phone">📞 Phone number (optional)</label>
           <input type="tel" class="ev-nt-phone-input" id="ev-nt-phone" placeholder="07XX XXX XXX">
-          <div class="ev-nt-hint">For faster assistance, leave your number — we'll call you. Otherwise, we'll just reply here on your ticket.</div>
+          <div class="ev-nt-hint">For faster help, feel free to leave your number and we'll give you a call. If you'd rather not, that's totally fine — we'll reply right here on your ticket.</div>
         </div>
 
         <button class="ev-nt-submit" id="ev-nt-submit" onclick="evSubmitTicket()">Submit Ticket</button>
