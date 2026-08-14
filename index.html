@@ -247,33 +247,62 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 .lp-evt-btn:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(61,212,74,.42);filter:brightness(1.06);}
 .lp-evt-more{font-size:12.5px;color:#7a9aad;font-weight:600;}
 
-/* floating ticket illustration */
-.lp-evt-ticket{position:relative;flex:0 0 auto;width:100%;max-width:400px;}
-.lp-evt-ticket-glow{position:absolute;inset:-32px;background:radial-gradient(circle at 28% 18%,rgba(61,212,74,.22),transparent 60%);filter:blur(28px);pointer-events:none;}
-.lp-evt-card{position:relative;background:linear-gradient(155deg,#0b0f0c,#0e1a12);border:1px solid rgba(61,212,74,.28);border-radius:20px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45);}
-.lp-evt-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#3dd44a,transparent);z-index:1;}
-.lp-evt-cover{height:106px;background-size:cover;background-position:center;position:relative;}
-.lp-evt-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,15,10,.15),rgba(10,15,10,.96));}
-.lp-evt-cover-fallback{background:repeating-linear-gradient(135deg,rgba(61,212,74,.10) 0 2px,transparent 2px 16px),linear-gradient(135deg,#0b0b0b,#101a10);}
-.lp-evt-body{padding:20px 22px 18px;position:relative;z-index:1;margin-top:-40px;}
-.lp-evt-eyebrow{font-size:10.5px;font-weight:800;letter-spacing:1.6px;color:#3dd44a;text-transform:uppercase;margin-bottom:6px;}
-.lp-evt-title{font-size:19px;font-weight:800;color:#fff;line-height:1.28;margin-bottom:12px;}
-.lp-evt-info{font-size:12.5px;color:#9fb3ab;line-height:1.9;margin-bottom:6px;}
-.lp-evt-urgency{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:700;color:#ffd166;margin-top:14px;}
-.lp-evt-urgency-bar{flex:1;height:5px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;}
+/* ticket-style illustration — same visual language as the real event
+   ticket rendered by _evDrawTicket() in creator_events.js: dark textured
+   panel, VIP-style corner badge, perforated stub seam, QR + barcode. */
+.lp-evt-ticket{position:relative;flex:0 0 auto;width:100%;max-width:380px;}
+.lp-evt-ticket-glow{position:absolute;inset:-32px;background:radial-gradient(circle at 28% 18%,rgba(61,212,74,.24),transparent 60%);filter:blur(30px);pointer-events:none;}
+.lp-evt-card{position:relative;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.5);transition:transform .3s;}
+.lp-evt-card:hover{transform:translateY(-4px);}
+.lp-evt-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#3dd44a,transparent);z-index:2;}
+
+.lp-evt-main{position:relative;padding:24px 24px 30px;overflow:hidden;background:linear-gradient(150deg,#0b0b0b,#0e1a10);}
+.lp-evt-cover{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.4;}
+.lp-evt-cover-fallback{background:repeating-linear-gradient(115deg,rgba(61,212,74,.14) 0 2px,transparent 2px 18px);opacity:.5;}
+.lp-evt-main::after{content:'';position:absolute;inset:0;background:linear-gradient(165deg,rgba(10,15,10,.25),rgba(8,12,8,.94) 65%);}
+.lp-evt-brand,.lp-evt-badge,.lp-evt-eyebrow,.lp-evt-title,.lp-evt-info,.lp-evt-chiprow,.lp-evt-urgency{position:relative;z-index:1;}
+
+.lp-evt-brand{display:flex;align-items:center;gap:7px;margin-bottom:22px;}
+.lp-evt-brand img{width:20px;height:20px;object-fit:contain;}
+.lp-evt-brand span{font-size:12.5px;font-weight:900;color:#fff;letter-spacing:-.2px;}
+
+.lp-evt-badge{position:absolute;top:24px;right:24px;z-index:1;width:64px;height:64px;border:1.5px solid var(--green);border-radius:12px;background:rgba(61,212,74,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;}
+.lp-evt-badge span{font-size:15px;line-height:1;}
+.lp-evt-badge b{font-size:8.5px;font-weight:800;letter-spacing:.8px;color:#9fb3ab;text-transform:uppercase;margin-top:3px;}
+.lp-evt-badge em{font-style:normal;font-size:10.5px;font-weight:800;color:#fff;}
+
+.lp-evt-eyebrow{font-size:10.5px;font-weight:800;letter-spacing:1.6px;color:#3dd44a;text-transform:uppercase;margin-bottom:8px;}
+.lp-evt-title{font-size:20px;font-weight:800;color:#fff;line-height:1.26;margin-bottom:14px;max-width:76%;}
+.lp-evt-info{font-size:12.5px;color:#cfe6d6;line-height:1.85;margin-bottom:16px;}
+
+.lp-evt-chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;}
+.lp-evt-chip2{font-size:10px;font-weight:700;color:#6efb7a;background:rgba(61,212,74,.14);padding:5px 10px;border-radius:20px;white-space:nowrap;}
+
+.lp-evt-urgency{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:700;color:#ffd166;}
+.lp-evt-urgency-bar{flex:1;height:5px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden;}
 .lp-evt-urgency-fill{height:100%;background:linear-gradient(90deg,#3dd44a,#ffd166);border-radius:4px;}
 
-/* perforated stub strip along the bottom, echoing the real ticket design */
-.lp-evt-stub{position:relative;display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-top:2px dashed rgba(255,255,255,.16);background:rgba(61,212,74,.05);}
-.lp-evt-stub::before,.lp-evt-stub::after{content:'';position:absolute;top:-9px;width:18px;height:18px;border-radius:50%;background:#0a1a12;}
-.lp-evt-stub::before{left:-9px;}
-.lp-evt-stub::after{right:-9px;}
-.lp-evt-price{font-size:17px;font-weight:800;color:#fff;line-height:1.3;}
-.lp-evt-price span{display:block;font-size:9.5px;font-weight:700;color:#6b8f7d;letter-spacing:1.2px;text-transform:uppercase;}
-.lp-evt-qr{width:46px;height:46px;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* perforated seam + punched notches, echoing the real ticket stub */
+.lp-evt-perf{position:relative;height:2px;background:repeating-linear-gradient(90deg,rgba(0,0,0,.18) 0 7px,transparent 7px 14px);}
+.lp-evt-hole{position:absolute;top:-9px;width:18px;height:18px;border-radius:50%;background:#0d2015;}
+.lp-evt-hole-l{left:-9px;}
+.lp-evt-hole-r{right:-9px;}
+
+.lp-evt-stub{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;background:#fff;}
+.lp-evt-stub-left{display:flex;flex-direction:column;gap:10px;min-width:0;}
+.lp-evt-stub-label{font-size:9px;font-weight:800;letter-spacing:1.6px;color:#28a035;text-transform:uppercase;}
+.lp-evt-price{font-size:17px;font-weight:800;color:#111;line-height:1.3;}
+.lp-evt-barcode{height:16px;width:100%;max-width:130px;background-image:repeating-linear-gradient(90deg,#111 0 2px,transparent 2px 3px,#111 3px 5px,transparent 5px 8px);opacity:.85;}
+
+.lp-evt-qrbox{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.lp-evt-qr{width:54px;height:54px;border-radius:10px;border:1.5px solid var(--green2);padding:5px;color:#111;background:#fff;}
+.lp-evt-qr svg{width:100%;height:100%;display:block;}
+.lp-evt-scan-label{font-size:7px;font-weight:800;letter-spacing:.8px;color:#8a97a8;text-transform:uppercase;white-space:nowrap;}
+
 @media(max-width:640px){
   .lp-evt-section{padding:70px 5%;}
   .lp-evt-wrap{gap:36px;}
+  .lp-evt-title{max-width:68%;}
 }
 
 /* ═══ Hire EndaViral — paid consult, signature: the incoming-call card ═══
@@ -1561,15 +1590,30 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="lp-evt-ticket lp-reveal">
         <div class="lp-evt-ticket-glow"></div>
         <div class="lp-evt-card" id="lpEvtTeaserVisual" onclick="showReg();document.getElementById('regBox').scrollIntoView({behavior:'smooth'});return false;" style="cursor:pointer;">
-          <div class="lp-evt-cover lp-evt-cover-fallback"></div>
-          <div class="lp-evt-body">
+          <div class="lp-evt-main">
+            <div class="lp-evt-cover lp-evt-cover-fallback"></div>
+            <div class="lp-evt-brand"><img src="EndaViral_logo_transparent.png" alt="" onerror="this.style.display='none'"><span>EndaViral</span></div>
+            <div class="lp-evt-badge"><span>🔔</span><b>Status</b><em>TBA</em></div>
             <div class="lp-evt-eyebrow">CREATOR EVENT</div>
             <div class="lp-evt-title">Next city: to be announced</div>
             <div class="lp-evt-info">📍 Rotates across Kenya — Nairobi, Mombasa, Kisumu &amp; more<br>🎤 Workshops · Networking · Giveaways</div>
+            <div class="lp-evt-chiprow">
+              <span class="lp-evt-chip2">🎤 Workshops</span>
+              <span class="lp-evt-chip2">🤝 Networking</span>
+              <span class="lp-evt-chip2">🎁 Giveaways</span>
+            </div>
+            <div class="lp-evt-urgency"><span>Nothing scheduled yet</span></div>
           </div>
+          <div class="lp-evt-perf"><span class="lp-evt-hole lp-evt-hole-l"></span><span class="lp-evt-hole lp-evt-hole-r"></span></div>
           <div class="lp-evt-stub">
-            <div class="lp-evt-price"><span>Status</span>Nothing scheduled yet</div>
-            <div class="lp-evt-qr" style="font-size:20px;">🔔</div>
+            <div class="lp-evt-stub-left">
+              <div><span class="lp-evt-stub-label">Ticket</span><div class="lp-evt-price">Sign up first</div></div>
+              <div class="lp-evt-barcode"></div>
+            </div>
+            <div class="lp-evt-qrbox">
+              <div class="lp-evt-qr"><svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><rect x="0" y="0" width="6" height="6"/><rect x="6" y="0" width="6" height="6"/><rect x="12" y="0" width="6" height="6"/><rect x="18" y="0" width="6" height="6"/><rect x="24" y="0" width="6" height="6"/><rect x="30" y="0" width="6" height="6"/><rect x="36" y="0" width="6" height="6"/><rect x="42" y="0" width="6" height="6"/><rect x="48" y="0" width="6" height="6"/><rect x="54" y="0" width="6" height="6"/><rect x="60" y="0" width="6" height="6"/><rect x="66" y="0" width="6" height="6"/><rect x="72" y="0" width="6" height="6"/><rect x="78" y="0" width="6" height="6"/><rect x="84" y="0" width="6" height="6"/><rect x="0" y="6" width="6" height="6"/><rect x="36" y="6" width="6" height="6"/><rect x="42" y="6" width="6" height="6"/><rect x="48" y="6" width="6" height="6"/><rect x="84" y="6" width="6" height="6"/><rect x="0" y="12" width="6" height="6"/><rect x="12" y="12" width="6" height="6"/><rect x="18" y="12" width="6" height="6"/><rect x="24" y="12" width="6" height="6"/><rect x="36" y="12" width="6" height="6"/><rect x="48" y="12" width="6" height="6"/><rect x="60" y="12" width="6" height="6"/><rect x="66" y="12" width="6" height="6"/><rect x="72" y="12" width="6" height="6"/><rect x="84" y="12" width="6" height="6"/><rect x="0" y="18" width="6" height="6"/><rect x="12" y="18" width="6" height="6"/><rect x="18" y="18" width="6" height="6"/><rect x="24" y="18" width="6" height="6"/><rect x="36" y="18" width="6" height="6"/><rect x="42" y="18" width="6" height="6"/><rect x="48" y="18" width="6" height="6"/><rect x="60" y="18" width="6" height="6"/><rect x="66" y="18" width="6" height="6"/><rect x="72" y="18" width="6" height="6"/><rect x="84" y="18" width="6" height="6"/><rect x="0" y="24" width="6" height="6"/><rect x="12" y="24" width="6" height="6"/><rect x="18" y="24" width="6" height="6"/><rect x="24" y="24" width="6" height="6"/><rect x="36" y="24" width="6" height="6"/><rect x="48" y="24" width="6" height="6"/><rect x="60" y="24" width="6" height="6"/><rect x="66" y="24" width="6" height="6"/><rect x="72" y="24" width="6" height="6"/><rect x="84" y="24" width="6" height="6"/><rect x="0" y="30" width="6" height="6"/><rect x="36" y="30" width="6" height="6"/><rect x="42" y="30" width="6" height="6"/><rect x="48" y="30" width="6" height="6"/><rect x="84" y="30" width="6" height="6"/><rect x="0" y="36" width="6" height="6"/><rect x="6" y="36" width="6" height="6"/><rect x="12" y="36" width="6" height="6"/><rect x="18" y="36" width="6" height="6"/><rect x="24" y="36" width="6" height="6"/><rect x="30" y="36" width="6" height="6"/><rect x="36" y="36" width="6" height="6"/><rect x="42" y="36" width="6" height="6"/><rect x="48" y="36" width="6" height="6"/><rect x="54" y="36" width="6" height="6"/><rect x="60" y="36" width="6" height="6"/><rect x="66" y="36" width="6" height="6"/><rect x="72" y="36" width="6" height="6"/><rect x="78" y="36" width="6" height="6"/><rect x="84" y="36" width="6" height="6"/><rect x="6" y="42" width="6" height="6"/><rect x="18" y="42" width="6" height="6"/><rect x="24" y="42" width="6" height="6"/><rect x="42" y="42" width="6" height="6"/><rect x="48" y="42" width="6" height="6"/><rect x="72" y="42" width="6" height="6"/><rect x="84" y="42" width="6" height="6"/><rect x="0" y="48" width="6" height="6"/><rect x="6" y="48" width="6" height="6"/><rect x="12" y="48" width="6" height="6"/><rect x="18" y="48" width="6" height="6"/><rect x="24" y="48" width="6" height="6"/><rect x="30" y="48" width="6" height="6"/><rect x="36" y="48" width="6" height="6"/><rect x="48" y="48" width="6" height="6"/><rect x="54" y="48" width="6" height="6"/><rect x="60" y="48" width="6" height="6"/><rect x="66" y="48" width="6" height="6"/><rect x="78" y="48" width="6" height="6"/><rect x="0" y="54" width="6" height="6"/><rect x="36" y="54" width="6" height="6"/><rect x="48" y="54" width="6" height="6"/><rect x="60" y="54" width="6" height="6"/><rect x="66" y="54" width="6" height="6"/><rect x="72" y="54" width="6" height="6"/><rect x="0" y="60" width="6" height="6"/><rect x="12" y="60" width="6" height="6"/><rect x="18" y="60" width="6" height="6"/><rect x="24" y="60" width="6" height="6"/><rect x="36" y="60" width="6" height="6"/><rect x="42" y="60" width="6" height="6"/><rect x="60" y="60" width="6" height="6"/><rect x="78" y="60" width="6" height="6"/><rect x="0" y="66" width="6" height="6"/><rect x="12" y="66" width="6" height="6"/><rect x="18" y="66" width="6" height="6"/><rect x="24" y="66" width="6" height="6"/><rect x="36" y="66" width="6" height="6"/><rect x="60" y="66" width="6" height="6"/><rect x="72" y="66" width="6" height="6"/><rect x="78" y="66" width="6" height="6"/><rect x="0" y="72" width="6" height="6"/><rect x="12" y="72" width="6" height="6"/><rect x="18" y="72" width="6" height="6"/><rect x="24" y="72" width="6" height="6"/><rect x="36" y="72" width="6" height="6"/><rect x="42" y="72" width="6" height="6"/><rect x="54" y="72" width="6" height="6"/><rect x="84" y="72" width="6" height="6"/><rect x="0" y="78" width="6" height="6"/><rect x="36" y="78" width="6" height="6"/><rect x="0" y="84" width="6" height="6"/><rect x="6" y="84" width="6" height="6"/><rect x="12" y="84" width="6" height="6"/><rect x="18" y="84" width="6" height="6"/><rect x="24" y="84" width="6" height="6"/><rect x="30" y="84" width="6" height="6"/><rect x="36" y="84" width="6" height="6"/><rect x="42" y="84" width="6" height="6"/><rect x="72" y="84" width="6" height="6"/><rect x="78" y="84" width="6" height="6"/></svg></div>
+              <span class="lp-evt-scan-label">Notify me</span>
+            </div>
           </div>
         </div>
       </div>
@@ -4758,7 +4802,7 @@ async function _maybeHideAffBanner() {
 
 <!-- ── Creator Academy lesson modal ── -->
 <!-- ══════════════════ CREATOR EVENTS: DETAIL MODAL ══════════════════ -->
-<div class="modal-overlay" id="eventDetailModal" style="display:none;" onclick="if(event.target===this)eventCloseDetail()">
+<div class="modal-overlay" id="eventDetailModal" onclick="if(event.target===this)eventCloseDetail()">
   <div class="modal" style="max-width:560px;">
     <button class="modal-close" onclick="eventCloseDetail()">✕</button>
     <div id="eventDetailBody"></div>
@@ -4766,7 +4810,7 @@ async function _maybeHideAffBanner() {
 </div>
 
 <!-- ══════════════════ CREATOR EVENTS: BUY MODAL ══════════════════ -->
-<div class="modal-overlay" id="eventBuyModal" style="display:none;" onclick="if(event.target===this)eventCloseBuy()">
+<div class="modal-overlay" id="eventBuyModal" onclick="if(event.target===this)eventCloseBuy()">
   <div class="modal" style="max-width:420px;">
     <button class="modal-close" onclick="eventCloseBuy()">✕</button>
     <div class="modal-title" id="eventBuyTitle" style="margin-bottom:4px;">Book Event</div>
@@ -4797,7 +4841,7 @@ async function _maybeHideAffBanner() {
 
 <!-- ══════════════════ CREATOR EVENTS: TICKET MODAL (canvas-rendered, same
      pattern as academyCertModal below) ══════════════════ -->
-<div class="modal-overlay" id="eventTicketModal" style="display:none;" onclick="if(event.target===this)eventCloseTicket()">
+<div class="modal-overlay" id="eventTicketModal" onclick="if(event.target===this)eventCloseTicket()">
   <div class="modal" style="max-width:640px;">
     <button class="modal-close" onclick="eventCloseTicket()">✕</button>
     <div class="modal-title" style="margin-bottom:4px;">🎟️ Your Ticket</div>

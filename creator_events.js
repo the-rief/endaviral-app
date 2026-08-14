@@ -16,6 +16,12 @@
  * Depends on: api(), toast(), fmtKES(), esc(), API_BASE — globals from index.html
  * ════════════════════════════════════════════════════════════════════════ */
 
+// Decorative QR-look icon for the landing-page ticket teaser (NOT a real
+// scannable code — that only exists on the actual purchased ticket, drawn
+// by _evDrawTicket() below via QRious). Static markup, shared by the
+// pre-login placeholder in index.html and lpLoadEventsTeaser() below.
+const _EV_QR_SVG = '<svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><rect x="0" y="0" width="6" height="6"/><rect x="6" y="0" width="6" height="6"/><rect x="12" y="0" width="6" height="6"/><rect x="18" y="0" width="6" height="6"/><rect x="24" y="0" width="6" height="6"/><rect x="30" y="0" width="6" height="6"/><rect x="36" y="0" width="6" height="6"/><rect x="42" y="0" width="6" height="6"/><rect x="48" y="0" width="6" height="6"/><rect x="54" y="0" width="6" height="6"/><rect x="60" y="0" width="6" height="6"/><rect x="66" y="0" width="6" height="6"/><rect x="72" y="0" width="6" height="6"/><rect x="78" y="0" width="6" height="6"/><rect x="84" y="0" width="6" height="6"/><rect x="0" y="6" width="6" height="6"/><rect x="36" y="6" width="6" height="6"/><rect x="42" y="6" width="6" height="6"/><rect x="48" y="6" width="6" height="6"/><rect x="84" y="6" width="6" height="6"/><rect x="0" y="12" width="6" height="6"/><rect x="12" y="12" width="6" height="6"/><rect x="18" y="12" width="6" height="6"/><rect x="24" y="12" width="6" height="6"/><rect x="36" y="12" width="6" height="6"/><rect x="48" y="12" width="6" height="6"/><rect x="60" y="12" width="6" height="6"/><rect x="66" y="12" width="6" height="6"/><rect x="72" y="12" width="6" height="6"/><rect x="84" y="12" width="6" height="6"/><rect x="0" y="18" width="6" height="6"/><rect x="12" y="18" width="6" height="6"/><rect x="18" y="18" width="6" height="6"/><rect x="24" y="18" width="6" height="6"/><rect x="36" y="18" width="6" height="6"/><rect x="42" y="18" width="6" height="6"/><rect x="48" y="18" width="6" height="6"/><rect x="60" y="18" width="6" height="6"/><rect x="66" y="18" width="6" height="6"/><rect x="72" y="18" width="6" height="6"/><rect x="84" y="18" width="6" height="6"/><rect x="0" y="24" width="6" height="6"/><rect x="12" y="24" width="6" height="6"/><rect x="18" y="24" width="6" height="6"/><rect x="24" y="24" width="6" height="6"/><rect x="36" y="24" width="6" height="6"/><rect x="48" y="24" width="6" height="6"/><rect x="60" y="24" width="6" height="6"/><rect x="66" y="24" width="6" height="6"/><rect x="72" y="24" width="6" height="6"/><rect x="84" y="24" width="6" height="6"/><rect x="0" y="30" width="6" height="6"/><rect x="36" y="30" width="6" height="6"/><rect x="42" y="30" width="6" height="6"/><rect x="48" y="30" width="6" height="6"/><rect x="84" y="30" width="6" height="6"/><rect x="0" y="36" width="6" height="6"/><rect x="6" y="36" width="6" height="6"/><rect x="12" y="36" width="6" height="6"/><rect x="18" y="36" width="6" height="6"/><rect x="24" y="36" width="6" height="6"/><rect x="30" y="36" width="6" height="6"/><rect x="36" y="36" width="6" height="6"/><rect x="42" y="36" width="6" height="6"/><rect x="48" y="36" width="6" height="6"/><rect x="54" y="36" width="6" height="6"/><rect x="60" y="36" width="6" height="6"/><rect x="66" y="36" width="6" height="6"/><rect x="72" y="36" width="6" height="6"/><rect x="78" y="36" width="6" height="6"/><rect x="84" y="36" width="6" height="6"/><rect x="6" y="42" width="6" height="6"/><rect x="18" y="42" width="6" height="6"/><rect x="24" y="42" width="6" height="6"/><rect x="42" y="42" width="6" height="6"/><rect x="48" y="42" width="6" height="6"/><rect x="72" y="42" width="6" height="6"/><rect x="84" y="42" width="6" height="6"/><rect x="0" y="48" width="6" height="6"/><rect x="6" y="48" width="6" height="6"/><rect x="12" y="48" width="6" height="6"/><rect x="18" y="48" width="6" height="6"/><rect x="24" y="48" width="6" height="6"/><rect x="30" y="48" width="6" height="6"/><rect x="36" y="48" width="6" height="6"/><rect x="48" y="48" width="6" height="6"/><rect x="54" y="48" width="6" height="6"/><rect x="60" y="48" width="6" height="6"/><rect x="66" y="48" width="6" height="6"/><rect x="78" y="48" width="6" height="6"/><rect x="0" y="54" width="6" height="6"/><rect x="36" y="54" width="6" height="6"/><rect x="48" y="54" width="6" height="6"/><rect x="60" y="54" width="6" height="6"/><rect x="66" y="54" width="6" height="6"/><rect x="72" y="54" width="6" height="6"/><rect x="0" y="60" width="6" height="6"/><rect x="12" y="60" width="6" height="6"/><rect x="18" y="60" width="6" height="6"/><rect x="24" y="60" width="6" height="6"/><rect x="36" y="60" width="6" height="6"/><rect x="42" y="60" width="6" height="6"/><rect x="60" y="60" width="6" height="6"/><rect x="78" y="60" width="6" height="6"/><rect x="0" y="66" width="6" height="6"/><rect x="12" y="66" width="6" height="6"/><rect x="18" y="66" width="6" height="6"/><rect x="24" y="66" width="6" height="6"/><rect x="36" y="66" width="6" height="6"/><rect x="60" y="66" width="6" height="6"/><rect x="72" y="66" width="6" height="6"/><rect x="78" y="66" width="6" height="6"/><rect x="0" y="72" width="6" height="6"/><rect x="12" y="72" width="6" height="6"/><rect x="18" y="72" width="6" height="6"/><rect x="24" y="72" width="6" height="6"/><rect x="36" y="72" width="6" height="6"/><rect x="42" y="72" width="6" height="6"/><rect x="54" y="72" width="6" height="6"/><rect x="84" y="72" width="6" height="6"/><rect x="0" y="78" width="6" height="6"/><rect x="36" y="78" width="6" height="6"/><rect x="0" y="84" width="6" height="6"/><rect x="6" y="84" width="6" height="6"/><rect x="12" y="84" width="6" height="6"/><rect x="18" y="84" width="6" height="6"/><rect x="24" y="84" width="6" height="6"/><rect x="30" y="84" width="6" height="6"/><rect x="36" y="84" width="6" height="6"/><rect x="42" y="84" width="6" height="6"/><rect x="72" y="84" width="6" height="6"/><rect x="78" y="84" width="6" height="6"/></svg>';
+
 let _eventsCache = [];
 let _eventsPollTimer = null;
 
@@ -49,23 +55,35 @@ async function lpLoadEventsTeaser() {
   const count = events.length;
   const pctSold = ev.capacity ? Math.round(100 - (ev.slots_remaining / ev.capacity) * 100) : 0;
 
+  const highlights = (ev.highlights || []).slice(0, 3);
+
   card.innerHTML = `
-    ${ev.cover_image_url
-      ? `<div class="lp-evt-cover" style="background-image:url('${esc(ev.cover_image_url)}');"></div>`
-      : `<div class="lp-evt-cover lp-evt-cover-fallback"></div>`}
-    <div class="lp-evt-body">
+    <div class="lp-evt-main">
+      ${ev.cover_image_url
+        ? `<div class="lp-evt-cover" style="background-image:url('${esc(ev.cover_image_url)}');"></div>`
+        : `<div class="lp-evt-cover lp-evt-cover-fallback"></div>`}
+      <div class="lp-evt-brand"><img src="EndaViral_logo_transparent.png" alt="" onerror="this.style.display='none'"><span>EndaViral</span></div>
+      <div class="lp-evt-badge"><span>🎟️</span><b>Ticket</b><em>${fmtKES(ev.ticket_price_kes)}</em></div>
       <div class="lp-evt-eyebrow">CREATOR EVENT</div>
       <div class="lp-evt-title">${esc(ev.title)}</div>
       <div class="lp-evt-info">📅 ${esc(ev.event_date)} · ⏰ ${esc(ev.start_time_label)}${ev.end_time_label ? ' – ' + esc(ev.end_time_label) : ''}<br>📍 ${esc(ev.venue)}, ${esc(ev.city)}</div>
+      ${highlights.length ? `<div class="lp-evt-chiprow">${highlights.map(h => `<span class="lp-evt-chip2">✓ ${esc(h)}</span>`).join('')}</div>` : ''}
       ${!ev.is_sold_out ? `
       <div class="lp-evt-urgency">
         <span>${ev.slots_remaining} slots left</span>
         <div class="lp-evt-urgency-bar"><div class="lp-evt-urgency-fill" style="width:${Math.max(6, Math.min(100, pctSold))}%"></div></div>
       </div>` : `<div class="lp-evt-urgency"><span>Sold out</span></div>`}
     </div>
+    <div class="lp-evt-perf"><span class="lp-evt-hole lp-evt-hole-l"></span><span class="lp-evt-hole lp-evt-hole-r"></span></div>
     <div class="lp-evt-stub">
-      <div class="lp-evt-price"><span>Ticket</span>${fmtKES(ev.ticket_price_kes)}</div>
-      <div class="lp-evt-qr">🎟️</div>
+      <div class="lp-evt-stub-left">
+        <div><span class="lp-evt-stub-label">Ticket</span><div class="lp-evt-price">${fmtKES(ev.ticket_price_kes)}</div></div>
+        <div class="lp-evt-barcode"></div>
+      </div>
+      <div class="lp-evt-qrbox">
+        <div class="lp-evt-qr">${_EV_QR_SVG}</div>
+        <span class="lp-evt-scan-label">Book now</span>
+      </div>
     </div>
   `;
 
@@ -268,12 +286,12 @@ function eventOpenDetail(eventId) {
       </button>
     </div>
   `;
-  modal.style.display = 'flex';
+  modal.classList.add('show');
 }
 
 function eventCloseDetail() {
   const modal = document.getElementById('eventDetailModal');
-  if (modal) modal.style.display = 'none';
+  if (modal) modal.classList.remove('show');
 }
 
 function eventOpenBuy(eventId) {
@@ -287,12 +305,12 @@ function eventOpenBuy(eventId) {
   document.getElementById('eventBuyPhone').value = '';
   document.getElementById('eventBuyStatus').textContent = '';
   modal.dataset.eventId = eventId;
-  modal.style.display = 'flex';
+  modal.classList.add('show');
 }
 
 function eventCloseBuy() {
   const modal = document.getElementById('eventBuyModal');
-  if (modal) modal.style.display = 'none';
+  if (modal) modal.classList.remove('show');
   if (_eventsPollTimer) { clearInterval(_eventsPollTimer); _eventsPollTimer = null; }
 }
 
@@ -419,7 +437,7 @@ async function eventOpenTicketByPurchase(purchaseId) {
   const overlay = document.getElementById('eventTicketModal');
   const canvas  = document.getElementById('evTicketCanvas');
   if (!overlay || !canvas) return;
-  overlay.style.display = 'flex';
+  overlay.classList.add('show');
 
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -445,7 +463,7 @@ async function eventOpenTicketByPurchase(purchaseId) {
 
 function eventCloseTicket() {
   const modal = document.getElementById('eventTicketModal');
-  if (modal) modal.style.display = 'none';
+  if (modal) modal.classList.remove('show');
 }
 
 function _evRoundedRectPath(ctx, x, y, w, h, r) {
