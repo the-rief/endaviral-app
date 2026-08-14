@@ -3030,6 +3030,8 @@ function openNewTicketModal() {
   requestAnimationFrame(() => m.classList.add('show'));
   document.body.style.overflow = 'hidden';
   document.getElementById('ntMessage').value = '';
+  const phoneEl = document.getElementById('ntPhone');
+  if (phoneEl) phoneEl.value = '';
 }
 function closeNewTicketModal() {
   const m = document.getElementById('newTicketModal');
@@ -3041,13 +3043,20 @@ function closeNewTicketModal() {
 async function submitNewTicket() {
   const type    = document.getElementById('ntType').value;
   const message = document.getElementById('ntMessage').value.trim();
+  const phoneEl = document.getElementById('ntPhone');
+  const phone   = phoneEl ? phoneEl.value.trim() : '';
   if (!message) { toast('Please describe your issue first.', 'error'); return; }
   const btn = document.getElementById('ntSubmitBtn');
   btn.textContent = 'Submitting…'; btn.disabled = true;
+  // The phone number is never persisted as its own field — it's folded
+  // straight into the ticket's first message (same as everything else the
+  // customer types) so the CCR agent sees it right in the chat and can
+  // call if the customer opted in, or just reply as normal if not.
+  const first_message = phone ? `${message}\n\n📞 **Call me:** ${phone}` : message;
   try {
     const data = await api('/support/threads', {
       method: 'POST',
-      body: JSON.stringify({ type, first_message: message })
+      body: JSON.stringify({ type, first_message })
     });
     closeNewTicketModal();
     toast('Ticket opened! Our team will respond shortly.', 'success');

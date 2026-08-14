@@ -259,9 +259,11 @@
     const cbWrong = document.getElementById('ev-nt-cb-wrong');
     const cbDelay = document.getElementById('ev-nt-cb-delay');
     const desc    = document.getElementById('ev-nt-desc');
+    const phone   = document.getElementById('ev-nt-phone');
     if (cbWrong) cbWrong.checked = false;
     if (cbDelay) cbDelay.checked = false;
     if (desc) desc.value = '';
+    if (phone) phone.value = '';
     _showView('new');
   };
 
@@ -282,12 +284,14 @@
     const cbWrong = document.getElementById('ev-nt-cb-wrong');
     const cbDelay = document.getElementById('ev-nt-cb-delay');
     const desc    = document.getElementById('ev-nt-desc');
+    const phone   = document.getElementById('ev-nt-phone');
     const btn     = document.getElementById('ev-nt-submit');
 
     const issue_types = [];
     if (cbWrong && cbWrong.checked) issue_types.push('wrong_order');
     if (cbDelay && cbDelay.checked) issue_types.push('delay');
-    const text = (desc && desc.value || '').trim();
+    const text  = (desc && desc.value || '').trim();
+    const phoneNum = (phone && phone.value || '').trim();
 
     if (!text) {
       if (desc) { desc.focus(); desc.placeholder = 'Please describe your issue…'; }
@@ -295,12 +299,21 @@
     }
     if (!token) { _scrollToLogin(); return; }
 
+    // The phone number is never stored as its own field/column anywhere —
+    // it's simply folded into the ticket's first message text (same as
+    // everything else the customer types), so it shows up right in the
+    // chat for whichever CCR agent picks up the thread and they can call
+    // if the customer opted in, or just reply as normal if not.
+    const first_message = phoneNum
+      ? `${text}\n\n📞 **Call me:** ${phoneNum}`
+      : text;
+
     if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
     try {
       const res = await fetch(`${SUPPORT_API}/threads`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ issue_types, first_message: text })
+        body: JSON.stringify({ issue_types, first_message })
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
@@ -694,6 +707,14 @@
         font-size:13px; outline:none; resize:vertical; line-height:1.5;
       }
       .ev-nt-textarea:focus { border-color:rgba(61,212,74,.45); }
+      .ev-nt-phone-row { display:flex; flex-direction:column; gap:5px; }
+      .ev-nt-phone-label { font-size:11.5px; font-weight:700; color:#8aa2c0; }
+      .ev-nt-phone-input {
+        width:100%; box-sizing:border-box; background:#1a2435; border:1px solid rgba(61,212,74,.18);
+        border-radius:10px; padding:10px 12px; color:#f0f4ff; font-family:'Montserrat',sans-serif;
+        font-size:13px; outline:none;
+      }
+      .ev-nt-phone-input:focus { border-color:rgba(61,212,74,.45); }
       .ev-nt-submit {
         padding:12px; border-radius:10px; border:none;
         background:linear-gradient(135deg,#3dd44a,#28a035); color:#000;
