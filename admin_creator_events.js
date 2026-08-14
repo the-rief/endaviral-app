@@ -109,14 +109,88 @@ function adminEventCloseEditor() {
   modal.style.display = 'none';
 }
 
+// ─── Speakers / sponsors repeaters ──────────────────────────────────────
+// Replaces the old "paste a JSON array" textareas — admins fill in plain
+// name/topic/bio fields per speaker (or name/logo per sponsor) and this
+// assembles the same speakers[]/sponsors[] shape the API expects.
+
+let _evSpeakers = [];
+let _evSponsors = [];
+
+function evAddSpeaker(speaker) {
+  _evSpeakers.push(speaker || { name: '', bio: '', topic: '', photo_url: '' });
+  _renderEvSpeakers();
+}
+
+function evRemoveSpeaker(i) {
+  _evSpeakers.splice(i, 1);
+  _renderEvSpeakers();
+}
+
+function _evUpdateSpeaker(i, field, value) {
+  if (_evSpeakers[i]) _evSpeakers[i][field] = value;
+}
+
+function _renderEvSpeakers() {
+  const el = document.getElementById('evSpeakersList');
+  if (!el) return;
+  if (!_evSpeakers.length) {
+    el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);">No speakers added yet — optional, but attendees like knowing who they\'ll hear from.</div>';
+    return;
+  }
+  el.innerHTML = _evSpeakers.map((s, i) => `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;">
+      <button type="button" onclick="evRemoveSpeaker(${i})" title="Remove speaker" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-right:20px;">
+        <div class="field" style="margin:0;"><label style="font-size:11px;">Name *</label><input type="text" value="${esc(s.name)}" oninput="_evUpdateSpeaker(${i},'name',this.value)" placeholder="Jane Doe"/></div>
+        <div class="field" style="margin:0;"><label style="font-size:11px;">Topic</label><input type="text" value="${esc(s.topic)}" oninput="_evUpdateSpeaker(${i},'topic',this.value)" placeholder="Growth on TikTok"/></div>
+        <div class="field" style="grid-column:1/-1;margin:0;"><label style="font-size:11px;">Bio</label><input type="text" value="${esc(s.bio)}" oninput="_evUpdateSpeaker(${i},'bio',this.value)" placeholder="Short bio…"/></div>
+        <div class="field" style="grid-column:1/-1;margin:0;"><label style="font-size:11px;">Photo URL</label><input type="text" value="${esc(s.photo_url)}" oninput="_evUpdateSpeaker(${i},'photo_url',this.value)" placeholder="https://…"/></div>
+      </div>
+    </div>`).join('');
+}
+
+function evAddSponsor(sponsor) {
+  _evSponsors.push(sponsor || { name: '', logo_url: '' });
+  _renderEvSponsors();
+}
+
+function evRemoveSponsor(i) {
+  _evSponsors.splice(i, 1);
+  _renderEvSponsors();
+}
+
+function _evUpdateSponsor(i, field, value) {
+  if (_evSponsors[i]) _evSponsors[i][field] = value;
+}
+
+function _renderEvSponsors() {
+  const el = document.getElementById('evSponsorsList');
+  if (!el) return;
+  if (!_evSponsors.length) {
+    el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);">No sponsors added yet — optional, display credit only.</div>';
+    return;
+  }
+  el.innerHTML = _evSponsors.map((s, i) => `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;">
+      <button type="button" onclick="evRemoveSponsor(${i})" title="Remove sponsor" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-right:20px;">
+        <div class="field" style="margin:0;"><label style="font-size:11px;">Name *</label><input type="text" value="${esc(s.name)}" oninput="_evUpdateSponsor(${i},'name',this.value)" placeholder="Safaricom"/></div>
+        <div class="field" style="margin:0;"><label style="font-size:11px;">Logo URL</label><input type="text" value="${esc(s.logo_url)}" oninput="_evUpdateSponsor(${i},'logo_url',this.value)" placeholder="https://…"/></div>
+      </div>
+    </div>`).join('');
+}
+
 function _resetEventForm() {
   ['evTitle', 'evDescription', 'evCoverImage', 'evVenue', 'evCity', 'evDate',
    'evStartTime', 'evEndTime'].forEach(id => { const f = document.getElementById(id); if (f) f.value = ''; });
   document.getElementById('evPrice').value = 500;
   document.getElementById('evCapacity').value = 50;
   document.getElementById('evHighlights').value = '';
-  document.getElementById('evSpeakersJson').value = '[]';
-  document.getElementById('evSponsorsJson').value = '[]';
+  _evSpeakers = [];
+  _evSponsors = [];
+  _renderEvSpeakers();
+  _renderEvSponsors();
 }
 
 function _fillEventForm(ev) {
@@ -131,16 +205,26 @@ function _fillEventForm(ev) {
   document.getElementById('evPrice').value = ev.ticket_price_kes;
   document.getElementById('evCapacity').value = ev.capacity;
   document.getElementById('evHighlights').value = (ev.highlights || []).join(', ');
-  document.getElementById('evSpeakersJson').value = JSON.stringify(ev.speakers || [], null, 2);
-  document.getElementById('evSponsorsJson').value = JSON.stringify(ev.sponsors || [], null, 2);
+  _evSpeakers = (ev.speakers || []).map(s => ({
+    name: s.name || '', bio: s.bio || '', topic: s.topic || '', photo_url: s.photo_url || '',
+  }));
+  _evSponsors = (ev.sponsors || []).map(s => ({
+    name: s.name || '', logo_url: s.logo_url || '',
+  }));
+  _renderEvSpeakers();
+  _renderEvSponsors();
 }
 
 function _readEventForm() {
-  let speakers = [], sponsors = [];
-  try { speakers = JSON.parse(document.getElementById('evSpeakersJson').value || '[]'); }
-  catch { throw new Error('Speakers JSON is invalid'); }
-  try { sponsors = JSON.parse(document.getElementById('evSponsorsJson').value || '[]'); }
-  catch { throw new Error('Sponsors JSON is invalid'); }
+  // Blank rows (no name typed) are dropped rather than erroring — an
+  // admin who clicked "+ Add Speaker" then changed their mind shouldn't
+  // have to also remember to delete the row.
+  const speakers = _evSpeakers
+    .filter(s => (s.name || '').trim())
+    .map(s => ({ name: s.name.trim(), bio: (s.bio || '').trim(), topic: (s.topic || '').trim(), photo_url: (s.photo_url || '').trim() }));
+  const sponsors = _evSponsors
+    .filter(s => (s.name || '').trim())
+    .map(s => ({ name: s.name.trim(), logo_url: (s.logo_url || '').trim() }));
 
   return {
     title: document.getElementById('evTitle').value.trim(),
