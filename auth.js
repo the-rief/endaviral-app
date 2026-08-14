@@ -192,6 +192,7 @@ async function doRegister() {
 let _evtSource = null;
 let _evtReconnectTimer = null;
 let _evtReconnectDelay = 1000;
+let _evtHasConnectedBefore = false; // true once the first connection of this session has opened — gates the reconnect catch-up so it doesn't duplicate initApp()'s own catch-up on the very first connect
 const _EVT_MAX_RECONNECT_DELAY = 15000;
 const _EVT_MIN_HEALTHY_MS = 20000; // must stay open this long to count as "healthy" and reset backoff
 
@@ -213,7 +214,21 @@ async function startEventStream() {
   try {
     const { ticket } = await api('/connect/events/ticket', { method: 'POST' });
     _evtSource = new EventSource(`${API_BASE}/connect/events?ticket=${ticket}`);
-    _evtSource.onopen = () => { openedAt = Date.now(); };
+    _evtSource.onopen = () => {
+      openedAt = Date.now();
+      // Catch up on anything pushed while we had no live connection — e.g.
+      // support replied to a ticket while this connection was down. Pushes
+      // are fire-and-forget (see sse.py): nothing sent while disconnected
+      // is queued for redelivery, so the client has to actively re-check
+      // on every reconnect, not just on login/tab-foreground. Skipped on
+      // the very first connection of the session since initApp() already
+      // ran this same catch-up immediately before calling startEventStream().
+      if (_evtHasConnectedBefore) {
+        if (typeof _bgTicketWatchTick === 'function') _bgTicketWatchTick();
+        if (typeof _cnPollUnread === 'function') _cnPollUnread();
+      }
+      _evtHasConnectedBefore = true;
+    };
     _evtSource.onmessage = (e) => {
       let evt;
       try { evt = JSON.parse(e.data); } catch(_) { return; }
@@ -266,6 +281,7 @@ function stopEventStream() {
   clearTimeout(_evtReconnectTimer);
   _evtReconnectTimer = null;
   _evtReconnectDelay = 1000;
+  _evtHasConnectedBefore = false;
   if (_evtSource) { _evtSource.close(); _evtSource = null; }
   if (typeof PaymentEvents !== 'undefined' && PaymentEvents._clear) PaymentEvents._clear();
 }

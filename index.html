@@ -962,6 +962,10 @@ tbody td{padding:13px 16px;font-size:14px;}
 }
 .modal-field select:focus{border-color:var(--green);}
 .modal-field select option{background:var(--card);color:var(--white);}
+.nt-checkboxes{display:flex;flex-direction:column;gap:8px;}
+.nt-cb-row{display:flex;align-items:center;gap:9px;padding:11px 13px;background:var(--navy);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:13.5px;color:var(--white);transition:border-color .2s;}
+.nt-cb-row:hover{border-color:rgba(61,212,74,.4);}
+.nt-cb-row input{width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;}
 .cost-preview{background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:14px;margin:16px 0;display:flex;justify-content:space-between;align-items:center;}
 .cost-lbl{font-size:13px;color:var(--muted);}
 .cost-val{font-family:'Montserrat',sans-serif;font-size:22px;color:var(--green);letter-spacing:.5px;}
@@ -2195,20 +2199,24 @@ tbody td{padding:13px 16px;font-size:14px;}
     <button class="modal-close" onclick="closeNewTicketModal()">✕</button>
     <div class="modal-title">OPEN NEW TICKET</div>
     <div class="modal-sub" style="margin-bottom:20px;">
-      Describe your issue and our team will respond shortly.
+      Select what applies, or just describe it below.
     </div>
 
     <div class="modal-field">
       <label>Issue Type</label>
-      <select id="ntType">
-        <option value="wrong_order">📦 Wrong Order (wrong link / qty / service)</option>
-        <option value="delay">⏳ Delayed Service (no delivery after 24h)</option>
-      </select>
+      <div class="nt-checkboxes">
+        <label class="nt-cb-row">
+          <input type="checkbox" id="ntCbWrong"> 📦 Wrong Order (wrong link / qty / service)
+        </label>
+        <label class="nt-cb-row">
+          <input type="checkbox" id="ntCbDelay"> ⏳ Delayed Service (no delivery after 24h)
+        </label>
+      </div>
     </div>
 
     <div class="modal-field">
       <label>Describe your issue</label>
-      <textarea id="ntMessage" rows="4" placeholder="e.g. I ordered 1000 followers but the link was wrong…"
+      <textarea id="ntMessage" rows="4" placeholder="Describe your issue (Order ID helps)"
         style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);
                border-radius:10px;padding:12px 14px;color:var(--white);
                font-family:'Montserrat',sans-serif;font-size:14px;outline:none;
@@ -2222,7 +2230,7 @@ tbody td{padding:13px 16px;font-size:14px;}
                border-radius:10px;padding:12px 14px;color:var(--white);
                font-family:'Montserrat',sans-serif;font-size:14px;outline:none;">
       <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;">
-        For faster help, feel free to leave your number and we'll give you a call. If you'd rather not, that's totally fine — our team will reply right here on your ticket.
+        Optional — leave it for a callback. We'll reply here either way.
       </div>
     </div>
 
@@ -4578,7 +4586,7 @@ body:has(.bw-overlay.show) #ev-chat-widget{
           <button class="ev-nt-back" onclick="evGoHome()">←</button>
           <div class="ev-nt-title">New Ticket</div>
         </div>
-        <div class="ev-nt-sub">Tick what applies, or just describe your issue below — either way it goes straight to our support team.</div>
+        <div class="ev-nt-sub">Select what applies, or just describe it below.</div>
 
         <div class="ev-nt-checkboxes">
           <label class="ev-nt-cb-row">
@@ -4590,14 +4598,13 @@ body:has(.bw-overlay.show) #ev-chat-widget{
         </div>
 
         <div>
-          <textarea class="ev-nt-textarea" id="ev-nt-desc" placeholder="Describe your issue… (e.g. Order ID, what happened, correct link if relevant)"></textarea>
-          <div class="ev-nt-hint">It's fine to leave both unticked if it's something else — just describe it below and we'll take it from there.</div>
+          <textarea class="ev-nt-textarea" id="ev-nt-desc" placeholder="Describe your issue (Order ID helps)"></textarea>
         </div>
 
         <div class="ev-nt-phone-row">
           <label class="ev-nt-phone-label" for="ev-nt-phone">📞 Phone number (optional)</label>
           <input type="tel" class="ev-nt-phone-input" id="ev-nt-phone" placeholder="07XX XXX XXX">
-          <div class="ev-nt-hint">For faster help, feel free to leave your number and we'll give you a call. If you'd rather not, that's totally fine — we'll reply right here on your ticket.</div>
+          <div class="ev-nt-hint">Optional — leave it for a callback. We'll reply here either way.</div>
         </div>
 
         <button class="ev-nt-submit" id="ev-nt-submit" onclick="evSubmitTicket()">Submit Ticket</button>

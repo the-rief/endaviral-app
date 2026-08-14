@@ -3061,6 +3061,10 @@ function openNewTicketModal() {
   requestAnimationFrame(() => m.classList.add('show'));
   document.body.style.overflow = 'hidden';
   document.getElementById('ntMessage').value = '';
+  const cbWrong = document.getElementById('ntCbWrong');
+  const cbDelay = document.getElementById('ntCbDelay');
+  if (cbWrong) cbWrong.checked = false;
+  if (cbDelay) cbDelay.checked = false;
   const phoneEl = document.getElementById('ntPhone');
   if (phoneEl) phoneEl.value = '';
 }
@@ -3072,7 +3076,11 @@ function closeNewTicketModal() {
 }
 
 async function submitNewTicket() {
-  const type    = document.getElementById('ntType').value;
+  const cbWrong = document.getElementById('ntCbWrong');
+  const cbDelay = document.getElementById('ntCbDelay');
+  const issue_types = [];
+  if (cbWrong && cbWrong.checked) issue_types.push('wrong_order');
+  if (cbDelay && cbDelay.checked) issue_types.push('delay');
   const message = document.getElementById('ntMessage').value.trim();
   const phoneEl = document.getElementById('ntPhone');
   const phone   = phoneEl ? phoneEl.value.trim() : '';
@@ -3087,7 +3095,7 @@ async function submitNewTicket() {
   try {
     const data = await api('/support/threads', {
       method: 'POST',
-      body: JSON.stringify({ type, first_message })
+      body: JSON.stringify({ issue_types, first_message })
     });
     closeNewTicketModal();
     toast('Ticket opened! Our team will respond shortly.', 'success');
