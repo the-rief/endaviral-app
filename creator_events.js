@@ -135,14 +135,16 @@ function renderEventsGrid() {
   el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">${_eventsCache.map(ev => `
     <div class="event-card" style="background:var(--navy);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;">
       ${ev.cover_image_url ? `<img src="${esc(ev.cover_image_url)}" alt="" style="width:100%;height:150px;object-fit:cover;">` : `
-      <div style="position:relative;width:100%;height:150px;overflow:hidden;background:linear-gradient(160deg,#161f2e 0%,#0f1720 55%,#0a0f14 100%);">
-        <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 38%,rgba(61,212,74,.22),transparent 65%);"></div>
-        <div style="position:absolute;inset:9px;border:1px solid rgba(255,215,0,.28);border-radius:9px;"></div>
-        <div style="position:absolute;top:16px;left:0;right:0;text-align:center;font-size:10px;font-weight:800;color:#ffd700;letter-spacing:.28em;">CREATOR&nbsp;EVENT</div>
+      <div style="position:relative;width:100%;height:150px;overflow:hidden;background:linear-gradient(160deg,#0a0f0a 0%,#0c1810 60%,#080c08 100%);">
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 82% 10%,rgba(61,212,74,.32),transparent 55%);"></div>
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(100deg,rgba(170,255,180,.14) 0 3px,transparent 3px 40px);opacity:.6;"></div>
+        <div style="position:absolute;top:14px;left:0;right:14px;text-align:center;font-size:10px;font-weight:800;color:var(--green);letter-spacing:.28em;">CREATOR&nbsp;EVENT</div>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-          <div style="width:52px;height:52px;border-radius:50%;border:1.5px solid #ffd700;background:radial-gradient(circle,rgba(61,212,74,.22),rgba(0,0,0,.25));display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 18px rgba(61,212,74,.28);">🎤</div>
+          <div style="width:52px;height:52px;border-radius:50%;border:1.5px solid var(--green);background:rgba(10,20,14,.55);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 18px rgba(61,212,74,.3);">🎤</div>
         </div>
-        <div style="position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:9px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.15em;">ENDAVIRAL</div>
+        <div style="position:absolute;bottom:12px;left:0;right:14px;text-align:center;font-size:9px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.15em;">ENDAVIRAL</div>
+        <div style="position:absolute;top:0;right:0;bottom:0;width:8px;background:linear-gradient(180deg,#28a83c,#155a20);"></div>
+        <div style="position:absolute;left:0;right:8px;bottom:0;height:4px;background:linear-gradient(90deg,#2fbf42,#155a20);"></div>
       </div>`}
       <div style="padding:16px;display:flex;flex-direction:column;gap:8px;flex:1;">
         <div style="font-size:11px;color:var(--green);font-weight:700;letter-spacing:.05em;">CREATOR EVENT</div>
@@ -584,207 +586,357 @@ function _evDrawBarcode(ctx, x, y, w, h, seedStr) {
   }
 }
 
-async function _evDrawTicket(canvas, t, logoImg) {
-  const ev = t.event;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  const stubW = 232, mainW = W - stubW;
-  const frontH = 462, footH = H - frontH;
+// Small icon per highlight, matched by keyword — falls back to a plain
+// checkmark for anything unrecognized so free-text highlights never break.
+function _evHighlightIcon(label) {
+  const s = String(label || '').toLowerCase();
+  if (/workshop|training|masterclass|class/.test(s)) return '🎓';
+  if (/network/.test(s)) return '🤝';
+  if (/opportun|deal|brand/.test(s)) return '⭐';
+  if (/giveaway|prize|gift/.test(s)) return '🎁';
+  if (/q&a|qa\b|question/.test(s)) return '💬';
+  if (/monet|income|earn/.test(s)) return '💰';
+  if (/content|photo|video/.test(s)) return '📸';
+  if (/pitch|panel|talk|speak|stage/.test(s)) return '🎤';
+  return '✓';
+}
 
-  const green = '#3dd44a', darkGreen = '#1f7a2e', white = '#ffffff';
-  const muted = '#9fb3ab', black = '#111111', mutedDark = '#6b7280';
+function _evWeekdayLabel(dateStr) {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+  } catch (e) { return ''; }
+}
 
-  ctx.clearRect(0, 0, W, H);
+function _evDateLabel(dateStr) {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr || '');
+    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase();
+  } catch (e) { return String(dateStr || ''); }
+}
+
+// Procedural "concert" backdrop — deliberately NOT an image draw. Loading
+// the event's arbitrary cover_image_url onto this canvas would reintroduce
+// exactly the CORS-tainting risk this whole canvas-based approach exists to
+// avoid (see file header): a tainted canvas can't toDataURL()/toBlob() for
+// download/share. So the stage-light mood is built from gradients + shapes
+// instead, using only first-party colors.
+function _evDrawStageBg(ctx, x, y, w, h) {
+  const base = ctx.createLinearGradient(x, y, x, y + h);
+  base.addColorStop(0, '#0a0f0a');
+  base.addColorStop(0.6, '#0c1810');
+  base.addColorStop(1, '#080c08');
+  ctx.fillStyle = base;
+  ctx.fillRect(x, y, w, h);
+
+  const glow = ctx.createRadialGradient(x + w * 0.78, y + h * 0.12, 10, x + w * 0.78, y + h * 0.12, h * 1.1);
+  glow.addColorStop(0, 'rgba(61,212,74,.32)');
+  glow.addColorStop(1, 'rgba(61,212,74,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(x, y, w, h);
+
   ctx.save();
-  _evRoundedRectPath(ctx, 0, 0, W, H, 22);
-  ctx.clip();
+  for (let i = 0; i < 5; i++) {
+    const bx = x + w * 0.5 + i * 34;
+    const beamGrad = ctx.createLinearGradient(bx, y, bx, y + h * 0.85);
+    beamGrad.addColorStop(0, 'rgba(170,255,180,.16)');
+    beamGrad.addColorStop(1, 'rgba(170,255,180,0)');
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(bx - 4, y);
+    ctx.lineTo(bx + 4, y);
+    ctx.lineTo(bx + 50, y + h * 0.85);
+    ctx.lineTo(bx - 50, y + h * 0.85);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
 
-  // ── Backgrounds ──────────────────────────────────────────────────────
-  const mainGrad = ctx.createLinearGradient(0, 0, mainW, frontH);
-  mainGrad.addColorStop(0, '#0b0b0b');
-  mainGrad.addColorStop(1, '#101a10');
-  ctx.fillStyle = mainGrad;
-  ctx.fillRect(0, 0, mainW, frontH);
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.38)';
+  ctx.beginPath();
+  ctx.ellipse(x + w * 0.62, y + h * 1.08, w * 0.58, h * 0.36, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 
-  // subtle diagonal texture, top-right of the main panel
   ctx.save();
   ctx.strokeStyle = 'rgba(61,212,74,.08)';
   ctx.lineWidth = 2;
   for (let i = 0; i < 6; i++) {
     ctx.beginPath();
-    ctx.moveTo(mainW - 220 + i * 26, 0);
-    ctx.lineTo(mainW - 220 + i * 26 + 140, frontH * 0.55);
+    ctx.moveTo(x + w - 220 + i * 26, y);
+    ctx.lineTo(x + w - 220 + i * 26 + 140, y + h * 0.55);
     ctx.stroke();
   }
   ctx.restore();
+}
 
-  ctx.fillStyle = white;
-  ctx.fillRect(mainW, 0, stubW, frontH);
+// Wraps `text` at maxWidth and draws it starting at (x, y) with the given
+// line height, stopping at maxLines (adding an ellipsis on the last line if
+// there's more). Returns the y position just after the last line drawn.
+function _evDrawParagraph(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+  const lines = _evWrapText(ctx, text, maxWidth);
+  const shown = lines.slice(0, maxLines);
+  if (lines.length > maxLines && shown.length) {
+    let last = shown[shown.length - 1];
+    while (ctx.measureText(last + '…').width > maxWidth && last.length > 3) last = last.slice(0, -1);
+    shown[shown.length - 1] = last + '…';
+  }
+  shown.forEach((line, i) => ctx.fillText(line, x, y + i * lineHeight));
+  return y + shown.length * lineHeight;
+}
 
-  const footGrad = ctx.createLinearGradient(0, frontH, W, H);
-  footGrad.addColorStop(0, '#0e1712');
-  footGrad.addColorStop(1, '#0a1210');
-  ctx.fillStyle = footGrad;
-  ctx.fillRect(0, frontH, W, footH);
+// Bulleted list — small square marker + wrapped text per item. Returns the
+// y position just after the last item.
+function _evDrawBulletList(ctx, items, x, y, maxWidth, lineHeight, markerColor) {
+  let cy = y;
+  const indent = 14;
+  items.forEach(item => {
+    ctx.fillStyle = markerColor;
+    ctx.fillRect(x, cy - 8, 5, 5);
+    cy = _evDrawParagraph(ctx, item, x + indent, cy, maxWidth - indent, lineHeight, 3);
+    cy += 4;
+  });
+  return cy;
+}
 
-  // ── Perforation notches + dashed seam between main panel and stub ─────
-  _evPunchHole(ctx, mainW, 0, 15);
-  _evPunchHole(ctx, mainW, frontH, 15);
+async function _evDrawTicket(canvas, t, logoImg) {
+  const ev = t.event;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
 
+  const green = '#3dd44a', darkGreen = '#155a20', white = '#ffffff';
+  const muted = '#9fb3ab', black = '#0d1210', mutedDark = '#6b7280', navy = '#111a24';
+
+  // ── Overall geometry: two separate rounded cards (ticket front, then a
+  // gap, then a back/info panel) — not one continuous shape.
+  const stripW = 54, stubW = 214, mainW = W - stubW - stripW;
+  const barH = 32;                 // thin green strip along the bottom of the ticket card
+  const card1H = 546;
+  const gap = 20;
+  const card2Y = card1H + gap;
+  const card2H = H - card2Y;
+  const contentH = card1H - barH;  // usable height above the bottom green bar
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ══════════════════════════════ CARD 1 — TICKET ══════════════════════
   ctx.save();
-  ctx.strokeStyle = 'rgba(120,130,120,.55)';
+  _evRoundedRectPath(ctx, 0, 0, W, card1H, 22);
+  ctx.clip();
+
+  _evDrawStageBg(ctx, 0, 0, mainW, card1H);
+  ctx.fillStyle = white;
+  ctx.fillRect(mainW, 0, stubW, card1H);
+  const stripGrad = ctx.createLinearGradient(0, 0, 0, card1H);
+  stripGrad.addColorStop(0, '#28a83c');
+  stripGrad.addColorStop(1, darkGreen);
+  ctx.fillStyle = stripGrad;
+  ctx.fillRect(mainW + stubW, 0, stripW, card1H);
+
+  // faint oversized logo watermark on the main panel, right side
+  if (logoImg) {
+    ctx.save();
+    ctx.globalAlpha = 0.10;
+    const wmW = 220, wmH = logoImg.height * (wmW / logoImg.width);
+    ctx.drawImage(logoImg, mainW - wmW - 30, contentH / 2 - wmH / 2, wmW, wmH);
+    ctx.restore();
+  }
+
+  // perforation notches + dashed seam between main panel and stub
+  _evPunchHole(ctx, mainW, 14, 13);
+  _evPunchHole(ctx, mainW, contentH - 14, 13);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(140,150,140,.5)';
   ctx.lineWidth = 2;
   ctx.setLineDash([7, 7]);
   ctx.beginPath();
-  ctx.moveTo(mainW, 4);
-  ctx.lineTo(mainW, frontH - 4);
+  ctx.moveTo(mainW, 26);
+  ctx.lineTo(mainW, contentH - 26);
   ctx.stroke();
   ctx.restore();
 
-  ctx.strokeStyle = 'rgba(61,212,74,.5)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(0, frontH);
-  ctx.lineTo(W, frontH);
-  ctx.stroke();
+  // bottom green bar (spans main + stub)
+  const barGrad = ctx.createLinearGradient(0, contentH, 0, card1H);
+  barGrad.addColorStop(0, '#2fbf42');
+  barGrad.addColorStop(1, darkGreen);
+  ctx.fillStyle = barGrad;
+  ctx.fillRect(0, contentH, mainW + stubW, barH);
+  ctx.textAlign = 'center';
+  ctx.font = '700 12px Montserrat, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,.92)';
+  ctx.fillText('www.endaviral.co.ke', (mainW + stubW) / 2, contentH + barH / 2 + 4);
 
-  // ── Main panel: logo + wordmark ────────────────────────────────────────
-  const padX = 46;
+  // ── Main panel: logo + wordmark ──────────────────────────────────────
+  const padX = 44;
   ctx.textAlign = 'left';
   if (logoImg) {
-    ctx.drawImage(logoImg, padX, 30, 42, 42);
+    ctx.drawImage(logoImg, padX, 26, 40, 40);
   } else {
-    _evRoundedRectPath(ctx, padX, 30, 42, 42, 8);
+    _evRoundedRectPath(ctx, padX, 26, 40, 40, 8);
     ctx.fillStyle = green;
     ctx.fill();
     ctx.fillStyle = '#000';
-    ctx.font = '900 16px Montserrat, sans-serif';
+    ctx.font = '900 15px Montserrat, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('EV', padX + 21, 30 + 27);
+    ctx.fillText('EV', padX + 20, 26 + 26);
     ctx.textAlign = 'left';
   }
-  ctx.font = '900 20px Montserrat, sans-serif';
+  ctx.font = '900 19px Montserrat, sans-serif';
   ctx.fillStyle = white;
-  ctx.fillText('Enda', padX + 54, 52);
+  ctx.fillText('Enda', padX + 50, 46);
   const endaW = ctx.measureText('Enda').width;
   ctx.fillStyle = green;
-  ctx.fillText('Viral', padX + 54 + endaW, 52);
-  ctx.font = '700 9px Montserrat, sans-serif';
+  ctx.fillText('Viral', padX + 50 + endaW, 46);
+  ctx.font = '700 8.5px Montserrat, sans-serif';
   ctx.fillStyle = mutedDark;
-  _evFillTracked(ctx, 'FUEL YOUR GROWTH', padX + 54, 66, 1.5, 'left');
+  _evFillTracked(ctx, 'FUEL YOUR GROWTH', padX + 50, 59, 1.5, 'left');
 
-  // ── Ticket-type / price badge, top-right of the main panel ────────────
-  const badgeW = 168, badgeH = 62, badgeX = mainW - badgeW - 32, badgeY = 30;
+  // ── Ticket-type badge, top-right ───────────────────────────────────────
+  const ticketType = (t.ticket_type || 'General');
+  const isVIP = /vip/i.test(ticketType);
+  const badgeW = 158, badgeH = 84, badgeX = mainW - badgeW - 30, badgeY = 24;
   _evRoundedRectPath(ctx, badgeX, badgeY, badgeW, badgeH, 12);
+  ctx.fillStyle = 'rgba(10,20,14,.55)';
+  ctx.fill();
   ctx.strokeStyle = green;
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  ctx.fillStyle = 'rgba(61,212,74,.08)';
-  ctx.fill();
   ctx.textAlign = 'center';
   ctx.font = '18px sans-serif';
   ctx.fillStyle = green;
-  ctx.fillText('🎫', badgeX + badgeW / 2, badgeY + 24);
+  ctx.fillText(isVIP ? '👑' : '🎟️', badgeX + badgeW / 2, badgeY + 26);
+  ctx.font = '800 19px Montserrat, sans-serif';
+  ctx.fillStyle = green;
+  ctx.fillText(ticketType.length > 10 ? ticketType.slice(0, 10) + '…' : ticketType.toUpperCase(), badgeX + badgeW / 2, badgeY + 52);
   ctx.font = '800 11px Montserrat, sans-serif';
-  ctx.fillStyle = muted;
-  _evFillTracked(ctx, 'VALID TICKET', badgeX + badgeW / 2, badgeY + 40, 1, 'center');
-  ctx.font = '800 15px Montserrat, sans-serif';
-  ctx.fillStyle = white;
-  ctx.fillText(fmtKES(ev.ticket_price_kes), badgeX + badgeW / 2, badgeY + 57);
+  ctx.fillStyle = 'rgba(255,255,255,.75)';
+  _evFillTracked(ctx, 'TICKET', badgeX + badgeW / 2, badgeY + 70, 2, 'center');
   ctx.textAlign = 'left';
 
-  // ── Eyebrow + title ─────────────────────────────────────────────────
+  // ── Eyebrow + title (last line accented green when it wraps) ──────────
   ctx.font = '800 12px Montserrat, sans-serif';
   ctx.fillStyle = green;
-  _evFillTracked(ctx, 'CREATOR EVENT', padX, 110, 1.5, 'left');
+  _evFillTracked(ctx, 'CREATOR EVENT', padX, 100, 1.5, 'left');
 
-  const titleMaxW = mainW - padX - (badgeW + 48);
-  const { fontSize: titleSize, lines: titleLines } = _evFitTitle(ctx, ev.title || '', titleMaxW, 2, 38, 22);
+  const titleMaxW = mainW - padX - (badgeW + 46);
+  const { fontSize: titleSize, lines: titleLines } = _evFitTitle(ctx, ev.title || '', titleMaxW, 2, 36, 22);
   ctx.font = `800 ${titleSize}px Montserrat, sans-serif`;
-  ctx.fillStyle = white;
-  const titleLineH = titleSize * 1.15;
-  let titleY = 148;
-  titleLines.forEach((line, i) => { ctx.fillText(line, padX, titleY + i * titleLineH); });
-  let cursorY = titleY + (titleLines.length - 1) * titleLineH + 34;
+  const titleLineH = titleSize * 1.14;
+  let titleY = 136;
+  titleLines.forEach((line, i) => {
+    ctx.fillStyle = (titleLines.length > 1 && i === titleLines.length - 1) ? green : white;
+    ctx.fillText(line, padX, titleY + i * titleLineH);
+  });
+  let cursorY = titleY + (titleLines.length - 1) * titleLineH + 30;
 
-  // ── Date / time / venue ────────────────────────────────────────────
-  ctx.font = '600 15px Montserrat, sans-serif';
-  ctx.fillStyle = '#cfe6d6';
-  const metaLine = `📅 ${ev.event_date}   ⏰ ${ev.start_time_label}${ev.end_time_label ? ' – ' + ev.end_time_label : ''}`;
-  ctx.fillText(metaLine, padX, cursorY);
-  cursorY += 26;
-  ctx.fillText(`📍 ${ev.venue}, ${ev.city}`, padX, cursorY);
-  cursorY += 20;
+  // ── Meta row: date / time / venue, three columns with dividers ────────
+  const metaAreaW = mainW - padX - 40;
+  const metaColW = metaAreaW / 3;
+  const weekday = _evWeekdayLabel(ev.event_date);
+  const dateLabel = _evDateLabel(ev.event_date);
+  const timeLine2 = ev.end_time_label ? `– ${ev.end_time_label}` : '';
+  const metaCols = [
+    { icon: '📅', l1: weekday || 'DATE', l2: dateLabel },
+    { icon: '🕐', l1: ev.start_time_label || '', l2: timeLine2 },
+    { icon: '📍', l1: ev.venue || '', l2: ev.city || '' },
+  ];
+  const metaTop = cursorY;
+  metaCols.forEach((c, i) => {
+    const cx = padX + metaColW * i;
+    if (i > 0) {
+      ctx.strokeStyle = 'rgba(255,255,255,.14)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - 16, metaTop - 14);
+      ctx.lineTo(cx - 16, metaTop + 26);
+      ctx.stroke();
+    }
+    ctx.font = '13px sans-serif';
+    ctx.fillStyle = white;
+    ctx.fillText(c.icon, cx, metaTop);
+    ctx.font = '800 13px Montserrat, sans-serif';
+    ctx.fillStyle = white;
+    let l1 = c.l1;
+    const maxColTextW = metaColW - 28;
+    while (ctx.measureText(l1).width > maxColTextW && l1.length > 3) l1 = l1.slice(0, -1);
+    ctx.fillText(l1, cx + 20, metaTop);
+    ctx.font = '600 12px Montserrat, sans-serif';
+    ctx.fillStyle = '#cfe6d6';
+    let l2 = c.l2;
+    while (ctx.measureText(l2).width > maxColTextW && l2.length > 3) l2 = l2.slice(0, -1);
+    ctx.fillText(l2, cx + 20, metaTop + 20);
+  });
+  cursorY = metaTop + 44;
 
-  // ── Highlight chips ─────────────────────────────────────────────────
-  const highlights = (ev.highlights || []).slice(0, 5);
+  // ── Highlights: icon + label, wrapping row ─────────────────────────────
+  const highlights = (ev.highlights || []).slice(0, 6);
   if (highlights.length) {
-    cursorY += 20;
-    ctx.font = '700 11px Montserrat, sans-serif';
-    let chipX = padX;
-    const chipY0 = cursorY;
-    const chipMaxX = mainW - 32;
+    cursorY += 14;
+    ctx.font = '700 12px Montserrat, sans-serif';
+    let hx = padX;
+    const hMaxX = mainW - 30;
     highlights.forEach(h => {
-      const label = `✓ ${h}`;
-      const tw = ctx.measureText(label).width + 20;
-      if (chipX + tw > chipMaxX) { chipX = padX; cursorY += 30; }
-      _evRoundedRectPath(ctx, chipX, cursorY - 18, tw, 26, 13);
-      ctx.fillStyle = 'rgba(61,212,74,.12)';
-      ctx.fill();
-      ctx.fillStyle = green;
-      ctx.fillText(label, chipX + 10, cursorY);
-      chipX += tw + 8;
+      const label = `${_evHighlightIcon(h)} ${h}`;
+      const tw = ctx.measureText(label).width;
+      if (hx + tw > hMaxX) { hx = padX; cursorY += 22; }
+      ctx.fillStyle = '#e7f3ea';
+      ctx.fillText(label, hx, cursorY);
+      hx += tw + 26;
     });
   }
 
-  // ── Bottom stat bar: attendee / ticket id / order / price ────────────
-  const barH = 74, barY = frontH - barH - 22, barX = 28, barW = mainW - 56;
-  _evRoundedRectPath(ctx, barX, barY, barW, barH, 12);
-  ctx.fillStyle = 'rgba(255,255,255,.06)';
+  // ── Bottom stat bar: attendee / ticket id / order / type / price ──────
+  const statH = 70, statY = contentH - statH - 18, statX = 26, statW = mainW - 52;
+  _evRoundedRectPath(ctx, statX, statY, statW, statH, 12);
+  ctx.fillStyle = 'rgba(255,255,255,.07)';
   ctx.fill();
 
-  const cols = [
+  const statCols = [
     { label: 'ATTENDEE',  value: t.attendee_name || 'Creator' },
     { label: 'TICKET ID', value: t.ticket_number || '' },
     { label: 'ORDER ID',  value: 'ORD-' + (t.purchase_id || '').slice(0, 8).toUpperCase() },
+    { label: 'TICKET TYPE', value: ticketType },
     { label: 'PRICE',     value: fmtKES(t.amount_kes) },
   ];
-  const colW = barW / cols.length;
-  cols.forEach((c, i) => {
-    const cx = barX + colW * i + 20;
-    ctx.font = '700 9.5px Montserrat, sans-serif';
+  const statColW = statW / statCols.length;
+  statCols.forEach((c, i) => {
+    const cx = statX + statColW * i + 18;
+    ctx.font = '700 9px Montserrat, sans-serif';
     ctx.fillStyle = mutedDark;
-    _evFillTracked(ctx, c.label, cx, barY + 26, 1, 'left');
-    ctx.font = '800 14px Montserrat, sans-serif';
+    _evFillTracked(ctx, c.label, cx, statY + 24, 1, 'left');
+    ctx.font = '800 13px Montserrat, sans-serif';
     ctx.fillStyle = white;
     let val = String(c.value);
-    if (ctx.measureText(val).width > colW - 30) {
-      while (ctx.measureText(val + '…').width > colW - 30 && val.length > 3) val = val.slice(0, -1);
+    if (ctx.measureText(val).width > statColW - 26) {
+      while (ctx.measureText(val + '…').width > statColW - 26 && val.length > 3) val = val.slice(0, -1);
       val += '…';
     }
-    ctx.fillText(val, cx, barY + 50);
+    ctx.fillText(val, cx, statY + 48);
   });
 
-  // ── Stub: ADMIT ONE + QR + codes + barcode ─────────────────────────
+  // ── Stub: ADMIT ONE + QR (with center brand badge) + codes + barcode ──
   const stubCX = mainW + stubW / 2;
   ctx.textAlign = 'center';
   ctx.font = '800 14px Montserrat, sans-serif';
   ctx.fillStyle = darkGreen;
-  ctx.fillText('★ — ADMIT ONE — ★', stubCX, 46);
+  ctx.fillText('★ — ADMIT ONE — ★', stubCX, 42);
 
-  const qrBoxSize = 168, qrBoxX = mainW + (stubW - qrBoxSize) / 2, qrBoxY = 62;
+  const qrBoxSize = 158, qrBoxX = mainW + (stubW - qrBoxSize) / 2, qrBoxY = 58;
   _evRoundedRectPath(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 14);
   ctx.strokeStyle = green;
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  const qrSize = 144, qrPad = (qrBoxSize - qrSize) / 2;
+  const qrSize = 134, qrPad = (qrBoxSize - qrSize) / 2;
   try {
     if (typeof QRious !== 'undefined' && t.ticket_code) {
       const apiBase = (typeof API !== 'undefined' ? API : (typeof API_BASE !== 'undefined' ? API_BASE : ''));
       const verifyUrl = `${apiBase}/events/ticket/verify/${encodeURIComponent(t.ticket_code)}`;
       const off = document.createElement('canvas');
-      new QRious({ element: off, value: verifyUrl, size: qrSize, level: 'M', background: '#ffffff', foreground: '#0b0b0b' });
+      new QRious({ element: off, value: verifyUrl, size: qrSize, level: 'H', background: '#ffffff', foreground: '#0b0b0b' });
       ctx.drawImage(off, qrBoxX + qrPad, qrBoxY + qrPad, qrSize, qrSize);
     } else {
       ctx.fillStyle = '#eee';
@@ -798,11 +950,35 @@ async function _evDrawTicket(canvas, t, logoImg) {
     ctx.fillRect(qrBoxX + qrPad, qrBoxY + qrPad, qrSize, qrSize);
   }
 
-  ctx.font = '700 9px Montserrat, sans-serif';
-  ctx.fillStyle = mutedDark;
-  _evFillTracked(ctx, 'SCAN TO CHECK-IN', stubCX, qrBoxY + qrBoxSize + 18, 1, 'center');
+  // small circular brand badge at the QR's center — 'H' error correction
+  // above tolerates this without hurting scannability
+  const qrCX = qrBoxX + qrBoxSize / 2, qrCY = qrBoxY + qrBoxSize / 2, badgeR = 15;
+  ctx.beginPath();
+  ctx.arc(qrCX, qrCY, badgeR, 0, Math.PI * 2);
+  ctx.fillStyle = '#0b1a12';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#ffffff';
+  ctx.stroke();
+  if (logoImg) {
+    const logoR = badgeR - 4;
+    ctx.drawImage(logoImg, qrCX - logoR, qrCY - logoR, logoR * 2, logoR * 2);
+  } else {
+    ctx.font = '900 10px Montserrat, sans-serif';
+    ctx.fillStyle = green;
+    ctx.fillText('EV', qrCX, qrCY + 3);
+  }
 
-  let stubY = qrBoxY + qrBoxSize + 42;
+  // "SCAN TO CHECK-IN" pill, overlapping the bottom edge of the QR box
+  const pillW = 152, pillH = 24, pillX = stubCX - pillW / 2, pillY = qrBoxY + qrBoxSize - pillH / 2;
+  _evRoundedRectPath(ctx, pillX, pillY, pillW, pillH, 12);
+  ctx.fillStyle = black;
+  ctx.fill();
+  ctx.font = '700 9px Montserrat, sans-serif';
+  ctx.fillStyle = white;
+  _evFillTracked(ctx, 'SCAN TO CHECK-IN', stubCX, pillY + pillH / 2 + 3, 1, 'center');
+
+  let stubY = qrBoxY + qrBoxSize + 34;
   ctx.font = '700 9px Montserrat, sans-serif';
   ctx.fillStyle = green;
   _evFillTracked(ctx, 'VERIFICATION CODE', stubCX, stubY, 1, 'center');
@@ -811,51 +987,171 @@ async function _evDrawTicket(canvas, t, logoImg) {
   ctx.fillStyle = black;
   ctx.fillText(t.ticket_number || '', stubCX, stubY);
 
-  stubY += 26;
+  stubY += 24;
   ctx.font = '700 9px Montserrat, sans-serif';
   ctx.fillStyle = mutedDark;
   _evFillTracked(ctx, 'TICKET ID', stubCX, stubY, 1, 'center');
-  stubY += 18;
+  stubY += 17;
   ctx.font = '700 12px Montserrat, sans-serif';
   ctx.fillStyle = black;
   ctx.fillText('EVT-' + (t.purchase_id || '').slice(0, 8).toUpperCase(), stubCX, stubY);
 
-  // decorative barcode along the bottom of the stub
-  _evDrawBarcode(ctx, mainW + 22, frontH - 34, stubW - 44, 22, t.purchase_id);
+  _evDrawBarcode(ctx, mainW + 20, contentH - 30, stubW - 40, 20, t.purchase_id);
+
+  // ── Vertical green strip: small brand mark + rotated event title ──────
+  const stripCX = mainW + stubW + stripW / 2;
+  if (logoImg) {
+    ctx.drawImage(logoImg, stripCX - 12, 22, 24, 24);
+  } else {
+    ctx.font = '900 12px Montserrat, sans-serif';
+    ctx.fillStyle = white;
+    ctx.fillText('EV', stripCX, 40);
+  }
+  ctx.save();
+  ctx.translate(stripCX, card1H - 24);
+  ctx.rotate(-Math.PI / 2);
+  const availLen = card1H - 90;
+  let stripFont = 11;
+  ctx.font = `700 ${stripFont}px Montserrat, sans-serif`;
+  let stripText = (ev.title || '').toUpperCase();
+  const trackSpacing = 2.5;
+  const trackedWidth = t => {
+    const chars = Array.from(t);
+    return chars.reduce((sum, c) => sum + ctx.measureText(c).width, 0) + trackSpacing * (chars.length - 1);
+  };
+  while (stripFont > 7 && trackedWidth(stripText) > availLen) {
+    stripFont -= 1;
+    ctx.font = `700 ${stripFont}px Montserrat, sans-serif`;
+  }
+  while (trackedWidth(stripText + '…') > availLen && stripText.length > 3) stripText = stripText.slice(0, -1);
+  if (trackedWidth(stripText) > availLen) stripText += '…';
+  ctx.fillStyle = 'rgba(255,255,255,.9)';
+  _evFillTracked(ctx, stripText, 0, 0, trackSpacing, 'center');
+  ctx.restore();
+
+  ctx.textAlign = 'left';
+  ctx.restore(); // release card 1 clip
+
+  // ══════════════════════════ CARD 2 — BACK / INFO PANEL ════════════════
+  ctx.save();
+  _evRoundedRectPath(ctx, 0, card2Y, W, card2H, 22);
+  ctx.clip();
+
+  const backGrad = ctx.createLinearGradient(0, card2Y, 0, card2Y + card2H);
+  backGrad.addColorStop(0, '#101a24');
+  backGrad.addColorStop(1, '#0b1319');
+  ctx.fillStyle = backGrad;
+  ctx.fillRect(0, card2Y, W, card2H);
+
+  const backBarH = 10;
+  const backBarGrad = ctx.createLinearGradient(0, card2Y + card2H - backBarH, 0, card2Y + card2H);
+  backBarGrad.addColorStop(0, '#2fbf42');
+  backBarGrad.addColorStop(1, darkGreen);
+  ctx.fillStyle = backBarGrad;
+  ctx.fillRect(0, card2Y + card2H - backBarH, W, backBarH);
+
+  const padX2 = 40, colGap = 30;
+  const colW = (W - padX2 * 2 - colGap * 3) / 4;
+  const c1x = padX2, c2x = c1x + colW + colGap, c3x = c2x + colW + colGap, c4x = c3x + colW + colGap;
+  const colTop = card2Y + 34;
+  const colBottom = card2Y + card2H - backBarH - 20;
+
+  [c2x, c3x, c4x].forEach(cx => {
+    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - colGap / 2, colTop - 4);
+    ctx.lineTo(cx - colGap / 2, colBottom);
+    ctx.stroke();
+  });
 
   ctx.textAlign = 'left';
 
-  // ── Footer strip: brand / T&Cs / event date ────────────────────────
-  ctx.textAlign = 'left';
-  ctx.font = '900 15px Montserrat, sans-serif';
-  ctx.fillStyle = white;
-  ctx.fillText('EndaViral', padX, frontH + 34);
-  ctx.font = '700 11px Montserrat, sans-serif';
+  // Col 1 — About EndaViral
+  ctx.font = '800 11px Montserrat, sans-serif';
   ctx.fillStyle = green;
-  ctx.fillText('endaviral.co.ke', padX, frontH + 52);
-  ctx.font = '600 11px Montserrat, sans-serif';
-  ctx.fillStyle = mutedDark;
-  ctx.fillText('Fuel Your Growth', padX, frontH + 68);
-
-  ctx.textAlign = 'center';
-  ctx.font = '600 11.5px Montserrat, sans-serif';
-  ctx.fillStyle = '#8fa89c';
-  const tncLines = _evWrapText(ctx, 'Valid for one entry · Present this QR code at the gate · Non-transferable & non-refundable · Arrive early to secure your spot', W * 0.42);
-  tncLines.slice(0, 3).forEach((line, i) => ctx.fillText(line, W / 2, frontH + 30 + i * 16));
-
-  ctx.textAlign = 'right';
-  ctx.font = '800 12px Montserrat, sans-serif';
+  _evFillTracked(ctx, 'ABOUT ENDAVIRAL', c1x, colTop, 1, 'left');
+  ctx.font = '500 12px Montserrat, sans-serif';
+  ctx.fillStyle = muted;
+  let c1y = _evDrawParagraph(
+    ctx,
+    "EndaViral is Kenya's all-in-one platform for creators to grow their audience, earn more and connect with amazing opportunities.",
+    c1x, colTop + 26, colW, 17, 5
+  );
+  c1y += 18;
+  ctx.font = 'italic 700 14px Georgia, serif';
   ctx.fillStyle = white;
-  const sponsorNames = (ev.sponsors || []).map(s => s.name).filter(Boolean);
-  ctx.fillText(sponsorNames.length ? 'Sponsored by' : 'See you there!', W - padX, frontH + 34);
-  ctx.font = '600 11px Montserrat, sans-serif';
-  ctx.fillStyle = mutedDark;
-  ctx.fillText(sponsorNames.length ? sponsorNames.slice(0, 2).join(', ') : ev.event_date, W - padX, frontH + 52);
-  ctx.font = '600 10.5px Montserrat, sans-serif';
-  ctx.fillText('@endaviral_ke', W - padX, frontH + 68);
+  ctx.fillText('Your Growth.', c1x, c1y);
+  ctx.fillStyle = green;
+  ctx.fillText('Our Mission.', c1x, c1y + 20);
 
-  ctx.textAlign = 'left';
-  ctx.restore(); // release outer rounded-rect clip
+  // Col 2 — Terms & Conditions
+  ctx.font = '800 11px Montserrat, sans-serif';
+  ctx.fillStyle = green;
+  _evFillTracked(ctx, 'TERMS & CONDITIONS', c2x, colTop, 1, 'left');
+  ctx.font = '500 12px Montserrat, sans-serif';
+  ctx.fillStyle = muted;
+  _evDrawBulletList(ctx, [
+    'This ticket is valid for one person only.',
+    'Present this ticket (QR code) for entry.',
+    'Tickets are non-transferable and non-refundable.',
+    'EndaViral is not responsible for lost or stolen tickets.',
+    'Arrive early to secure your spot.',
+  ], c2x, colTop + 26, colW, 16, green);
+
+  // Col 3 — See you there!
+  ctx.font = '800 11px Montserrat, sans-serif';
+  ctx.fillStyle = green;
+  _evFillTracked(ctx, 'SEE YOU THERE!', c3x, colTop, 1, 'left');
+  ctx.font = '18px sans-serif';
+  ctx.fillStyle = white;
+  ctx.fillText('📅', c3x, colTop + 34);
+  ctx.font = '800 14px Montserrat, sans-serif';
+  ctx.fillStyle = white;
+  ctx.fillText(_evDateLabel(ev.event_date) || ev.event_date || '', c3x + 26, colTop + 34);
+  ctx.strokeStyle = 'rgba(255,255,255,.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(c3x, colTop + 52);
+  ctx.lineTo(c3x + colW, colTop + 52);
+  ctx.stroke();
+  ctx.font = '15px sans-serif';
+  ctx.fillStyle = green;
+  const socialIcons = ['📷', '🎵', '▶️', '✖️'];
+  let sx = c3x;
+  socialIcons.forEach(ic => { ctx.fillText(ic, sx, colTop + 78); sx += 26; });
+  ctx.font = '700 12px Montserrat, sans-serif';
+  ctx.fillStyle = muted;
+  ctx.fillText('@endaviral_ke', c3x, colTop + 100);
+
+  // Col 4 — Sponsored by (falls back to EndaViral self-brand)
+  const sponsors = (ev.sponsors || []).filter(s => s && s.name);
+  ctx.font = '800 11px Montserrat, sans-serif';
+  ctx.fillStyle = green;
+  _evFillTracked(ctx, sponsors.length ? 'SPONSORED BY' : 'POWERED BY', c4x, colTop, 1, 'left');
+  if (sponsors.length) {
+    ctx.font = '700 14px Montserrat, sans-serif';
+    ctx.fillStyle = white;
+    sponsors.slice(0, 4).forEach((s, i) => ctx.fillText(s.name, c4x, colTop + 30 + i * 22));
+  } else if (logoImg) {
+    const lw = 32, lh = logoImg.height * (lw / logoImg.width);
+    ctx.drawImage(logoImg, c4x, colTop + 20, lw, lh);
+    ctx.font = '900 15px Montserrat, sans-serif';
+    ctx.fillStyle = white;
+    ctx.fillText('Enda', c4x + lw + 8, colTop + 20 + lh / 2 + 5);
+    const ew = ctx.measureText('Enda').width;
+    ctx.fillStyle = green;
+    ctx.fillText('Viral', c4x + lw + 8 + ew, colTop + 20 + lh / 2 + 5);
+    ctx.font = '700 9px Montserrat, sans-serif';
+    ctx.fillStyle = mutedDark;
+    _evFillTracked(ctx, 'FUEL YOUR GROWTH', c4x, colTop + 20 + lh + 18, 1, 'left');
+  } else {
+    ctx.font = '800 16px Montserrat, sans-serif';
+    ctx.fillStyle = white;
+    ctx.fillText('EndaViral', c4x, colTop + 30);
+  }
+
+  ctx.restore(); // release card 2 clip
 }
 
 function _evTicketFileName() {

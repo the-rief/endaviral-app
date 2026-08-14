@@ -258,7 +258,7 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 
 .lp-evt-main{position:relative;padding:24px 24px 30px;overflow:hidden;background:linear-gradient(150deg,#0b0b0b,#0e1a10);}
 .lp-evt-cover{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.4;}
-.lp-evt-cover-fallback{background:repeating-linear-gradient(115deg,rgba(61,212,74,.14) 0 2px,transparent 2px 18px);opacity:.5;}
+.lp-evt-cover-fallback{background:radial-gradient(circle at 82% 12%,rgba(61,212,74,.32),transparent 55%),repeating-linear-gradient(100deg,rgba(170,255,180,.14) 0 3px,transparent 3px 40px);opacity:.6;}
 .lp-evt-main::after{content:'';position:absolute;inset:0;background:linear-gradient(165deg,rgba(10,15,10,.25),rgba(8,12,8,.94) 65%);}
 .lp-evt-brand,.lp-evt-badge,.lp-evt-eyebrow,.lp-evt-title,.lp-evt-info,.lp-evt-chiprow,.lp-evt-urgency{position:relative;z-index:1;}
 
@@ -4847,7 +4847,7 @@ async function _maybeHideAffBanner() {
     <div class="modal-title" style="margin-bottom:4px;">🎟️ Your Ticket</div>
     <div class="modal-sub" style="margin-bottom:18px;">Download it, share it, or show the QR straight from your phone at the door</div>
     <div style="width:100%;overflow:auto;border-radius:16px;border:1px solid var(--border);">
-      <canvas id="evTicketCanvas" width="1200" height="590" style="width:100%;height:auto;display:block;"></canvas>
+      <canvas id="evTicketCanvas" width="1200" height="800" style="width:100%;height:auto;display:block;"></canvas>
     </div>
     <div style="display:flex;gap:10px;margin-top:20px;">
       <button class="btn-secondary" style="flex:1;" onclick="eventCloseTicket()">Close</button>
