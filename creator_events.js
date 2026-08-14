@@ -134,7 +134,15 @@ function renderEventsGrid() {
   }
   el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">${_eventsCache.map(ev => `
     <div class="event-card" style="background:var(--navy);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;">
-      ${ev.cover_image_url ? `<img src="${esc(ev.cover_image_url)}" alt="" style="width:100%;height:150px;object-fit:cover;">` : `<div style="width:100%;height:100px;background:linear-gradient(135deg,#0b0b0b,#101a10);display:flex;align-items:center;justify-content:center;font-size:30px;">🎤</div>`}
+      ${ev.cover_image_url ? `<img src="${esc(ev.cover_image_url)}" alt="" style="width:100%;height:150px;object-fit:cover;">` : `
+      <div style="position:relative;width:100%;height:150px;overflow:hidden;background:linear-gradient(150deg,#0b0b0b,#0e1a10);">
+        <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(115deg,rgba(61,212,74,.14) 0 2px,transparent 2px 18px);opacity:.5;"></div>
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 30% 22%,rgba(61,212,74,.28),transparent 60%);"></div>
+        <div style="position:absolute;top:14px;left:16px;font-size:11px;font-weight:900;color:rgba(255,255,255,.4);letter-spacing:.3px;">EndaViral</div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+          <div style="width:56px;height:56px;border-radius:50%;border:1.5px solid rgba(61,212,74,.55);background:rgba(61,212,74,.1);display:flex;align-items:center;justify-content:center;font-size:24px;">🎤</div>
+        </div>
+      </div>`}
       <div style="padding:16px;display:flex;flex-direction:column;gap:8px;flex:1;">
         <div style="font-size:11px;color:var(--green);font-weight:700;letter-spacing:.05em;">CREATOR EVENT</div>
         <div style="font-size:17px;font-weight:700;">${esc(ev.title)}</div>
