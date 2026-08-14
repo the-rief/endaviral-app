@@ -2871,6 +2871,7 @@ async function loadTickets() {
     const data = await api('/support/threads');
     _allTickets = data.threads || data || [];
     _updateTicketsBadge();
+    _updateDashTicketBanner();
     renderTickets(_allTickets);
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
@@ -2930,6 +2931,36 @@ function _updateTicketsBadge() {
     badge.style.display = pending ? 'inline-flex' : 'none';
     badge.textContent   = pending || '';
   }
+}
+
+// Persistent "support replied" banner on the Dashboard. Unlike
+// evShowDashboardPopup() (chat.js), which only fires for a live SSE push
+// arriving at the exact moment the customer happens to be on the Dashboard,
+// this reads straight off each ticket's `status` — the server's own record
+// of "admin replied, waiting on customer" — so it's correct any time
+// _allTickets gets refreshed: on login catch-up, on every SSE push, and on
+// every navTo('dashboard'). A reply that arrived while the tab was closed
+// or backgrounded still shows up here the next time the customer opens the
+// app, instead of being silently missed forever.
+function _updateDashTicketBanner() {
+  const el = document.getElementById('dashTicketBanner');
+  if (!el) return;
+  const pendingTickets = _allTickets.filter(t => t.status === 'pending');
+  if (!pendingTickets.length) {
+    el.style.display = 'none';
+    return;
+  }
+  const desc = document.getElementById('dashTicketBannerDesc');
+  if (desc) {
+    if (pendingTickets.length === 1) {
+      const t = pendingTickets[0];
+      const body = _ticketBodyText(t.last_message || t.first_message);
+      desc.textContent = _ticketPreview(body).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>') || 'Tap to view the reply';
+    } else {
+      desc.textContent = `${pendingTickets.length} tickets have new replies — tap to view`;
+    }
+  }
+  el.style.display = 'flex';
 }
 
 async function openTicketThread(threadId) {
@@ -3121,6 +3152,21 @@ async function _bgTicketWatchTick() {
     // Quiet if there are no threads, OR every one we have is resolved/closed.
     window._bgAllThreadsClosed = threads.length === 0 ||
       threads.every(t => ['resolved','closed'].includes(t.status));
+
+    // Refresh the persistent indicators (nav badge + dashboard banner) off
+    // each ticket's own `status` every time this runs — including the very
+    // first login catch-up call. This is deliberately separate from the
+    // message-count-diff loop below, which only ever popups for a reply
+    // that happened THIS session — a reply that arrived while the customer
+    // was logged out/offline would hit the "first time we see this thread"
+    // branch below and get silently treated as already-seen, with nothing
+    // ever telling the customer about it. Status is the ground truth and
+    // isn't fooled by that: any ticket with status=pending gets shown here
+    // regardless of whether this tab was open when the reply landed.
+    _allTickets = threads;
+    if (typeof _updateTicketsBadge === 'function') _updateTicketsBadge();
+    if (typeof _updateDashTicketBanner === 'function') _updateDashTicketBanner();
+
     for (const t of threads) {
       if (['resolved','closed'].includes(t.status)) continue;
       const threadId  = t.id;

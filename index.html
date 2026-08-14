@@ -2013,6 +2013,22 @@ tbody td{padding:13px 16px;font-size:14px;}
       <!-- DASHBOARD -->
       <div class="page-section active" id="sec-dashboard">
 
+        <!-- ── Support reply banner: persistent (not a toast) — reflects server
+             truth (any ticket with status=pending, i.e. admin has replied and
+             it's waiting on the customer). Populated by _updateDashTicketBanner()
+             in admin.js, called from loadTickets() and _bgTicketWatchTick() — so
+             it's correct on page load / re-login even if the reply arrived while
+             this tab was closed, not just when a live SSE push happens to land
+             while the customer is already looking at this page. ── -->
+        <div id="dashTicketBanner" onclick="navTo('tickets')" style="display:none;align-items:center;gap:10px;background:rgba(61,212,74,.08);border:1px solid rgba(61,212,74,.3);border-radius:12px;padding:12px 14px;margin-bottom:14px;cursor:pointer;">
+          <div style="font-size:20px;flex-shrink:0;">💬</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:800;color:var(--white);">Support replied to your ticket</div>
+            <div id="dashTicketBannerDesc" style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Tap to view the reply</div>
+          </div>
+          <div style="color:var(--green);font-weight:800;flex-shrink:0;">→</div>
+        </div>
+
         <!-- ── Quick-start guide: always visible — copy switches from "place your first order" to "place your next order" once the user has placed one; see renderDashOrders() ── -->
         <div id="howToGuide" style="background:rgba(61,212,74,.05);border:1px solid rgba(61,212,74,.15);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
           <div id="howToGuideTitle" style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px;letter-spacing:.3px;">🚀 PLACE YOUR FIRST ORDER</div>

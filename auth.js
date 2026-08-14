@@ -283,6 +283,16 @@ document.addEventListener('visibilitychange', () => {
   } else {
     _evtReconnectDelay = 1000; // fresh start, don't carry over a stale backoff from before backgrounding
     startEventStream();
+    // The SSE connection was closed for the whole time this tab was
+    // backgrounded (see the `if (document.hidden)` branch above), and
+    // sse.py's push()/push_admins() only deliver to queues that are open
+    // at the moment they fire — nothing is queued for a disconnected
+    // listener. So a support reply (or any other push event) that landed
+    // while this tab was hidden is gone, not just delayed. Re-run the same
+    // one-off catch-up reads initApp() does on login to pick up anything
+    // that was missed, exactly like coming back from being logged out.
+    if (typeof _bgTicketWatchTick === 'function') _bgTicketWatchTick();
+    if (typeof _cnPollUnread === 'function') _cnPollUnread();
   }
 });
 
