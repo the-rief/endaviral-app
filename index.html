@@ -3177,6 +3177,22 @@ function getLinkGuidance(svc) {
   return { placeholder: g[shape], hint: g.hint };
 }
 
+// Some subcategory keys mean something different depending on platform —
+// "members" is the underlying service-matching bucket (Telegram/Facebook
+// groups use "member"), but on YouTube those same services are actually
+// "subscribers", and showing "Members" there is confusing since YouTube
+// has no concept of channel membership by that name. Override display
+// label per-platform without needing a separate SUBCATS key (which would
+// fragment the "All" count and search).
+const SUBCAT_LABEL_OVERRIDES = {
+  youtube: { members: '🔔 Subscribers' },
+};
+
+function _subcatLabelFor(key, platformKey) {
+  const override = SUBCAT_LABEL_OVERRIDES[platformKey]?.[key];
+  return override || SUBCATS[key].label;
+}
+
 const SUBCATS = {
   packages:  { label: '💬 Packages',    keywords: ['package','subscription'] },
   followers: { label: '👥 Followers',   keywords: ['follower','follow','followers'] },
@@ -3585,7 +3601,15 @@ async function loadDashboard() {
     renderDashOrders(orders.slice(0, 5));
     const total = orders.length;
     const active = orders.filter(o => ['pending','processing','inprogress'].includes((o.status||'').toLowerCase())).length;
-    const spent = orders.reduce((s,o) => s + parseFloat(o.charge||o.cost||o.amount||0), 0);
+    // Only count orders where payment actually went through. A cancelled/
+    // failed/voided order means the M-Pesa STK push never completed (or was
+    // reversed) — no money left the customer's account, so it must not be
+    // added to "Spent". Counting it there falsely tells the customer they
+    // lost money on an order that in fact took nothing.
+    const NON_PAID_STATUSES = ['cancelled','failed','voided','void','refunded','reversed'];
+    const spent = orders
+      .filter(o => !NON_PAID_STATUSES.includes((o.status||'').toLowerCase()))
+      .reduce((s,o) => s + parseFloat(o.charge||o.cost||o.amount||0), 0);
     document.getElementById('dash-orders').textContent = total;
     document.getElementById('dash-active').textContent = active;
     document.getElementById('dash-spent').textContent = fmtKES(spent);
@@ -3745,7 +3769,7 @@ function buildSubcatBar() {
 
   Object.entries(SUBCATS).forEach(([key, def]) => {
     if (!counts[key]) return;
-    const { icon, text } = splitLabel(def.label);
+    const { icon, text } = splitLabel(_subcatLabelFor(key, activePlatform));
     const tile = document.createElement('div');
     tile.className = 'subcat-tile';
     tile.dataset.subcat = key;
@@ -3801,7 +3825,7 @@ function renderServices(list) {
     if (idx === 0) rankBadge = '<span class="svc-rank-badge cheapest">💚 Cheapest</span>';
     else if (rate === cheapestRate) rankBadge = '<span class="svc-rank-badge cheapest">💚 Best Price</span>';
     else if (idx < 3) rankBadge = '<span class="svc-rank-badge popular">🔥 Popular</span>';
-    const subcatLabel = subcatDef ? `<div class="svc-subcat">${subcatDef.label}</div>` : '';
+    const subcatLabel = subcatDef ? `<div class="svc-subcat">${_subcatLabelFor(s._subcatKey, s._platKey)}</div>` : '';
     const featureBadges = (s.refill || s.cancel) ? `<div class="svc-feature-badges">
         ${s.refill ? '<span class="svc-feature-badge refill">♻️ Refill</span>' : ''}
         ${s.cancel ? '<span class="svc-feature-badge cancel">✕ Cancellable</span>' : ''}
