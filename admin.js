@@ -1935,7 +1935,7 @@ function _chcRenderGrowth() {
   }
 
   const comboChart = _comboChartSvg(daily, { barColor: '#ff7043', lineColor: '#3dd44a', barKey: 'orders', valueKey: 'sales_kes', barLabel: 'orders', valueFmt: (v) => fmtKES(v) });
-  const revenueChart = _barChartSvg(daily, { key: 'revenue_kes', color: '#3dd44a', label: 'revenue', valueFmt: (v) => fmtKES(v), h: 150 });
+  const revenueChart = _barChartSvg(daily, { key: 'revenue_kes', color: '#3dd44a', label: 'revenue', valueFmt: (v) => parseFloat(v || 0).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }), h: 150 });
   const revenue7d = daily.slice(-7).reduce((a, d) => a + (d.revenue_kes || 0), 0);
   const usersChart = _barChartSvg(daily, { key: 'new_users', color: '#2196f3', label: 'new users', h: 130 });
 

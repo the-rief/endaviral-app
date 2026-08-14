@@ -540,7 +540,7 @@ function _affAdminRenderLeaderboard(wrap) {
 
   wrap.innerHTML = `
     <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">
-      🏆 ALL AFFILIATES (${filtered.length}${q ? ' of '+_affAdminLeaderCache.length : ''})
+      🏆 ALL AFFILIATES (${filtered.length}${q ? ' of '+_affAdminLeaderCache.length : ''}) <span style="text-transform:none;letter-spacing:normal;font-weight:400;color:var(--muted);opacity:.7;">— click a row for their full profile</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
       <input id="affLeaderSearch" type="text" value="${esc(q)}" placeholder="Search by email, name or code…"
@@ -568,7 +568,7 @@ function _affAdminRenderLeaderboard(wrap) {
               const rate     = a.commission_rate || 0.15;
               const isCustom = Math.abs(rate - 0.15) > 0.0001;
               // FIX: Use data-* attributes for safe passing to affCommissionOpen
-              return `<tr>
+              return `<tr onclick="affProfileOpen('${esc(a.id)}')" style="cursor:pointer;">
                 <td style="font-weight:800;color:${i<3?'#ffd700':'var(--muted)'};">${medal(i)}</td>
                 <td>
                   <div style="font-weight:700;">${esc(a.user_name||'—')}</div>
@@ -611,7 +611,7 @@ function _affAdminRenderLeaderboard(wrap) {
                     data-name="${esc(a.user_name||'')}"
                     data-email="${esc(a.user_email||'')}"
                     data-rate="${rate}"
-                    onclick="affCommissionOpen(this)"
+                    onclick="event.stopPropagation();affCommissionOpen(this)"
                     style="background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);color:#ffd700;
                            border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;
                            cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;">
@@ -827,4 +827,172 @@ async function affCommissionSave() {
   } finally {
     btn.disabled = false; btn.textContent = 'Save Rate';
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AFFILIATE PROFILE MODAL — click a leaderboard row to see one affiliate's
+// full numbers: header stats, earnings by source, every referred user (with
+// their own order count / spend / commission generated), and a recent
+// commission ledger. Backed by GET /affiliate/admin/affiliates/{id} plus the
+// existing /admin/referrals and /admin/commissions endpoints, both now
+// filterable by affiliate_id.
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _affProfileCurrentId = null;
+
+function affProfileOpen(profileId) {
+  _affProfileCurrentId = profileId;
+  const modal = document.getElementById('affProfileModal');
+  const body  = document.getElementById('affProfileModalBody');
+  if (!modal || !body) return;
+  modal.style.display = 'flex';
+
+  // Paint instantly from whatever's already in the leaderboard cache — the
+  // header (name, tier, totals) is already known, so no need to make the
+  // admin stare at a blank modal while referrals/commissions load below it.
+  const cached = _affAdminLeaderCache.find(a => String(a.id) === String(profileId));
+  body.innerHTML = (cached ? _affProfileRenderHeader(cached) : '')
+    + `<div style="padding:24px 0;text-align:center;"><div class="loading-spinner"><div class="spinner"></div><span>Loading referrals & commissions…</span></div></div>`;
+
+  _affProfileLoad(profileId);
+}
+
+function affProfileClose() {
+  const modal = document.getElementById('affProfileModal');
+  if (modal) modal.style.display = 'none';
+  _affProfileCurrentId = null;
+}
+
+async function _affProfileLoad(profileId) {
+  const warnings = [];
+  const [detail, refResp, commResp] = await Promise.all([
+    _affSafeFetch(`/affiliate/admin/affiliates/${profileId}`, 'Affiliate profile', warnings),
+    _affSafeFetch(`/affiliate/admin/referrals?affiliate_id=${profileId}&limit=100`, 'Referrals', warnings),
+    _affSafeFetch(`/affiliate/admin/commissions?affiliate_id=${profileId}&limit=50`, 'Commissions', warnings),
+  ]);
+
+  // The admin may have closed the modal, or clicked a different row, while
+  // these were in flight — don't paint stale data over whatever's current.
+  if (_affProfileCurrentId !== profileId) return;
+
+  const body = document.getElementById('affProfileModalBody');
+  if (!body) return;
+
+  if (!detail) {
+    body.innerHTML = `<div style="padding:24px;text-align:center;color:#ff6b6b;">Could not load this affiliate's profile. ${esc((warnings[0]||''))}</div>`;
+    return;
+  }
+
+  const referrals   = refResp?.referrals || [];
+  const commissions = commResp?.commissions || [];
+
+  let warnHtml = '';
+  if (warnings.length) {
+    warnHtml = `<div style="background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:11px;color:#ff6b6b;">⚠️ ${warnings.map(esc).join(' · ')}</div>`;
+  }
+
+  body.innerHTML = warnHtml
+    + _affProfileRenderHeader(detail)
+    + _affProfileRenderReferrals(referrals)
+    + _affProfileRenderCommissions(commissions);
+}
+
+function _affProfileRenderHeader(a) {
+  const tier     = _adminAffTier(a.referral_spend_kes || 0);
+  const rate     = a.commission_rate || 0.15;
+  const joined   = a.created_at ? new Date(a.created_at).toLocaleDateString('en-KE') : '—';
+  const b        = a.earnings_breakdown;
+
+  const breakdownHtml = (() => {
+    if (!b) return '';
+    const parts = [
+      ['📈', 'SMM',         b.smm_kes,         '#3dd44a'],
+      ['🤝', 'Marketplace', b.marketplace_kes, '#4ea8ff'],
+      ['🎓', 'Academy',     b.academy_kes,     '#ffd700'],
+    ].filter(([,,v]) => v > 0);
+    if (!parts.length) return '';
+    return `<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;">
+      ${parts.map(([icon,label,v,color]) => `
+        <div style="font-size:12px;color:${color};font-weight:700;">${icon} ${esc(label)}: ${fmtKES(v)}</div>
+      `).join('')}
+    </div>`;
+  })();
+
+  return `
+    <div style="background:var(--navy);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:17px;font-weight:800;">${esc(a.user_name || '—')}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">${esc(a.user_email || '—')}</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">
+            <span style="font-size:12px;"><span style="font-size:14px;">${tier.badge}</span> <span style="color:${tier.color};font-weight:700;">${tier.name}</span></span>
+            <span style="font-family:monospace;font-size:11px;color:var(--muted);">${esc(a.referral_code || '—')}</span>
+            <span style="font-size:11px;color:var(--muted);">rate ${(rate*100).toFixed(0)}%</span>
+            <span style="font-size:11px;color:var(--muted);">joined ${joined}</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-top:16px;">
+        <div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;">REFERRALS</div><div style="font-size:18px;font-weight:800;">${(a.total_referrals||0).toLocaleString()}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;">REF. SPEND</div><div style="font-size:18px;font-weight:800;">${fmtKES(a.referral_spend_kes||0)}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;">TOTAL EARNED</div><div style="font-size:18px;font-weight:800;color:var(--green);">${fmtKES(a.total_earned_kes||0)}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;">PENDING</div><div style="font-size:18px;font-weight:800;color:${(a.pending_kes||0)>0?'#ff9a3c':'var(--white)'};">${fmtKES(a.pending_kes||0)}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;">PAID OUT</div><div style="font-size:18px;font-weight:800;">${fmtKES(a.paid_kes||0)}</div></div>
+      </div>
+      ${breakdownHtml}
+    </div>`;
+}
+
+function _affProfileRenderReferrals(referrals) {
+  const rows = referrals.length
+    ? referrals.map(r => `
+        <tr>
+          <td>
+            <div style="font-weight:700;">${esc(r.referred_user_name || '—')}</div>
+            <div style="font-size:10px;color:var(--muted);">${esc(r.referred_user_email || '—')}</div>
+          </td>
+          <td style="text-align:center;">${(r.order_count||0).toLocaleString()}</td>
+          <td style="color:var(--muted);">${fmtKES(r.total_spend_kes||0)}</td>
+          <td style="color:var(--green);font-weight:700;">${fmtKES(r.commission_earned_kes||0)}</td>
+          <td style="font-size:11px;color:var(--muted);">${r.referred_at ? new Date(r.referred_at).toLocaleDateString('en-KE') : '—'}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">No referrals yet.</td></tr>`;
+
+  return `
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:20px 0 10px;">👥 Referred Users (${referrals.length})</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>User</th><th>Orders</th><th>Spend</th><th>Commission Earned</th><th>Joined</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function _affProfileRenderCommissions(commissions) {
+  const badge = (status) => {
+    const map = {
+      pending:  ['var(--navy)', 'var(--muted)'],
+      cleared:  ['rgba(78,168,255,.12)', '#4ea8ff'],
+      paid:     ['rgba(61,212,74,.12)', 'var(--green)'],
+      voided:   ['rgba(255,80,80,.12)', '#ff5050'],
+      reversed: ['rgba(255,80,80,.12)', '#ff5050'],
+    };
+    const [bg, fg] = map[status] || map.pending;
+    return `<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${bg};color:${fg};">${esc(status)}</span>`;
+  };
+
+  const rows = commissions.length
+    ? commissions.map(c => `
+        <tr>
+          <td style="font-size:12px;color:var(--muted);">${c.created_at ? new Date(c.created_at).toLocaleDateString('en-KE') : '—'}</td>
+          <td style="font-size:12px;">${esc(c.source_label || '—')}</td>
+          <td style="color:var(--green);font-weight:700;">${fmtKES(c.commission_amount||0)}</td>
+          <td>${badge(c.status)}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">No commissions yet.</td></tr>`;
+
+  return `
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:20px 0 10px;">🧾 Recent Commissions (${commissions.length})</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Date</th><th>Source</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
 }
