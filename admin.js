@@ -620,7 +620,7 @@ function _comboChartSvg(daily, { barColor = '#ff7043', lineColor = '#3dd44a', ba
 }
 
 // Bar-only chart (used for New Users, DAU, avg spend — a count/value with no paired metric).
-function _barChartSvg(daily, { key = 'new_users', color = '#2196f3', label = 'new users', w = 700, h = 150 } = {}) {
+function _barChartSvg(daily, { key = 'new_users', color = '#2196f3', label = 'new users', valueFmt = (v) => v, w = 700, h = 150 } = {}) {
   if (!daily.length) return `<div style="font-size:12px;color:var(--muted);padding:20px 0;text-align:center;">No data in this window.</div>`;
   const padTop = 18, padBottom = 22, padX = 4;
   const plotW = w - padX * 2;
@@ -639,9 +639,9 @@ function _barChartSvg(daily, { key = 'new_users', color = '#2196f3', label = 'ne
     const labelEvery = n <= 16 ? 1 : Math.ceil(n / 16);
     const showLabel = counts[i] > 0 && (i % labelEvery === 0 || i === n - 1);
     const countLabel = showLabel
-      ? `<text x="${cx.toFixed(1)}" y="${Math.max(y - 4, 10).toFixed(1)}" font-size="9" fill="${color}" text-anchor="middle" font-weight="700">${counts[i]}</text>`
+      ? `<text x="${cx.toFixed(1)}" y="${Math.max(y - 4, 10).toFixed(1)}" font-size="9" fill="${color}" text-anchor="middle" font-weight="700">${esc(String(valueFmt(counts[i])))}</text>`
       : '';
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(bh, 0).toFixed(1)}" rx="2" fill="${color}" opacity="0.85"><title>${esc(d.date)}: ${counts[i]} ${esc(label)}</title></rect>${countLabel}`;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(bh, 0).toFixed(1)}" rx="2" fill="${color}" opacity="0.85"><title>${esc(d.date)}: ${esc(String(valueFmt(counts[i])))} ${esc(label)}</title></rect>${countLabel}`;
   }).join('');
 
   const labelEvery = Math.max(1, Math.ceil(n / 5));
@@ -1935,6 +1935,8 @@ function _chcRenderGrowth() {
   }
 
   const comboChart = _comboChartSvg(daily, { barColor: '#ff7043', lineColor: '#3dd44a', barKey: 'orders', valueKey: 'sales_kes', barLabel: 'orders', valueFmt: (v) => fmtKES(v) });
+  const revenueChart = _barChartSvg(daily, { key: 'revenue_kes', color: '#3dd44a', label: 'revenue', valueFmt: (v) => fmtKES(v), h: 150 });
+  const revenue7d = daily.slice(-7).reduce((a, d) => a + (d.revenue_kes || 0), 0);
   const usersChart = _barChartSvg(daily, { key: 'new_users', color: '#2196f3', label: 'new users', h: 130 });
 
   const funnelOrder = ['pending', 'processing', 'partial', 'completed', 'failed', 'cancelled'];
@@ -2008,6 +2010,12 @@ function _chcRenderGrowth() {
 
   el.innerHTML = `
     ${burnBanner}
+    ${_chcPanel({
+      title: 'Revenue per Day', icon: '💵', sub: 'platform profit — sales × markup, the same number CCR agent commissions are a % of', extra: windowPicker, body: `
+        <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;">
+          <div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(revenue7d)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> revenue/7d</span></div>
+        </div>
+        ${revenueChart}` })}
     ${_chcPanel({
       title: 'Orders & Sales', icon: '📈', sub: 'count + value per day', extra: windowPicker, body: `
         <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;">
