@@ -4221,8 +4221,10 @@ function renderOrders() {
         : '—';
       // Orders are only created once payment is confirmed, and paid orders
       // are non-cancellable — no cancel action is offered here. Refill still
-      // makes sense after delivery, when a drop might need topping up.
-      const canRefill = o.provider_order_id && ['completed','partial'].includes(status);
+      // makes sense after delivery, when a drop might need topping up — but
+      // only for services MoreThanPanel itself supports refill on
+      // (o.service_refill, from Service.refill via the /orders response).
+      const canRefill = o.provider_order_id && ['completed','partial'].includes(status) && o.service_refill;
       const actions = [
         canRefill ? `<button class="action-btn" onclick="event.stopPropagation();requestOrderRefill('${fullId}')" title="Request a refill for dropped counts">♻️ Refill</button>` : '',
       ].filter(Boolean).join(' ') || '<span style="color:var(--muted);font-size:11px;">—</span>';

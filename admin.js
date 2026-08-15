@@ -109,10 +109,14 @@ async function loadAdminOrders() {
           ? `${o.start_count != null ? parseInt(o.start_count).toLocaleString() : '—'} / ${o.remains != null ? parseInt(o.remains).toLocaleString() : '—'}`
           : '—';
         const status = (o.status||'').toLowerCase();
-        // Admins can force-cancel any order that isn't already in a
-        // terminal state — unlike customers, who can no longer cancel
-        // their own paid orders from the customer-facing orders list.
-        const canAdminCancel = !['completed','cancelled'].includes(status);
+        // Cancel isn't offered here: MoreThanPanel only accepts cancel
+        // on orders that never started delivery, and by the time an
+        // order shows up in this list it's already been submitted —
+        // the provider's own dashboard doesn't offer a cancel action
+        // on in-progress/completed orders either. Refill is what's
+        // actually actionable post-delivery, and only for orders the
+        // provider delivered something on.
+        const canAdminRefill = ['completed','partial'].includes(status) && o.service_refill;
         return `<tr>
           <td style="font-size:11px;">
             <span style="color:var(--muted);">#${shortId}</span>
@@ -133,7 +137,7 @@ async function loadAdminOrders() {
           <td style="font-size:12px;color:var(--muted);">${date}</td>
           <td style="white-space:nowrap;">
             <button class="action-btn" onclick="adminMessageCustomer('${userId}','${userEmail}')" title="Open support thread with customer">💬 Message</button>
-            ${canAdminCancel ? `<button class="action-btn danger" onclick="adminCancelOrder('${fullId}')" title="Force-cancel this order">✕ Cancel</button>` : ''}
+            ${canAdminRefill ? `<button class="action-btn" onclick="adminRefillOrder('${fullId}')" title="Request a refill from the provider">↻ Refill</button>` : ''}
           </td>
         </tr>`;
       }).join('')}
@@ -142,18 +146,14 @@ async function loadAdminOrders() {
   } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`; }
 }
 
-async function adminCancelOrder(orderId) {
-  if (!confirm('Force-cancel this order? This refunds nothing automatically and cannot be undone — use this only when the customer needs the order stopped (duplicate charge, wrong link, provider issue, etc).')) return;
+async function adminRefillOrder(orderId) {
+  if (!confirm('Request a refill for this order from the provider?')) return;
   try {
-    const data = await api(`/admin/orders/${orderId}/cancel`, { method: 'POST' });
-    if (data.cancelled === false) {
-      toast(data.message || 'Provider did not confirm cancellation', 'error');
-    } else {
-      toast(data.message || 'Order cancelled', 'success');
-    }
+    const data = await api(`/admin/orders/${orderId}/refill`, { method: 'POST' });
+    toast(data.message || 'Refill request submitted', 'success');
     loadAdminOrders();
   } catch (e) {
-    toast(`Cancel failed: ${e.message}`, 'error');
+    toast(`Refill failed: ${e.message}`, 'error');
   }
 }
 
