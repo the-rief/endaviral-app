@@ -108,6 +108,11 @@ async function loadAdminOrders() {
         const startRemains = (o.start_count != null || o.remains != null)
           ? `${o.start_count != null ? parseInt(o.start_count).toLocaleString() : '—'} / ${o.remains != null ? parseInt(o.remains).toLocaleString() : '—'}`
           : '—';
+        const status = (o.status||'').toLowerCase();
+        // Admins can force-cancel any order that isn't already in a
+        // terminal state — unlike customers, who can no longer cancel
+        // their own paid orders from the customer-facing orders list.
+        const canAdminCancel = !['completed','cancelled'].includes(status);
         return `<tr>
           <td style="font-size:11px;">
             <span style="color:var(--muted);">#${shortId}</span>
@@ -126,12 +131,30 @@ async function loadAdminOrders() {
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:15px;">${fmtKES(o.charge||o.cost)}</td>
           <td>${statusPill(o.status)}</td>
           <td style="font-size:12px;color:var(--muted);">${date}</td>
-          <td><button class="action-btn" onclick="adminMessageCustomer('${userId}','${userEmail}')" title="Open support thread with customer">💬 Message</button></td>
+          <td style="white-space:nowrap;">
+            <button class="action-btn" onclick="adminMessageCustomer('${userId}','${userEmail}')" title="Open support thread with customer">💬 Message</button>
+            ${canAdminCancel ? `<button class="action-btn danger" onclick="adminCancelOrder('${fullId}')" title="Force-cancel this order">✕ Cancel</button>` : ''}
+          </td>
         </tr>`;
       }).join('')}
       </tbody>
     </table>`;
   } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`; }
+}
+
+async function adminCancelOrder(orderId) {
+  if (!confirm('Force-cancel this order? This refunds nothing automatically and cannot be undone — use this only when the customer needs the order stopped (duplicate charge, wrong link, provider issue, etc).')) return;
+  try {
+    const data = await api(`/admin/orders/${orderId}/cancel`, { method: 'POST' });
+    if (data.cancelled === false) {
+      toast(data.message || 'Provider did not confirm cancellation', 'error');
+    } else {
+      toast(data.message || 'Order cancelled', 'success');
+    }
+    loadAdminOrders();
+  } catch (e) {
+    toast(`Cancel failed: ${e.message}`, 'error');
+  }
 }
 
 let _adminAllSvcs = [];
