@@ -633,7 +633,7 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 #appWrap{display:none;position:relative;z-index:1;min-height:100vh;}
 #appWrap.show{display:flex;}
 
-.sidebar{width:var(--sidebar);background:rgba(19,27,39,.95);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:20;transition:transform .3s;}
+.sidebar{width:var(--sidebar);background:rgba(19,27,39,.95);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;height:100dvh;z-index:20;transition:transform .3s;}
 .sb-logo{padding:22px 20px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
 .sb-logo .mark{width:36px;height:36px;background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:17px;color:var(--green);}
 .sb-logo .name{font-family:'Montserrat',sans-serif;font-size:20px;letter-spacing:1px;}
@@ -651,7 +651,7 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .nav-item svg{flex-shrink:0;opacity:.7;}
 .nav-item.active svg{opacity:1;}
 .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;}
-.sb-user{padding:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sb-user{padding:14px;padding-bottom:calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .sb-user .av{width:34px;height:34px;background:var(--green3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--green);flex-shrink:0;}
 .sb-user .info{flex:1;overflow:hidden;}
 .sb-user .uname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -736,9 +736,9 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
     overflow:hidden;white-space:normal;font-size:8px;line-height:1.25;margin-top:0;
   }
   .promo-arrow{
-    display:flex;align-items:center;justify-content:center;
-    position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;
-    background:rgba(255,255,255,.08);font-size:10px;line-height:1;
+    display:flex;align-items:center;justify-content:center;gap:2px;
+    position:absolute;top:6px;right:6px;height:16px;padding:0 6px;border-radius:8px;
+    background:rgba(255,255,255,.1);font-size:8px;font-weight:700;letter-spacing:.3px;line-height:1;white-space:nowrap;color:var(--white);
   }
 }
 .stat-val{font-family:'Montserrat',sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.5px;line-height:1;}
@@ -2101,7 +2101,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div class="promo-title">Refer &amp; Earn</div>
               <div class="promo-desc">15% commission via M-Pesa</div>
             </div>
-            <div class="promo-arrow">→</div>
+            <div class="promo-arrow">Open →</div>
           </div>
 
           <div class="promo-card pc-purple" onclick="navTo('academy')" title="Creator Academy">
@@ -2110,7 +2110,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div class="promo-title">Creator Academy</div>
               <div class="promo-desc">Free lessons, Learn &amp; Grow</div>
             </div>
-            <div class="promo-arrow">→</div>
+            <div class="promo-arrow">Open →</div>
           </div>
 
           <div class="promo-card pc-blue" onclick="navTo('connect')" title="EndaViral Connect">
@@ -2119,7 +2119,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div class="promo-title">Creators Marketplace</div>
               <div class="promo-desc">Get paid by real businesses</div>
             </div>
-            <div class="promo-arrow">→</div>
+            <div class="promo-arrow">Open →</div>
           </div>
 
           <div class="promo-card pc-gold" onclick="navTo('creator-events')" title="Creator Events">
@@ -2128,7 +2128,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div class="promo-title">Creator Events</div>
               <div class="promo-desc" id="dashEventsDesc">In-person training with real speakers</div>
             </div>
-            <div class="promo-arrow">→</div>
+            <div class="promo-arrow">Open →</div>
           </div>
 
           <div class="promo-card pc-green" onclick="consultOpenBooking()" title="Hire EndaViral">
@@ -2137,7 +2137,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div class="promo-title">Hire EndaViral</div>
               <div class="promo-desc">KES 500 consult us — we grow your socials</div>
             </div>
-            <div class="promo-arrow">→</div>
+            <div class="promo-arrow">Open →</div>
           </div>
         </div>
 
@@ -4598,7 +4598,7 @@ body:has(.bw-overlay.show) #ev-chat-widget{
       <div class="ev-chat-hd-avatar">🦠</div>
       <div class="ev-chat-hd-info">
         <div class="ev-chat-hd-name">EndaViral Support</div>
-        <div class="ev-chat-hd-status"><span class="ev-chat-hd-dot"></span>Online · Typically replies in minutes</div>
+        <div class="ev-chat-hd-status"><span class="ev-chat-hd-dot"></span>We are Online · Replies in minutes</div>
       </div>
     </div>
 
@@ -4642,13 +4642,13 @@ body:has(.bw-overlay.show) #ev-chat-widget{
         </div>
 
         <div>
-          <textarea class="ev-nt-textarea" id="ev-nt-desc" placeholder="Describe your issue (Order ID helps)"></textarea>
+          <textarea class="ev-nt-textarea" id="ev-nt-desc" placeholder="Describe your issue (Order ID helps, copy it on my orders page)"></textarea>
         </div>
 
         <div class="ev-nt-phone-row">
-          <label class="ev-nt-phone-label" for="ev-nt-phone">📞 Phone number (optional)</label>
+          <label class="ev-nt-phone-label" for="ev-nt-phone">📞 Phone number (Ukitaka Tukupigie)</label>
           <input type="tel" class="ev-nt-phone-input" id="ev-nt-phone" placeholder="07XX XXX XXX">
-          <div class="ev-nt-hint">Optional — leave it for a callback. We'll reply here either way.</div>
+          <div class="ev-nt-hint">Optional — if you want a callback. We'll reply here either way.</div>
         </div>
 
         <button class="ev-nt-submit" id="ev-nt-submit" onclick="evSubmitTicket()">Submit Ticket</button>
@@ -4792,7 +4792,7 @@ async function _maybeHideAffBanner() {
         <div class="promo-title">Earned ${fmtKES(earned)}</div>
         <div class="promo-desc">${fmtKES(pending)} available to withdraw</div>
       </div>
-      <div class="promo-arrow">→</div>`;
+      <div class="promo-arrow">Open →</div>`;
   } catch (e) {
     // 404 = not opted in yet — keep the full promo banner with "Start Earning →"
   }
