@@ -11,10 +11,31 @@
  * just above the reply textarea. No changes to index.html needed beyond
  * adding a <script src="ccr_support.js"></script> tag after admin.js.
  *
- * Variables: chips can use {name} {service} {status} {link} {quantity},
- * filled in from the thread's user + linked order at insert time (fetched
- * once per thread open via the same GET /support/admin/threads/:id
- * endpoint admin.js already uses).
+ * Variables: chips can use {name} {service} {status} {link} {quantity}
+ * {remains} {start}, filled in from the thread's user + linked order at
+ * insert time (fetched once per thread open via the same GET
+ * /support/admin/threads/:id endpoint admin.js already uses).
+ *
+ * Facts baked into the copy below are pulled straight from the live
+ * product (so replies never contradict what the customer already saw):
+ *   - Landing page FAQ (#faq) + Order Modal "BEFORE YOU PAY" notice —
+ *     once payment is confirmed an order CANNOT be refunded or cancelled;
+ *     a wrong link submitted by the customer is NOT refundable either.
+ *     What we DO promise: a stalled/delayed/partially-delivered order
+ *     gets completed or re-queued at no extra cost, and admins can issue
+ *     a discretionary wallet CREDIT (not a "refund") via the Users tab
+ *     when the mistake was on our/provider's side.
+ *   - Order Modal "BEFORE YOU PAY" — profile/post must be set to Public;
+ *     link/username must not change while an order is running.
+ *   - Chat widget instant answers (chat.js) — delivery start times:
+ *     TikTok/Instagram/YouTube ~1–3h, Twitter-X/Facebook ~30min–2h, slower
+ *     packages up to 24h; escalate if nothing's moved after 24h. Count
+ *     drops are explained by service tier (Basic/Medium/Elite), not
+ *     automatically a fault. Refill is only available for orders where
+ *     service_refill is true, via the ♻️ Refill action on completed/
+ *     partial orders (re-checks delivery, tops up any drop).
+ *   - Ticket source: issue_types on a customer-submitted ticket are only
+ *     ever 'wrong_order' and/or 'delay' (see chat.js evSubmitTicket).
  *
  * Storage: default replies are hardcoded below. Custom replies an agent
  * adds are saved to localStorage, namespaced per logged-in user id, since
@@ -28,36 +49,69 @@
 // ─── Default quick replies ──────────────────────────────────────────────────
 
 const CCR_QR_DEFAULTS = [
+  // ── Greeting ──────────────────────────────────────────────────────────
   { id: 'd_greeting',      category: 'Greeting',    label: 'Hi, how can I help',
     text: 'Hi {name}! Thanks for reaching out — how can I help you today? 😊' },
   { id: 'd_ask_link',      category: 'Greeting',    label: 'Ask for order link',
     text: 'Hi {name}, could you share the link or order ID for the order you\'re asking about so I can take a look?' },
+
+  // ── Order Status ──────────────────────────────────────────────────────
   { id: 'd_checking',      category: 'Order Status', label: 'Checking on it',
     text: 'Let me check that for you right now, {name} — one moment please.' },
   { id: 'd_order_status',  category: 'Order Status', label: 'Current status',
     text: 'Your order for {service} is currently showing as "{status}". Quantity: {quantity}.' },
+  { id: 'd_order_progress',category: 'Order Status', label: 'Progress (start/remains)',
+    text: 'Here\'s the latest: {service} started at {start} and has {remains} left to deliver out of {quantity} ordered. Status: "{status}".' },
   { id: 'd_link_check',    category: 'Order Status', label: 'Verifying link/quantity',
     text: 'I\'m verifying the link and quantity on the order — this usually clears up within a few minutes.' },
+
+  // ── Delivery Time (matches the in-app FAQ shortcuts exactly) ───────────
+  { id: 'd_delivery_time', category: 'Delivery Time', label: 'How long delivery takes',
+    text: 'Delivery start times vary by platform: TikTok, Instagram and YouTube usually begin within 1–3 hours, Twitter/X and Facebook within 30 minutes to 2 hours, and some slower growth packages can take up to 24 hours to begin. If it\'s been longer than 24 hours with no movement, we escalate it — happy to do that for you now.' },
+  { id: 'd_count_drop',    category: 'Delivery Time', label: 'Why count dropped',
+    text: 'Platforms periodically clean up inactive/low-activity accounts, and Basic-tier sources get flagged in these sweeps more often — that\'s expected, not a fault. Medium and Elite tiers are built for better long-term retention. Want me to check if this order is eligible for a refill?' },
+
+  // ── Delay ────────────────────────────────────────────────────────────
   { id: 'd_delay_normal',  category: 'Delay',       label: 'Normal processing delay',
-    text: 'Sorry for the wait, {name} — some orders take a bit longer to start depending on provider load. Your order is still in the queue and moving normally, no action needed on your end.' },
+    text: 'Sorry for the wait, {name} — some orders take a little longer depending on provider load and service type; up to 24 hours for slower packages is normal. Your order is still in the queue and moving, no action needed on your end for now.' },
   { id: 'd_delay_provider',category: 'Delay',       label: 'Provider-side delay',
     text: 'This one is delayed on the provider\'s side, not ours — we\'re monitoring it and it will resume automatically. Thanks for your patience!' },
   { id: 'd_delay_escalate',category: 'Delay',       label: 'Escalating delay',
     text: 'I\'ve flagged this order to our team for a closer look since it\'s been delayed longer than usual. I\'ll update you here as soon as I hear back.' },
-  { id: 'd_wrong_order',   category: 'Wrong Order', label: 'Apology + fixing',
-    text: 'I\'m really sorry about that, {name} — that\'s not the experience we want you to have. I\'m looking into what happened with this order now and will get it corrected.' },
+
+  // ── Wrong Order / Account ───────────────────────────────────────────────
+  { id: 'd_wrong_order',   category: 'Wrong Order', label: 'Apology + looking into it',
+    text: 'I\'m sorry about that, {name} — let me look into exactly what happened with this order now.' },
   { id: 'd_wrong_link',    category: 'Wrong Order', label: 'Confirm correct link',
-    text: 'Could you confirm the exact link/username you intended for this order? I want to make sure we fix it against the right one.' },
-  { id: 'd_refund_offer',  category: 'Refund',      label: 'Refund to wallet',
-    text: 'I can process a refund of the affected amount straight back to your EndaViral wallet balance — would that work for you?' },
-  { id: 'd_refund_done',   category: 'Refund',      label: 'Refund confirmed',
-    text: 'Done ✅ — the refund has been credited to your wallet balance. You can check it under Wallet at any time.' },
-  { id: 'd_refill',        category: 'Refund',      label: 'Refill/guarantee info',
-    text: 'This service comes with a refill guarantee, so if the count drops we can top it back up for free within the guarantee period — just let us know and share the link again.' },
+    text: 'Could you confirm the exact link/username you intended for this order? I want to check it against what was actually submitted at checkout.' },
+  { id: 'd_private_account',category: 'Wrong Order', label: 'Account is private',
+    text: 'For an order to deliver, the profile or post needs to be set to Public — private accounts can\'t receive engagement. Could you switch it to public and let me know once it\'s done? I\'ll get the order moving from there.' },
+  { id: 'd_our_error_fix', category: 'Wrong Order', label: 'Our error — fixing free',
+    text: 'Good news — I\'ve confirmed this mix-up was on our side, not yours. I\'m re-running the order against the correct details now at no extra cost, and I\'ll confirm here once it\'s done.' },
+  { id: 'd_customer_link_error', category: 'Wrong Order', label: 'Link was correct on our end',
+    text: 'I\'ve checked, and this order went out to the link/details exactly as submitted at checkout, so it processed correctly on our side. Since payment is confirmed and the link was correct on our end, it isn\'t eligible for a refund under our policy — but I\'m happy to walk you through double-checking links before future orders so this doesn\'t happen again.' },
+
+  // ── Refill / Guarantee ───────────────────────────────────────────────
+  { id: 'd_refill',        category: 'Refill',      label: 'Refill/guarantee info',
+    text: 'If this service includes a refill guarantee, a refill can be requested from My Orders using the ♻️ Refill button — the provider re-checks delivery and tops up any drop at no extra cost. Let me confirm whether this particular order qualifies.' },
+
+  // ── Payment ──────────────────────────────────────────────────────────
   { id: 'd_payment_delay', category: 'Payment',      label: 'M-Pesa confirmation delay',
     text: 'M-Pesa confirmations can take a couple of minutes to reflect. If it\'s been more than 10 minutes, please share the M-Pesa message/code and I\'ll verify it manually.' },
+  { id: 'd_stk_not_received',category: 'Payment',    label: 'STK push not received',
+    text: 'Sorry about that — please double-check the M-Pesa number entered has no other pending STK prompt, then try placing the order again so a fresh prompt goes out. Let me know if it still doesn\'t arrive and I\'ll check on our end.' },
   { id: 'd_payment_verify',category: 'Payment',      label: 'Verifying payment',
-    text: 'I can see your payment attempt — give me a moment to verify it against your wallet and I\'ll confirm here.' },
+    text: 'I can see your payment attempt — give me a moment to verify it and I\'ll confirm here.' },
+
+  // ── Refund Policy / Compensation ────────────────────────────────────
+  { id: 'd_no_refund_policy',category: 'Refund Policy', label: 'Explain no-refund policy',
+    text: 'Just to explain how this works: once an order is placed and payment is confirmed, it goes straight to processing and can\'t be refunded or cancelled — that\'s why we always recommend double-checking the link, quantity and service before paying. That said, if an order stalls, delays, or delivers only partially, we\'ll complete it or re-queue it for you at no extra cost.' },
+  { id: 'd_goodwill_credit', category: 'Refund Policy', label: 'Wallet credit (our error)',
+    text: 'Since this was an error on our side, I can credit the affected amount straight to your EndaViral wallet as compensation — would that work for you?' },
+  { id: 'd_credit_done',   category: 'Refund Policy', label: 'Wallet credit confirmed',
+    text: 'Done ✅ — I\'ve credited your wallet with the compensation amount. You can check it any time under Wallet.' },
+
+  // ── Closing ──────────────────────────────────────────────────────────
   { id: 'd_anything_else', category: 'Closing',     label: 'Anything else?',
     text: 'Glad that\'s sorted, {name}! Is there anything else I can help you with today?' },
   { id: 'd_closing',       category: 'Closing',     label: 'Closing ticket',
@@ -101,7 +155,7 @@ function ccrqrCategories() {
 
 // ─── Variable fill ──────────────────────────────────────────────────────────
 
-let _ccrqrThreadDataByThread = {}; // { threadId: { name, service, status, link, quantity } }
+let _ccrqrThreadDataByThread = {}; // { threadId: { name, service, status, link, quantity, remains, start } }
 
 function ccrqrFillTemplate(text, data) {
   data = data || {};
@@ -110,7 +164,9 @@ function ccrqrFillTemplate(text, data) {
     .replace(/\{service\}/g, data.service || 'your order')
     .replace(/\{status\}/g, data.status || 'processing')
     .replace(/\{link\}/g, data.link || '')
-    .replace(/\{quantity\}/g, (data.quantity != null && data.quantity !== '') ? data.quantity : '');
+    .replace(/\{quantity\}/g, (data.quantity != null && data.quantity !== '') ? data.quantity : '')
+    .replace(/\{remains\}/g, (data.remains != null && data.remains !== '') ? data.remains : '—')
+    .replace(/\{start\}/g, (data.start != null && data.start !== '') ? data.start : '—');
 }
 
 async function ccrqrFetchThreadData(threadId) {
@@ -124,6 +180,8 @@ async function ccrqrFetchThreadData(threadId) {
       status: lo.status || '',
       link: lo.link || '',
       quantity: lo.quantity != null ? lo.quantity : '',
+      remains: lo.remains != null ? lo.remains : '',
+      start: lo.start_count != null ? lo.start_count : '',
     };
   } catch (e) {
     _ccrqrThreadDataByThread[threadId] = {};
@@ -263,7 +321,7 @@ function ccrqrEnsureModal() {
           <div style="display:flex;flex-direction:column;gap:8px;">
             <input id="ccrqrNewLabel" placeholder="Short label (e.g. 'Ask for screenshot')" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:12.5px;padding:8px 10px;border-radius:8px;outline:none;" />
             <input id="ccrqrNewCategory" placeholder="Category (e.g. Delay, Refund, Greeting)" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:12.5px;padding:8px 10px;border-radius:8px;outline:none;" />
-            <textarea id="ccrqrNewText" placeholder="Reply text — you can use {name} {service} {status} {link} {quantity}" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:12.5px;padding:8px 10px;border-radius:8px;outline:none;resize:vertical;min-height:70px;"></textarea>
+            <textarea id="ccrqrNewText" placeholder="Reply text — you can use {name} {service} {status} {link} {quantity} {remains} {start}" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:12.5px;padding:8px 10px;border-radius:8px;outline:none;resize:vertical;min-height:70px;"></textarea>
             <button class="btn-primary" style="margin-top:0;" onclick="ccrqrAddCustom()">+ Add Quick Reply</button>
           </div>
         </div>
