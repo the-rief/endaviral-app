@@ -53,7 +53,7 @@ const CCR_QR_DEFAULTS = [
   { id: 'd_greeting',      category: 'Greeting',    label: 'Hi, how can I help',
     text: 'Hi {name}! Thanks for reaching out — how can I help you today? 😊' },
   { id: 'd_ask_link',      category: 'Greeting',    label: 'Ask for order link',
-    text: 'Hi {name}, could you help me pin down the order? Head to My Orders in the sidebar, find it in the list, and tap the copy icon (⎘) next to the Order ID to grab it — then paste it here. A screenshot of that row works too if that\'s easier. Once I have it, I\'ll take a look right away.' },
+    text: 'Hi {name}, could you help me pin down the order? Head to My Orders in the sidebar, find it in the list, and tap the copy icon (⎘) next to the Order ID to grab it — then paste it here. Once I have it, I\'ll take a look right away.' },
 
   // ── Order Status ──────────────────────────────────────────────────────
   { id: 'd_checking',      category: 'Order Status', label: 'Checking on it',
@@ -63,7 +63,7 @@ const CCR_QR_DEFAULTS = [
   { id: 'd_order_progress',category: 'Order Status', label: 'Progress (start/remains)',
     text: 'Here\'s the latest: {service} started at {start} and has {remains} left to deliver out of {quantity} ordered. Status: "{status}".' },
   { id: 'd_link_check',    category: 'Order Status', label: 'Verifying link/quantity',
-    text: 'I\'m verifying the link and quantity on the order now — this usually clears up within 10–15 minutes. If it\'s still unresolved after that, I\'ll come back and escalate it myself, no need to follow up.' },
+    text: 'I\'m verifying the link and quantity on the order now — this usually clears up within 20–30 minutes. If it\'s still unresolved after that, I\'ll come back and escalate it myself, no need to follow up.' },
 
   // ── Delivery Time (matches the in-app FAQ shortcuts exactly) ───────────
   { id: 'd_delivery_time', category: 'Delivery Time', label: 'How long delivery takes',
