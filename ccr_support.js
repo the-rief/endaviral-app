@@ -53,7 +53,7 @@ const CCR_QR_DEFAULTS = [
   { id: 'd_greeting',      category: 'Greeting',    label: 'Hi, how can I help',
     text: 'Hi {name}! Thanks for reaching out — how can I help you today? 😊' },
   { id: 'd_ask_link',      category: 'Greeting',    label: 'Ask for order link',
-    text: 'Hi {name}, could you share the link or order ID for the order you\'re asking about so I can take a look?' },
+    text: 'Hi {name}, could you help me pin down the order? Head to My Orders in the sidebar, find it in the list, and tap the copy icon (⎘) next to the Order ID to grab it — then paste it here. A screenshot of that row works too if that\'s easier. Once I have it, I\'ll take a look right away.' },
 
   // ── Order Status ──────────────────────────────────────────────────────
   { id: 'd_checking',      category: 'Order Status', label: 'Checking on it',
@@ -63,7 +63,7 @@ const CCR_QR_DEFAULTS = [
   { id: 'd_order_progress',category: 'Order Status', label: 'Progress (start/remains)',
     text: 'Here\'s the latest: {service} started at {start} and has {remains} left to deliver out of {quantity} ordered. Status: "{status}".' },
   { id: 'd_link_check',    category: 'Order Status', label: 'Verifying link/quantity',
-    text: 'I\'m verifying the link and quantity on the order — this usually clears up within a few minutes.' },
+    text: 'I\'m verifying the link and quantity on the order now — this usually clears up within 10–15 minutes. If it\'s still unresolved after that, I\'ll come back and escalate it myself, no need to follow up.' },
 
   // ── Delivery Time (matches the in-app FAQ shortcuts exactly) ───────────
   { id: 'd_delivery_time', category: 'Delivery Time', label: 'How long delivery takes',
@@ -75,7 +75,7 @@ const CCR_QR_DEFAULTS = [
   { id: 'd_delay_normal',  category: 'Delay',       label: 'Normal processing delay',
     text: 'Sorry for the wait, {name} — some orders take a little longer depending on provider load and service type; up to 24 hours for slower packages is normal. Your order is still in the queue and moving, no action needed on your end for now.' },
   { id: 'd_delay_provider',category: 'Delay',       label: 'Provider-side delay',
-    text: 'This one is delayed on the provider\'s side, not ours — we\'re monitoring it and it will resume automatically. Thanks for your patience!' },
+    text: 'This one is delayed on the provider\'s side, not ours — no action needed from you, it will resume automatically once their queue clears. If it\'s still stuck in a few hours, reply here and I\'ll escalate it directly. Thanks for your patience!' },
   { id: 'd_delay_escalate',category: 'Delay',       label: 'Escalating delay',
     text: 'I\'ve flagged this order to our team for a closer look since it\'s been delayed longer than usual. I\'ll update you here as soon as I hear back.' },
 
@@ -83,7 +83,7 @@ const CCR_QR_DEFAULTS = [
   { id: 'd_wrong_order',   category: 'Wrong Order', label: 'Apology + looking into it',
     text: 'I\'m sorry about that, {name} — let me look into exactly what happened with this order now.' },
   { id: 'd_wrong_link',    category: 'Wrong Order', label: 'Confirm correct link',
-    text: 'Could you confirm the exact link/username you intended for this order? I want to check it against what was actually submitted at checkout.' },
+    text: 'Could you paste the exact profile/post link you intended for this order (not just the username)? That way I can compare it precisely against what was submitted at checkout and see exactly where things went sideways.' },
   { id: 'd_private_account',category: 'Wrong Order', label: 'Account is private',
     text: 'For an order to deliver, the profile or post needs to be set to Public — private accounts can\'t receive engagement. Could you switch it to public and let me know once it\'s done? I\'ll get the order moving from there.' },
   { id: 'd_our_error_fix', category: 'Wrong Order', label: 'Our error — fixing free',
