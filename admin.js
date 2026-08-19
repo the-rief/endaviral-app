@@ -2548,6 +2548,13 @@ async function adminBanUser(userId) {
 /* ═══════════════════ ADMIN SUPPORT PANEL ═══════════════════ */
 let activeSupportThreadId = null;
 
+// Caches every order object seen in the currently-open support thread
+// (its recent_orders + linked_order), keyed by order id, so the "full
+// details" modal (openOrderDetailModal) can look an order up instantly
+// without a second API round-trip — the thread payload already has
+// everything the modal shows.
+let _supportOrdersCache = {};
+
 // Entry point for the Support tab click specifically (adminTab() calls this,
 // not loadAdminSupport() directly). Auto-closes threads inactive 7+ days
 // first, then loads the list — so the list the admin sees already reflects
@@ -2642,14 +2649,24 @@ async function openSupportThread(threadId) {
     const statusColor = { open:'#e53935', pending:'#ff7043', resolved:'#3dd44a', closed:'#7a8fad' };
     const typeLabel   = { wrong_order:'📦 Wrong Order', delay:'⏳ Delay' };
 
-    // Build recent orders HTML
+    // Build recent orders HTML — each row is clickable and opens the
+    // full order-detail modal (openOrderDetailModal), so an agent can
+    // pull up everything about any of the customer's orders without
+    // leaving the ticket. Reset + repopulate the lookup cache every
+    // time the thread (re)renders so it never serves stale data.
+    _supportOrdersCache = {};
+    (t.recent_orders || []).forEach(o => { if (o && o.id) _supportOrdersCache[o.id] = o; });
+    if (t.linked_order && t.linked_order.id) _supportOrdersCache[t.linked_order.id] = t.linked_order;
+
     const ordersHtml = (t.recent_orders || []).map(o => {
       const rawLink   = o.link || '';
       const safeLink  = esc(rawLink);
-      const link = rawLink ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:var(--green);font-size:10px;word-break:break-all;display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;" title="${safeLink}">${safeLink}</a>` : '';
+      const link = rawLink ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:var(--green);font-size:10px;word-break:break-all;display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;" title="${safeLink}">${safeLink}</a>` : '';
       const provId = o.provider_order_id ? `<div style="font-size:10px;color:var(--muted);">Provider #${esc(o.provider_order_id)}</div>` : '';
       const oStatus = esc(o.status||'');
-      return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;">
+      const oid = esc(o.id||'');
+      const clickable = !!o.id;
+      return `<div ${clickable ? `onclick="openOrderDetailModal('${oid}')" title="Click for full order details"` : ''} style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;${clickable ? 'cursor:pointer;transition:background .15s;border-radius:6px;' : ''}" ${clickable ? `onmouseover="this.style.background='rgba(61,212,74,.06)'" onmouseout="this.style.background=''"` : ''}>
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
           <span style="color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.service_name || 'Unknown service')}</span>
           <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
@@ -2701,8 +2718,10 @@ async function openSupportThread(threadId) {
       const loStart   = lo.start_count != null ? `<div style="color:var(--muted);margin-top:2px;font-size:11px;">Start: ${parseInt(lo.start_count)} · Remains: ${lo.remains != null ? parseInt(lo.remains) : '—'}</div>` : '';
       const rawLoLink = lo.link || '';
       const safeLoLink= esc(rawLoLink);
-      const loLink    = rawLoLink ? `<a href="${safeLoLink}" target="_blank" rel="noopener noreferrer" style="color:var(--green);font-size:11px;word-break:break-all;display:block;margin-top:6px;">${safeLoLink}</a>` : '';
-      return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;">
+      const loLink    = rawLoLink ? `<a href="${safeLoLink}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:var(--green);font-size:11px;word-break:break-all;display:block;margin-top:6px;">${safeLoLink}</a>` : '';
+      const loClickable = !!lo.id;
+      const loId = esc(lo.id||'');
+      return `<div ${loClickable ? `onclick="openOrderDetailModal('${loId}')" title="Click for full order details"` : ''} style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;${loClickable ? 'cursor:pointer;transition:border-color .15s;' : ''}" ${loClickable ? `onmouseover="this.style.borderColor='rgba(61,212,74,.4)'" onmouseout="this.style.borderColor='var(--border)'"` : ''}>
               <div style="color:var(--white);font-weight:700;margin-bottom:4px;">${loSvc}</div>
               <div style="color:var(--muted);">Qty: ${parseInt(lo.quantity||0).toLocaleString()} · KES ${parseFloat(lo.charge||0).toFixed(0)}</div>
               ${loProvId}${loStart}${loLink}
@@ -2769,6 +2788,103 @@ async function openSupportThread(threadId) {
 
   } catch(e) {
     pane.innerHTML = `<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:13px;">${e.message||'Failed to load thread'}</div>`;
+  }
+}
+
+// ─── Order detail modal (from Support → Recent/Linked Orders) ─────────────
+// Pulls the order straight out of _supportOrdersCache (populated by
+// openSupportThread above — no extra API call needed) and shows every
+// field the thread payload has, plus quick actions so an agent can
+// resolve a ticket without leaving it.
+
+function _ensureOrderDetailModal() {
+  if (document.getElementById('orderDetailModal')) return;
+  const modal = document.createElement('div');
+  modal.id = 'orderDetailModal';
+  modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML = `<div id="orderDetailModalBody" style="background:var(--black);border:1px solid var(--border);border-radius:14px;max-width:440px;width:100%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;"></div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeOrderDetailModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOrderDetailModal(); });
+}
+
+function closeOrderDetailModal() {
+  const modal = document.getElementById('orderDetailModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function openOrderDetailModal(orderId) {
+  const o = _supportOrdersCache[orderId];
+  if (!o) { toast('Order details not available', 'error'); return; }
+
+  _ensureOrderDetailModal();
+  const modal = document.getElementById('orderDetailModal');
+  const body = document.getElementById('orderDetailModalBody');
+
+  const status = esc(o.status || '');
+  const fullId = esc(o.id || '');
+  const shortId = fullId.slice(0, 8);
+  const rawLink = o.link || '';
+  const safeLink = esc(rawLink);
+
+  // Row helper — skips anything the thread payload didn't include,
+  // rather than printing "undefined"/"—" noise for fields this endpoint
+  // just doesn't return.
+  const row = (label, value) => value == null || value === '' ? '' : `
+    <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12.5px;">
+      <span style="color:var(--muted);">${esc(label)}</span>
+      <span style="color:var(--white);text-align:right;">${value}</span>
+    </div>`;
+
+  const startRemains = (o.start_count != null || o.remains != null)
+    ? `${o.start_count != null ? parseInt(o.start_count).toLocaleString() : '—'} / ${o.remains != null ? parseInt(o.remains).toLocaleString() : '—'}`
+    : null;
+
+  const canRefill = ['completed', 'partial'].includes((status || '').toLowerCase()) && !!o.service_refill;
+
+  body.innerHTML = `
+    <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0;">
+      <div>
+        <div style="font-weight:800;font-size:14px;color:var(--white);">${esc(o.service_name || 'Order details')}</div>
+        <div style="margin-top:6px;">${statusPill(o.status)}</div>
+      </div>
+      <button onclick="closeOrderDetailModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div style="padding:6px 18px;overflow-y:auto;flex:1;min-height:0;">
+      ${row('Order ID', `#${shortId} <button onclick="navigator.clipboard.writeText('${fullId}').then(()=>toast('Order ID copied!','success'))" title="Copy full Order ID" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 2px;">⎘</button>`)}
+      ${o.provider_order_id ? row('Provider Order ID', `#${esc(o.provider_order_id)}`) : ''}
+      ${row('Quantity', o.quantity != null ? parseInt(o.quantity).toLocaleString() : null)}
+      ${startRemains ? row('Start / Remains', startRemains) : ''}
+      ${row('Charge', o.charge != null ? fmtKES(o.charge) : null)}
+      ${o.created_at ? row('Date', new Date(o.created_at).toLocaleString('en-KE')) : ''}
+      ${o.phone ? row('Phone', esc(o.phone)) : ''}
+      ${rawLink ? `<div style="padding:10px 0;">
+        <div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Link</div>
+        <a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:var(--green);font-size:12px;word-break:break-all;">${safeLink}</a>
+      </div>` : ''}
+    </div>
+    <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;">
+      ${rawLink ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="action-btn" style="text-decoration:none;">🔗 Open Link</a>` : ''}
+      ${canRefill ? `<button class="action-btn" onclick="adminRefillOrder('${fullId}')">↻ Refill</button>` : ''}
+      <button class="action-btn" onclick="jumpToOrderInAllOrders('${fullId}')">📋 View in All Orders</button>
+    </div>
+  `;
+  modal.style.display = 'flex';
+}
+
+// Switches to the All Orders tab (already accessible to CCR agents — see
+// CCR_ALLOWED_ADMIN_TABS in ccr_agent.js) with the order's ID pre-filled
+// in the search box, for when an agent wants the fuller table view/actions
+// (e.g. side-by-side with other orders) instead of just this modal.
+function jumpToOrderInAllOrders(orderId) {
+  closeOrderDetailModal();
+  const tabBtn = Array.from(document.querySelectorAll('.admin-tab'))
+    .find(t => (t.getAttribute('onclick') || '').includes("adminTab('allorders'"));
+  if (tabBtn) adminTab('allorders', tabBtn);
+  const filterInput = document.getElementById('adminOrderIdSearch');
+  if (filterInput) {
+    filterInput.value = orderId;
+    loadAdminOrders();
   }
 }
 
