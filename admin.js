@@ -2554,6 +2554,10 @@ let activeSupportThreadId = null;
 // without a second API round-trip — the thread payload already has
 // everything the modal shows.
 let _supportOrdersCache = {};
+// The current thread's customer — captured fresh on every openSupportThread()
+// render so the "Place Order for Customer" shortcut always targets whoever
+// the pane is actually showing.
+let _supportThreadUser = null;
 
 // Entry point for the Support tab click specifically (adminTab() calls this,
 // not loadAdminSupport() directly). Auto-closes threads inactive 7+ days
@@ -2657,6 +2661,7 @@ async function openSupportThread(threadId) {
     _supportOrdersCache = {};
     (t.recent_orders || []).forEach(o => { if (o && o.id) _supportOrdersCache[o.id] = o; });
     if (t.linked_order && t.linked_order.id) _supportOrdersCache[t.linked_order.id] = t.linked_order;
+    _supportThreadUser = t.user || null;
 
     const ordersHtml = (t.recent_orders || []).map(o => {
       const rawLink   = o.link || '';
@@ -2743,6 +2748,7 @@ async function openSupportThread(threadId) {
           <div style="font-size:11px;color:var(--muted);margin-top:2px;">Wallet: KES ${(t.user?.wallet_balance||0).toFixed(0)} · Member since ${t.user?.member_since ? new Date(t.user.member_since).toLocaleDateString('en-KE') : '—'}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;">
+          ${userEmail ? `<button class="action-btn" onclick="ccrCreateOrderForThreadUser()" title="Place an order for ${userEmail} without leaving this ticket">🧾 Place Order</button>` : ''}
           <select onchange="adminUpdateThreadStatus(this.value)" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;padding:6px 10px;border-radius:8px;outline:none;cursor:pointer;">
             <option value="open"     ${t.status==='open'    ?'selected':''}>🔴 Open</option>
             <option value="pending"  ${t.status==='pending' ?'selected':''}>🟡 Pending</option>
@@ -2865,11 +2871,36 @@ function openOrderDetailModal(orderId) {
     </div>
     <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;">
       ${rawLink ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="action-btn" style="text-decoration:none;">🔗 Open Link</a>` : ''}
+      ${rawLink ? `<button class="action-btn" onclick="navigator.clipboard.writeText('${safeLink}').then(()=>toast('Link copied!','success'))">⎘ Copy Link</button>` : ''}
       ${canRefill ? `<button class="action-btn" onclick="adminRefillOrder('${fullId}')">↻ Refill</button>` : ''}
       <button class="action-btn" onclick="jumpToOrderInAllOrders('${fullId}')">📋 View in All Orders</button>
     </div>
   `;
   modal.style.display = 'flex';
+}
+
+// Jumps straight to the "Create Order" tab (already accessible to CCR
+// agents — see CCR_ALLOWED_ADMIN_TABS in ccr_agent.js) with the current
+// ticket's customer pre-looked-up, so an agent can place an order for
+// them mid-conversation instead of leaving the ticket, retyping the
+// email, and clicking "Look Up" by hand.
+function ccrCreateOrderForThreadUser() {
+  if (!_supportThreadUser || !_supportThreadUser.email) {
+    toast('No customer email on this ticket', 'error');
+    return;
+  }
+  const email = _supportThreadUser.email;
+  const tabBtn = Array.from(document.querySelectorAll('.admin-tab'))
+    .find(t => (t.getAttribute('onclick') || '').includes("adminTab('create-order'"));
+  if (!tabBtn) { toast('Create Order tab not available', 'error'); return; }
+  adminTab('create-order', tabBtn);
+  // adminTab() above kicks off initAdminCreateOrder(), which resets the
+  // form and awaits /services before it's done — give it a beat so our
+  // prefill + auto-lookup land after the reset, not before it.
+  setTimeout(() => {
+    const emailInput = document.getElementById('acoEmail');
+    if (emailInput) { emailInput.value = email; lookupCustomer(); }
+  }, 300);
 }
 
 // Switches to the All Orders tab (already accessible to CCR agents — see
