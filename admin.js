@@ -1990,6 +1990,16 @@ function _chcRenderGrowth() {
   const revenue7d = daily.slice(-7).reduce((a, d) => a + (d.revenue_kes || 0), 0);
   const usersChart = _barChartSvg(daily, { key: 'new_users', color: '#2196f3', label: 'new users', h: 130 });
 
+  // Sales per day (gross transaction value) + the day-by-day gap between
+  // sales and revenue (i.e. what went to provider cost rather than platform
+  // profit). Computed client-side from the same `daily` rows that already
+  // carry sales_kes/revenue_kes — no extra endpoint needed.
+  const salesChart = _barChartSvg(daily, { key: 'sales_kes', color: '#2196f3', label: 'sales', valueFmt: (v) => parseFloat(v || 0).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }), h: 150 });
+  const sales7d = daily.slice(-7).reduce((a, d) => a + (d.sales_kes || 0), 0);
+  const dailyWithDiff = daily.map(d => ({ ...d, diff_kes: (d.sales_kes || 0) - (d.revenue_kes || 0) }));
+  const diffChart = _barChartSvg(dailyWithDiff, { key: 'diff_kes', color: '#ffb020', label: 'sales − revenue', valueFmt: (v) => parseFloat(v || 0).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }), h: 120 });
+  const diff7d = sales7d - revenue7d;
+
   const funnelOrder = ['pending', 'processing', 'partial', 'completed', 'failed', 'cancelled'];
   const funnelColors = { pending: '#7a8fad', processing: '#2196f3', partial: '#ff7043', completed: '#3dd44a', failed: '#e53935', cancelled: '#7a8fad' };
   const funnelTotal = Object.values(funnel).reduce((a, b) => a + b, 0) || 1;
@@ -2067,6 +2077,15 @@ function _chcRenderGrowth() {
           <div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(revenue7d)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> revenue/7d</span></div>
         </div>
         ${revenueChart}` })}
+    ${_chcPanel({
+      title: 'Sales per Day', icon: '🧾', sub: 'total sales value per day — the gross amount customers paid, before subtracting provider cost', extra: windowPicker, body: `
+        <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;">
+          <div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(sales7d)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> sales/7d</span></div>
+          <div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(diff7d)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> sales − revenue /7d</span></div>
+        </div>
+        ${salesChart}
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;">Difference vs Revenue — per day (provider cost)</div>
+        ${diffChart}` })}
     ${_chcPanel({
       title: 'Orders & Sales', icon: '📈', sub: 'count + value per day', extra: windowPicker, body: `
         <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;">
