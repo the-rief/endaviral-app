@@ -91,8 +91,17 @@ async function loadAdminOrders() {
     _adminOrdersCache = {};
     orders.forEach(o => { if (o && o.id) _adminOrdersCache[o.id] = o; });
 
-    if (!orders.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
-    el.innerHTML = `<table>
+    // Only shown when a filter is actually active, so it doesn't clutter
+    // the default "browse everything" view.
+    const hasFilter = !!(emailFilter || orderIdFilter);
+    const clearBtn = hasFilter
+      ? `<div style="padding:0 0 12px;">
+           <button class="action-btn" onclick="clearAdminOrderFilters()">✕ Clear Filters</button>
+         </div>`
+      : '';
+
+    if (!orders.length) { el.innerHTML = `${clearBtn}<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>`; return; }
+    el.innerHTML = `${clearBtn}<table>
       <thead><tr><th>#ID</th><th>Customer</th><th>Service</th><th>Link</th><th>Qty</th><th>Start/Remains</th><th>Cost</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
       <tbody>${orders.map(o => {
         const shortId   = esc((o.id||'').slice(0,8));
@@ -152,6 +161,17 @@ async function loadAdminOrders() {
       </tbody>
     </table>`;
   } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`; }
+}
+
+// Resets both All Orders search boxes (email + order ID) and reloads the
+// full unfiltered list — e.g. after jumpToOrderInAllOrders() has narrowed
+// the table down to one customer's history.
+function clearAdminOrderFilters() {
+  const emailInput = document.getElementById('adminOrderSearch');
+  const idInput = document.getElementById('adminOrderIdSearch');
+  if (emailInput) emailInput.value = '';
+  if (idInput) idInput.value = '';
+  loadAdminOrders();
 }
 
 async function adminRefillOrder(orderId) {
@@ -2912,17 +2932,27 @@ function ccrCreateOrderForThreadUser() {
 }
 
 // Switches to the All Orders tab (already accessible to CCR agents — see
-// CCR_ALLOWED_ADMIN_TABS in ccr_agent.js) with the order's ID pre-filled
-// in the search box, for when an agent wants the fuller table view/actions
-// (e.g. side-by-side with other orders) instead of just this modal.
+// CCR_ALLOWED_ADMIN_TABS in ccr_agent.js) and searches by the order's
+// customer email, so an agent lands on every order for that customer
+// (not just the one row) — e.g. to check their order history side by
+// side while handling a ticket.
 function jumpToOrderInAllOrders(orderId) {
   closeOrderDetailModal();
   const tabBtn = Array.from(document.querySelectorAll('.admin-tab'))
     .find(t => (t.getAttribute('onclick') || '').includes("adminTab('allorders'"));
   if (tabBtn) adminTab('allorders', tabBtn);
-  const filterInput = document.getElementById('adminOrderIdSearch');
-  if (filterInput) {
-    filterInput.value = orderId;
+
+  const o = _supportOrdersCache[orderId] || _adminOrdersCache[orderId];
+  const emailInput = document.getElementById('adminOrderSearch');
+  const idInput = document.getElementById('adminOrderIdSearch');
+
+  if (o && o.user_email && emailInput) {
+    emailInput.value = o.user_email;
+    if (idInput) idInput.value = '';
+    loadAdminOrders();
+  } else if (idInput) {
+    // Fallback: no cached email on hand, filter by the order ID as before.
+    idInput.value = orderId;
     loadAdminOrders();
   }
 }
