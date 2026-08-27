@@ -68,6 +68,11 @@ async function loadAdminUsers() {
   } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`; }
 }
 
+// Populated by loadAdminOrders so openOrderDetailModal (also used from
+// Support → Recent/Linked Orders via _supportOrdersCache) can look up
+// full order details when a row is clicked in the All Orders table.
+let _adminOrdersCache = {};
+
 async function loadAdminOrders() {
   const el = document.getElementById('adminOrdersTable');
   el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
@@ -82,6 +87,9 @@ async function loadAdminOrders() {
     if (orderIdFilter) {
       orders = orders.filter(o => (o.id || '').toLowerCase().includes(orderIdFilter.toLowerCase()));
     }
+
+    _adminOrdersCache = {};
+    orders.forEach(o => { if (o && o.id) _adminOrdersCache[o.id] = o; });
 
     if (!orders.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
     el.innerHTML = `<table>
@@ -117,10 +125,10 @@ async function loadAdminOrders() {
         // actually actionable post-delivery, and only for orders the
         // provider delivered something on.
         const canAdminRefill = ['completed','partial'].includes(status) && o.service_refill;
-        return `<tr>
+        return `<tr onclick="openOrderDetailModal('${fullId}')" title="Click for full order details" style="cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(61,212,74,.06)'" onmouseout="this.style.background=''">
           <td style="font-size:11px;">
             <span style="color:var(--muted);">#${shortId}</span>
-            <button onclick="navigator.clipboard.writeText('${fullId}').then(()=>toast('Order ID copied!','success'))" title="Copy full Order ID" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:2px 4px;margin-left:2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button>
+            <button onclick="event.stopPropagation();navigator.clipboard.writeText('${fullId}').then(()=>toast('Order ID copied!','success'))" title="Copy full Order ID" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:2px 4px;margin-left:2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button>
             ${provId}
           </td>
           <td style="font-size:13px;">
@@ -129,13 +137,13 @@ async function loadAdminOrders() {
             ${phoneDisplay}
           </td>
           <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${svcName}</td>
-          <td style="max-width:160px;">${linkDisplay}</td>
+          <td style="max-width:160px;" onclick="event.stopPropagation();">${linkDisplay}</td>
           <td>${parseInt(o.quantity||0).toLocaleString()}</td>
           <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${startRemains}</td>
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:15px;">${fmtKES(o.charge||o.cost)}</td>
           <td>${statusPill(o.status)}</td>
           <td style="font-size:12px;color:var(--muted);">${date}</td>
-          <td style="white-space:nowrap;">
+          <td style="white-space:nowrap;" onclick="event.stopPropagation();">
             <button class="action-btn" onclick="adminMessageCustomer('${userId}','${userEmail}')" title="Open support thread with customer">💬 Message</button>
             ${canAdminRefill ? `<button class="action-btn" onclick="adminRefillOrder('${fullId}')" title="Request a refill from the provider">↻ Refill</button>` : ''}
           </td>
@@ -2820,7 +2828,7 @@ function closeOrderDetailModal() {
 }
 
 function openOrderDetailModal(orderId) {
-  const o = _supportOrdersCache[orderId];
+  const o = _supportOrdersCache[orderId] || _adminOrdersCache[orderId];
   if (!o) { toast('Order details not available', 'error'); return; }
 
   _ensureOrderDetailModal();
