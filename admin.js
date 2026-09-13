@@ -3422,10 +3422,18 @@ async function _bgTicketWatchTick() {
           const newMsgs = msgs.slice(prevCount);
           _bgTicketSeenCount[threadId] = msgs.length;
 
-          // Only popup for real human admin messages (not bot)
-          const lastHumanAdmin = newMsgs.filter(m => m.sender === 'admin' && !m.is_bot).pop();
-          if (lastHumanAdmin) {
-            const body    = lastHumanAdmin.body || '';
+          // Popup for any new admin-side message — human reply or
+          // bot-authored auto-message (order confirmation, payment-failure
+          // greeting, etc). Previously filtered to `!m.is_bot`, which
+          // meant every auto-message ever posted here (including the
+          // payment-failure/cancelled bot greeting) silently never
+          // reached the dashboard popup — only a real agent's typed
+          // reply did. That exclusion is gone now: the customer sees a
+          // popup for whichever admin-side message just arrived, bot or
+          // human.
+          const lastAdminMsg = newMsgs.filter(m => m.sender === 'admin').pop();
+          if (lastAdminMsg) {
+            const body    = lastAdminMsg.body || '';
             const preview = body.replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n/g,' ').slice(0, 80) + (body.length > 80 ? '…' : '');
 
             // Use the chat.js popup if available, fall back to our own
