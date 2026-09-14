@@ -3308,7 +3308,7 @@ function _ttMsgHtml(m, userInitial) {
         : `<div class="tt-avatar" style="background:linear-gradient(135deg,#28a035,#1a6b23);font-size:14px;box-shadow:0 0 0 2px rgba(61,212,74,.4);">👤</div>`)
     : `<div class="tt-avatar" style="background:linear-gradient(135deg,#243048,#1a2435);color:#3dd44a;font-weight:800;font-size:13px;">${userInitial}</div>`;
   const humanCls = isAdmin ? (isBot ? 'is-bot' : 'is-human') : '';
-  const senderName = isAdmin ? (isBot ? 'EndaViral Bot' : 'EndaViral Support') : 'You';
+  const senderName = isAdmin ? (isBot ? 'EndaViral Team' : 'EndaViral Support') : 'You';
   const time = m.created_at
     ? new Date(m.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})
     : '';
