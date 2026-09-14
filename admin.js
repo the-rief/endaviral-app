@@ -3086,6 +3086,20 @@ async function adminDoInitiateThread(userEmail) {
 
 /* ══════════════════ TICKETS JS ══════════════════ */
 let _allTickets     = [];
+let _dashBannerTicketId = null; // single unseen pending ticket id, if exactly one — lets the banner open it directly instead of just the list
+
+// Shared by the My Tickets list row and the thread-modal title. Previously
+// each had its own `type === 'wrong_order' ? 'Wrong Order' : 'Delayed
+// Service'` ternary — since every system-raised ticket (order
+// confirmations, payment-failed, payment-cancelled) has type='other', ALL
+// of them fell into the ':' branch and got mislabeled "Delayed Service"
+// regardless of what they actually were. Falling back to the ticket's own
+// `subject` (already meaningful: "Order Confirmation", "Payment Failed",
+// "Payment Cancelled") instead of a hardcoded wrong guess.
+function _ticketTypeLabel(t) {
+  const map = { wrong_order: '📦 Wrong Order', delay: '⏳ Delayed Service' };
+  return map[t.type] || t.subject || 'Support Ticket';
+}
 let _ticketsFilter  = 'all';
 let _activeTicketId = null;
 
@@ -3129,7 +3143,7 @@ function renderTickets(tickets) {
     <div class="ticket-card" onclick="openTicketThread('${tid}')">
       <div class="ticket-icon">${typeIcon[t.type] || '🎫'}</div>
       <div class="ticket-body">
-        <div class="ticket-title">${t.type === 'wrong_order' ? 'Wrong Order' : 'Delayed Service'} <span style="color:var(--muted);font-weight:400;font-size:12px;">#${tid.slice(0,8)}</span></div>
+        <div class="ticket-title">${_ticketTypeLabel(t)} <span style="color:var(--muted);font-weight:400;font-size:12px;">#${tid.slice(0,8)}</span></div>
         <div class="ticket-preview">${_ticketPreview(_ticketBodyText(t.last_message || t.first_message))}</div>
         <div class="ticket-meta">${new Date(t.created_at).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'})} · ${(t.messages||[]).length || t.message_count || 0} messages</div>
       </div>
@@ -3151,9 +3165,29 @@ function _ticketPreview(body) {
   return clean.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// Client-side "seen" tracking, independent of `status` (which the server
+// deliberately keeps at 'pending' until the customer actually replies —
+// see the comment on _updateDashTicketBanner below for why that has to
+// stay server-driven). This only tracks "has the customer opened this
+// thread since its current message count" — persisted in localStorage so
+// it survives reload/logout, keyed by message count so a genuinely NEW
+// reply re-surfaces the badge/banner even for a thread already read once.
+function _ticketSeenKey(threadId) { return 'ev_ticket_seen_' + threadId; }
+
+function _markTicketSeen(threadId, messageCount) {
+  try { localStorage.setItem(_ticketSeenKey(threadId), String(messageCount || 0)); } catch (e) {}
+}
+
+function _isTicketUnseen(t) {
+  const msgCount = t.message_count || (t.messages || []).length || 0;
+  let seenCount = 0;
+  try { seenCount = parseInt(localStorage.getItem(_ticketSeenKey(t.id)) || '0', 10); } catch (e) {}
+  return msgCount > seenCount;
+}
+
 function _updateTicketsBadge() {
   const badge   = document.getElementById('ticketsBadge');
-  const pending = _allTickets.filter(t => t.status === 'pending').length;
+  const pending = _allTickets.filter(t => t.status === 'pending' && _isTicketUnseen(t)).length;
   if (badge) {
     badge.style.display = pending ? 'inline-flex' : 'none';
     badge.textContent   = pending || '';
@@ -3172,22 +3206,52 @@ function _updateTicketsBadge() {
 function _updateDashTicketBanner() {
   const el = document.getElementById('dashTicketBanner');
   if (!el) return;
-  const pendingTickets = _allTickets.filter(t => t.status === 'pending');
+  // status === 'pending' is still the server's ground truth for "admin
+  // side has said something and the customer hasn't replied" — that part
+  // stays as-is so a reply that arrived while this tab was closed/offline
+  // is never silently missed. _isTicketUnseen layers on top of that: once
+  // the customer actually opens the thread (openTicketThread marks it
+  // seen at that message count), it stops showing here even though the
+  // ticket itself is still 'pending' server-side until they type a reply.
+  const pendingTickets = _allTickets.filter(t => t.status === 'pending' && _isTicketUnseen(t));
   if (!pendingTickets.length) {
     el.style.display = 'none';
+    _dashBannerTicketId = null;
     return;
   }
-  const desc = document.getElementById('dashTicketBannerDesc');
-  if (desc) {
-    if (pendingTickets.length === 1) {
-      const t = pendingTickets[0];
-      const body = _ticketBodyText(t.last_message || t.first_message);
+  const titleEl = document.getElementById('dashTicketBannerTitle');
+  const desc    = document.getElementById('dashTicketBannerDesc');
+  if (pendingTickets.length === 1) {
+    const t = pendingTickets[0];
+    _dashBannerTicketId = t.id;
+    const lastMsg = t.last_message || t.first_message;
+    // "Support replied to your ticket" is only accurate for a real human
+    // agent's reply — an auto-message (order confirmation, payment-failure
+    // greeting) is is_bot=true and gets its own, accurate wording instead.
+    const isBotMsg = !!(lastMsg && lastMsg.is_bot);
+    if (titleEl) titleEl.textContent = isBotMsg ? 'New message from EndaViral' : 'Support replied to your ticket';
+    if (desc) {
+      const body = _ticketBodyText(lastMsg);
       desc.textContent = _ticketPreview(body).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>') || 'Tap to view the reply';
-    } else {
-      desc.textContent = `${pendingTickets.length} tickets have new replies — tap to view`;
     }
+  } else {
+    _dashBannerTicketId = null; // ambiguous which one to open directly — the click handler falls back to the list
+    if (titleEl) titleEl.textContent = 'You have new ticket replies';
+    if (desc) desc.textContent = `${pendingTickets.length} tickets have new replies — tap to view`;
   }
   el.style.display = 'flex';
+}
+
+// Bound to the banner's onclick in index.html instead of a bare
+// navTo('tickets'). With exactly one unseen pending ticket, opens straight
+// into that thread's modal instead of dropping the customer on the list
+// page to go find it themselves. With more than one (ambiguous which to
+// open), falls back to just the list, same as before.
+function _onDashTicketBannerClick() {
+  navTo('tickets');
+  if (_dashBannerTicketId) {
+    openTicketThread(_dashBannerTicketId);
+  }
 }
 
 async function openTicketThread(threadId) {
@@ -3204,7 +3268,10 @@ async function openTicketThread(threadId) {
 async function _loadTicketThread(threadId) {
   try {
     const t = await api(`/support/threads/${threadId}`);
-    const typeLabel = t.type === 'wrong_order' ? '📦 Wrong Order' : '⏳ Delayed Service';
+    _markTicketSeen(threadId, (t.messages || []).length);
+    if (typeof _updateTicketsBadge === 'function') _updateTicketsBadge();
+    if (typeof _updateDashTicketBanner === 'function') _updateDashTicketBanner();
+    const typeLabel = _ticketTypeLabel(t);
     document.getElementById('ttTitle').textContent = `${typeLabel} #${t.id.slice(0,8)}`;
     document.getElementById('ttMeta').textContent  =
       `Opened ${new Date(t.created_at).toLocaleDateString('en-KE',
