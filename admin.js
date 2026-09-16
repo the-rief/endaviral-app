@@ -78,6 +78,7 @@ async function loadAdminOrders() {
   el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
   const emailFilter = (document.getElementById('adminOrderSearch')?.value || '').trim();
   const orderIdFilter = (document.getElementById('adminOrderIdSearch')?.value || '').trim().replace(/^#/, '');
+  const statusFilter = (document.getElementById('adminOrderStatusFilter')?.value || '').trim().toLowerCase();
   try {
     const qs = emailFilter ? `?email=${encodeURIComponent(emailFilter)}&limit=100` : '?limit=100';
     const data = await api('/admin/orders' + qs);
@@ -88,12 +89,21 @@ async function loadAdminOrders() {
       orders = orders.filter(o => (o.id || '').toLowerCase().includes(orderIdFilter.toLowerCase()));
     }
 
+    // Client-side status filter. "processing" also catches an "inprogress"
+    // backend value, matching how statusPill() already groups the two.
+    if (statusFilter) {
+      orders = orders.filter(o => {
+        const s = (o.status || '').toLowerCase();
+        return statusFilter === 'processing' ? (s === 'processing' || s === 'inprogress') : s === statusFilter;
+      });
+    }
+
     _adminOrdersCache = {};
     orders.forEach(o => { if (o && o.id) _adminOrdersCache[o.id] = o; });
 
     // Only shown when a filter is actually active, so it doesn't clutter
     // the default "browse everything" view.
-    const hasFilter = !!(emailFilter || orderIdFilter);
+    const hasFilter = !!(emailFilter || orderIdFilter || statusFilter);
     const clearBtn = hasFilter
       ? `<div style="padding:0 0 12px;">
            <button class="action-btn" onclick="clearAdminOrderFilters()">✕ Clear Filters</button>
@@ -169,8 +179,10 @@ async function loadAdminOrders() {
 function clearAdminOrderFilters() {
   const emailInput = document.getElementById('adminOrderSearch');
   const idInput = document.getElementById('adminOrderIdSearch');
+  const statusInput = document.getElementById('adminOrderStatusFilter');
   if (emailInput) emailInput.value = '';
   if (idInput) idInput.value = '';
+  if (statusInput) statusInput.value = '';
   loadAdminOrders();
 }
 
@@ -2964,6 +2976,8 @@ function jumpToOrderInAllOrders(orderId) {
   const o = _supportOrdersCache[orderId] || _adminOrdersCache[orderId];
   const emailInput = document.getElementById('adminOrderSearch');
   const idInput = document.getElementById('adminOrderIdSearch');
+  const statusInput = document.getElementById('adminOrderStatusFilter');
+  if (statusInput) statusInput.value = '';
 
   if (o && o.user_email && emailInput) {
     emailInput.value = o.user_email;
