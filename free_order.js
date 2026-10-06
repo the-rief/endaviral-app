@@ -2,11 +2,10 @@
  * Every 5 completed paid orders = 1 free order (value = average of those 5).
  * Client: dashboard promo card (#dashFreeOrderCard) + modal (#freeOrderModal).
  * Staff (admin + CCR support): tab 'free-orders' -> #freeOrdersList.
- * Depends on: api(), toast(), esc(), fmtKES(), allServices, loadServices()
+ * Depends on: api(), toast(), esc(), fmtKES()
  * ════════════════════════════════════════════════════════ */
 
 let _foState = null;
-let _foMax = null;
 
 async function freeOrderRefreshCard() {
   const card = document.getElementById('dashFreeOrderCard');
@@ -55,19 +54,10 @@ async function freeOrderOpen() {
         Quantity: <b style="color:var(--white)">${r.quantity}</b><br>
         Value: <b style="color:var(--white)">${fmtKES(r.value_kes || 0)}</b></div>`;
   } else if (r.status === 'available') {
-    if (!allServices || !allServices.length) { try { await loadServices(); } catch (_) {} }
-    const opts = (allServices || []).filter(s => s.is_active !== false)
-      .map(s => `<option value="${s.service}">${esc(s.name)}</option>`).join('');
-    body.innerHTML = `
-      ${r.reject_reason ? `<div style="background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.3);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:10px;">Last request was rejected: ${esc(r.reject_reason)}</div>` : ''}
-      <p style="font-size:14px;margin-bottom:12px;">🎁 You have a <b>free order</b> worth up to <b style="color:#3dd44a">${fmtKES(r.allowance_kes)}</b> (average of your last ${_foState.required} orders). No payment needed.</p>
-      <div class="field"><label>Service</label>
-        <select id="foService" onchange="freeOrderServiceChanged()" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 16px;color:#fff;font-family:'Montserrat',sans-serif;font-size:14px;">
-          <option value="">Select a service…</option>${opts}</select></div>
-      <div class="field"><label>Profile or post link</label><input type="url" id="foLink" placeholder="https://…"/></div>
-      <div class="field"><label>Quantity <span id="foRange" style="color:var(--muted);font-weight:400;"></span></label><input type="number" id="foQty" min="1" oninput="freeOrderCalc()"/></div>
-      <div id="foCalc" style="font-size:13px;color:var(--muted);min-height:18px;margin:6px 0;"></div>
-      <button class="btn-primary" id="foSubmitBtn" onclick="freeOrderSubmit()">Send for approval</button>`;
+    const list = _foState.allowed_services || [];
+    const single = list.length === 1 && list[0].usable;
+    _foFlow = { step: single ? 'details' : 'service', svc: single ? list[0] : null, reward: r, single };
+    _foRender();
   } else {
     body.innerHTML = '<p>Your free order was approved and is on its way ✅</p>';
   }
@@ -76,41 +66,61 @@ async function freeOrderOpen() {
 
 function freeOrderClose() { document.getElementById('freeOrderModal')?.classList.remove('show'); }
 
-async function freeOrderServiceChanged() {
-  const sid = document.getElementById('foService').value;
-  _foMax = null;
-  document.getElementById('foRange').textContent = '';
-  document.getElementById('foCalc').textContent = '';
-  if (!sid) return;
-  try {
-    _foMax = await api(`/free-order/max-quantity?service_id=${encodeURIComponent(sid)}`);
-    document.getElementById('foRange').textContent = _foMax.usable ? `(${_foMax.min_quantity} – ${_foMax.max_quantity})` : '';
-    if (!_foMax.usable) document.getElementById('foCalc').textContent = 'Your free order value is too low for this service — pick another.';
-    else { const q = document.getElementById('foQty'); q.min = _foMax.min_quantity; q.max = _foMax.max_quantity; freeOrderCalc(); }
-  } catch (e) { toast(e.message, 'error'); }
+/* ───────────── Pick flow: one of the services from their last 5 orders → link ───────────── */
+let _foFlow = null;
+
+function _foHeader(r) {
+  return `${r.reject_reason ? `<div style="background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.3);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:10px;">Last request was rejected: ${esc(r.reject_reason)}</div>` : ''}
+    <p style="font-size:14px;margin-bottom:12px;">🎁 You have a <b>free order</b> worth up to <b style="color:#3dd44a">${fmtKES(r.allowance_kes)}</b> (average of your last ${_foState.required} orders). No payment needed.</p>`;
 }
 
-function freeOrderCalc() {
-  const el = document.getElementById('foCalc');
-  if (!_foMax || !_foMax.usable) return;
-  const q = parseInt(document.getElementById('foQty').value, 10);
-  if (!q) { el.textContent = ''; return; }
-  const cost = (q / 1000) * _foMax.rate_kes;
-  const bad = q < _foMax.min_quantity || q > _foMax.max_quantity;
-  el.style.color = bad ? '#ff6b6b' : 'var(--muted)';
-  el.textContent = bad ? `Quantity must be ${_foMax.min_quantity}–${_foMax.max_quantity}`
-                       : `Value: ${fmtKES(cost)} of your ${fmtKES(_foMax.allowance_kes)} free allowance`;
+function _foGo(step) { _foFlow.svc = null; _foFlow.step = step; _foRender(); }
+
+function _foRender() {
+  const body = document.getElementById('freeOrderBody');
+  const f = _foFlow, r = f.reward;
+  let html = _foHeader(r);
+
+  if (f.step === 'service') {
+    const list = _foState.allowed_services || [];
+    html += `<div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Pick one of your recent services</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">${list.map(s => s.usable ? `
+        <div onclick="_foPickService(${s.service})" style="padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);cursor:pointer;">
+          <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">${esc(s.name)}</div>
+          <div style="font-size:12px;color:var(--muted);">You get <b style="color:#3dd44a">${s.quantity.toLocaleString()}</b> free</div>
+        </div>` : `
+        <div style="padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.1);opacity:.55;">
+          <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">${esc(s.name)}</div>
+          <div style="font-size:12px;color:var(--muted);">Currently unavailable</div>
+        </div>`).join('') || '<p style="color:var(--muted)">No eligible services found. Please contact support.</p>'}</div>`;
+
+  } else if (f.step === 'details') {
+    const s = f.svc;
+    html += (f.single ? '' : `<div onclick="_foGo('service')" style="cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:10px;">← Back</div>`) + `
+      <div style="padding:12px 14px;border-radius:12px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.25);margin-bottom:12px;">
+        <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">${esc(s.name)}</div>
+        <div style="font-size:12px;color:var(--muted);">Quantity: <b style="color:#3dd44a">${s.quantity.toLocaleString()}</b> (set automatically)</div>
+      </div>
+      <div class="field"><label>Profile or post link</label><input type="url" id="foLink" placeholder="https://…"/></div>
+      <button class="btn-primary" id="foSubmitBtn" onclick="freeOrderSubmit()">Send for approval</button>`;
+  }
+  body.innerHTML = html;
+}
+
+function _foPickService(id) {
+  _foFlow.svc = (_foState.allowed_services || []).find(s => s.service === id);
+  _foFlow.step = 'details';
+  _foRender();
 }
 
 async function freeOrderSubmit() {
   const btn = document.getElementById('foSubmitBtn');
-  const service_id = parseInt(document.getElementById('foService').value, 10);
+  const service_id = _foFlow.svc?.service;
   const link = document.getElementById('foLink').value.trim();
-  const quantity = parseInt(document.getElementById('foQty').value, 10);
-  if (!service_id || !link || !quantity) { toast('Pick a service, paste the link and enter a quantity', 'error'); return; }
+  if (!service_id || !link) { toast('Paste your profile or post link', 'error'); return; }
   btn.disabled = true;
   try {
-    const res = await api('/free-order/request', { method: 'POST', body: JSON.stringify({ service_id, link, quantity }) });
+    const res = await api('/free-order/request', { method: 'POST', body: JSON.stringify({ service_id, link }) });
     toast(res.message || 'Sent for approval', 'success');
     _foState = null;
     await freeOrderRefreshCard();
