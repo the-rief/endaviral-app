@@ -711,6 +711,7 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .promo-card.pc-purple:hover{border-color:rgba(155,107,255,.45);}
 .promo-card.pc-blue:hover{border-color:rgba(74,168,255,.45);}
 .promo-card.pc-gold:hover{border-color:rgba(255,193,7,.45);}
+.promo-card.fo-ready{border-color:rgba(255,193,7,.7);box-shadow:0 0 0 2px rgba(255,193,7,.18);}
 .promo-body{flex:1;min-width:0;}
 .promo-title{font-size:12.5px;font-weight:800;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .promo-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -2140,6 +2141,15 @@ tbody td{padding:13px 16px;font-size:14px;}
             </div>
             <div class="promo-arrow">Open →</div>
           </div>
+
+          <div class="promo-card pc-gold" id="dashFreeOrderCard" onclick="freeOrderOpen()" title="Free Order">
+            <div class="promo-icon">🎁</div>
+            <div class="promo-body">
+              <div class="promo-title">Free Order</div>
+              <div class="promo-desc" id="dashFreeOrderDesc">Every 5 orders = 1 free</div>
+            </div>
+            <div class="promo-arrow" id="dashFreeOrderArrow">Open →</div>
+          </div>
         </div>
 
         <div class="sec-hd">
@@ -2572,6 +2582,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="admin-tab" onclick="adminTab('ccr-agents', this)">🎧 CCR Agents</div>
           <div class="admin-tab" onclick="adminTab('creator-events', this)">🎤 Creator Events</div>
           <div class="admin-tab" onclick="adminTab('consultations', this)">💼 Consultations</div>
+          <div class="admin-tab" onclick="adminTab('free-orders', this)">🎁 Free Orders</div>
         </div>
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
@@ -2901,6 +2912,17 @@ tbody td{padding:13px 16px;font-size:14px;}
             <button class="btn-secondary" onclick="loadAdminCityRequests()">↻ Refresh</button>
           </div>
           <div class="tbl-wrap" id="adminCityRequestsPanel"><div class="loading-spinner"><div class="spinner"></div><span>Loading city requests…</span></div></div>
+        </div>
+
+                <!-- ══ FREE BONUS ORDERS (admin + support) ══ -->
+        <div class="admin-panel" id="ap-free-orders">
+          <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
+            <div><div class="sec-title">🎁 FREE ORDERS</div><div class="sec-sub">Clients who completed 5 paid orders. Approve to push to the provider — no payment needed.</div></div>
+            <select id="freeOrdersFilter" onchange="loadAdminFreeOrders()" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;">
+              <option value="pending">Pending</option><option value="approved">Approved</option><option value="all">All</option>
+            </select>
+          </div>
+          <div class="tbl-wrap" id="freeOrdersList"></div>
         </div>
 
         <!-- ══ HIRE ENDAVIRAL: CONSULTATIONS (admin) ══ -->
@@ -3730,6 +3752,7 @@ async function loadDashboard() {
     document.getElementById('dash-active').textContent = active;
     document.getElementById('dash-spent').textContent = fmtKES(spent);
     if (typeof _acUpdateBadges === 'function') _acUpdateBadges();
+    if (typeof freeOrderRefreshCard === 'function') freeOrderRefreshCard();
   } catch(_) {
     document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders yet. Place your first order!</p></div>';
   }
@@ -4821,6 +4844,15 @@ async function _maybeHideAffBanner() {
 </div>
 
 <!-- ══════════════════ HIRE ENDAVIRAL: CONSULTATION BOOKING MODAL ══════════════════ -->
+<!-- ══════════════════ FREE BONUS ORDER MODAL ══════════════════ -->
+<div class="modal-overlay" id="freeOrderModal" onclick="if(event.target===this)freeOrderClose()">
+  <div class="modal" style="max-width:440px;">
+    <button class="modal-close" onclick="freeOrderClose()">✕</button>
+    <div class="modal-title" style="margin-bottom:10px;">🎁 Free Order</div>
+    <div id="freeOrderBody"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="consultBookModal" onclick="if(event.target===this)consultCloseBooking()">
   <div class="modal" style="max-width:440px;">
     <button class="modal-close" onclick="consultCloseBooking()">✕</button>
@@ -4943,6 +4975,7 @@ async function _maybeHideAffBanner() {
 <script src="receipt.js"></script>
 <script src="creator_events.js"></script>
 <script src="consultation.js"></script>
+<script src="free_order.js"></script>
 
 </body>
 </html>

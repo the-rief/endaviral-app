@@ -41,7 +41,7 @@ function applyCCRNavVisibility() {
 // working a ticket without needing a full admin to do it for them.
 // Everything else in the admin panel — Users, Services, Providers, Stats,
 // Payouts, Academy, Connect, CCR Agents itself — stays admin-only.
-const CCR_ALLOWED_ADMIN_TABS = ['support', 'create-order', 'allorders'];
+const CCR_ALLOWED_ADMIN_TABS = ['support', 'create-order', 'allorders', 'free-orders'];
 
 /**
  * Called from navTo() every time the admin page is opened. Admins are
