@@ -42,17 +42,21 @@ async function freeOrderOpen() {
     `<span style="width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;margin:0 3px;${i < _foState.progress ? 'background:#3dd44a;color:#06210a;' : 'background:rgba(255,255,255,.08);color:var(--muted);'}">${i < _foState.progress ? '✓' : i + 1}</span>`).join('');
 
   if (!r) {
+    const left = Math.max(0, _foState.required - _foState.progress);
     body.innerHTML = `
       <div style="text-align:center;margin:10px 0 16px;">${dots}</div>
-      <p style="color:var(--muted);font-size:14px;text-align:center;">Complete <b>${_foState.required}</b> paid orders and get <b>1 free order</b>. Its value is the average of your ${_foState.required} orders. You have <b>${_foState.progress}/${_foState.required}</b>.</p>
-      <button class="btn-primary" onclick="freeOrderClose();navTo('services')">Place an order</button>`;
+      <p style="font-size:15px;text-align:center;margin-bottom:8px;">You've completed <b>${_foState.progress} of ${_foState.required}</b> orders.</p>
+      <p style="color:var(--muted);font-size:14px;text-align:center;line-height:1.6;">Complete <b style="color:var(--white)">${left} more</b> to unlock <b style="color:#3dd44a">1 free order</b>. Its value is the average of your ${_foState.required} orders, and only completed orders count.</p>
+      <button class="btn-primary" style="margin-top:14px;" onclick="freeOrderClose();navTo('services')">Place an order</button>`;
   } else if (r.status === 'pending' || r.status === 'approving') {
     body.innerHTML = `
-      <p style="font-size:14px;margin-bottom:10px;">⏳ <b>Waiting for approval</b></p>
-      <div style="font-size:13px;color:var(--muted);line-height:1.7;">
+      <div style="text-align:center;margin:6px 0 14px;"><div style="font-size:40px;">✅</div>
+        <p style="font-size:16px;font-weight:700;margin:6px 0 4px;">Free order received!</p>
+        <p style="font-size:13.5px;color:var(--muted);line-height:1.6;">Our team is reviewing it now. Once approved it starts automatically and shows up in your orders as <b style="color:var(--white)">🎁 Free</b>. No payment needed.</p></div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.8;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.04);">
         Service: <b style="color:var(--white)">${esc(r.service_name || '')}</b><br>
-        Quantity: <b style="color:var(--white)">${r.quantity}</b><br>
-        Value: <b style="color:var(--white)">${fmtKES(r.value_kes || 0)}</b></div>`;
+        Quantity: <b style="color:var(--white)">${(r.quantity || 0).toLocaleString()}</b><br>
+        Link: <b style="color:var(--white);word-break:break-all;">${esc(r.link || '')}</b></div>`;
   } else if (r.status === 'available') {
     const list = _foState.allowed_services || [];
     const single = list.length === 1 && list[0].usable;
@@ -123,7 +127,7 @@ async function freeOrderSubmit() {
   btn.disabled = true;
   try {
     const res = await api('/free-order/request', { method: 'POST', body: JSON.stringify({ service_id, link }) });
-    toast(res.message || 'Sent for approval', 'success');
+    toast('Free order received! We\'ll start it once approved.', 'success');
     _foState = null;
     await freeOrderRefreshCard();
     await freeOrderOpen();
@@ -136,10 +140,11 @@ async function loadAdminFreeOrders() {
   if (!el) return;
   const status = document.getElementById('freeOrdersFilter')?.value || 'pending';
   el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
+  loadFreeOrderStats();
   try {
     const rows = await api(`/free-order/staff/requests?status=${status}`);
     if (!rows.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🎁</div><p>No free-order requests.</p></div>'; return; }
-    el.innerHTML = `<table><thead><tr><th>Client</th><th>Service</th><th>Link</th><th>Qty</th><th>Value</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows.map(r => `
+    el.innerHTML = `<table><thead><tr><th>Client</th><th>Service</th><th>Link</th><th>Qty</th><th>Value</th><th>Status</th><th>Delivery</th><th>Actions</th></tr></thead><tbody>${rows.map(r => `
       <tr>
         <td><strong>${esc(r.user?.name || '—')}</strong><div style="font-size:12px;color:var(--muted)">${esc(r.user?.phone || r.user?.email || '')}</div></td>
         <td>${esc(r.service_name || '')}</td>
@@ -147,6 +152,7 @@ async function loadAdminFreeOrders() {
         <td>${r.quantity ?? ''}</td>
         <td>${fmtKES(r.value_kes || 0)}<div style="font-size:11px;color:var(--muted)">cap ${fmtKES(r.allowance_kes)}</div></td>
         <td>${esc(r.status)}</td>
+        <td>${esc(r.order_status || '—')}</td>
         <td>${r.status === 'pending' ? `
           <button class="btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="adminFreeOrderApprove('${r.id}',this)">Approve</button>
           <button class="btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="adminFreeOrderReject('${r.id}')">Reject</button>` : (r.bonus_order_id ? `#${esc(r.bonus_order_id.slice(0,8))}` : '')}</td>
@@ -174,4 +180,25 @@ async function adminFreeOrderReject(id) {
     toast('Rejected — client can resubmit', 'success');
   } catch (e) { toast(e.message, 'error'); }
   loadAdminFreeOrders();
+}
+
+
+async function loadFreeOrderStats() {
+  const el = document.getElementById('freeOrdersStats');
+  if (!el) return;
+  try {
+    const d = await api('/free-order/staff/stats');
+    const card = (label, val, color) => `<div style="background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-size:20px;font-weight:800;color:${color || 'var(--white)'};">${val}</div>
+      <div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">${label}</div></div>`;
+    const dl = d.delivery || {};
+    el.innerHTML =
+      card('Earned', d.earned) + card('Unclaimed', d.unclaimed) + card('Awaiting approval', d.pending, '#ffc107') +
+      card('Approved', d.approved, '#3dd44a') + card('Completed', dl.completed || 0, '#3dd44a') +
+      card('In progress', (dl.processing || 0) + (dl.pending || 0) + (dl.inprogress || 0)) +
+      card('Failed / cancelled', (dl.failed || 0) + (dl.cancelled || 0) + (dl.partial || 0), '#ff6b6b') +
+      card('Completion rate', d.completion_rate == null ? '—' : d.completion_rate + '%') +
+      card('Value given', fmtKES(d.value_given_kes)) +
+      card('Avg approval', d.avg_approval_minutes == null ? '—' : d.avg_approval_minutes + ' min');
+  } catch (_) { el.innerHTML = ''; }
 }

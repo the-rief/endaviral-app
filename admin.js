@@ -80,8 +80,9 @@ async function loadAdminOrders() {
   const emailFilter = (document.getElementById('adminOrderSearch')?.value || '').trim();
   const orderIdFilter = (document.getElementById('adminOrderIdSearch')?.value || '').trim().replace(/^#/, '');
   const statusFilter = (document.getElementById('adminOrderStatusFilter')?.value || '').trim().toLowerCase();
+  const freeOnly = (document.getElementById('adminOrderTypeFilter')?.value || '') === 'free';
   try {
-    const qs = emailFilter ? `?email=${encodeURIComponent(emailFilter)}&limit=100` : '?limit=100';
+    const qs = '?limit=100' + (emailFilter ? `&email=${encodeURIComponent(emailFilter)}` : '') + (freeOnly ? '&free_only=true' : '');
     const data = await api('/admin/orders' + qs);
     let orders = data.orders || data.data || data || [];
 
@@ -104,7 +105,7 @@ async function loadAdminOrders() {
 
     // Only shown when a filter is actually active, so it doesn't clutter
     // the default "browse everything" view.
-    const hasFilter = !!(emailFilter || orderIdFilter || statusFilter);
+    const hasFilter = !!(emailFilter || orderIdFilter || statusFilter || freeOnly);
     const clearBtn = hasFilter
       ? `<div style="padding:0 0 12px;">
            <button class="action-btn" onclick="clearAdminOrderFilters()">✕ Clear Filters</button>
@@ -184,6 +185,8 @@ function clearAdminOrderFilters() {
   if (emailInput) emailInput.value = '';
   if (idInput) idInput.value = '';
   if (statusInput) statusInput.value = '';
+  const typeInput = document.getElementById('adminOrderTypeFilter');
+  if (typeInput) typeInput.value = '';
   loadAdminOrders();
 }
 
