@@ -143,20 +143,21 @@ function _foRender() {
       <div style="display:flex;flex-direction:column;gap:8px;">${list.map(s => s.usable ? `
         <div onclick="_foPickService(${s.service})" style="padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);cursor:pointer;">
           <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">${esc(s.name)}</div>
-          ${s.replaces ? `<div style="font-size:11.5px;color:#ffc107;margin-bottom:4px;">Closest match to "${esc(s.replaces)}" (unavailable)</div>` : ''}
+          ${s.replaces ? `<div style="font-size:11.5px;color:#ffc107;margin-bottom:4px;">${s.match === 'same_type' ? 'Closest match to' : 'Replacement for'} "${esc(s.replaces)}" (unavailable)</div>` : ''}
           <div style="font-size:12px;color:var(--muted);">You get <b style="color:#3dd44a">${s.quantity.toLocaleString()}</b> free</div>
         </div>` : `
         <div style="padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.1);opacity:.55;">
           <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">${esc(s.name)}</div>
           <div style="font-size:12px;color:var(--muted);">Currently unavailable</div>
-        </div>`).join('') || '<p style="color:var(--muted)">No eligible services found. Please contact support.</p>'}</div>`;
+        </div>`).join('') || '<p style="color:var(--muted)">No eligible services found. Please contact support.</p>'}</div>
+      ${list.length && !list.some(x => x.usable) ? '<p style="color:var(--muted);font-size:13px;margin-top:10px;">None of these services can be used right now. Please contact support and we\'ll sort it out.</p>' : ''}`;
 
   } else if (f.step === 'details') {
     const s = f.svc;
     html += (f.single ? '' : `<div onclick="_foGo('service')" style="cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:10px;">← Back</div>`) + `
       <div style="padding:12px 14px;border-radius:12px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.25);margin-bottom:12px;">
         <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">${esc(s.name)}</div>
-        ${s.replaces ? `<div style="font-size:11.5px;color:#ffc107;margin-bottom:4px;">Closest match to "${esc(s.replaces)}" (unavailable)</div>` : ''}
+        ${s.replaces ? `<div style="font-size:11.5px;color:#ffc107;margin-bottom:4px;">${s.match === 'same_type' ? 'Closest match to' : 'Replacement for'} "${esc(s.replaces)}" (unavailable)</div>` : ''}
         <div style="font-size:12px;color:var(--muted);">Quantity: <b style="color:#3dd44a">${s.quantity.toLocaleString()}</b> (set automatically)</div>
       </div>
       <div class="field"><label>Profile or post link</label><input type="url" id="foLink" placeholder="https://…"/></div>
