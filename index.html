@@ -2604,6 +2604,10 @@ tbody td{padding:13px 16px;font-size:14px;}
                 <option value="failed">Failed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
+              <select id="adminOrderTypeFilter" onchange="loadAdminOrders()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;">
+                <option value="">All Orders</option>
+                <option value="free">🎁 Free Orders only</option>
+              </select>
             </div>
           </div>
           <div class="tbl-wrap" id="adminOrdersTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
@@ -2923,6 +2927,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <option value="pending">Pending</option><option value="approved">Approved</option><option value="all">All</option>
             </select>
           </div>
+          <div id="freeOrdersStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;"></div>
           <div class="tbl-wrap" id="freeOrdersList"></div>
         </div>
 

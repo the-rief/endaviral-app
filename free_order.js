@@ -6,6 +6,22 @@
  * ════════════════════════════════════════════════════════ */
 
 let _foState = null;
+let _foTimer = null;
+
+const _FO_STATUS = {
+  pending:   ['Delivering', '#ffc107'],
+  processing:['Delivering', '#ffc107'],
+  completed: ['Delivered ✅', '#3dd44a'],
+  partial:   ['Partially delivered', '#ff9800'],
+  failed:    ['Failed — support is fixing it', '#ff6b6b'],
+  cancelled: ['Cancelled — support is fixing it', '#ff6b6b'],
+};
+const _foPlural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+function _foDots(done, total) {
+  return Array.from({ length: total }, (_, i) =>
+    `<span style="width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;margin:0 3px;${i < done ? 'background:#3dd44a;color:#06210a;' : 'background:rgba(255,255,255,.08);color:var(--muted);'}">${i < done ? '✓' : i + 1}</span>`).join('');
+}
 
 async function freeOrderRefreshCard() {
   const card = document.getElementById('dashFreeOrderCard');
@@ -13,10 +29,16 @@ async function freeOrderRefreshCard() {
   try {
     _foState = await api('/free-order/status');
   } catch (_) { return; }
+  // keep the card live: re-check every minute while the dashboard is open
+  if (!_foTimer) _foTimer = setInterval(() => {
+    if (!document.hidden && document.getElementById('dashFreeOrderCard')) freeOrderRefreshCard();
+  }, 60000);
+
   const desc = document.getElementById('dashFreeOrderDesc');
   const arrow = document.getElementById('dashFreeOrderArrow');
-  const r = _foState.reward;
-  const done = _foState.progress, need = _foState.required;
+  const s = _foState, r = s.reward, act = s.active;
+  const more = _foPlural(s.remaining, 'more order');
+  card.classList.remove('fo-ready');
   if (r && r.status === 'available') {
     desc.textContent = r.reject_reason ? 'Request rejected — tap to fix & resend' : 'You earned a FREE order! Tap to claim';
     arrow.textContent = 'Claim →';
@@ -24,30 +46,61 @@ async function freeOrderRefreshCard() {
   } else if (r && (r.status === 'pending' || r.status === 'approving')) {
     desc.textContent = 'Free order awaiting approval';
     arrow.textContent = 'View →';
-    card.classList.remove('fo-ready');
-  } else {
-    desc.textContent = `${done}/${need} orders completed — order ${need} to get 1 free`;
+  } else if (act) {
+    desc.textContent = 'Your free order is being delivered';
+    arrow.textContent = 'Track →';
+  } else if (s.received_count > 0) {
+    desc.textContent = `${_foPlural(s.received_count, 'free order')} received · next in ${more}`;
     arrow.textContent = 'Open →';
-    card.classList.remove('fo-ready');
+  } else {
+    desc.textContent = `${s.progress}/${s.required} completed — ${more} to your first free order`;
+    arrow.textContent = 'Open →';
   }
 }
 
+function _foProgressBlock(s) {
+  const nextWord = s.received_count > 0 ? 'next' : 'first';
+  const afterThis = s.reward ? ' after this one' : '';
+  return `
+    <div style="text-align:center;margin:10px 0 12px;">${_foDots(s.progress, s.required)}</div>
+    <p style="font-size:15px;text-align:center;margin-bottom:6px;">You've completed <b>${s.progress} of ${s.required}</b> orders${s.reward ? ' toward your next free order' : ''}.</p>
+    <p style="color:var(--muted);font-size:13.5px;text-align:center;line-height:1.6;">Complete <b style="color:var(--white)">${_foPlural(s.remaining, 'more order')}</b>${afterThis} to unlock your ${nextWord} <b style="color:#3dd44a">free order</b>. Its value is the average of those ${s.required} orders, and only completed orders count.</p>`;
+}
+
+function _foHistoryBlock(s) {
+  const hist = s.history || [];
+  if (!hist.length) return '';
+  const rows = hist.slice(0, 5).map(h => {
+    const [label, color] = _FO_STATUS[h.order_status] || ['Approved', 'var(--muted)'];
+    const d = h.approved_at ? new Date(h.approved_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    return `<div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12.5px;">
+      <div style="min-width:0;"><div style="font-weight:600;color:var(--white);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.service_name || '')}</div>
+        <div style="color:var(--muted);">${(h.quantity || 0).toLocaleString()} · ${d}</div></div>
+      <div style="color:${color};font-weight:700;white-space:nowrap;">${label}</div></div>`;
+  }).join('');
+  return `<div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1);">
+    <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Your free orders · ${s.received_count} received</div>${rows}</div>`;
+}
+
+function _foActiveBlock(a) {
+  const [label, color] = _FO_STATUS[a.order_status] || ['Delivering', '#ffc107'];
+  return `<div style="padding:12px 14px;border-radius:12px;background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.3);margin-bottom:6px;">
+    <div style="font-size:12px;font-weight:700;color:${color};margin-bottom:4px;">🎁 FREE ORDER · ${label}</div>
+    <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">${esc(a.service_name || '')}</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.6;">Quantity: <b style="color:var(--white)">${(a.quantity || 0).toLocaleString()}</b><br>Track it in <b style="color:var(--white)">My Orders</b>. Keep your account public and active while it delivers.</div></div>`;
+}
+
 async function freeOrderOpen() {
-  if (!_foState) await freeOrderRefreshCard();
+  await freeOrderRefreshCard();          // always show fresh numbers
   const m = document.getElementById('freeOrderModal');
   const body = document.getElementById('freeOrderBody');
   if (!m || !body || !_foState) return;
-  const r = _foState.reward;
-  const dots = Array.from({ length: _foState.required }, (_, i) =>
-    `<span style="width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;margin:0 3px;${i < _foState.progress ? 'background:#3dd44a;color:#06210a;' : 'background:rgba(255,255,255,.08);color:var(--muted);'}">${i < _foState.progress ? '✓' : i + 1}</span>`).join('');
+  const s = _foState, r = s.reward;
 
   if (!r) {
-    const left = Math.max(0, _foState.required - _foState.progress);
-    body.innerHTML = `
-      <div style="text-align:center;margin:10px 0 16px;">${dots}</div>
-      <p style="font-size:15px;text-align:center;margin-bottom:8px;">You've completed <b>${_foState.progress} of ${_foState.required}</b> orders.</p>
-      <p style="color:var(--muted);font-size:14px;text-align:center;line-height:1.6;">Complete <b style="color:var(--white)">${left} more</b> to unlock <b style="color:#3dd44a">1 free order</b>. Its value is the average of your ${_foState.required} orders, and only completed orders count.</p>
-      <button class="btn-primary" style="margin-top:14px;" onclick="freeOrderClose();navTo('services')">Place an order</button>`;
+    body.innerHTML = (s.active ? _foActiveBlock(s.active) : '') + _foProgressBlock(s)
+      + `<button class="btn-primary" style="margin-top:14px;" onclick="freeOrderClose();navTo('services')">Place an order</button>`
+      + _foHistoryBlock(s);
   } else if (r.status === 'pending' || r.status === 'approving') {
     body.innerHTML = `
       <div style="text-align:center;margin:6px 0 14px;"><div style="font-size:40px;">✅</div>
@@ -56,14 +109,13 @@ async function freeOrderOpen() {
       <div style="font-size:13px;color:var(--muted);line-height:1.8;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.04);">
         Service: <b style="color:var(--white)">${esc(r.service_name || '')}</b><br>
         Quantity: <b style="color:var(--white)">${(r.quantity || 0).toLocaleString()}</b><br>
-        Link: <b style="color:var(--white);word-break:break-all;">${esc(r.link || '')}</b></div>`;
-  } else if (r.status === 'available') {
-    const list = _foState.allowed_services || [];
+        Link: <b style="color:var(--white);word-break:break-all;">${esc(r.link || '')}</b></div>`
+      + _foProgressBlock(s) + _foHistoryBlock(s);
+  } else {
+    const list = s.allowed_services || [];
     const single = list.length === 1 && list[0].usable;
     _foFlow = { step: single ? 'details' : 'service', svc: single ? list[0] : null, reward: r, single };
     _foRender();
-  } else {
-    body.innerHTML = '<p>Your free order was approved and is on its way ✅</p>';
   }
   m.classList.add('show');
 }
@@ -155,7 +207,7 @@ async function loadAdminFreeOrders() {
         <td>${esc(r.order_status || '—')}</td>
         <td>${r.status === 'pending' ? `
           <button class="btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="adminFreeOrderApprove('${r.id}',this)">Approve</button>
-          <button class="btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="adminFreeOrderReject('${r.id}')">Reject</button>` : (r.bonus_order_id ? `#${esc(r.bonus_order_id.slice(0,8))}` : '')}</td>
+          <button class="btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="adminFreeOrderReject('${r.id}')">Reject</button>` : (r.status === 'approved' && ['failed','cancelled','partial'].includes(r.order_status) ? `<button class="btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="adminFreeOrderRegrant('${r.id}',this)">Restore</button>` : (r.bonus_order_id ? `#${esc(r.bonus_order_id.slice(0,8))}` : ''))}</td>
       </tr>`).join('')}</tbody></table>`;
   } catch (e) {
     el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
@@ -201,4 +253,15 @@ async function loadFreeOrderStats() {
       card('Value given', fmtKES(d.value_given_kes)) +
       card('Avg approval', d.avg_approval_minutes == null ? '—' : d.avg_approval_minutes + ' min');
   } catch (_) { el.innerHTML = ''; }
+}
+
+
+async function adminFreeOrderRegrant(id, btn) {
+  if (!confirm('Give this client their free order back? Use it when the free order failed, was cancelled or only partly delivered.')) return;
+  btn.disabled = true;
+  try {
+    await api(`/free-order/staff/${id}/regrant`, { method: 'POST' });
+    toast('Free order restored — client notified', 'success');
+  } catch (e) { toast(e.message, 'error'); }
+  loadAdminFreeOrders();
 }
