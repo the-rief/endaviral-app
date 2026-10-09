@@ -848,10 +848,12 @@ async function loadAdminCommandCenter(force = false) {
     api('/admin/allocations/expenses'),                             // 15
     api('/admin/allocations/panel-growth'),                         // 16
     api('/admin/allocations/tax-reserve'),                          // 17
+    api(`/admin/stats/platforms/outcomes?days=${_chc.trendsDays}`), // 18
+    api(`/admin/stats/order-kinds?days=${_chc.trendsDays}`),         // 19
   ]);
   const [snap, stats, breakdown, revenue, trends, engagement,
          connectStats, connectRevenue, academyStats, academyRevenue,
-         affiliates, ccrAgents, platforms, titan, ownerPay, expenses, panelGrowth, taxReserve] = results;
+         affiliates, ccrAgents, platforms, titan, ownerPay, expenses, panelGrowth, taxReserve, outcomes, orderKinds] = results;
   _chc.data.snapshot   = snap.status === 'fulfilled' ? snap.value : null;
   _chc.data.stats      = stats.status === 'fulfilled' ? stats.value : null;
   _chc.data.breakdown  = breakdown.status === 'fulfilled' ? breakdown.value : null;
@@ -870,6 +872,8 @@ async function loadAdminCommandCenter(force = false) {
   _chc.data.expenses        = expenses.status === 'fulfilled' ? expenses.value : null;
   _chc.data.panelGrowth     = panelGrowth.status === 'fulfilled' ? panelGrowth.value : null;
   _chc.data.taxReserve      = taxReserve.status === 'fulfilled' ? taxReserve.value : null;
+  _chc.data.outcomes        = outcomes.status === 'fulfilled' ? outcomes.value : null;
+  _chc.data.orderKinds      = orderKinds.status === 'fulfilled' ? orderKinds.value : null;
   _chc.loadedAt = Date.now();
 
   _chcRenderAlerts();
@@ -1973,12 +1977,16 @@ async function chcSetTrendsWindow(days) {
   _chc.trendsDays = days;
   const el = document.getElementById('chcSection-growth');
   if (el) el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>`;
-  const [trendsRes, platformsRes] = await Promise.allSettled([
+  const [trendsRes, platformsRes, outcomesRes, kindsRes] = await Promise.allSettled([
     api(`/admin/stats/trends?days=${days}`),
     api(`/admin/stats/platforms?days=${days}`),
+    api(`/admin/stats/platforms/outcomes?days=${days}`),
+    api(`/admin/stats/order-kinds?days=${days}`),
   ]);
   _chc.data.trends    = trendsRes.status === 'fulfilled' ? trendsRes.value : null;
   _chc.data.platforms = platformsRes.status === 'fulfilled' ? platformsRes.value : null;
+  _chc.data.outcomes  = outcomesRes.status === 'fulfilled' ? outcomesRes.value : null;
+  _chc.data.orderKinds = kindsRes.status === 'fulfilled' ? kindsRes.value : null;
   _chcRenderGrowth();
   _chcRenderAlerts();
 }
@@ -2097,6 +2105,115 @@ function _chcRenderGrowth() {
     platformPanel = _chcPanel({ title: 'SMM Sales by Platform', icon: '📱', body: `<div style="font-size:12px;color:var(--muted);">No platform data for this window.</div>` });
   }
 
+  // ── Order outcomes by platform: who FAILS / CANCELS / goes PARTIAL most ──
+  // /admin/stats/platforms/outcomes counts only paid / provider-accepted orders
+  // (same rule as the Reorder Queue) and ranks only platforms with enough
+  // finished orders to be meaningful.
+  const oc = _chc.data.outcomes;
+  let outcomesPanel = '';
+  if (oc && oc.platforms && oc.platforms.length) {
+    const heat = v => `rgba(255,82,82,${(Math.min(v / 40, 1) * 0.5 + 0.08).toFixed(2)})`;
+    const chip = (label, n, pct, color) => `
+      <span style="display:inline-flex;gap:5px;align-items:baseline;background:${heat(pct)};border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:3px 8px;font-size:11px;">
+        <span style="color:var(--muted);">${label}</span>
+        <b style="color:${color};">${n}</b>
+        <span style="color:var(--muted);">${pct}%</span>
+      </span>`;
+    const tile = (label, w, color) => `
+      <div style="flex:1;min-width:130px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:10px 12px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">${label}</div>
+        <div style="font-size:16px;font-weight:800;color:var(--white);margin-top:3px;">${w ? esc(w.platform) : '—'}</div>
+        <div style="font-size:12px;font-weight:700;color:${color};">${w ? w.rate_pct + '%' : 'not enough data'}</div>
+      </div>`;
+    const w = oc.worst || {};
+    const tiles = `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        ${tile('Fails most', w.failed, '#ff5252')}
+        ${tile('Cancels most', w.cancelled, '#ffb020')}
+        ${tile('Partial most', w.partial, '#9b6bff')}
+        ${tile('Worst overall', w.overall, '#ff7043')}
+      </div>`;
+    const platRows = oc.platforms.map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);${p.low_sample ? 'opacity:.55;' : ''}">
+        <div style="min-width:120px;">
+          <div style="font-size:12px;font-weight:700;color:var(--white);">${esc(p.platform)}${p.low_sample ? ' <span style="font-size:10px;color:var(--muted);font-weight:600;">(low sample)</span>' : ''}</div>
+          <div style="font-size:10px;color:var(--muted);">${p.resolved_orders} finished order${p.resolved_orders === 1 ? '' : 's'} · ${fmtKES(p.affected_kes)} affected</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          ${chip('Failed', p.failed, p.failed_rate_pct, '#ff5252')}
+          ${chip('Cancelled', p.cancelled, p.cancelled_rate_pct, '#ffb020')}
+          ${chip('Partial', p.partial, p.partial_rate_pct, '#9b6bff')}
+          <b style="font-size:12px;color:var(--white);min-width:44px;text-align:right;">${p.problem_rate_pct}%</b>
+        </div>
+      </div>`).join('');
+    const typeRows = (oc.worst_platform_types || []).slice(0, 6).map(t => `
+      <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;">
+        <span style="color:var(--white);">${esc(t.platform)} · ${esc(t.type)}</span>
+        <span style="color:var(--muted);">${t.failed}F · ${t.cancelled}C · ${t.partial}P of ${t.resolved_orders} <b style="color:#ff7043;">(${t.problem_rate_pct}%)</b></span>
+      </div>`).join('');
+    const svcRows = (oc.worst_services || []).slice(0, 5).map(sv => `
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:4px 0;">
+        <span style="color:var(--white);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(sv.service_name)}">${esc(sv.service_name)}</span>
+        <span style="color:var(--muted);white-space:nowrap;">#${sv.provider_service_id} · ${sv.failed}F · ${sv.cancelled}C · ${sv.partial}P of ${sv.resolved_orders} <b style="color:#ff7043;">(${sv.problem_rate_pct}%)</b></span>
+      </div>`).join('');
+    const subhead = t => `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:16px 0 6px;">${t}</div>`;
+    outcomesPanel = _chcPanel({
+      title: 'Order Outcomes by Platform', icon: '⚠️',
+      sub: `last ${oc.window_days}d · paid / provider-accepted orders only · rates = share of finished orders · platforms under ${oc.min_sample_orders} orders aren't ranked`,
+      body: `${tiles}${platRows}
+        ${typeRows ? subhead('Worst platform + service type') + typeRows : ''}
+        ${svcRows ? subhead('Worst individual services') + svcRows : ''}`,
+    });
+  } else {
+    outcomesPanel = _chcPanel({ title: 'Order Outcomes by Platform', icon: '⚠️', body: `<div style="font-size:12px;color:var(--muted);">No failed, cancelled or partial orders in this window (or the outcomes endpoint isn't deployed yet).</div>` });
+  }
+
+  // ── Paid vs 🎁 Free vs 🔁 Reorder orders ────────────────────────────
+  // Free + reorder orders carry charge 0, so they're excluded from every customer
+  // order count above (funnel, orders/7d, top services, repeat rate…). This panel
+  // is where they live: how many, how they turn out, and the provider cost you absorb.
+  const ok = _chc.data.orderKinds;
+  let kindsPanel = '';
+  if (ok && ok.kinds) {
+    const kindTile = (icon, label, k, color, showCost) => {
+      const outcome = `${k.completed} done · ${k.partial} partial · ${k.cancelled} cancelled · ${k.failed} failed${k.in_progress ? ' · ' + k.in_progress + ' in progress' : ''}`;
+      return `
+        <div style="flex:1;min-width:190px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-top:3px solid ${color};border-radius:12px;padding:12px 14px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">${icon} ${label}</div>
+          <div style="font-size:24px;font-weight:800;color:var(--white);margin:4px 0 2px;">${k.orders.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.6;">
+            ${Number(k.quantity).toLocaleString()} units · ${k.completed_rate_pct}% completed<br>
+            ${outcome}<br>
+            ${showCost ? `<b style="color:#ff7043;">≈ ${fmtKES(k.cost_kes)}</b> provider cost, no revenue` : `${fmtKES(k.sales_kes)} sales`}
+          </div>
+        </div>`;
+    };
+    const platRows = (ok.replacement_by_platform || []).map(p => `
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+        <span style="color:var(--white);font-weight:700;">${esc(p.platform)}</span>
+        <span style="color:var(--muted);">🎁 ${p.free_orders} free · 🔁 ${p.reorders} reorder${p.reorders === 1 ? '' : 's'} · ${p.failed + p.cancelled} failed/cancelled · <b style="color:#ff7043;">≈ ${fmtKES(p.cost_kes)}</b></span>
+      </div>`).join('');
+    kindsPanel = _chcPanel({
+      title: 'Paid vs Free vs Reorder Orders', icon: '🔁',
+      sub: `last ${ok.window_days}d · free (🎁 loyalty bonus) and reorder (🔁 replacement for a failed order) are NOT counted as customer orders anywhere else on this page`,
+      body: `
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+          ${kindTile('💳', 'Customer orders', ok.kinds.paid, '#3dd44a', false)}
+          ${kindTile('🎁', 'Free orders', ok.kinds.free, '#9b6bff', true)}
+          ${kindTile('🔁', 'Reorders', ok.kinds.reorder, '#ff7043', true)}
+        </div>
+        <div style="font-size:12px;color:var(--white);line-height:1.7;">
+          Free + reorders cost you about <b style="color:#ff7043;">${fmtKES(ok.absorbed_cost_kes)}</b> in provider fees this window
+          (<b>${fmtKES(ok.reorder_cost_kes)}</b> reorders · <b>${fmtKES(ok.free_cost_kes)}</b> free).
+          That's <b>${ok.reorders_per_100_customer_orders}</b> reorders and <b>${ok.free_per_100_customer_orders}</b> free orders per 100 customer orders.
+        </div>
+        ${platRows ? `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px;">Free + reorder volume by platform</div>${platRows}` : ''}
+        <div style="font-size:10px;color:var(--muted);margin-top:10px;">Cost = your provider price per 1000 × quantity — an upper bound for partial orders.</div>`,
+    });
+  } else {
+    kindsPanel = _chcPanel({ title: 'Paid vs Free vs Reorder Orders', icon: '🔁', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load order-kind stats (is the latest backend deployed?).</div>` });
+  }
+
   el.innerHTML = `
     ${burnBanner}
     ${_chcPanel({
@@ -2126,13 +2243,15 @@ function _chcRenderGrowth() {
         </div>
         ${comboChart}` })}
     ${platformPanel}
+    ${outcomesPanel}
+    ${kindsPanel}
     ${_chcPanel({
       title: 'New Users per Day', icon: '👤', body: `
         <div style="font-size:18px;font-weight:800;color:var(--white);margin-bottom:8px;">${g.this_week ? g.this_week.new_users : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> /7d</span> ${_growthBadge(g.users_wow_pct)}</div>
         ${usersChart}` })}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;">
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🧭 Order Status Funnel (${_chc.trendsDays}d)</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🧭 Order Status Funnel · customer orders (${_chc.trendsDays}d)</div>
         ${funnelHtml}
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">

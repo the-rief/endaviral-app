@@ -6,6 +6,9 @@
  *   2. "Reorder"         – once they reply, paste the new link → the order is
  *                          re-placed at no charge straight to the provider
  *   3. "Dismiss"         – nothing to redo
+ *   4. "Reorder ALL"     – one press: re-places every open task on the link the
+ *                          customer ORIGINALLY used, free of charge, and messages each
+ *                          customer that it's a replacement for the earlier failed order
  * Lives inside the Support tab (#ap-support) so CCR agents get it too.
  * Depends on globals: api(), toast(), esc(), currentUser, openSupportThread().
  * ════════════════════════════════════════════════════════════════ */
@@ -75,6 +78,7 @@ async function rqLoad() {
           <button class="btn-secondary" onclick="rqLoad()">↻ Refresh</button>
           <button class="btn-secondary" onclick="rqFlagNow()" title="Flag new failed/partial/cancelled orders now instead of waiting for midnight">⚑ Flag now</button>
           <button class="btn-primary" onclick="rqMessageAll()">✉ Message all unsent</button>
+          <button class="btn-primary" id="rqReorderAllBtn" onclick="rqReorderAll()" title="Re-place every open order on its original link and tell each customer" style="background:#ff7043;border-color:#ff7043;">🔁 Reorder ALL</button>
         </div>
       </div>
       <div id="rqList"></div>`;
@@ -197,6 +201,64 @@ async function rqMessageAll() {
     toast(`Messaged ${r.sent} client(s)${r.failed ? `, ${r.failed} failed` : ''}`, r.failed ? 'error' : 'success');
     rqLoad();
   } catch (e) { toast(e.message, 'error'); }
+}
+
+/* ── ONE-PRESS BULK REORDER ─────────────────────────────────────────
+ * Re-places every open task on the customer's ORIGINAL link (qty = what was
+ * undelivered) at no charge and sends each customer an explanatory message.
+ * Runs in small batches (backend caps each call) so no request times out, and
+ * remembers failed/skipped ids so a bad task is never retried in a loop.
+ * Tasks already "Contacted" are left out unless ticked — those customers may
+ * have replied with a NEW link, and reordering on the old one would be wrong.   */
+async function rqReorderAll() {
+  let s;
+  try { s = await api('/reorders/summary'); } catch (e) { toast(e.message, 'error'); return; }
+  const pending = s.pending || 0, contacted = s.contacted || 0;
+  if (!pending && !contacted) { toast('Nothing open to reorder', 'success'); return; }
+
+  rqModal('Reorder ALL on the original links',
+    `<div style="font-size:12px;color:var(--muted);line-height:1.7;">
+       Every <b style="color:var(--white);">Needs contact</b> order (<b style="color:var(--white);">${pending}</b>) will be re-placed straight to the provider on the
+       <b style="color:var(--white);">same link the customer originally used</b>, at <b>no charge</b> (they already paid) — for partial orders only the undelivered part.<br><br>
+       Each customer then gets a message in their support chat explaining that this is a <b style="color:var(--white);">free replacement for their earlier failed order</b>, with the link it was placed on and how to ask for a different one.
+     </div>
+     ${contacted ? `<label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:12px;color:var(--muted);cursor:pointer;">
+       <input type="checkbox" id="rqIncContacted" style="margin-top:2px;"/>
+       <span>Also include the <b style="color:var(--white);">${contacted}</b> already-contacted order(s). Untick unless you're sure no customer replied with a new link.</span></label>` : ''}
+     <div style="margin-top:14px;padding:10px 12px;border:1px solid #ffb347;border-radius:8px;font-size:11px;color:#ffb347;line-height:1.6;">
+       ⚠ If an order was cancelled because its link was private or invalid, it can fail again. Quickly scan the list first. Orders with no usable link are skipped and shown in the summary.
+     </div>
+     <div id="rqBulkProgress" style="margin-top:14px;font-size:12px;color:var(--white);"></div>`,
+    '🔁 Reorder all now',
+    async () => {
+      const includeContacted = !!document.getElementById('rqIncContacted')?.checked;
+      const prog = document.getElementById('rqBulkProgress');
+      const total = pending + (includeContacted ? contacted : 0);
+      const placed = [], failed = [], skipped = [];
+      const skipIds = [];
+      let remaining = total;
+      while (remaining > 0) {
+        prog.innerHTML = `Working… ${placed.length} placed · ${failed.length} failed · ${skipped.length} skipped · ${remaining} left`;
+        const r = await api('/reorders/reorder-all', { method: 'POST', body: JSON.stringify({ limit: 10, include_contacted: includeContacted, skip_ids: skipIds }) });
+        placed.push(...r.placed); failed.push(...r.failed); skipped.push(...r.skipped);
+        [...r.failed, ...r.skipped].forEach(x => skipIds.push(x.task_id));
+        if (!r.placed.length && !r.failed.length && !r.skipped.length) break;   // nothing processed — avoid looping
+        remaining = r.remaining;
+      }
+      rqLoad();
+      const problems = [...failed.map(x => ['Failed', x]), ...skipped.map(x => ['Skipped', x])];
+      rqModal('Bulk reorder finished',
+        `<div style="font-size:13px;line-height:1.8;">
+           ✅ <b>${placed.length}</b> reordered and customers messaged<br>
+           ${failed.length ? `❌ <b>${failed.length}</b> failed (still open — retry later)<br>` : ''}
+           ${skipped.length ? `⏭ <b>${skipped.length}</b> skipped (no usable link)<br>` : ''}
+         </div>
+         ${problems.length ? `<div style="margin-top:10px;max-height:220px;overflow:auto;font-size:11px;color:var(--muted);line-height:1.6;">
+           ${problems.map(([k, x]) => `<div>• ${k} #${esc(x.order_id)} ${esc(x.service_name || '')} — ${esc(x.reason)}</div>`).join('')}
+         </div>` : ''}`,
+        'Close', async () => {});
+      document.getElementById('rqModalCancel')?.remove();
+    });
 }
 
 async function rqFlagNow() {
