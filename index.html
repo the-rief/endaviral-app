@@ -2738,59 +2738,65 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
         </div>
 
-        <!-- SUPPORT CHAT PANEL -->
+        <!-- SUPPORT CENTRE — tabbed by "who needs to act next". Tabs, toolbar and lists are
+             rendered by support_board.js; reorder_queue.js renders the Reorders tab. -->
         <div class="admin-panel" id="ap-support">
-          <div id="supportViewTabs" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-            <button class="btn-secondary" id="rqTabThreads" onclick="rqShowView('threads')">💬 Tickets</button>
-            <button class="btn-secondary" id="rqTabQueue" onclick="rqShowView('queue')">🔁 Reorder Queue <span id="rqBadge" style="display:none;margin-left:6px;background:#ff5252;color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800;">0</span></button>
-          </div>
-          <div id="reorderQueuePane" style="display:none;"></div>
-          <div id="supportThreadsView">
+          <style>
+            .sb-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:14px;}
+            .sb-tab{background:none;border:none;border-bottom:3px solid transparent;color:var(--muted);font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;margin-bottom:-1px;transition:color .15s;}
+            .sb-tab:hover{color:var(--white);}
+            .sb-tab.on{color:var(--green);border-bottom-color:var(--green);}
+            .sb-badge{font-size:10.5px;font-weight:800;border-radius:10px;padding:1px 8px;color:#fff;background:#4b5b73;}
+            .sb-badge.red{background:#e53935;} .sb-badge.amber{background:#ff9800;color:#1a1200;} .sb-badge.green{background:#2e9d3a;}
+            .sb-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+            .sb-hint{font-size:12px;color:var(--muted);flex:1;min-width:220px;line-height:1.5;}
+            .sb-sel,.sb-in{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 11px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;}
+            .sb-chip{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 12px;color:var(--muted);font-family:'Montserrat',sans-serif;font-size:11.5px;font-weight:700;cursor:pointer;}
+            .sb-chip.on{border-color:var(--green);color:var(--green);background:rgba(61,212,74,.08);}
+            .sb-item{padding:13px 14px 12px 12px;border-bottom:1px solid var(--border);border-left:3px solid transparent;cursor:pointer;transition:background .15s;}
+            .sb-item:hover{background:rgba(61,212,74,.04);} .sb-item.active{background:rgba(61,212,74,.09);}
+            .sb-wait{font-size:10px;font-weight:800;border-radius:6px;padding:2px 7px;white-space:nowrap;}
+            .sb-tag{font-size:9.5px;font-weight:700;border-radius:5px;padding:2px 6px;white-space:nowrap;}
+            @media(max-width:700px){ .sb-tab{padding:9px 10px;font-size:12px;} }
+          </style>
+
           <div class="sec-hd">
             <div>
-              <div class="sec-title">SUPPORT INBOX</div>
-              <div class="sec-sub">User support tickets — wrong orders, delays & general issues, plus ⚙️ auto-raised system alerts</div>
+              <div class="sec-title">SUPPORT CENTRE</div>
+              <div class="sec-sub">Every conversation sits in exactly one tab, by who needs to act next</div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <select id="supportFilterStatus" onchange="loadAdminSupport()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;">
-                <option value="">All Status</option>
-                <option value="open">🔴 Open</option>
-                <option value="pending">🟡 Pending</option>
-                <option value="resolved">🟢 Resolved</option>
-                <option value="closed">⬛ Closed</option>
-              </select>
-              <select id="supportFilterType" onchange="loadAdminSupport()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;">
-                <option value="">All Types</option>
-                <option value="wrong_order">📦 Wrong Order</option>
-                <option value="delay">⏳ Delay</option>
-                <option value="other">💬 Other</option>
-              </select>
-              <select id="supportFilterSource" onchange="loadAdminSupport()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;">
-                <option value="">Customer + System</option>
-                <option value="customer">🧑 Customer only</option>
-                <option value="system">⚙️ System only</option>
-              </select>
-              <button class="btn-secondary" onclick="loadAdminSupport()">↻ Refresh</button>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <input id="sbSearch" class="sb-in" placeholder="Search name, email or message…" oninput="sbRender()" style="min-width:230px;"/>
+              <button class="btn-secondary" onclick="sbRefresh()">↻ Refresh</button>
             </div>
           </div>
-          <!-- Two-pane layout: thread list + active chat -->
-          <div id="supportInboxWrap" style="display:grid;grid-template-columns:320px 1fr;gap:0;border:1px solid var(--border);border-radius:14px;overflow:hidden;height:680px;">
-            <!-- Left: Thread list -->
-            <div id="supportThreadList" style="border-right:1px solid var(--border);overflow-y:auto;background:var(--navy);">
-              <div class="loading-spinner"><div class="spinner"></div><span>Loading threads…</span></div>
+
+          <div class="sb-tabs" id="sbTabs"></div>
+          <div class="sb-bar" id="sbToolbar"></div>
+
+          <!-- Reorders tab (rendered by reorder_queue.js) -->
+          <div id="reorderQueuePane" style="display:none;"></div>
+
+          <!-- Conversation tabs: thread list + active chat -->
+          <div id="supportThreadsView">
+            <div id="sbBackBar" style="display:none;margin-bottom:10px;">
+              <button class="btn-secondary" onclick="sbBackFromChat()">← Back to Reorders</button>
             </div>
-            <!-- Right: Active chat -->
-            <div id="supportChatPane" style="display:flex;flex-direction:column;background:var(--black);">
-              <div style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:40px;color:var(--muted);">
-                <div>
-                  <div style="font-size:40px;margin-bottom:12px;">💬</div>
-                  <div style="font-size:14px;font-weight:600;">Select a thread to start chatting</div>
-                  <div style="font-size:12px;margin-top:6px;">You can reply directly to users from here</div>
+            <div id="supportInboxWrap" style="display:grid;grid-template-columns:340px 1fr;gap:0;border:1px solid var(--border);border-radius:14px;overflow:hidden;height:680px;">
+              <div id="supportThreadList" style="border-right:1px solid var(--border);overflow-y:auto;background:var(--navy);">
+                <div class="loading-spinner"><div class="spinner"></div><span>Loading conversations…</span></div>
+              </div>
+              <div id="supportChatPane" style="display:flex;flex-direction:column;background:var(--black);">
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:40px;color:var(--muted);">
+                  <div>
+                    <div style="font-size:40px;margin-bottom:12px;">💬</div>
+                    <div style="font-size:14px;font-weight:600;">Select a conversation</div>
+                    <div style="font-size:12px;margin-top:6px;">Reply directly to customers from here</div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div><!-- /supportInboxWrap -->
-          </div><!-- /supportThreadsView -->
+          </div>
         </div><!-- /ap-support -->
 
         <div class="admin-panel" id="ap-affiliate-payouts">
@@ -4479,6 +4485,7 @@ function resetDeposit() {
 <script src="admin.js"></script>
 <script src="ccr_support.js"></script>
 <script src="reorder_queue.js"></script>
+<script src="support_board.js"></script>
 <script src="admin_payments_health.js"></script>
 <script src="admin_affiliate_payouts.js"></script>
 <script src="admin_ccr.js"></script>

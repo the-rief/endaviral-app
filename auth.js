@@ -225,6 +225,7 @@ async function startEventStream() {
       // ran this same catch-up immediately before calling startEventStream().
       if (_evtHasConnectedBefore) {
         if (typeof _bgTicketWatchTick === 'function') _bgTicketWatchTick();
+        if (typeof sbOnTicketEvent === 'function') sbOnTicketEvent(evt);   // live-refresh the Support Centre tabs
         if (typeof _cnPollUnread === 'function') _cnPollUnread();
       }
       _evtHasConnectedBefore = true;

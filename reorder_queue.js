@@ -16,82 +16,105 @@
  * ════════════════════════════════════════════════════════════════ */
 
 let _rqTasks = [];
-let _rqView = 'threads';
+let _rqSub = 'needs';          // needs | followup | reordered | dismissed
+let _rqFollow = 'all';         // follow-up filter: all | replied | waiting | overdue
+let _rqSum = {};
 
 const RQ_REASON = {
   failed:    { label: 'FAILED',    color: '#ff5252' },
   partial:   { label: 'PARTIAL',   color: '#ffb347' },
   cancelled: { label: 'CANCELLED', color: '#9aa4b2' },
 };
-const RQ_STATUS = {
-  pending:    { label: 'Needs contact', color: '#ff5252' },
-  contacted:  { label: 'Contacted',     color: '#ffb347' },
-  reordering: { label: 'Reordering…',   color: '#4da3ff' },
-  reordered:  { label: 'Reordered ✓',   color: '#3dd44a' },
-  dismissed:  { label: 'Dismissed',     color: '#9aa4b2' },
-};
+// A client moves Needs contact → Follow-up the moment they are messaged.
+const RQ_SUBS = [
+  { id: 'needs',     status: 'pending',   icon: '📨', label: 'Needs contact', sub: 'Nobody has messaged these clients yet. Ask for a fresh link — or re-place on the original link in one press.' },
+  { id: 'followup',  status: 'contacted', icon: '⏳', label: 'Follow-up',     sub: 'Clients we already messaged. Replied ones are on top — reorder with their new link. Quiet ones can be nudged, or re-placed on the original link once they have been silent long enough.' },
+  { id: 'reordered', status: 'reordered', icon: '✅', label: 'Reordered',     sub: 'Replacement orders already placed.' },
+  { id: 'dismissed', status: 'dismissed', icon: '✕',  label: 'Dismissed',     sub: 'Marked as nothing to redo.' },
+];
+const _rqAge = (h) => h == null ? '' : (typeof sbAge === 'function' ? sbAge(h) : Math.round(h) + 'h');
 
-function rqShowView(view) {
-  _rqView = view;
-  const threads = document.getElementById('supportThreadsView');
-  const queue = document.getElementById('reorderQueuePane');
-  if (!threads || !queue) return;
-  threads.style.display = view === 'threads' ? '' : 'none';
-  queue.style.display = view === 'queue' ? '' : 'none';
-  const on = 'border-color:var(--green);color:var(--green);', off = '';
-  const t = document.getElementById('rqTabThreads'), q = document.getElementById('rqTabQueue');
-  if (t) t.style.cssText = view === 'threads' ? on : off;
-  if (q) q.style.cssText = view === 'queue' ? on : off;
-  if (view === 'queue') rqLoad();
-}
+// kept so older callers still work — tabs now live in support_board.js
+function rqShowView(view) { if (typeof sbSetTab === 'function') sbSetTab(view === 'queue' ? 'reorders' : 'inbox'); }
 
 async function rqRefreshBadge() {
   try {
-    const s = await api('/reorders/summary');
-    const b = document.getElementById('rqBadge');
-    if (!b) return;
-    b.textContent = s.open || 0;
-    b.style.display = (s.open || 0) > 0 ? 'inline-block' : 'none';
+    _rqSum = await api('/reorders/summary');
+    if (typeof _sb !== 'undefined') { _sb.rq = _rqSum; if (typeof sbRenderTabs === 'function') sbRenderTabs(); }
+    rqRenderSubtabs();
   } catch (_) {}
+}
+
+function rqRenderSubtabs() {
+  const el = document.getElementById('rqSubTabs'); if (!el) return;
+  const n = { needs: _rqSum.pending, followup: _rqSum.contacted, reordered: _rqSum.reordered, dismissed: _rqSum.dismissed };
+  el.innerHTML = RQ_SUBS.map(t => {
+    const c = n[t.id] || 0;
+    let badge = c ? `<span class="sb-badge ${t.id === 'needs' ? 'red' : t.id === 'followup' ? 'amber' : ''}">${c}</span>` : '';
+    if (t.id === 'followup' && _rqSum.replied) badge += `<span class="sb-badge green" title="Customers who replied">💬 ${_rqSum.replied}</span>`;
+    return `<button class="sb-tab ${t.id === _rqSub ? 'on' : ''}" onclick="rqSetSub('${t.id}')">${t.icon} ${t.label} ${badge}</button>`;
+  }).join('');
+}
+
+function rqSetSub(id) { _rqSub = id; _rqFollow = 'all'; rqLoad(); }
+function rqSetFollow(f) { _rqFollow = f; rqLoad(); }
+
+function rqRenderBar() {
+  const el = document.getElementById('rqSubBar'); if (!el) return;
+  const sub = RQ_SUBS.find(x => x.id === _rqSub);
+  const chip = (id, label) => `<button class="sb-chip ${_rqFollow === id ? 'on' : ''}" onclick="rqSetFollow('${id}')">${label}</button>`;
+  let html = `<div class="sb-hint">${esc(sub.sub)}</div>`;
+  if (_rqSub === 'needs') {
+    html += `<button class="btn-secondary" onclick="rqFlagNow()" title="Flag new failed/partial/cancelled orders now instead of waiting for midnight">⚑ Flag now</button>
+      <button class="btn-primary" onclick="rqMessageAll()">✉ Message all unsent</button>
+      <button class="btn-primary" onclick="rqReorderAll()" title="Re-place every open order on its original link and tell each customer" style="background:#ff7043;border-color:#ff7043;">🔁 Reorder ALL on original links</button>`;
+  } else if (_rqSub === 'followup') {
+    html += chip('all', 'All') + chip('replied', `💬 Replied${_rqSum.replied ? ' (' + _rqSum.replied + ')' : ''}`)
+      + chip('waiting', `⏳ Waiting${_rqSum.waiting ? ' (' + _rqSum.waiting + ')' : ''}`) + chip('overdue', `⚠ Overdue${_rqSum.stale ? ' (' + _rqSum.stale + ')' : ''}`)
+      + `<button class="btn-primary" onclick="rqNudgeStale()" title="Send a follow-up message to everyone who hasn't replied in 24h+">👋 Nudge overdue</button>
+         <button class="btn-primary" onclick="rqReorderOverdue()" title="Give up waiting: re-place silent clients on their original link" style="background:#ff7043;border-color:#ff7043;">🔁 Reorder silent ones…</button>`;
+  }
+  el.innerHTML = html;
 }
 
 async function rqLoad() {
   const pane = document.getElementById('reorderQueuePane');
   if (!pane) return;
-  const status = document.getElementById('rqFilterStatus')?.value || 'open';
-  const q = document.getElementById('rqSearch')?.value || '';
   if (!document.getElementById('rqList')) {
     pane.innerHTML = `
       <div class="sec-hd">
         <div>
           <div class="sec-title">REORDER QUEUE</div>
-          <div class="sec-sub">Failed, partial & cancelled orders that were paid via M-Pesa or reached the provider — flagged every midnight. Ask the client for a fresh link, then reorder for them.</div>
+          <div class="sec-sub">Failed, partial & cancelled orders that were paid via M-Pesa or reached the provider — flagged every midnight. Message a client and they move to Follow-up.</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input id="rqSearch" placeholder="Search name, email, phone, order, receipt" onkeydown="if(event.key==='Enter')rqLoad()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-size:12px;min-width:230px;outline:none;"/>
-          <select id="rqFilterStatus" onchange="rqLoad()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-size:12px;font-weight:600;outline:none;">
-            <option value="open">Open (needs action)</option>
-            <option value="pending">Needs contact</option>
-            <option value="contacted">Contacted</option>
-            <option value="reordered">Reordered</option>
-            <option value="dismissed">Dismissed</option>
-            <option value="all">All</option>
-          </select>
+          <input id="rqSearch" class="sb-in" placeholder="Search name, email, phone, order, receipt" onkeydown="if(event.key==='Enter')rqLoad()" style="min-width:230px;"/>
           <button class="btn-secondary" onclick="rqLoad()">↻ Refresh</button>
-          <button class="btn-secondary" onclick="rqFlagNow()" title="Flag new failed/partial/cancelled orders now instead of waiting for midnight">⚑ Flag now</button>
-          <button class="btn-primary" onclick="rqMessageAll()">✉ Message all unsent</button>
-          <button class="btn-primary" id="rqReorderAllBtn" onclick="rqReorderAll()" title="Re-place every open order on its original link and tell each customer" style="background:#ff7043;border-color:#ff7043;">🔁 Reorder ALL</button>
         </div>
       </div>
+      <div class="sb-tabs" id="rqSubTabs"></div>
+      <div class="sb-bar" id="rqSubBar"></div>
       <div id="rqList"></div>`;
   }
+  rqRenderSubtabs(); rqRenderBar();
+  const sub = RQ_SUBS.find(x => x.id === _rqSub);
+  const q = document.getElementById('rqSearch')?.value || '';
   const list = document.getElementById('rqList');
   list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
   try {
-    const data = await api(`/reorders/?status=${encodeURIComponent(status)}&q=${encodeURIComponent(q)}`);
-    _rqTasks = data.tasks || [];
-    list.innerHTML = _rqTasks.length ? _rqTasks.map(rqCard).join('')
-      : `<div style="text-align:center;padding:50px 20px;color:var(--muted);"><div style="font-size:38px;margin-bottom:10px;">🎉</div><div style="font-size:14px;font-weight:600;">Nothing to redo</div><div style="font-size:12px;margin-top:6px;">New failed, partial or cancelled orders are flagged every midnight.</div></div>`;
+    const data = await api(`/reorders/?status=${sub.status}&q=${encodeURIComponent(q)}&limit=300`);
+    let tasks = data.tasks || [];
+    if (_rqSub === 'followup') {
+      if (_rqFollow === 'replied') tasks = tasks.filter(t => t.customer_replied);
+      else if (_rqFollow === 'waiting') tasks = tasks.filter(t => !t.customer_replied);
+      else if (_rqFollow === 'overdue') tasks = tasks.filter(t => t.stale);
+      // replied first (newest reply on top), then the longest silence
+      tasks.sort((a, b) => (b.customer_replied - a.customer_replied)
+        || (a.customer_replied ? new Date(b.replied_at) - new Date(a.replied_at) : (b.waiting_hours || 0) - (a.waiting_hours || 0)));
+    }
+    _rqTasks = tasks;
+    list.innerHTML = tasks.length ? tasks.map(rqCard).join('')
+      : `<div style="text-align:center;padding:50px 20px;color:var(--muted);"><div style="font-size:38px;margin-bottom:10px;">🎉</div><div style="font-size:14px;font-weight:600;">${_rqSub === 'followup' ? 'Nobody to follow up' : 'Nothing here'}</div><div style="font-size:12px;margin-top:6px;">New failed, partial or cancelled orders are flagged every midnight.</div></div>`;
   } catch (e) {
     list.innerHTML = `<div style="padding:30px;color:#ff5252;">Failed to load: ${esc(e.message || e)}</div>`;
   }
@@ -100,29 +123,54 @@ async function rqLoad() {
 
 function rqCard(t) {
   const r = RQ_REASON[t.reason] || { label: (t.reason || '').toUpperCase(), color: '#9aa4b2' };
-  const s = RQ_STATUS[t.status] || { label: t.status, color: '#9aa4b2' };
-  const open = t.status === 'pending' || t.status === 'contacted';
+  const pending = t.status === 'pending', contacted = t.status === 'contacted', open = pending || contacted;
   const pay = t.mpesa_receipt ? `M-Pesa <b>${esc(t.mpesa_receipt)}</b>`
     : t.paid_via_mpesa ? 'M-Pesa paid (receipt pending)' : 'No M-Pesa payment on order';
   const qtyTxt = t.reason === 'partial' && t.remains ? `${Number(t.remains).toLocaleString()} left of ${Number(t.quantity).toLocaleString()}` : Number(t.quantity || 0).toLocaleString();
   const badge = (txt, c) => `<span style="font-size:10px;font-weight:800;letter-spacing:.5px;padding:3px 9px;border-radius:20px;border:1px solid ${c};color:${c};">${txt}</span>`;
-  return `<div style="border:1px solid var(--border);border-left:3px solid ${r.color};border-radius:12px;padding:14px 16px;margin-bottom:12px;background:var(--card);">
+
+  let stateBadge = '';
+  if (pending) stateBadge = badge('Needs contact', '#ff5252');
+  else if (contacted && t.customer_replied) stateBadge = badge('💬 CUSTOMER REPLIED', '#3dd44a');
+  else if (contacted && t.stale) stateBadge = badge(`⚠ No reply · ${_rqAge(t.waiting_hours)}`, '#ff5252');
+  else if (contacted) stateBadge = badge(`⏳ Waiting · ${_rqAge(t.waiting_hours)}`, '#ffb347');
+  else if (t.status === 'reordered') stateBadge = badge('Reordered ✓', '#3dd44a');
+  else stateBadge = badge('Dismissed', '#9aa4b2');
+
+  const contactLine = t.contacted_at
+    ? ` · ✉ contacted ${esc(new Date(t.contacted_at).toLocaleString())}${t.contacted_by_name ? ' by ' + esc(String(t.contacted_by_name).split('@')[0]) : ''}${t.follow_ups_sent ? ' · ' + t.follow_ups_sent + ' follow-up' + (t.follow_ups_sent > 1 ? 's' : '') + ' sent' : ''}`
+    : '';
+  const replyBox = contacted && t.customer_replied
+    ? `<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(61,212,74,.35);background:rgba(61,212,74,.07);border-radius:8px;font-size:12px;line-height:1.6;">
+         💬 Replied ${t.replied_at ? esc(new Date(t.replied_at).toLocaleString()) : ''}${t.reply_count > 1 ? ' (' + t.reply_count + ' messages)' : ''}<br>
+         ${t.reply_links.length ? t.reply_links.map(u => `🔗 <a href="${esc(u)}" target="_blank" rel="noopener noreferrer" style="color:var(--green);word-break:break-all;">${esc(u)}</a>`).join('<br>') : '<span style="color:var(--muted);">No link in their reply — open the chat to read it.</span>'}
+       </div>` : '';
+
+  let actions = '';
+  if (pending) {
+    actions = `<button class="btn-secondary" onclick="rqMessage('${t.id}')">✉ Message client</button>`;
+  } else if (contacted && t.customer_replied) {
+    actions = `<button class="btn-primary" onclick="rqReorder('${t.id}')">🔁 Reorder with their link</button>`;
+  } else if (contacted) {
+    actions = `<button class="btn-secondary" onclick="rqMessage('${t.id}','followup')">👋 Nudge</button>`;
+  }
+  if (t.thread_id) actions += `<button class="btn-secondary" onclick="rqOpenChat('${t.thread_id}')">💬 Open chat</button>`;
+  if (pending || (contacted && !t.customer_replied)) actions += `<button class="btn-secondary" onclick="rqReorder('${t.id}')">🔁 Reorder for client</button>`;
+  if (open) actions += `<button class="btn-secondary" onclick="rqDismiss('${t.id}')">✕ Dismiss</button>`;
+
+  return `<div style="border:1px solid var(--border);border-left:3px solid ${contacted && t.customer_replied ? '#3dd44a' : r.color};border-radius:12px;padding:14px 16px;margin-bottom:12px;background:var(--card);">
     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
       <div style="font-weight:700;font-size:14px;">${esc(t.service_name || 'Order')} <span style="color:var(--muted);font-weight:500;font-size:12px;">· #${esc(t.order_id.slice(0, 8))} · ${esc(qtyTxt)}</span></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">${badge(r.label, r.color)}${badge(s.label, s.color)}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">${badge(r.label, r.color)}${stateBadge}</div>
     </div>
     <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.7;">
       👤 <b style="color:var(--white);">${esc(t.user.name || '—')}</b> · ${esc(t.user.email || '')} ${t.phone ? '· 📞 ' + esc(t.phone) : ''}<br>
       💳 ${pay}${t.provider_order_id ? ' · Provider order <b>' + esc(t.provider_order_id) + '</b>' : ''} · KES ${Number(t.charge || 0).toLocaleString()}<br>
       🔗 <a href="${esc(t.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--green);word-break:break-all;">${esc(t.link)}</a><br>
-      ⚑ Flagged ${esc(t.flagged_on)}${t.contacted_at ? ' · ✉ contacted ' + esc(new Date(t.contacted_at).toLocaleString()) : ''}${t.new_order_id ? ' · 🔁 new order #' + esc(t.new_order_id.slice(0, 8)) + ' (' + Number(t.new_quantity || 0).toLocaleString() + ') on ' + esc(t.new_link || '') : ''}${t.note ? '<br>📝 ' + esc(t.note) : ''}
+      ⚑ Flagged ${esc(t.flagged_on)}${contactLine}${t.new_order_id ? ' · 🔁 new order #' + esc(t.new_order_id.slice(0, 8)) + ' (' + Number(t.new_quantity || 0).toLocaleString() + ') on ' + esc(t.new_link || '') : ''}${t.note ? '<br>📝 ' + esc(t.note) : ''}
     </div>
-    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-      ${open ? `<button class="btn-secondary" onclick="rqMessage('${t.id}')">✉ ${t.status === 'pending' ? 'Message client' : 'Message again'}</button>` : ''}
-      ${t.thread_id ? `<button class="btn-secondary" onclick="rqOpenChat('${t.thread_id}')">💬 Open chat</button>` : ''}
-      ${open ? `<button class="btn-primary" onclick="rqReorder('${t.id}')">🔁 Reorder for client</button>
-      <button class="btn-secondary" onclick="rqDismiss('${t.id}')">✕ Dismiss</button>` : ''}
-    </div>
+    ${replyBox}
+    ${actions ? `<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">${actions}</div>` : ''}
   </div>`;
 }
 
@@ -152,16 +200,17 @@ function rqModal(title, bodyHtml, confirmLabel, onConfirm) {
 }
 const _rqField = 'width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--white);font-family:inherit;font-size:13px;outline:none;box-sizing:border-box;';
 
-async function rqMessage(id) {
+async function rqMessage(id, kind) {
+  const followup = kind === 'followup';
   let body = '';
-  try { body = (await api(`/reorders/${id}/preview-message`)).body; } catch (e) { toast(e.message, 'error'); return; }
-  rqModal('Message client — ask for a fresh link',
-    `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Sent in a support thread; they get it in their chat.</div>
+  try { body = (await api(`/reorders/${id}/preview-message${followup ? '?kind=followup' : ''}`)).body; } catch (e) { toast(e.message, 'error'); return; }
+  rqModal(followup ? 'Nudge client — still need their link' : 'Message client — ask for a fresh link',
+    `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Sent in a support thread; they get it in their chat.${followup ? '' : ' They then move to the Follow-up tab.'}</div>
      <textarea id="rqMsgBody" rows="8" style="${_rqField}resize:vertical;">${esc(body)}</textarea>`,
-    '✉ Send',
+    followup ? '👋 Send nudge' : '✉ Send',
     async () => {
-      await api(`/reorders/${id}/message`, { method: 'POST', body: JSON.stringify({ body: document.getElementById('rqMsgBody').value }) });
-      toast('Message sent', 'success'); rqLoad();
+      await api(`/reorders/${id}/message`, { method: 'POST', body: JSON.stringify({ body: document.getElementById('rqMsgBody').value, followup }) });
+      toast(followup ? 'Nudge sent' : 'Message sent — moved to Follow-up', 'success'); rqLoad();
     });
 }
 
@@ -372,6 +421,45 @@ async function rqReorderAll() {
     });
 }
 
+
+async function rqNudgeStale() {
+  const n = _rqSum.stale || 0;
+  if (!n) { toast('No overdue follow-ups', 'success'); return; }
+  if (!confirm(`Send the follow-up message to the ${n} client(s) who haven't replied in ${_rqSum.stale_after_hours || 24}h+?\nClients who have replied are not messaged.`)) return;
+  try {
+    const r = await api('/reorders/nudge-stale', { method: 'POST', body: JSON.stringify({ hours: _rqSum.stale_after_hours || 24 }) });
+    toast(`Nudged ${r.sent} client(s)${r.failed ? `, ${r.failed} failed` : ''}`, r.failed ? 'error' : 'success');
+    rqLoad();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+/* Give up waiting: re-place every contacted-but-silent client on their ORIGINAL link.
+ * Clients who replied are always skipped by the backend (they sent a new link). */
+function rqReorderOverdue() {
+  rqModal('Reorder silent clients on their original link',
+    `<div style="font-size:12px;color:var(--muted);line-height:1.7;">
+       Re-places every contacted client who has <b style="color:var(--white);">not replied</b> for at least
+       <input id="rqSilentHrs" type="number" min="1" max="720" value="48" style="${_rqField}width:80px;display:inline-block;margin:0 6px;padding:6px 8px;"/> hours, on the link they originally used, at <b>no charge</b>.
+       Each customer is told in their chat. Clients who replied are skipped.
+     </div>
+     <div id="rqSilentProg" style="margin-top:12px;font-size:12px;"></div>`,
+    '🔁 Reorder now',
+    async () => {
+      const hrs = parseInt(document.getElementById('rqSilentHrs').value, 10) || 48;
+      const prog = document.getElementById('rqSilentProg');
+      const placed = [], failed = [], skipped = [], skipIds = [];
+      for (let guard = 0; guard < 100; guard++) {
+        prog.textContent = `Working… ${placed.length} placed · ${failed.length} failed · ${skipped.length} skipped`;
+        const r = await api('/reorders/reorder-all', { method: 'POST', body: JSON.stringify({ limit: 10, only_contacted: true, min_waiting_hours: hrs, skip_ids: skipIds }) });
+        placed.push(...r.placed); failed.push(...r.failed); skipped.push(...r.skipped);
+        [...r.failed, ...r.skipped].forEach(x => skipIds.push(x.task_id));
+        if ((!r.placed.length && !r.failed.length && !r.skipped.length) || !r.remaining) break;
+      }
+      rqLoad();
+      toast(`${placed.length} reordered${failed.length ? `, ${failed.length} failed` : ''}${skipped.length ? `, ${skipped.length} skipped` : ''}`, failed.length ? 'error' : 'success');
+    });
+}
+
 async function rqFlagNow() {
   try {
     const r = await api('/reorders/flag-now', { method: 'POST' });
@@ -380,20 +468,8 @@ async function rqFlagNow() {
   } catch (e) { toast(e.message, 'error'); }
 }
 
+// Open the customer's support thread (chat only, with a "Back to Reorders" button).
 function rqOpenChat(threadId) {
-  rqShowView('threads');
-  if (typeof loadAdminSupport === 'function') loadAdminSupport();
-  setTimeout(() => { if (typeof openSupportThread === 'function') openSupportThread(threadId); }, 400);
+  if (typeof sbFocusThread === 'function') sbFocusThread(threadId, { fromReorders: true });
+  else if (typeof openSupportThread === 'function') openSupportThread(threadId);
 }
-
-// Refresh the badge whenever the Support tab opens (admin.js calls this on tab click).
-(function () {
-  const orig = window.openAdminSupportTab;
-  if (typeof orig === 'function') {
-    window.openAdminSupportTab = async function () {
-      const r = await orig.apply(this, arguments);
-      rqShowView(_rqView); rqRefreshBadge();
-      return r;
-    };
-  }
-})();

@@ -2753,17 +2753,8 @@ let _supportOrdersCache = {};
 // the pane is actually showing.
 let _supportThreadUser = null;
 
-// Entry point for the Support tab click specifically (adminTab() calls this,
-// not loadAdminSupport() directly). Auto-closes threads inactive 7+ days
-// first, then loads the list — so the list the admin sees already reflects
-// anything that just got closed. Scoped to the tab click on purpose: the
-// internal refreshes elsewhere in this file (after a reply, after a manual
-// status change, after admin_initiate_thread) call loadAdminSupport() on
-// its own and should NOT re-trigger the auto-close sweep every time.
-async function openAdminSupportTab() {
-  await autoCloseStaleSupportThreads();
-  loadAdminSupport();
-}
+// The Support tab (tabs, lists, filters, loadAdminSupport(), openAdminSupportTab()) now lives in
+// support_board.js. The stale-ticket sweep stays here: support_board.js runs it on every tab open.
 
 async function autoCloseStaleSupportThreads() {
   try {
@@ -2774,65 +2765,6 @@ async function autoCloseStaleSupportThreads() {
   } catch (e) {
     // Non-fatal — don't block the thread list from loading if this fails
     console.warn('Auto-close stale support threads failed:', e);
-  }
-}
-
-async function loadAdminSupport() {
-  if (!currentUser || !(currentUser.role === 'admin' || currentUser.is_ccr_agent)) return;
-  const status = document.getElementById('supportFilterStatus')?.value || '';
-  const type   = document.getElementById('supportFilterType')?.value || '';
-  const source = document.getElementById('supportFilterSource')?.value || '';
-  const list   = document.getElementById('supportThreadList');
-  if (!list) return;
-  list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
-
-  let url = `/support/admin/threads?limit=60`;
-  if (status) url += `&status=${status}`;
-  if (type)   url += `&type=${type}`;
-  if (source) url += `&source=${source}`;
-
-  try {
-    const data = await api(url);
-    const threads = data.threads || [];
-    if (!threads.length) {
-      list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;">No threads found</div>';
-      return;
-    }
-
-    const statusColor = { open:'#e53935', pending:'#ff7043', resolved:'#3dd44a', closed:'#7a8fad' };
-    const statusEmoji = { open:'🔴', pending:'🟡', resolved:'🟢', closed:'⬛' };
-    const typeLabel   = { wrong_order:'📦 Wrong Order', delay:'⏳ Delay' };
-
-    list.innerHTML = threads.map(t => {
-      const lastMsg = t.last_message;
-      const preview = esc(lastMsg ? lastMsg.body.slice(0,60) + (lastMsg.body.length > 60 ? '…' : '') : 'No messages');
-      const sColor  = statusColor[t.status] || '#7a8fad';
-      const tid     = esc(t.id);
-      const userName = esc(t.user_name || t.user_email || '—');
-      const tStatus  = esc(t.status);
-      const tType    = esc(t.type);
-      const isSystem = t.source === 'system';
-      // System-raised threads get a distinct left-border + badge so they
-      // read as "our backend flagged this" at a glance, without being
-      // hidden from the default (unfiltered) queue — see support_chat.py.
-      const sourceBadge = isSystem
-        ? `<span style="font-size:9px;font-weight:700;color:#ffb347;background:rgba(255,179,71,.12);border-radius:5px;padding:2px 6px;white-space:nowrap;">⚙️ SYSTEM</span>`
-        : '';
-      return `<div class="support-thread-item" data-thread-id="${tid}" onclick="openSupportThread('${tid}')" style="padding:14px 16px 14px 13px;border-bottom:1px solid var(--border);border-left:3px solid ${isSystem ? '#ffb347' : 'transparent'};cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(61,212,74,.04)'" onmouseout="this.style.background=''" >
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
-          <div style="font-size:12px;font-weight:700;color:var(--white);">${userName}</div>
-          <span style="font-size:10px;font-weight:700;color:${sColor};white-space:nowrap;">${statusEmoji[t.status] || ''} ${tStatus.toUpperCase()}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-          <div style="font-size:11px;color:var(--green);font-weight:600;">${typeLabel[t.type] || tType}</div>
-          ${sourceBadge}
-        </div>
-        <div style="font-size:11.5px;color:var(--muted);line-height:1.4;">${preview}</div>
-        <div style="font-size:10px;color:#3a5570;margin-top:6px;">${t.message_count || 0} messages · ${t.created_at ? new Date(t.created_at).toLocaleDateString('en-KE') : ''}</div>
-      </div>`;
-    }).join('');
-  } catch(e) {
-    list.innerHTML = `<div style="padding:24px;text-align:center;color:var(--red);font-size:13px;">${e.message || 'Failed to load threads'}</div>`;
   }
 }
 
@@ -3166,7 +3098,8 @@ async function adminUpdateThreadStatus(status) {
 async function adminMessageCustomer(userId, userEmail) {
   if (!userId && !userEmail) { toast('No user info for this order', 'error'); return; }
 
-  // Switch to Support tab
+  // Switch to Support tab (land on a conversation tab, not the Reorders list)
+  if (typeof _sb !== 'undefined' && _sb.tab === 'reorders') _sb.tab = 'inbox';
   const supportTabBtn = document.querySelector('.admin-tab[onclick*="support"]');
   if (supportTabBtn) supportTabBtn.click();
 
@@ -3187,12 +3120,9 @@ async function adminMessageCustomer(userId, userEmail) {
     if (threads.length) {
       // Open the most recent open/pending thread, or just the most recent
       const best = threads.find(t => ['open','pending'].includes(t.status)) || threads[0];
-      await openSupportThread(best.id);
-      // Highlight the active thread row in the list
-      document.querySelectorAll('#supportThreadList .support-thread-item').forEach(el => {
-        el.style.background = el.dataset.threadId === best.id ? 'rgba(61,212,74,.08)' : '';
-        el.onmouseout = el.dataset.threadId === best.id ? null : () => { el.style.background = ''; };
-      });
+      // Switches to whichever tab (Inbox / Follow-up / Automatic / Done) the thread lives in, then opens it
+      if (typeof sbFocusThread === 'function') await sbFocusThread(best.id);
+      else await openSupportThread(best.id);
       toast(`Opened thread for ${userEmail}`, 'success');
     } else {
       // No existing thread — show prompt for admin to initiate one
