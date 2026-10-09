@@ -3311,8 +3311,16 @@ function _ticketBodyText(val) {
   return String(val);
 }
 
+// Shows the headline (first non-empty line) instead of the first N chars of the
+// whole body, so the news ("Order confirmed…") isn't cut off by a greeting.
+function _ticketHeadline(body) {
+  const lines = (body || '').replace(/\*\*(.*?)\*\*/g, '$1').split('\n').map(l => l.trim()).filter(Boolean);
+  const first = lines[0] || '';
+  return first.length > 90 ? first.slice(0, 90) + '…' : first;
+}
+
 function _ticketPreview(body) {
-  const clean = (body || '').replace(/\*\*(.*?)\*\*/g, '$1').replace(/\n/g, ' ').slice(0, 90) + ((body||'').length > 90 ? '…' : '');
+  const clean = _ticketHeadline(body);
   return clean.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
@@ -3652,7 +3660,7 @@ async function _bgTicketWatchTick() {
           const lastAdminMsg = newMsgs.filter(m => m.sender === 'admin').pop();
           if (lastAdminMsg) {
             const body    = lastAdminMsg.body || '';
-            const preview = body.replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n/g,' ').slice(0, 80) + (body.length > 80 ? '…' : '');
+            const preview = _ticketHeadline(body);
 
             // Use the chat.js popup if available, fall back to our own
             if (typeof evShowDashboardPopup === 'function') {

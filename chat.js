@@ -387,7 +387,9 @@
           .sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
         if (lastAdmin) {
           const body = lastAdmin.last_message.body || '';
-          const preview = _stripMd(body).slice(0, 80) + (body.length > 80 ? '…' : '');
+          // Headline (first non-empty line) so the news isn't cut off by a greeting.
+          const headline = _stripMd(String(body).split('\n').map(l => l.trim()).filter(Boolean)[0] || '');
+          const preview = headline.length > 90 ? headline.slice(0, 90) + '…' : headline;
           evShowDashboardPopup(ADMIN_NAME, preview, () => evGoToTicketsPage());
         }
       }
