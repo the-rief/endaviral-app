@@ -3,8 +3,10 @@
  * has a provider order id or a successful M-Pesa payment (services/reorder_queue.py).
  * Next morning an admin or CCR agent works this list:
  *   1. "Message client"  – asks them (in a support thread) to resend their link
- *   2. "Reorder"         – once they reply, paste the new link → the order is
- *                          re-placed at no charge straight to the provider
+ *   2. "Reorder"         – re-use the original link (if valid), pick a link the customer
+ *                          sent in chat, or paste a new one; quantity auto-fills; if the
+ *                          service is unavailable choose a similar one. Re-placed at no
+ *                          charge straight to the provider
  *   3. "Dismiss"         – nothing to redo
  *   4. "Reorder ALL"     – one press: re-places every open task on the link the
  *                          customer ORIGINALLY used, free of charge, and messages each
@@ -163,23 +165,132 @@ async function rqMessage(id) {
     });
 }
 
-function rqReorder(id) {
+/* ── REORDER FOR CLIENT ─────────────────────────────────────────────
+ * One dialog, three decisions (all pre-filled so the common case is one click):
+ *   LINK     – re-use the original link (if it looks valid), pick a link the customer
+ *              sent back in the support chat, or type a new one.
+ *   SERVICE  – keep the original service, or — if it's unavailable — pick a similar one.
+ *   QUANTITY – auto-filled with what's still undelivered (still editable).
+ * Data comes from GET /reorders/{id}/options. NB: the link check is format-level
+ * only; it can't confirm a post is still live or public.                          */
+const _rqBadge = (check) => {
+  const c = { ok: '#3dd44a', warn: '#ffb347', bad: '#ff5252' }[check.level] || '#9aa4b2';
+  const i = { ok: '✓', warn: '⚠', bad: '✕' }[check.level] || '•';
+  return `<span style="font-size:10px;font-weight:700;color:${c};">${i} ${esc(check.reason)}</span>`;
+};
+const _rqOptCard = (name, value, checked, disabled, inner) => `
+  <label style="display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:${disabled ? 'not-allowed' : 'pointer'};opacity:${disabled ? .55 : 1};background:var(--card);">
+    <input type="radio" name="${name}" value="${esc(value)}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} style="margin-top:3px;"/>
+    <div style="min-width:0;flex:1;font-size:12px;line-height:1.6;">${inner}</div>
+  </label>`;
+const _rqLbl = (t) => `<div style="font-size:11px;font-weight:700;color:var(--muted);margin:14px 0 6px;">${t}</div>`;
+
+async function rqReorder(id) {
   const t = _rqTasks.find(x => x.id === id); if (!t) return;
-  rqModal('Reorder for client',
-    `<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Re-places <b style="color:var(--white);">${esc(t.service_name)}</b> straight to the provider at <b>no charge</b> (the client already paid). Paste the new link the client sent you.</div>
-     <label style="font-size:11px;font-weight:700;color:var(--muted);">NEW LINK</label>
-     <input id="rqNewLink" placeholder="https://…" style="${_rqField}margin:6px 0 12px;"/>
-     <label style="font-size:11px;font-weight:700;color:var(--muted);">QUANTITY (max ${Number(t.quantity).toLocaleString()})</label>
-     <input id="rqNewQty" type="number" min="1" max="${t.quantity}" value="${t.suggested_quantity}" style="${_rqField}margin-top:6px;"/>`,
+  let o;
+  try { o = await api(`/reorders/${id}/options`); } catch (e) { toast(e.message || 'Could not load reorder options', 'error'); return; }
+
+  const origOk = o.original_link.check.level !== 'bad';       // usable (ok or warn)
+  // Default link choice: newest valid link the customer sent back > original link if it looks fine > type a new one.
+  const goodCust = (o.customer_links || []).findIndex(c => c.check.level === 'ok');
+  const defLink = goodCust >= 0 ? 'cust:' + goodCust : (o.original_link.check.level === 'ok' ? 'orig' : 'new');
+  const svcUnavailable = !o.service.available;
+  const alts = o.alternatives || [];
+  const custLinks = o.customer_links || [];
+  const defaultQty = o.quantity;
+
+  // ── LINK block ──
+  const linkHtml =
+    _rqOptCard('rqLink', 'orig', defLink === 'orig', !origOk,
+      `<b style="color:var(--white);">Original link</b> ${_rqBadge(o.original_link.check)}<br>
+       <a href="${esc(o.original_link.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--green);word-break:break-all;">${esc(o.original_link.url || '—')}</a>
+       ${o.original_status === 'cancelled' && origOk ? '<br><span style="color:var(--muted);">Order was cancelled — if the link was private/invalid it can fail again, so open it to check.</span>' : ''}`)
+    + custLinks.map((c, i) => _rqOptCard('rqLink', 'cust:' + i, defLink === 'cust:' + i, c.check.level === 'bad',
+      `<b style="color:var(--white);">Sent by customer in chat</b> ${_rqBadge(c.check)}<br>
+       <a href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--green);word-break:break-all;">${esc(c.url)}</a>`)).join('')
+    + _rqOptCard('rqLink', 'new', defLink === 'new', false,
+      `<b style="color:var(--white);">Enter a new link</b>
+       <input id="rqNewLink" placeholder="https://…" style="${_rqField}margin-top:6px;"/>
+       <div id="rqNewLinkHint" style="margin-top:4px;"></div>`);
+
+  // ── SERVICE block ──
+  const altRows = alts.map((a, i) => _rqOptCard('rqAlt', String(a.service), i === 0 && svcUnavailable, false,
+    `<b style="color:var(--white);">${esc(a.name)}</b><br>
+     <span style="color:var(--muted);">KES ${Number(a.rate_kes).toLocaleString()}/1k · limits ${Number(a.min).toLocaleString()}–${Number(a.max).toLocaleString()}
+       ${a.refill ? ' · ♻ refill' : ''} · ~KES ${Number(a.est_cost_kes).toLocaleString()} to you for this order
+       ${a.cheaper ? ' · <span style="color:#3dd44a;">cheaper than original</span>' : a.pricier ? ' · <span style="color:#ffb347;">costs more than original</span>' : ''}
+       · ${Math.round(a.similarity * 100)}% match</span>`)).join('');
+  const svcHtml =
+    `<div style="font-size:12px;margin-bottom:8px;">${svcUnavailable
+        ? `<span style="color:#ff5252;font-weight:700;">⚠ Original service unavailable</span> <span style="color:var(--muted);">— ${esc(o.service.reason)}</span>`
+        : `<span style="color:#3dd44a;font-weight:700;">✓ Original service available</span>`}</div>`
+    + _rqOptCard('rqSvc', 'orig', !svcUnavailable, false,
+        `<b style="color:var(--white);">Keep original service</b><br><span style="color:var(--muted);">${esc(o.service.name)}</span>`)
+    + _rqOptCard('rqSvc', 'alt', svcUnavailable && alts.length > 0, !alts.length,
+        `<b style="color:var(--white);">Use a similar service</b> ${alts.length ? '' : '<span style="color:#ff5252;">(none found that fits this quantity)</span>'}`)
+    + `<div id="rqAltList" style="display:${svcUnavailable && alts.length ? 'block' : 'none'};max-height:230px;overflow:auto;margin-left:6px;">${altRows}</div>`;
+
+  const el = rqModal('Reorder for client',
+    `<div style="font-size:12px;color:var(--muted);line-height:1.6;">Re-places the order straight to the provider at <b style="color:var(--white);">no charge</b> (the client already paid).</div>
+     ${_rqLbl('LINK')}${linkHtml}
+     ${_rqLbl('SERVICE')}${svcHtml}
+     ${_rqLbl(`QUANTITY (max ${Number(o.max_quantity).toLocaleString()})`)}
+     <input id="rqNewQty" type="number" min="1" max="${o.max_quantity}" value="${defaultQty}" style="${_rqField}"/>
+     <div style="font-size:11px;color:var(--muted);margin-top:4px;">Auto-filled with ${t.reason === 'partial' ? 'the undelivered amount' : 'the original quantity'}. You can still change it.</div>`,
     '🔁 Place reorder',
     async () => {
-      const link = document.getElementById('rqNewLink').value.trim();
+      const sel = (n) => el.querySelector(`input[name="${n}"]:checked`)?.value;
       const quantity = parseInt(document.getElementById('rqNewQty').value, 10);
-      if (!/^https?:\/\//i.test(link)) throw new Error('Enter a valid http(s) link');
       if (!quantity || quantity < 1) throw new Error('Enter a valid quantity');
-      const res = await api(`/reorders/${id}/reorder`, { method: 'POST', body: JSON.stringify({ link, quantity }) });
-      toast(`Reorder placed (#${res.new_order_id.slice(0, 8)})`, 'success'); rqLoad();
+      const body = { quantity };
+
+      const ls = sel('rqLink');
+      if (ls === 'orig') body.use_original_link = true;
+      else if (ls && ls.startsWith('cust:')) body.link = custLinks[parseInt(ls.slice(5), 10)].url;
+      else {
+        const link = document.getElementById('rqNewLink').value.trim();
+        if (!/^https?:\/\//i.test(link)) throw new Error('Enter a valid http(s) link');
+        body.link = link;
+      }
+      if (sel('rqSvc') === 'alt') {
+        const sid = parseInt(sel('rqAlt'), 10);
+        if (!sid) throw new Error('Pick a replacement service');
+        body.service_id = sid;
+      }
+      try {
+        const res = await api(`/reorders/${id}/reorder`, { method: 'POST', body: JSON.stringify(body) });
+        toast(`Reorder placed (#${res.new_order_id.slice(0, 8)})${res.service_substituted ? ' on a similar service' : ''}`, 'success');
+        rqLoad();
+      } catch (e) {
+        // Provider refused it — most often a dead service. Open the alternatives so the next click can fix it.
+        if (alts.length && sel('rqSvc') === 'orig' && /provider|service/i.test(e.message || '')) {
+          const alt = el.querySelector('input[name="rqSvc"][value="alt"]'); if (alt) { alt.checked = true; alt.dispatchEvent(new Event('change', { bubbles: true })); }
+          const first = el.querySelector('input[name="rqAlt"]'); if (first && !el.querySelector('input[name="rqAlt"]:checked')) first.checked = true;
+          e.message = (e.message || 'Provider error') + ' — try a similar service below.';
+        }
+        throw e;
+      }
     });
+
+  // ── interactions ──
+  const altList = el.querySelector('#rqAltList');
+  el.addEventListener('change', (ev) => {
+    if (ev.target.name === 'rqSvc') {
+      altList.style.display = ev.target.value === 'alt' ? 'block' : 'none';
+      if (ev.target.value === 'alt' && !el.querySelector('input[name="rqAlt"]:checked')) {
+        const f = el.querySelector('input[name="rqAlt"]'); if (f) f.checked = true;
+      }
+    }
+  });
+  const newLink = el.querySelector('#rqNewLink'), hint = el.querySelector('#rqNewLinkHint');
+  newLink.addEventListener('focus', () => { const r = el.querySelector('input[name="rqLink"][value="new"]'); if (r) r.checked = true; });
+  newLink.addEventListener('input', () => {   // light client-side check while typing
+    const v = newLink.value.trim();
+    if (!v) { hint.innerHTML = ''; return; }
+    if (!/^https?:\/\//i.test(v)) hint.innerHTML = _rqBadge({ level: 'bad', reason: 'Must start with http:// or https://' });
+    else if (/\s|%20/i.test(v)) hint.innerHTML = _rqBadge({ level: 'bad', reason: 'Contains pasted text — not a clean link' });
+    else hint.innerHTML = _rqBadge({ level: 'ok', reason: 'Format OK' });
+  });
 }
 
 function rqDismiss(id) {
