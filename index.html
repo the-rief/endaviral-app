@@ -2455,13 +2455,17 @@ tbody td{padding:13px 16px;font-size:14px;}
       <!-- WALLET -->
       <div class="page-section" id="sec-wallet">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;" class="wallet-top-grid">
-          <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-label">Current Balance</div><div class="stat-val" id="wallet-balance">KES 0</div><div class="stat-sub">Available to spend</div></div>
+          <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-label">Current Balance</div><div class="stat-val" id="wallet-balance">KES 0</div><div class="stat-sub">Earnings balance · orders are paid per order with M-Pesa</div></div>
           <div class="stat-card blue"><div class="stat-icon">📈</div><div class="stat-label">Total Deposited</div><div class="stat-val" id="wallet-deposited">KES 0</div><div class="stat-sub">All time via M-Pesa</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;" class="wallet-main-grid">
           <div>
-            <div class="sec-title" style="margin-bottom:18px;">TOP UP VIA M-PESA</div>
-            <div id="depositForm">
+            <div class="sec-title" style="margin-bottom:18px;">PAY PER ORDER WITH M-PESA</div>
+            <div style="background:rgba(61,212,74,.08);border:1px solid rgba(61,212,74,.25);border-radius:12px;padding:16px 18px;font-size:13px;line-height:1.6;color:var(--muted);">
+              Wallet top-ups are switched off. Every order is paid directly with its own M-Pesa prompt when you place it, and each payment carries its M-Pesa reference number on your receipt.
+              <div style="margin-top:12px;"><button class="btn-primary" onclick="navTo('services')">PLACE AN ORDER</button></div>
+            </div>
+            <div id="depositForm" style="display:none !important;">
               <div class="preset-label" style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">QUICK SELECT</div>
               <div class="presets2">
                 <div class="preset2" data-val="250" onclick="selectPreset2(this)"><span class="p-label">KES</span>250</div>
@@ -2584,6 +2588,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="admin-tab" onclick="adminTab('creator-events', this)">🎤 Creator Events</div>
           <div class="admin-tab" onclick="adminTab('consultations', this)">💼 Consultations</div>
           <div class="admin-tab" onclick="adminTab('free-orders', this)">🎁 Free Orders</div>
+          <div class="admin-tab" onclick="adminTab('payments-health', this)">🛡️ Payments Health</div>
         </div>
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
@@ -2735,6 +2740,12 @@ tbody td{padding:13px 16px;font-size:14px;}
 
         <!-- SUPPORT CHAT PANEL -->
         <div class="admin-panel" id="ap-support">
+          <div id="supportViewTabs" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+            <button class="btn-secondary" id="rqTabThreads" onclick="rqShowView('threads')">💬 Tickets</button>
+            <button class="btn-secondary" id="rqTabQueue" onclick="rqShowView('queue')">🔁 Reorder Queue <span id="rqBadge" style="display:none;margin-left:6px;background:#ff5252;color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800;">0</span></button>
+          </div>
+          <div id="reorderQueuePane" style="display:none;"></div>
+          <div id="supportThreadsView">
           <div class="sec-hd">
             <div>
               <div class="sec-title">SUPPORT INBOX</div>
@@ -2779,6 +2790,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               </div>
             </div>
           </div><!-- /supportInboxWrap -->
+          </div><!-- /supportThreadsView -->
         </div><!-- /ap-support -->
 
         <div class="admin-panel" id="ap-affiliate-payouts">
@@ -2920,6 +2932,10 @@ tbody td{padding:13px 16px;font-size:14px;}
         </div>
 
                 <!-- ══ FREE BONUS ORDERS (admin + support) ══ -->
+        <div class="admin-panel" id="ap-payments-health">
+          <div id="paymentsHealthRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+        </div><!-- /ap-payments-health -->
+
         <div class="admin-panel" id="ap-free-orders">
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
             <div><div class="sec-title">🎁 FREE ORDERS</div><div class="sec-sub">Clients who completed 5 paid orders. Approve to push to the provider — no payment needed.</div></div>
@@ -4139,8 +4155,12 @@ function startPaymentPoll() {
     attempts++;
     if (attempts > 24) {
       stopPaymentPoll();
-      showOrderResult(false, 'Payment timed out. If you entered your M-Pesa PIN and were charged, please raise this to admin for manual processing.');
-      _autoRaisePaymentTicket({ orderId: pendingOrderId, checkoutId: pendingCheckoutId, reason: 'Payment polling timed out after 24 attempts — possible silent charge' });
+      // No ticket here: the server keeps checking this payment for up to an
+      // hour (webhook + reconciler) and starts the order by itself if the PIN
+      // was entered late; if it ends up failed/cancelled the backend raises
+      // its own ticket. A ticket per abandoned prompt would just be noise.
+      showOrderResult(false, "We haven't received your M-Pesa confirmation yet. If you already entered your PIN, your order will start automatically within a few minutes — check My Orders. If you didn't pay, nothing was charged and you can try again.");
+      Store.invalidate('orders');
       return;
     }
     try {
@@ -4149,9 +4169,9 @@ function startPaymentPoll() {
         stopPaymentPoll();
         try {
           await api(`/orders/${pendingOrderId}/submit`, { method:'POST' });
-          showOrderResult(true, 'Payment confirmed and order submitted! Track it in My Orders.');
+          showOrderResult(true, 'Payment confirmed' + (status.mpesaReceipt ? ' (M-Pesa ref ' + status.mpesaReceipt + ')' : '') + ' and order submitted! Track it in My Orders.');
         } catch(_) {
-          showOrderResult(true, 'Payment confirmed! Order is being processed. Check My Orders.');
+          showOrderResult(true, 'Payment confirmed' + (status.mpesaReceipt ? ' (M-Pesa ref ' + status.mpesaReceipt + ')' : '') + '! Order is being processed. Check My Orders.');
         }
         Store.invalidate('orders');
         Store.invalidate('dashboardOrders'); // new order exists now — don't serve the pre-order cached dashboard list either
@@ -4250,7 +4270,7 @@ function renderOrders() {
   const el = document.getElementById('ordersTable');
   if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
   el.innerHTML = `<table>
-    <thead><tr><th>#ID</th><th>Service</th><th class="hide-mobile">Link</th><th>Qty</th><th class="hide-mobile">Start/Remains</th><th>Cost</th><th>Status</th><th class="hide-mobile">Date</th><th>Actions</th></tr></thead>
+    <thead><tr><th>#ID</th><th>Service</th><th class="hide-mobile">Link</th><th>Qty</th><th class="hide-mobile">Start/Remains</th><th>Cost</th><th>Status</th><th>M-Pesa Ref</th><th class="hide-mobile">Date</th><th>Actions</th></tr></thead>
     <tbody>${list.map(o => {
       const fullId  = o.id || o._id || '';
       const shortId = fullId.slice(0,8) || '—';
@@ -4264,6 +4284,15 @@ function renderOrders() {
       // only for services MoreThanPanel itself supports refill on
       // (o.service_refill, from Service.refill via the /orders response).
       const canRefill = o.provider_order_id && ['completed','partial'].includes(status) && o.service_refill;
+      // M-Pesa confirmation code of the payment that paid for this order.
+      // Only present when the client actually paid via M-Pesa (free/bonus
+      // orders and unpaid/failed ones have none). Codes are alphanumeric,
+      // so strip anything else before putting it in markup/onclick.
+      const mpesaRef = String(o.mpesa_receipt || '').replace(/[^A-Za-z0-9]/g, '');
+      const mpesaCell = mpesaRef
+        ? `<span style="font-family:monospace;font-size:12px;color:var(--green);letter-spacing:.3px;">${mpesaRef}</span>
+           <button onclick="event.stopPropagation();navigator.clipboard.writeText('${mpesaRef}').then(()=>toast('M-Pesa ref copied!','success'))" title="Copy M-Pesa reference" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:2px 4px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button>`
+        : '<span style="color:var(--muted);font-size:11px;">—</span>';
       const actions = [
         canRefill ? `<button class="action-btn" onclick="event.stopPropagation();requestOrderRefill('${fullId}')" title="Request a refill for dropped counts">♻️ Refill</button>` : '',
       ].filter(Boolean).join(' ') || '<span style="color:var(--muted);font-size:11px;">—</span>';
@@ -4278,6 +4307,7 @@ function renderOrders() {
         <td class="hide-mobile" style="font-size:12px;color:var(--muted);white-space:nowrap;">${startRemains}</td>
         <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost||o.amount)}</td>
         <td>${statusPill(o.status)}</td>
+        <td style="white-space:nowrap;">${mpesaCell}</td>
         <td class="hide-mobile" style="font-size:12px;color:var(--muted);">${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
         <td style="white-space:nowrap;">${actions}</td>
       </tr>`;
@@ -4348,6 +4378,7 @@ function onDepAmtInput() {
 }
 
 async function submitDeposit() {
+  toast('Wallet top-ups are disabled — pay for each order directly with M-Pesa.', 'error'); return;
   const phone = document.getElementById('depPhone').value.trim().replace(/\s/g,'');
   const amount = parseInt(document.getElementById('depAmount').value);
   const phoneRe = /^(07|01)\d{8}$|^2547\d{8}$|^2541\d{8}$/;
@@ -4447,6 +4478,8 @@ function resetDeposit() {
 <script src="tnc.js"></script>
 <script src="admin.js"></script>
 <script src="ccr_support.js"></script>
+<script src="reorder_queue.js"></script>
+<script src="admin_payments_health.js"></script>
 <script src="admin_affiliate_payouts.js"></script>
 <script src="admin_ccr.js"></script>
 <script src="ccr_agent.js"></script>

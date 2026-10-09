@@ -32,6 +32,7 @@ function adminTab(tab, el) {
   if (tab === 'connect') cnAdminSubTab('overview');
   if (tab === 'ccr-agents') ccrAdminInit();
   if (tab === 'creator-events') { if (typeof adminEventsInit === 'function') adminEventsInit(); }
+  if (tab === 'payments-health') { if (typeof loadPaymentsHealth === 'function') loadPaymentsHealth(); }
   if (tab === 'free-orders') { if (typeof loadAdminFreeOrders === 'function') loadAdminFreeOrders(); }
   if (tab === 'consultations') { if (typeof loadAdminConsultations === 'function') loadAdminConsultations(); }
 }
@@ -114,7 +115,7 @@ async function loadAdminOrders() {
 
     if (!orders.length) { el.innerHTML = `${clearBtn}<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>`; return; }
     el.innerHTML = `${clearBtn}<table>
-      <thead><tr><th>#ID</th><th>Customer</th><th>Service</th><th>Link</th><th>Qty</th><th>Start/Remains</th><th>Cost</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+      <thead><tr><th>#ID</th><th>Customer</th><th>Service</th><th>Link</th><th>Qty</th><th>Start/Remains</th><th>Cost</th><th>Status</th><th>M-Pesa Ref</th><th>Date</th><th>Action</th></tr></thead>
       <tbody>${orders.map(o => {
         const shortId   = esc((o.id||'').slice(0,8));
         const fullId    = esc(o.id||'');
@@ -134,6 +135,16 @@ async function loadAdminOrders() {
           ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">📞 ${phone} <button onclick="navigator.clipboard.writeText('${phone}').then(()=>toast('Phone copied!','success'))" title="Copy phone number" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button></div>`
           : '';
         const date       = o.created_at ? new Date(o.created_at).toLocaleDateString() : '—';
+        const mpesaRef   = esc(o.mpesa_receipt||'');
+        const mpesaCell  = mpesaRef
+          ? `<span style="font-family:monospace;font-size:12px;color:var(--green);">${mpesaRef}</span> <button onclick="event.stopPropagation();navigator.clipboard.writeText('${mpesaRef}').then(()=>toast('M-Pesa ref copied!','success'))" title="Copy M-Pesa reference" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button>`
+          : (String(o.service_name||o.service||'').startsWith('🔁 Reorder')
+              ? '<span style="color:var(--muted);font-size:11px;" title="Re-placed for a client who already paid">🔁 reorder</span>'
+              : (o.is_free || !(Number(o.charge||o.cost||0) > 0))
+                ? '<span style="color:var(--muted);font-size:11px;" title="Free / bonus order — no payment">🎁 free</span>'
+                : (o.provider_order_id && ['processing','inprogress','completed','partial'].includes((o.status||'').toLowerCase()))
+                  ? '<span style="color:#ff5252;font-size:11px;font-weight:700;" title="Sent to the provider but no M-Pesa payment/reference on record — check Payments Health">⚠ none</span>'
+                  : '<span style="color:var(--muted);font-size:11px;">—</span>');
         const startRemains = (o.start_count != null || o.remains != null)
           ? `${o.start_count != null ? parseInt(o.start_count).toLocaleString() : '—'} / ${o.remains != null ? parseInt(o.remains).toLocaleString() : '—'}`
           : '—';
@@ -163,6 +174,7 @@ async function loadAdminOrders() {
           <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${startRemains}</td>
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:15px;">${fmtKES(o.charge||o.cost)}</td>
           <td>${statusPill(o.status)}</td>
+          <td style="white-space:nowrap;">${mpesaCell}</td>
           <td style="font-size:12px;color:var(--muted);">${date}</td>
           <td style="white-space:nowrap;" onclick="event.stopPropagation();">
             <button class="action-btn" onclick="adminMessageCustomer('${userId}','${userEmail}')" title="Open support thread with customer">💬 Message</button>
@@ -2730,7 +2742,8 @@ async function openSupportThread(threadId) {
       const rawLink   = o.link || '';
       const safeLink  = esc(rawLink);
       const link = rawLink ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:var(--green);font-size:10px;word-break:break-all;display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;" title="${safeLink}">${safeLink}</a>` : '';
-      const provId = o.provider_order_id ? `<div style="font-size:10px;color:var(--muted);">Provider #${esc(o.provider_order_id)}</div>` : '';
+      const provId = (o.provider_order_id ? `<div style="font-size:10px;color:var(--muted);">Provider #${esc(o.provider_order_id)}</div>` : '')
+        + (o.mpesa_receipt ? `<div style="font-size:10px;color:var(--muted);">M-Pesa: <span style="font-family:monospace;color:var(--green);">${esc(o.mpesa_receipt)}</span></div>` : '');
       const oStatus = esc(o.status||'');
       const oid = esc(o.id||'');
       const clickable = !!o.id;
@@ -2922,6 +2935,7 @@ function openOrderDetailModal(orderId) {
     <div style="padding:6px 18px;overflow-y:auto;flex:1;min-height:0;">
       ${row('Order ID', `#${shortId} <button onclick="navigator.clipboard.writeText('${fullId}').then(()=>toast('Order ID copied!','success'))" title="Copy full Order ID" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 2px;">⎘</button>`)}
       ${o.provider_order_id ? row('Provider Order ID', `#${esc(o.provider_order_id)}`) : ''}
+      ${o.mpesa_receipt ? row('M-Pesa Ref', `<span style="font-family:monospace;">${esc(o.mpesa_receipt)}</span> <button onclick="navigator.clipboard.writeText('${esc(o.mpesa_receipt)}').then(()=>toast('M-Pesa ref copied!','success'))" title="Copy M-Pesa reference" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 2px;">⎘</button>`) : ''}
       ${row('Quantity', o.quantity != null ? parseInt(o.quantity).toLocaleString() : null)}
       ${startRemains ? row('Start / Remains', startRemains) : ''}
       ${row('Charge', o.charge != null ? fmtKES(o.charge) : null)}
