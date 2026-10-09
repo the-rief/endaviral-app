@@ -190,8 +190,13 @@ const SB_EMPTY = {
   done: ['🗂', 'Nothing here yet', 'Resolved and closed conversations show up here.'],
 };
 
+let _sbSearchTimer = null;
 function sbRender() {
-  if (_sb.tab === 'reorders') return;
+  if (_sb.tab === 'reorders') {          // the shared search box also filters the reorder list
+    clearTimeout(_sbSearchTimer);
+    _sbSearchTimer = setTimeout(() => { if (typeof rqLoad === 'function') rqLoad(); }, 350);
+    return;
+  }
   const list = document.getElementById('supportThreadList'); if (!list) return;
   if (!_sb.data) return;
   const rows = sbThreads();
@@ -222,7 +227,7 @@ function sbItem(t) {
     automatic: ['⚙️ System', '#ffb347'],
   }[t.origin] || ['', ''];
   const last = t.last_message;
-  const who = t.last_sender === 'customer' ? 'Customer' : t.last_sender === 'bot' ? '🤖 Auto' : (t.last_staff_name ? t.last_staff_name.split('@')[0] : 'Agent');
+  const who = t.last_sender === 'customer' ? 'Customer' : t.last_sender === 'system' ? '⚙️ Report' : t.last_sender === 'bot' ? '🤖 Auto' : (t.last_staff_name ? t.last_staff_name.split('@')[0] : 'Agent');
   const preview = last ? `<span style="color:#6f8aa8;">${esc(who)}:</span> ${esc(last.body.slice(0, 70))}${last.body.length > 70 ? '…' : ''}` : 'No messages';
   const leftColor = _sb.tab === 'followup' && t.waiting_hours >= 24 ? '#ffb347' : t.origin === 'automatic' ? '#ffb347' : 'transparent';
   return `<div class="sb-item support-thread-item" data-thread-id="${tid}" onclick="openSupportThread('${tid}')" style="border-left-color:${leftColor};">

@@ -66,13 +66,13 @@ function rqRenderBar() {
   let html = `<div class="sb-hint">${esc(sub.sub)}</div>`;
   if (_rqSub === 'needs') {
     html += `<button class="btn-secondary" onclick="rqFlagNow()" title="Flag new failed/partial/cancelled orders now instead of waiting for midnight">⚑ Flag now</button>
-      <button class="btn-primary" onclick="rqMessageAll()">✉ Message all unsent</button>
-      <button class="btn-primary" onclick="rqReorderAll()" title="Re-place every open order on its original link and tell each customer" style="background:#ff7043;border-color:#ff7043;">🔁 Reorder ALL on original links</button>`;
+      <button class="btn-primary" style="width:auto;padding:9px 16px;" onclick="rqMessageAll()">✉ Message all unsent</button>
+      <button class="btn-primary" onclick="rqReorderAll()" title="Re-place every open order on its original link and tell each customer" style="width:auto;padding:9px 16px;background:#ff7043;border-color:#ff7043;">🔁 Reorder ALL on original links</button>`;
   } else if (_rqSub === 'followup') {
     html += chip('all', 'All') + chip('replied', `💬 Replied${_rqSum.replied ? ' (' + _rqSum.replied + ')' : ''}`)
       + chip('waiting', `⏳ Waiting${_rqSum.waiting ? ' (' + _rqSum.waiting + ')' : ''}`) + chip('overdue', `⚠ Overdue${_rqSum.stale ? ' (' + _rqSum.stale + ')' : ''}`)
-      + `<button class="btn-primary" onclick="rqNudgeStale()" title="Send a follow-up message to everyone who hasn't replied in 24h+">👋 Nudge overdue</button>
-         <button class="btn-primary" onclick="rqReorderOverdue()" title="Give up waiting: re-place silent clients on their original link" style="background:#ff7043;border-color:#ff7043;">🔁 Reorder silent ones…</button>`;
+      + `<button class="btn-primary" style="width:auto;padding:9px 16px;" onclick="rqNudgeStale()" title="Send a follow-up message to everyone who hasn't replied in 24h+">👋 Nudge overdue</button>
+         <button class="btn-primary" onclick="rqReorderOverdue()" title="Give up waiting: re-place silent clients on their original link" style="width:auto;padding:9px 16px;background:#ff7043;border-color:#ff7043;">🔁 Reorder silent ones…</button>`;
   }
   el.innerHTML = html;
 }
@@ -87,10 +87,6 @@ async function rqLoad() {
           <div class="sec-title">REORDER QUEUE</div>
           <div class="sec-sub">Failed, partial & cancelled orders that were paid via M-Pesa or reached the provider — flagged every midnight. Message a client and they move to Follow-up.</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input id="rqSearch" class="sb-in" placeholder="Search name, email, phone, order, receipt" onkeydown="if(event.key==='Enter')rqLoad()" style="min-width:230px;"/>
-          <button class="btn-secondary" onclick="rqLoad()">↻ Refresh</button>
-        </div>
       </div>
       <div class="sb-tabs" id="rqSubTabs"></div>
       <div class="sb-bar" id="rqSubBar"></div>
@@ -98,7 +94,7 @@ async function rqLoad() {
   }
   rqRenderSubtabs(); rqRenderBar();
   const sub = RQ_SUBS.find(x => x.id === _rqSub);
-  const q = document.getElementById('rqSearch')?.value || '';
+  const q = document.getElementById('sbSearch')?.value || '';   // one search box for the whole Support Centre
   const list = document.getElementById('rqList');
   list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
   try {
