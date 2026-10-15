@@ -883,8 +883,54 @@ function _acIsPurchased(state, moduleId) {
 // just-written change rather than a stale cached copy.
 async function _acFetchState(force = false) {
   const data = await Store.ensure('academyProgress', () => api('/academy/progress'), { ttl: 20000, force });
-  _acState = _acServerToLocal(data);
+  _acSetState(data);
   return _acState;
+}
+
+// ─── Instant render: last-known progress, saved per user ───────────────────
+// The Academy used to blank the screen ("Loading your progress…") until
+// /academy/progress answered — slow on a cold backend. Now every fresh
+// server response is also saved to localStorage under the user's id, so the
+// page can draw immediately from the last-known copy and refresh quietly.
+// Keyed by user id so a second account on the same device never sees
+// someone else's progress; doLogout() also clears it.
+let _acStateUid = null;
+let _acRawJson = null;          // raw server JSON of what's on screen, for change detection
+let _acHomeToken = 0;           // bumped whenever the Academy view changes
+
+function _acUid() {
+  return (typeof currentUser !== 'undefined' && currentUser && (currentUser.id || currentUser._id)) || null;
+}
+
+function _acSetState(data) {
+  _acState = _acServerToLocal(data);
+  _acStateUid = _acUid();
+  try {
+    _acRawJson = JSON.stringify(data);
+    if (_acStateUid) localStorage.setItem('ev_ac_progress_' + _acStateUid, _acRawJson);
+  } catch (_) { /* storage full / blocked — the in-memory copy still works */ }
+}
+
+// Last-known progress for the signed-in user, or null if we have none.
+function _acCachedState() {
+  const uid = _acUid();
+  if (!uid) return null;
+  if (_acState && _acStateUid === uid) return _acState;
+  try {
+    const raw = localStorage.getItem('ev_ac_progress_' + uid);
+    if (!raw) return null;
+    _acState = _acServerToLocal(JSON.parse(raw));
+    _acStateUid = uid;
+    _acRawJson = raw;
+    return _acState;
+  } catch (_) { return null; }
+}
+
+function _acClearCachedState() {
+  _acState = null; _acStateUid = null; _acRawJson = null;
+  try {
+    Object.keys(localStorage).filter(k => k.startsWith('ev_ac_progress_')).forEach(k => localStorage.removeItem(k));
+  } catch (_) { /* ignore */ }
 }
 
 function _acTotalLessons() {
@@ -910,7 +956,7 @@ async function _acUpdateBadges() {
   // Refresh sidebar badge + dashboard banner text from saved progress, safe to call anytime
   // (e.g. on login, before the Academy page has ever been opened). Uses the cached state if
   // we already have one from this session; otherwise fetches once from the server.
-  let state = _acState;
+  let state = _acCachedState();
   if (!state) {
     try { state = await _acFetchState(); } catch (e) { return; }
   }
@@ -941,6 +987,24 @@ let _acCurrent = { moduleId: null, lessonId: null };
 async function initAcademyPage() {
   const sec = document.getElementById('sec-academy');
   if (!sec) return;
+  const myToken = ++_acHomeToken;
+
+  // Have last-known progress? Draw it now, then refresh in the background
+  // and redraw only if something actually changed and the user is still
+  // looking at the Academy home (not inside a module).
+  const cached = _acCachedState();
+  if (cached) {
+    const shownJson = _acRawJson;
+    _acRenderHome(sec, cached);
+    _acUpdateBadges();
+    _acFetchState().then(() => {
+      if (myToken !== _acHomeToken || _acRawJson === shownJson) return;
+      _acRenderHome(sec, _acState);
+      _acUpdateBadges();
+    }).catch(() => { /* offline / cold server — keep showing the saved copy */ });
+    return;
+  }
+
   sec.innerHTML = `<div style="padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;">Loading your progress…</div>`;
 
   let state;
@@ -955,6 +1019,7 @@ async function initAcademyPage() {
     return;
   }
 
+  if (myToken !== _acHomeToken) return; // user already moved on (opened a module)
   _acRenderHome(sec, state);
   _acUpdateBadges();
 }
@@ -1421,9 +1486,10 @@ function _acMergePremiumContent(mod, content) {
 async function _acOpenModule(moduleId) {
   const mod = ACADEMY_MODULES.find(m => m.id === moduleId);
   if (!mod) return;
+  _acHomeToken++; // a pending home refresh must not overwrite this module view
   _acInjectHomeStyles();
   const sec = document.getElementById('sec-academy');
-  const state = _acState || _acEmptyState();
+  const state = _acCachedState() || _acEmptyState();
   const locked = mod.premium && !_acIsPurchased(state, mod.id);
   const meta = state.moduleMeta && state.moduleMeta[mod.id];
   const price = (meta && meta.price_kes) || mod.priceKes || ACADEMY_PREMIUM_PRICE_KES;
@@ -1523,16 +1589,6 @@ async function _acOpenModule(moduleId) {
       </div>
     </div>
   </div>
-  ${badgeEarned ? `
-  <div class="ac-grad-banner" style="max-width:640px;">
-    <div class="ac-grad-icon">🎓</div>
-    <div style="flex:1;min-width:180px;">
-      <div style="font-size:13px;font-weight:900;color:var(--white);">Course complete — your certificate is ready</div>
-      <div style="font-size:11.5px;color:#a9b8cc;margin-top:2px;">Download it or share it straight to your socials</div>
-    </div>
-    <button class="ac-grad-btn" onclick="acOpenCertificate('${mod.id}')">Get Certificate →</button>
-  </div>` : ''}
-  ${(!mod.premium && badgeEarned) ? _acFollowUpCard(mod, state, true) : ''}
   <div style="display:flex;flex-direction:column;gap:10px;max-width:640px;">
     ${mod.lessons.map((l, i) => {
       const complete = !!state.completed[mod.id + ':' + l.id];
@@ -1549,6 +1605,16 @@ async function _acOpenModule(moduleId) {
       </div>`;
     }).join('')}
   </div>
+  ${badgeEarned ? `
+  <div class="ac-grad-banner" style="max-width:640px;margin-top:20px;margin-bottom:14px;">
+    <div class="ac-grad-icon">🎓</div>
+    <div style="flex:1;min-width:180px;">
+      <div style="font-size:13px;font-weight:900;color:var(--white);">Course complete — your certificate is ready</div>
+      <div style="font-size:11.5px;color:#a9b8cc;margin-top:2px;">Download it or share it straight to your socials</div>
+    </div>
+    <button class="ac-grad-btn" onclick="acOpenCertificate('${mod.id}')">Get Certificate →</button>
+  </div>` : ''}
+  ${(!mod.premium && badgeEarned) ? _acFollowUpCard(mod, state, true) : ''}
   ${(!mod.premium && !badgeEarned) ? _acFollowUpCard(mod, state, false) : ''}`;
 }
 
@@ -1676,7 +1742,7 @@ async function acMarkCurrentComplete() {
 
   const wasGraduated = state.graduated;
   Store.set('academyProgress', data); // keep Store's cache in sync — this mutation already has the fresh server state, no need to force a refetch
-  _acState = _acServerToLocal(data);
+  _acSetState(data);
 
   if (data.completed_now) {
     if (data.graduated && !wasGraduated) {
@@ -1789,6 +1855,7 @@ let _acPurchaseCheckoutId = null; // most recent checkoutRequestId this session 
 function openAcademyPurchase(moduleId) {
   const mod = ACADEMY_MODULES.find(m => m.id === moduleId);
   if (!mod) return;
+  _acStopPurchasePoll();
   _acPurchaseModuleId = moduleId;
 
   const state = _acState || _acEmptyState();
@@ -1798,37 +1865,102 @@ function openAcademyPurchase(moduleId) {
   const titleEl = document.getElementById('acPurchaseModuleTitle');
   const priceEl = document.getElementById('acPurchasePrice');
   const phoneInput = document.getElementById('acPurchasePhone');
-  const formEl = document.getElementById('acPurchaseForm');
-  const statusEl = document.getElementById('acPurchaseStatus');
   const btn = document.getElementById('acPurchaseBtn');
   if (titleEl) titleEl.textContent = mod.icon + ' ' + mod.title;
   if (priceEl) priceEl.textContent = 'KSh ' + price;
-  if (phoneInput) phoneInput.value = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
-  if (formEl) formEl.style.display = '';
-  if (statusEl) statusEl.style.display = 'none';
-  if (btn) { btn.disabled = false; btn.textContent = '📱 SEND STK PUSH'; }
+  // Keep a number they already typed (e.g. coming back via "Try Again");
+  // otherwise prefill from the account.
+  if (phoneInput && !phoneInput.value) {
+    phoneInput.value = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
+  }
+  if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '📱 PAY & UNLOCK'; }
 
+  _acPurchaseStep('form');
   document.getElementById('academyPurchaseModal').classList.add('show');
+}
+
+// Shows exactly one of the three steps: 'form' | 'wait' | 'result'.
+// (Uses style.display on plain divs — the old version relied on clearing an
+// inline style on a .deposit-status box, whose CSS class is display:none, so
+// the waiting/failed/success messages never actually appeared.)
+function _acPurchaseStep(step) {
+  const ids = { form: 'acPurchaseForm', wait: 'acPurchaseWait', result: 'acPurchaseResult' };
+  Object.entries(ids).forEach(([k, id]) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = k === step ? '' : 'none';
+  });
+  const modal = document.querySelector('#academyPurchaseModal .modal');
+  if (modal) modal.scrollTop = 0;
+}
+
+function _acStopPurchasePoll() {
+  if (_acPurchasePollTimer) { clearInterval(_acPurchasePollTimer); _acPurchasePollTimer = null; }
+  if (typeof PaymentEvents !== 'undefined' && _acPurchaseCheckoutId) PaymentEvents.off(_acPurchaseCheckoutId);
 }
 
 function closeAcademyPurchase() {
   const overlay = document.getElementById('academyPurchaseModal');
   if (overlay) overlay.classList.remove('show');
-  if (_acPurchasePollTimer) { clearInterval(_acPurchasePollTimer); _acPurchasePollTimer = null; }
-  if (typeof PaymentEvents !== 'undefined' && _acPurchaseCheckoutId) {
-    PaymentEvents.off(_acPurchaseCheckoutId);
+  _acStopPurchasePoll();
+  _acPurchaseCheckoutId = null;
+}
+
+// "✕ Cancel" while waiting for the PIN. We can't withdraw the prompt from
+// their phone — if they still enter the PIN, the server unlocks the course
+// on its own (webhook / reconciler), so say that rather than "cancelled".
+function cancelAcademyPurchase() {
+  closeAcademyPurchase();
+  toast('Stopped waiting. If you still enter your M-Pesa PIN, the course will unlock automatically.', 'info');
+}
+
+// Result step. kind: 'success' | 'failed' | 'cancelled' | 'pending'
+function _acShowPurchaseResult(kind, moduleId, msg) {
+  const mod = ACADEMY_MODULES.find(m => m.id === moduleId);
+  const icon  = { success: '✅', failed: '❌', cancelled: '🚫', pending: '⏳' }[kind];
+  const title = { success: 'COURSE UNLOCKED!', failed: 'PAYMENT FAILED', cancelled: 'PAYMENT CANCELLED', pending: 'STILL CONFIRMING' }[kind];
+  document.getElementById('acResultIcon').textContent = icon;
+  document.getElementById('acResultTitle').textContent = title;
+  document.getElementById('acResultDesc').textContent = msg;
+
+  const b1 = document.getElementById('acResultBtn');
+  const b2 = document.getElementById('acResultBtn2');
+  b2.style.display = 'none';
+
+  if (kind === 'success') {
+    b1.textContent = 'Start Learning →';
+    b1.onclick = () => { closeAcademyPurchase(); _acOpenModule(moduleId); };
+  } else if (kind === 'pending') {
+    b1.textContent = '🔄 Check Again';
+    b1.onclick = () => _acPollPurchaseStatus(moduleId, _acPurchaseCheckoutId, true);
+    b2.style.display = '';
+    b2.textContent = 'Close';
+    b2.onclick = () => closeAcademyPurchase();
+  } else {
+    b1.textContent = 'Try Again';
+    b1.onclick = () => openAcademyPurchase(moduleId);
+    b2.style.display = '';
+    b2.textContent = '🎫 Get Help';
+    b2.onclick = () => {
+      closeAcademyPurchase();
+      if (typeof navTo === 'function') navTo('tickets');
+      toast(`Describe the issue with "${mod ? mod.title : 'your course'}" payment — admin will respond shortly.`, 'info');
+    };
   }
+  _acPurchaseStep('result');
 }
 
 async function submitAcademyPurchase() {
   const moduleId = _acPurchaseModuleId;
   if (!moduleId) return;
+  const mod = ACADEMY_MODULES.find(m => m.id === moduleId);
   const phoneInput = document.getElementById('acPurchasePhone');
   const phone = phoneInput ? phoneInput.value.trim() : '';
-  if (!phone) { toast('Enter your M-Pesa number', 'error'); return; }
+  const digits = phone.replace(/\D/g, '');
+  if (!phone) { toast('Enter your M-Pesa number', 'error'); phoneInput && phoneInput.focus(); return; }
+  if (digits.length < 9 || digits.length > 12) { toast('That M-Pesa number looks incomplete — use 07XX XXX XXX', 'error'); phoneInput && phoneInput.focus(); return; }
 
   const btn = document.getElementById('acPurchaseBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  if (btn) { btn.disabled = true; btn.classList.add('loading'); btn.textContent = 'Sending STK Push…'; }
 
   // Price is never sent from the client — the server looks up
   // module_price_kes(module_id) itself (see app/routers/academy.py).
@@ -1839,96 +1971,88 @@ async function submitAcademyPurchase() {
       body: JSON.stringify({ phone }),
     });
   } catch (e) {
-    toast(e.message || 'Could not start payment. Please try again.', 'error');
-    if (btn) { btn.disabled = false; btn.textContent = '📱 SEND STK PUSH'; }
+    const msg = e.message || '';
+    const gateway = e.status === 502 || e.status === 503 || /502|bad gateway|unreachable|payment request failed/i.test(msg);
+    toast(gateway ? 'M-Pesa is currently unreachable. Please try again in a few minutes.' : (msg || 'Could not start payment. Please try again.'), 'error');
+    if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '📱 PAY & UNLOCK'; }
     return;
   }
+  if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '📱 PAY & UNLOCK'; }
 
   if (data.already_purchased) {
-    toast('You already own this course!', 'success');
-    closeAcademyPurchase();
-    await _acFetchState(true);
-    _acUpdateBadges();
-    _acOpenModule(moduleId);
+    _acFetchState(true).then(() => _acUpdateBadges()).catch(() => {});
+    _acShowPurchaseResult('success', moduleId, 'You already own this course — jump straight in.');
     return;
   }
 
-  const formEl = document.getElementById('acPurchaseForm');
-  const statusEl = document.getElementById('acPurchaseStatus');
-  if (formEl) formEl.style.display = 'none';
-  if (statusEl) statusEl.style.display = '';
-  const iconEl = document.getElementById('acPurchaseStatusIcon');
-  const titleEl2 = document.getElementById('acPurchaseStatusTitle');
-  const descEl = document.getElementById('acPurchaseStatusDesc');
-  if (iconEl) iconEl.textContent = '📱';
-  if (titleEl2) titleEl2.textContent = 'WAITING FOR PAYMENT';
-  if (descEl) descEl.innerHTML = 'A prompt has been sent to your phone.<br>Enter your M-Pesa PIN to unlock this course.';
+  const priceText = (document.getElementById('acPurchasePrice') || {}).textContent || '';
+  document.getElementById('acPayPhone').textContent = phone;
+  document.getElementById('acPayCourse').textContent = mod ? mod.title : '';
+  document.getElementById('acPayAmount').textContent = data.amount ? 'KSh ' + data.amount : priceText;
+  _acPurchaseStep('wait');
 
   _acPollPurchaseStatus(moduleId, data.checkout_request_id);
 }
 
-function _acPollPurchaseStatus(moduleId, checkoutRequestId) {
-  let attempts = 0;
-  const maxAttempts = 20; // 60s at 3s interval — active DB polling stops here;
-                           // the webhook/reconciler is expected to resolve it
-                           // from this point on, see the PaymentEvents note below
-  if (_acPurchasePollTimer) clearInterval(_acPurchasePollTimer);
+// Polls purchase-status every 4s for up to 2 minutes (same window as the
+// order flow), with PaymentEvents (SSE) as an earlier nudge. `again` = the
+// "Check Again" button after a timeout: go back to the waiting screen and
+// start a fresh 2-minute window.
+function _acPollPurchaseStatus(moduleId, checkoutRequestId, again = false) {
+  _acStopPurchasePoll();
+  if (!checkoutRequestId) return;
   _acPurchaseCheckoutId = checkoutRequestId;
+  if (again) _acPurchaseStep('wait');
+
+  let attempts = 0;
+  let done = false;
+  const maxAttempts = 30; // 30 × 4s = 2 min
 
   async function tick() {
+    if (done || _acPurchaseCheckoutId !== checkoutRequestId) return; // closed or superseded
     attempts++;
-    let data;
+    let data = null;
     try {
       data = await api(`/academy/modules/${encodeURIComponent(moduleId)}/purchase-status/${encodeURIComponent(checkoutRequestId)}`);
-    } catch (e) {
-      return; // transient network blip — keep polling rather than aborting the flow
-    }
+    } catch (e) { /* transient network blip — keep polling */ }
+    if (done || _acPurchaseCheckoutId !== checkoutRequestId) return;
 
-    const iconEl = document.getElementById('acPurchaseStatusIcon');
-    const titleEl = document.getElementById('acPurchaseStatusTitle');
-    const descEl = document.getElementById('acPurchaseStatusDesc');
-
-    if (data.status === 'success') {
-      clearInterval(_acPurchasePollTimer); _acPurchasePollTimer = null;
-      if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
-      if (iconEl) iconEl.textContent = '✅';
-      if (titleEl) titleEl.textContent = 'MODULE UNLOCKED';
-      if (descEl) descEl.textContent = 'Payment confirmed — enjoy the lessons!';
-      toast('🎉 Course unlocked!', 'success');
-      setTimeout(async () => {
-        closeAcademyPurchase();
-        await _acFetchState(true);
-        _acUpdateBadges();
-        _acOpenModule(moduleId);
-      }, 1200);
-    } else if (data.status === 'failed' || data.status === 'cancelled') {
-      clearInterval(_acPurchasePollTimer); _acPurchasePollTimer = null;
-      if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
-      if (iconEl) iconEl.textContent = '❌';
-      if (titleEl) titleEl.textContent = data.status === 'cancelled' ? 'PAYMENT CANCELLED' : 'PAYMENT FAILED';
-      if (descEl) descEl.textContent = 'You can try again.';
-      setTimeout(() => { openAcademyPurchase(moduleId); }, 1800);
+    const status = data && data.status;
+    const receipt = data && (data.mpesa_receipt || data.mpesaReceipt || data.receipt);
+    if (status === 'success' || status === 'completed') {
+      done = true; _acStopPurchasePoll();
+      _acFetchState(true).then(() => _acUpdateBadges()).catch(() => {});
+      _acShowPurchaseResult('success', moduleId,
+        'Payment confirmed' + (receipt ? ` (M-Pesa ref ${receipt})` : '') + '. The course is yours for life — enjoy the lessons!');
+    } else if (status === 'failed' || status === 'cancelled') {
+      done = true; _acStopPurchasePoll();
+      _acShowPurchaseResult(status, moduleId, status === 'cancelled'
+        ? 'You dismissed the M-Pesa prompt. No charge was made.'
+        : 'Payment failed (wrong PIN, insufficient funds, or timeout). No charge was made — feel free to try again.');
     } else if (attempts >= maxAttempts) {
-      clearInterval(_acPurchasePollTimer); _acPurchasePollTimer = null;
-      // Deliberately NOT calling PaymentEvents.off() here — active DB
-      // polling stops, but the module unlock is applied entirely
-      // server-side (academy_purchase_reconciliation.apply_nexus_status_to_academy_purchase)
-      // whenever the webhook or reconciler resolves this checkout, so we
-      // stay subscribed to the push and let tick() run one more time,
-      // silently, whenever that happens — no further polling required.
-      if (descEl) descEl.textContent = 'Still confirming — this will unlock automatically once M-Pesa confirms, or you can check back shortly.';
+      done = true;
+      if (_acPurchasePollTimer) { clearInterval(_acPurchasePollTimer); _acPurchasePollTimer = null; }
+      // Stay subscribed to PaymentEvents: the unlock is applied server-side
+      // whenever the webhook or reconciler resolves this checkout, and the
+      // push lets us flip this screen to success if it's still open.
+      if (typeof PaymentEvents !== 'undefined') {
+        PaymentEvents.onPaymentStatus(checkoutRequestId, () => {
+          if (_acPurchaseCheckoutId === checkoutRequestId) _acPollPurchaseStatus(moduleId, checkoutRequestId, true);
+        });
+      }
+      _acShowPurchaseResult('pending', moduleId,
+        "We haven't received your M-Pesa confirmation yet. If you already entered your PIN, the course will unlock automatically within a few minutes. If you didn't pay, nothing was charged.");
     }
   }
 
-  _acPurchasePollTimer = setInterval(tick, 3000);
+  _acPurchasePollTimer = setInterval(tick, 4000);
+  if (again) tick();
 
-  // Real-time nudge — same idea as index.html's startPaymentPoll and
-  // bids.js's _cnPollFunding. The backend pushes a payment_status SSE
-  // event the moment Nexus's webhook (or the reconciler) resolves this
-  // checkout via academy_purchase_reconciliation.apply_nexus_status_to_academy_purchase;
-  // tick() re-reads purchase-status itself, so this is just an earlier
-  // trigger of the same check. The 3s poll above still runs as the
-  // reliability fallback if the SSE connection drops.
+  // Real-time nudge — the backend pushes a payment_status SSE event the
+  // moment Nexus's webhook (or the reconciler) resolves this checkout via
+  // academy_purchase_reconciliation.apply_nexus_status_to_academy_purchase.
+  // tick() re-reads purchase-status itself, so this is an earlier trigger
+  // of the same check; the poll above is the fallback if SSE drops.
   if (typeof PaymentEvents !== 'undefined') {
     PaymentEvents.onPaymentStatus(checkoutRequestId, () => tick());
   }

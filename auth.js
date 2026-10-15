@@ -352,6 +352,7 @@ function doLogout() {
   // user's cached orders/campaigns/stats until each cache's own TTL expired.
   if (typeof Store !== 'undefined') Store.reset();
   if (typeof _apiGetCache !== 'undefined') _apiGetCache.clear();
+  if (typeof _acClearCachedState === 'function') _acClearCachedState(); // Academy's saved progress (academy.js)
   document.getElementById('appWrap').classList.remove('show');
   document.getElementById('appWrap').style.display = 'none';
   document.getElementById('authWrap').style.display = '';

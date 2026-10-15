@@ -5013,20 +5013,41 @@ async function _maybeHideAffBanner() {
 </div>
 <!-- ── Creator Academy: premium module unlock (M-Pesa STK) ── -->
 <div class="modal-overlay" id="academyPurchaseModal">
-  <div class="modal" style="max-width:420px;">
+  <div class="modal" style="max-width:460px;">
     <button class="modal-close" onclick="closeAcademyPurchase()">✕</button>
-    <div class="modal-title" id="acPurchaseModuleTitle" style="margin-bottom:4px;">Course</div>
-    <div class="modal-sub" style="margin-bottom:18px;">One-time unlock — <span id="acPurchasePrice">KSh 50</span></div>
 
+    <!-- Step 1: phone number (same layout as the order modal) -->
     <div id="acPurchaseForm">
-      <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="acPurchasePhone" placeholder="07XX XXX XXX"/></div></div>
-      <button class="btn-primary" id="acPurchaseBtn" style="width:100%;" onclick="submitAcademyPurchase()">📱 SEND STK PUSH</button>
+      <div class="modal-title" id="acPurchaseModuleTitle" style="margin-bottom:4px;">Course</div>
+      <div class="modal-sub" style="margin-bottom:18px;">One-time unlock · lifetime access</div>
+      <div class="cost-preview"><span class="cost-lbl">Total Cost</span><span class="cost-val" id="acPurchasePrice">KSh 50</span></div>
+      <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="acPurchasePhone" inputmode="tel" autocomplete="tel" placeholder="07XX XXX XXX"/></div></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeAcademyPurchase()">Cancel</button>
+        <button class="btn-primary" id="acPurchaseBtn" style="flex:1;margin-top:0;" onclick="submitAcademyPurchase()">📱 PAY &amp; UNLOCK</button>
+      </div>
     </div>
 
-    <div class="deposit-status" id="acPurchaseStatus" style="display:none;">
-      <div class="d-icon" id="acPurchaseStatusIcon">📱</div>
-      <div class="d-title" id="acPurchaseStatusTitle">WAITING FOR PAYMENT</div>
-      <div class="d-desc" id="acPurchaseStatusDesc">A prompt has been sent to your phone.<br>Enter your M-Pesa PIN to unlock this course.</div>
+    <!-- Step 2: waiting for the M-Pesa PIN -->
+    <div id="acPurchaseWait" style="display:none;text-align:center;padding:10px 0;">
+      <div style="font-size:48px;margin-bottom:16px;">📱</div>
+      <div class="modal-title">WAITING FOR PAYMENT</div>
+      <div class="modal-sub" style="margin-bottom:20px;">A prompt has been sent to <strong id="acPayPhone"></strong><br>Enter your M-Pesa PIN to confirm.</div>
+      <div style="background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:20px;text-align:left;">
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span style="color:var(--muted);flex-shrink:0;">Course</span><span id="acPayCourse" style="text-align:right;font-size:12px;word-break:break-word;"></span></div>
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:13px;"><span style="color:var(--muted);">Amount</span><strong id="acPayAmount" style="color:var(--green);"></strong></div>
+      </div>
+      <div class="loading-spinner" style="padding:8px 0 16px;"><div class="spinner"></div><span>Checking payment…</span></div>
+      <button class="btn-secondary" onclick="cancelAcademyPurchase()" style="width:100%;">✕ Cancel</button>
+    </div>
+
+    <!-- Step 3: result (success / failed / cancelled / still confirming) -->
+    <div id="acPurchaseResult" style="display:none;text-align:center;padding:10px 0;">
+      <div id="acResultIcon" style="font-size:56px;margin-bottom:16px;">✅</div>
+      <div class="modal-title" id="acResultTitle">COURSE UNLOCKED!</div>
+      <div class="modal-sub" id="acResultDesc" style="margin-bottom:24px;"></div>
+      <button class="btn-primary" id="acResultBtn" style="width:100%;margin-top:0;">Start Learning →</button>
+      <button class="btn-secondary" id="acResultBtn2" style="width:100%;margin-top:10px;display:none;"></button>
     </div>
   </div>
 </div>
