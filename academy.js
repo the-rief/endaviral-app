@@ -149,8 +149,8 @@ const ACADEMY_LEVELS = [
 
 const ACADEMY_MODULES = [
   {
-    id: 'basics', icon: '🚀', title: 'Platform Mastery',
-    blurb: 'How EndaViral actually works, end to end',
+    id: 'basics', icon: '🧭', title: 'How EndaViral Works',
+    blurb: 'Start here: ordering, M-Pesa payments, delivery, refills & rewards, step by step',
     lessons: [
       { id: 'b1', title: 'Your First Order, Step by Step', minutes: 4, body: [
         { type: 'p', text: "Every order follows the same simple path: pick a platform, choose a service, paste your link, set a quantity, then pay with M-Pesa. The moment payment confirms, your order status moves from Pending → Processing → Completed, and you can track it any time from My Orders." },
@@ -692,11 +692,11 @@ const ACADEMY_MODULES = [
     blurb: 'Beyond the basics — engineered virality',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'ttp1', title: 'Reading Your Analytics Like a Growth Team', minutes: 5, body: null },
-      { id: 'ttp2', title: 'Engineering a Video for Completion and Re-Watches', minutes: 5, body: null },
-      { id: 'ttp3', title: 'Batching a Week of Content in One Sitting', minutes: 4, body: null },
-      { id: 'ttp4', title: 'The 2026 Algorithm Reset: Follower-First Testing & Search', minutes: 6, body: null },
-      { id: 'ttp5', title: 'Longer Videos, TikTok Shop & Where Distribution Is Heading', minutes: 5, body: null },
+      { id: 'ttp1', title: 'Reading Your Analytics Like a Growth Team', minutes: 8, body: null },
+      { id: 'ttp2', title: 'Engineering a Video for Completion and Re-Watches', minutes: 6, body: null },
+      { id: 'ttp3', title: 'Batching a Week of Content in One Sitting', minutes: 6, body: null },
+      { id: 'ttp4', title: 'The 2026 Algorithm Reset: Follower-First Testing & Search', minutes: 7, body: null },
+      { id: 'ttp5', title: 'Longer Videos, TikTok Shop & Where Distribution Is Heading', minutes: 6, body: null },
     ],
   },
   {
@@ -704,11 +704,11 @@ const ACADEMY_MODULES = [
     blurb: 'Turn a Facebook page into real income',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'fbm1', title: 'Which Monetization Path Fits Your Page', minutes: 5, body: null },
-      { id: 'fbm2', title: 'Hitting Eligibility Thresholds Faster', minutes: 5, body: null },
-      { id: 'fbm3', title: 'What Kenyan Creators Actually Earn', minutes: 5, body: null },
-      { id: 'fbm4', title: 'Staying Eligible: The Compliance Traps That Cost Creators', minutes: 4, body: null },
-      { id: 'fbm5', title: 'Diversifying Beyond Ad Revenue', minutes: 4, body: null },
+      { id: 'fbm1', title: 'Which Monetization Path Fits Your Page', minutes: 7, body: null },
+      { id: 'fbm2', title: 'Hitting Eligibility Thresholds Faster', minutes: 7, body: null },
+      { id: 'fbm3', title: 'What Kenyan Creators Actually Earn', minutes: 7, body: null },
+      { id: 'fbm4', title: 'Staying Eligible: The Compliance Traps That Cost Creators', minutes: 6, body: null },
+      { id: 'fbm5', title: 'Diversifying Beyond Ad Revenue', minutes: 7, body: null },
     ],
   },
   {
@@ -716,11 +716,11 @@ const ACADEMY_MODULES = [
     blurb: 'Get found, not just watched',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'yts1', title: 'Titles & Thumbnails That Win the Click', minutes: 5, body: null },
-      { id: 'yts2', title: 'Tags, Descriptions & Semantic Search', minutes: 5, body: null },
-      { id: 'yts3', title: 'Satisfaction Over Watch Time: The 2026 Shift', minutes: 6, body: null },
-      { id: 'yts4', title: 'Shorts SEO: A Separate Ranking Track', minutes: 5, body: null },
-      { id: 'yts5', title: 'Monetization Requirements & the AI Disclosure Rule', minutes: 5, body: null },
+      { id: 'yts1', title: 'Titles & Thumbnails That Win the Click', minutes: 8, body: null },
+      { id: 'yts2', title: 'Tags, Descriptions & Semantic Search', minutes: 7, body: null },
+      { id: 'yts3', title: 'Satisfaction Over Watch Time: The 2026 Shift', minutes: 7, body: null },
+      { id: 'yts4', title: 'Shorts SEO: A Separate Ranking Track', minutes: 6, body: null },
+      { id: 'yts5', title: 'Monetization Requirements & the AI Disclosure Rule', minutes: 6, body: null },
     ],
   },
   {
@@ -728,11 +728,11 @@ const ACADEMY_MODULES = [
     blurb: 'One short-form video, three platforms, three algorithms',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'shp1', title: 'One Video, Three Platforms — What Actually Changes', minutes: 5, body: null },
-      { id: 'shp2', title: 'Repurposing Without It Looking Repurposed', minutes: 5, body: null },
-      { id: 'shp3', title: 'A Weekly System Across All Three', minutes: 4, body: null },
-      { id: 'shp4', title: 'Length: Why the Same Clip Needs Different Cuts', minutes: 5, body: null },
-      { id: 'shp5', title: 'Choosing Where to Double Down', minutes: 4, body: null },
+      { id: 'shp1', title: 'One Video, Three Platforms — What Actually Changes', minutes: 7, body: null },
+      { id: 'shp2', title: 'Repurposing Without It Looking Repurposed', minutes: 7, body: null },
+      { id: 'shp3', title: 'A Weekly System Across All Three', minutes: 6, body: null },
+      { id: 'shp4', title: 'Length: Why the Same Clip Needs Different Cuts', minutes: 6, body: null },
+      { id: 'shp5', title: 'Choosing Where to Double Down', minutes: 6, body: null },
     ],
   },
   {
@@ -740,11 +740,11 @@ const ACADEMY_MODULES = [
     blurb: 'The specific mechanics behind Reels reach',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'igrp1', title: 'The First 3 Seconds, Frame by Frame', minutes: 5, body: null },
-      { id: 'igrp2', title: 'Sends Per Reach: The Signal That Matters Most in 2026', minutes: 6, body: null },
-      { id: 'igrp3', title: '"Your Algorithm": Niche Consistency Is No Longer Optional', minutes: 5, body: null },
-      { id: 'igrp4', title: 'Account-Level Authority: Why Consistency Compounds', minutes: 5, body: null },
-      { id: 'igrp5', title: 'Cadence, Cover Images & Profile Conversion', minutes: 4, body: null },
+      { id: 'igrp1', title: 'The First 3 Seconds, Frame by Frame', minutes: 7, body: null },
+      { id: 'igrp2', title: 'Sends Per Reach: The Signal That Matters Most in 2026', minutes: 7, body: null },
+      { id: 'igrp3', title: '"Your Algorithm": Niche Consistency Is No Longer Optional', minutes: 7, body: null },
+      { id: 'igrp4', title: 'Account-Level Authority: Why Consistency Compounds', minutes: 7, body: null },
+      { id: 'igrp5', title: 'Cadence, Cover Images & Profile Conversion', minutes: 6, body: null },
     ],
   },
   {
@@ -752,11 +752,11 @@ const ACADEMY_MODULES = [
     blurb: 'From single prompts to a repeatable content pipeline',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'aip1', title: 'Building a Month of Ideas in One Session', minutes: 5, body: null },
-      { id: 'aip2', title: 'Scripting Hooks & Captions That Sound Like You', minutes: 5, body: null },
+      { id: 'aip1', title: 'Building a Month of Ideas in One Session', minutes: 7, body: null },
+      { id: 'aip2', title: 'Scripting Hooks & Captions That Sound Like You', minutes: 7, body: null },
       { id: 'aip3', title: 'The 2026 AI Video Toolkit: What Each Tool Is Actually For', minutes: 6, body: null },
-      { id: 'aip4', title: 'Disclosure & Authenticity: Staying on the Right Side of Platform Rules', minutes: 5, body: null },
-      { id: 'aip5', title: 'A Repeatable Weekly AI Workflow', minutes: 4, body: null },
+      { id: 'aip4', title: 'Disclosure & Authenticity: Staying on the Right Side of Platform Rules', minutes: 6, body: null },
+      { id: 'aip5', title: 'A Repeatable Weekly AI Workflow', minutes: 7, body: null },
     ],
   },
   {
@@ -764,11 +764,11 @@ const ACADEMY_MODULES = [
     blurb: 'Editing techniques that keep people watching',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'ccp1', title: 'Pacing: Cutting for Retention, Not Just Movement', minutes: 5, body: null },
-      { id: 'ccp2', title: 'Captions, Keyframes & Presets That Save Hours Every Week', minutes: 5, body: null },
-      { id: 'ccp3', title: 'Sound Design: The Most Skipped Step That Signals "Professional"', minutes: 4, body: null },
-      { id: 'ccp4', title: "CapCut's AI Tools: What's Actually Worth Using", minutes: 5, body: null },
-      { id: 'ccp5', title: 'A 15-Minute Edit Workflow, Start to Finish', minutes: 4, body: null },
+      { id: 'ccp1', title: 'Pacing: Cutting for Retention, Not Just Movement', minutes: 7, body: null },
+      { id: 'ccp2', title: 'Captions, Keyframes & Presets That Save Hours Every Week', minutes: 7, body: null },
+      { id: 'ccp3', title: 'Sound Design: The Most Skipped Step That Signals "Professional"', minutes: 8, body: null },
+      { id: 'ccp4', title: "CapCut's AI Tools: What's Actually Worth Using", minutes: 7, body: null },
+      { id: 'ccp5', title: 'A 15-Minute Edit Workflow, Start to Finish', minutes: 7, body: null },
     ],
   },
   {
@@ -776,9 +776,11 @@ const ACADEMY_MODULES = [
     blurb: 'Design that looks consistent, not thrown together',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'cvp1', title: 'Brand Kit: The One Setup Step That Multiplies Every Design After It', minutes: 5, body: null },
-      { id: 'cvp2', title: 'Magic Studio in 2026: The Five Tools Worth Learning (and 35 to Skip)', minutes: 6, body: null },
-      { id: 'cvp3', title: 'Batch-Designing a Week of Posts With Bulk Create', minutes: 4, body: null },
+      { id: 'cvp1', title: 'Brand Kit: The One Setup Step That Multiplies Every Design After It', minutes: 7, body: null },
+      { id: 'cvp2', title: 'Magic Studio in 2026: The Five Tools Worth Learning (and 35 to Skip)', minutes: 7, body: null },
+      { id: 'cvp3', title: 'Batch-Designing a Week of Posts With Bulk Create', minutes: 6, body: null },
+      { id: 'cvp4', title: 'Canva Video 2.0: Branded Video Without Learning a Separate Editor', minutes: 6, body: null },
+      { id: 'cvp5', title: 'Beyond the Feed: Media Kits, Canva Sites & a Second Income From Templates', minutes: 7, body: null },
     ],
   },
   {
@@ -786,9 +788,11 @@ const ACADEMY_MODULES = [
     blurb: 'Beyond the referral link — a real income channel',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'afp1', title: 'The Kenyan Affiliate Landscape: Real Programs, Real Numbers', minutes: 6, body: null },
-      { id: 'afp2', title: 'The Math: EPC, CPE and Knowing What a Program Is Actually Worth You', minutes: 5, body: null },
-      { id: 'afp3', title: 'Placement & Disclosure: Where Links Convert and Staying Compliant', minutes: 5, body: null },
+      { id: 'afp1', title: 'The Kenyan Affiliate Landscape: Real Programs, Real Numbers', minutes: 8, body: null },
+      { id: 'afp2', title: 'The Math: EPC, CPE and Knowing What a Program Is Actually Worth You', minutes: 8, body: null },
+      { id: 'afp3', title: 'Placement & Disclosure: Where Links Convert and Staying Compliant', minutes: 7, body: null },
+      { id: 'afp4', title: 'Scaling Beyond One Program: Building an Affiliate Income Stack', minutes: 7, body: null },
+      { id: 'afp5', title: 'Disclosure & Trust: The Rules That Protect Your Income Long-Term', minutes: 8, body: null },
     ],
   },
   {
@@ -796,9 +800,11 @@ const ACADEMY_MODULES = [
     blurb: 'Being known for something specific, on purpose',
     premium: true, priceKes: ACADEMY_PREMIUM_PRICE_KES,
     lessons: [
-      { id: 'pbp1', title: 'Defining the One Thing You\'re Known For', minutes: 5, body: null },
-      { id: 'pbp2', title: 'Visual & Voice Consistency: The Trust Multiplier', minutes: 5, body: null },
-      { id: 'pbp3', title: 'Turning a Personal Brand Into Opportunities', minutes: 4, body: null },
+      { id: 'pbp1', title: 'Defining the One Thing You\'re Known For', minutes: 7, body: null },
+      { id: 'pbp2', title: 'Visual & Voice Consistency: The Trust Multiplier', minutes: 7, body: null },
+      { id: 'pbp3', title: 'Turning a Personal Brand Into Opportunities', minutes: 7, body: null },
+      { id: 'pbp4', title: 'Protecting the Brand: Handling Mistakes, Criticism & Backlash', minutes: 6, body: null },
+      { id: 'pbp5', title: 'Owning Your Audience: Building Beyond the Algorithm', minutes: 7, body: null },
     ],
   },
   {
@@ -1010,6 +1016,50 @@ function _acInjectHomeStyles() {
     .ac-group-hd .n{background:var(--navy);border:1px solid var(--border);border-radius:20px;padding:1px 9px;font-size:10.5px;color:var(--muted);font-weight:700;}
     .ac-group-hd .line{flex:1;height:1px;background:var(--border);}
 
+    .ac-tpl{margin:0 0 14px;border:1px solid rgba(155,107,255,.35);border-radius:12px;overflow:hidden;background:rgba(155,107,255,.06);}
+    .ac-tpl-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(155,107,255,.25);font-size:11.5px;font-weight:800;color:#c4a8ff;letter-spacing:.3px;}
+    .ac-tpl-copy{flex-shrink:0;background:#9b6bff;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+    .ac-tpl-body{margin:0;padding:12px;white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:13px;line-height:1.55;color:var(--white);}
+    .ac-svc{margin:18px 0 14px;padding:15px;border-radius:14px;background:linear-gradient(135deg,rgba(61,212,74,.13),rgba(61,212,74,.04));border:1px solid rgba(61,212,74,.45);}
+    .ac-svc-kicker{font-size:10.5px;font-weight:800;letter-spacing:1.3px;color:var(--green);margin-bottom:5px;}
+    .ac-svc-title{font-size:15px;font-weight:800;color:var(--white);line-height:1.3;margin-bottom:6px;}
+    .ac-svc-text{font-size:13.5px;color:#c9d4e3;line-height:1.55;margin-bottom:12px;}
+    .ac-svc-btn{width:100%;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;border:none;border-radius:11px;padding:13px 16px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;}
+    .ac-svc-note{font-size:11px;color:var(--muted);margin-top:9px;line-height:1.45;}
+    .ac-act{margin:18px 0 6px;padding:12px 14px;border-radius:12px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.3);}
+    .ac-act-hd{font-size:12px;font-weight:800;color:var(--green);letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px;}
+    .ac-act-row{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:13.5px;line-height:1.5;color:var(--white);cursor:pointer;}
+    .ac-act-row input{margin-top:3px;accent-color:#3dd44a;width:16px;height:16px;flex-shrink:0;}
+    .ac-act-row input:checked + span{color:var(--muted);text-decoration:line-through;}
+    .ac-next{display:flex;align-items:center;gap:13px;flex-wrap:wrap;max-width:640px;margin:16px 0 4px;padding:15px 16px;border-radius:16px;cursor:pointer;
+      background:linear-gradient(120deg,rgba(255,215,0,.10),rgba(155,107,255,.08));border:1px solid rgba(255,215,0,.35);transition:border-color .2s;}
+    .ac-next:hover{border-color:rgba(255,215,0,.7);}
+    .ac-next-hot{margin:0 0 16px;border-width:1.5px;box-shadow:0 0 0 3px rgba(255,215,0,.08);}
+    .ac-next-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.32);flex-shrink:0;}
+    .ac-next-body{flex:1;min-width:170px;}
+    .ac-next-kicker{font-size:10px;font-weight:800;letter-spacing:1.4px;color:#ffd700;margin-bottom:3px;}
+    .ac-next-title{font-size:14px;font-weight:800;color:var(--white);line-height:1.3;}
+    .ac-next-sub{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45;}
+    .ac-next-btn{flex-shrink:0;background:#ffd700;color:#1a1300;border:none;border-radius:10px;padding:10px 14px;font-weight:800;font-size:12.5px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+    @media(max-width:520px){ .ac-next-btn{width:100%;} }
+    .ac-start{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin:0 0 20px;padding:15px 16px;border-radius:16px;cursor:pointer;
+      background:linear-gradient(120deg,rgba(61,212,74,.16),rgba(61,212,74,.04));border:1.5px solid rgba(61,212,74,.5);}
+    .ac-start-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(61,212,74,.16);flex-shrink:0;}
+    .ac-start-body{flex:1;min-width:180px;}
+    .ac-start-kicker{font-size:10.5px;font-weight:800;letter-spacing:1.3px;color:var(--green);margin-bottom:3px;}
+    .ac-start-title{font-size:15px;font-weight:800;color:var(--white);}
+    .ac-start-sub{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.45;}
+    .ac-start-btn{flex-shrink:0;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
+    @media(max-width:520px){ .ac-start-btn{width:100%;} }
+    .ac-reco{margin:0 0 20px;}
+    .ac-reco-list{display:flex;flex-direction:column;gap:8px;}
+    .ac-reco-row{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:13px;background:var(--card);border:1px solid rgba(255,215,0,.28);cursor:pointer;}
+    .ac-reco-row:hover{border-color:rgba(255,215,0,.6);}
+    .ac-reco-row .i{font-size:20px;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(255,215,0,.12);flex-shrink:0;}
+    .ac-reco-row .b{flex:1;min-width:0;}
+    .ac-reco-row .t{font-size:13px;font-weight:700;color:var(--white);line-height:1.3;}
+    .ac-reco-row .w{font-size:11px;color:var(--muted);margin-top:2px;}
+    .ac-reco-row .p{font-size:12px;font-weight:800;color:#ffd700;white-space:nowrap;}
     .ac-premium-teaser{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;background:linear-gradient(120deg,rgba(255,215,0,.14),rgba(255,193,7,.05) 60%);border:1px solid rgba(255,215,0,.4);border-radius:16px;padding:15px 16px;margin-bottom:20px;cursor:pointer;transition:border-color .2s,transform .15s;}
     .ac-premium-teaser:active{transform:scale(.98);}
     .ac-premium-teaser:hover{border-color:rgba(255,215,0,.65);}
@@ -1073,6 +1123,140 @@ function _acModAccent(kind) {
   return "--ac-c:#7a8fad;--ac-cbg:rgba(122,143,173,.12);--ac-cbd:var(--border);";
 }
 
+// ─── Free course → its paid follow-up ──────────────────────────────────────
+// Shown at the end of each free course ("Go deeper") and as "Your next step"
+// once it's finished, plus in "Recommended for you" on the Academy home.
+// The moment someone finishes a free course is when they're most likely to
+// want more — before this, finishing one only asked for feedback.
+const ACADEMY_FOLLOW_UP = {
+  basics:     'money',
+  ig:         'ig_reels_pro',
+  tiktok:     'tiktok_pro',
+  yt:         'yt_seo',
+  other:      'fb_monetize',
+  safety:     'money',
+  business:   'business_pro',
+  shorts:     'shorts_pro',
+  ai_content: 'ai_content_pro',
+  capcut:     'capcut_pro',
+  canva:      'canva_pro',
+  branding:   'branding_pro',
+};
+// Fill-ins for "Recommended for you" when the learner hasn't started much yet.
+const ACADEMY_DEFAULT_PICKS = ['tiktok_pro', 'money', 'business_pro', 'brand_pricing_pro', 'affiliate_pro'];
+
+function _acFollowUpFor(moduleId, state) {
+  const proId = ACADEMY_FOLLOW_UP[moduleId];
+  const pro = proId && ACADEMY_MODULES.find(m => m.id === proId);
+  return pro && pro.premium ? pro : null;
+}
+
+function _acPriceFor(mod, state) {
+  const meta = state.moduleMeta && state.moduleMeta[mod.id];
+  return (meta && meta.price_kes) || mod.priceKes || ACADEMY_PREMIUM_PRICE_KES;
+}
+
+// Up to `n` locked premium courses, most relevant first: follow-ups of the
+// free courses this learner has made the most progress in, then defaults.
+function _acRecommendedPro(state, n = 3) {
+  const started = ACADEMY_MODULES
+    .filter(m => !m.premium)
+    .map(m => ({ m, done: _acModuleProgress(state, m).done }))
+    .filter(x => x.done > 0)
+    .sort((a, b) => b.done - a.done)
+    .map(x => ACADEMY_FOLLOW_UP[x.m.id]);
+  const out = [];
+  [...started, ...ACADEMY_DEFAULT_PICKS].forEach(id => {
+    const mod = id && ACADEMY_MODULES.find(m => m.id === id);
+    if (mod && mod.premium && !_acIsPurchased(state, id) && !out.includes(mod) && out.length < n) out.push(mod);
+  });
+  return out;
+}
+
+// The "Go deeper" / "Your next step" card inside a free course.
+function _acFollowUpCard(mod, state, finished) {
+  const pro = _acFollowUpFor(mod.id, state);
+  if (!pro) return '';
+  const owned = _acIsPurchased(state, pro.id);
+  const price = _acPriceFor(pro, state);
+  const kicker = finished ? (owned ? 'KEEP GOING' : 'YOUR NEXT STEP') : 'WANT TO GO DEEPER?';
+  return `
+  <div class="ac-next${finished ? ' ac-next-hot' : ''}" onclick="${owned ? `_acOpenModule('${pro.id}')` : `openAcademyPurchase('${pro.id}')`}">
+    <div class="ac-next-icon">${pro.icon}</div>
+    <div class="ac-next-body">
+      <div class="ac-next-kicker">${kicker}</div>
+      <div class="ac-next-title">${esc(pro.title)}</div>
+      <div class="ac-next-sub">${esc(pro.blurb)} · ${pro.lessons.length} lessons</div>
+    </div>
+    <button class="ac-next-btn" onclick="event.stopPropagation();${owned ? `_acOpenModule('${pro.id}')` : `openAcademyPurchase('${pro.id}')`}">${owned ? 'Open →' : `Unlock · KSh ${price}`}</button>
+  </div>`;
+}
+
+// ─── Order success → a course for the platform they just ordered for ──────
+// Shown on the "ORDER PLACED!" screen (index.html showOrderResult). Free
+// course for that platform; if they've already finished it, its paid
+// follow-up instead. Reaches order customers who never open the Academy.
+const ACADEMY_COURSE_FOR_PLATFORM = {
+  tiktok: 'tiktok', instagram: 'ig', youtube: 'yt', threads: 'ig',
+  facebook: 'other', twitter: 'other', telegram: 'other',
+};
+const _AC_PLATFORM_NAME = { tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube', threads: 'Threads',
+  facebook: 'Facebook', twitter: 'X', telegram: 'Telegram' };
+
+function acOrderSuggestionHTML(platKey) {
+  const free = ACADEMY_MODULES.find(m => m.id === (ACADEMY_COURSE_FOR_PLATFORM[platKey] || 'basics'));
+  if (!free) return '';
+  const state = _acState;   // only known if they've opened the Academy this session
+  const finished = state && state.moduleBadges && state.moduleBadges.includes(free.id);
+  const pro = finished ? _acFollowUpFor(free.id, state) : null;
+  const mod = (pro && !_acIsPurchased(state, pro.id)) ? pro : free;
+  const plat = _AC_PLATFORM_NAME[platKey];
+  const isPaid = mod === pro;
+  const kicker = plat ? `KEEP YOUR ${plat.toUpperCase()} GROWING` : 'KEEP THE GROWTH GOING';
+  const line = isPaid
+    ? `You finished the free ${esc(free.title)} — go deeper:`
+    : (plat ? `Boosts work best with strong content. Learn what makes ${plat} push your posts — free:` : 'Learn how to turn this boost into lasting growth — free:');
+  const tag = isPaid ? `KSh ${_acPriceFor(mod, state || _acEmptyState())}` : 'FREE';
+  return `
+  <div class="om-ac-tip" onclick="acGoToCourse('${mod.id}')" role="button" tabindex="0">
+    <div class="om-ac-kicker">🎓 ${kicker}</div>
+    <div class="om-ac-line">${line}</div>
+    <div class="om-ac-row">
+      <div class="om-ac-icon">${mod.icon}</div>
+      <div class="om-ac-body"><div class="om-ac-title">${esc(mod.title)}</div><div class="om-ac-sub">${mod.lessons.length} short lessons · ${esc(mod.blurb)}</div></div>
+      <div class="om-ac-tag${isPaid ? ' paid' : ''}">${tag}</div>
+    </div>
+    <div class="om-ac-cta">${isPaid ? 'See the course →' : 'Start the first lesson →'}</div>
+  </div>`;
+}
+
+// Open a specific course from anywhere in the app.
+async function acGoToCourse(moduleId) {
+  if (typeof closeOrderModal === 'function') closeOrderModal();
+  if (typeof navTo === 'function') navTo('academy');   // shows the section (and starts loading)
+  try { await initAcademyPage(); } catch (_) {}
+  _acOpenModule(moduleId);
+  window.scrollTo(0, 0);
+}
+
+(function _acInjectOrderTipStyles() {
+  const css = `
+  .om-ac-tip{margin:0 0 18px;padding:14px;border-radius:14px;text-align:left;cursor:pointer;
+    background:linear-gradient(135deg,rgba(155,107,255,.14),rgba(61,212,74,.06));border:1px solid rgba(155,107,255,.4);}
+  .om-ac-tip:hover{border-color:rgba(155,107,255,.75);}
+  .om-ac-kicker{font-size:10.5px;font-weight:800;letter-spacing:1.2px;color:#c4a8ff;margin-bottom:5px;}
+  .om-ac-line{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:10px;}
+  .om-ac-row{display:flex;align-items:center;gap:11px;}
+  .om-ac-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:21px;background:rgba(155,107,255,.16);flex-shrink:0;}
+  .om-ac-body{flex:1;min-width:0;}
+  .om-ac-title{font-size:14px;font-weight:800;color:var(--white);line-height:1.3;}
+  .om-ac-sub{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4;}
+  .om-ac-tag{flex-shrink:0;font-size:11px;font-weight:800;padding:5px 9px;border-radius:8px;background:rgba(61,212,74,.15);color:var(--green);}
+  .om-ac-tag.paid{background:rgba(255,215,0,.15);color:#ffd700;}
+  .om-ac-cta{margin-top:11px;font-size:13px;font-weight:800;color:#c4a8ff;}`;
+  const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+})();
+
 function _acScrollToPremium() {
   const el = document.getElementById('ac-premium-section');
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1120,6 +1304,11 @@ function _acRenderHome(sec, state) {
 
   const freeMods   = ACADEMY_MODULES.filter(m => !(m.premium && !_acIsPurchased(state, m.id)));
   const lockedMods = ACADEMY_MODULES.filter(m => m.premium && !_acIsPurchased(state, m.id));
+  const recoMods   = _acRecommendedPro(state, 3);
+  const startMod   = ACADEMY_MODULES.find(m => m.id === 'basics');
+  const startProg  = startMod ? _acModuleProgress(state, startMod) : null;
+  const showStart  = startMod && startProg && startProg.done < startProg.total;
+  const anyStarted = ACADEMY_MODULES.some(m => !m.premium && _acModuleProgress(state, m).done > 0);
 
   sec.innerHTML = `
   <div class="ac-hero">
@@ -1129,8 +1318,8 @@ function _acRenderHome(sec, state) {
       <div class="ac-hero-crest">🎓</div>
       <div class="ac-hero-copy">
         <div class="ac-hero-kicker">CREATOR ACADEMY</div>
-        <div class="ac-hero-title">Free lessons on growing your social media</div>
-        <div class="ac-hero-sub">Watch short lessons, earn points as you go, plus deep-dive premium courses</div>
+        <div class="ac-hero-title">Grow your social media — free lessons &amp; premium courses</div>
+        <div class="ac-hero-sub">Start free, earn points as you go, then go deeper with step-by-step premium courses from KSh 50</div>
       </div>
       <div class="ac-hero-level">
         <div class="ac-hero-level-top"><span>${level.icon}</span><span>${esc(level.name)}</span></div>
@@ -1143,11 +1332,35 @@ function _acRenderHome(sec, state) {
     </div>
   </div>
 
-  ${lockedMods.length ? `
+  ${showStart ? `
+  <div class="ac-start" onclick="_acOpenModule('basics')">
+    <div class="ac-start-icon">${startMod.icon}</div>
+    <div class="ac-start-body">
+      <div class="ac-start-kicker">${startProg.done ? 'CONTINUE WHERE YOU LEFT OFF' : 'NEW HERE? START HERE'}</div>
+      <div class="ac-start-title">${esc(startMod.title)}</div>
+      <div class="ac-start-sub">${startMod.lessons.length} short lessons · how to order, pay with M-Pesa, track delivery and earn free orders${startProg.done ? ` · ${startProg.done}/${startProg.total} done` : ''}</div>
+    </div>
+    <button class="ac-start-btn" onclick="event.stopPropagation();_acOpenModule('basics')">${startProg.done ? 'Continue →' : 'Start →'}</button>
+  </div>` : ''}
+
+  ${recoMods.length ? `
+  <div class="ac-reco">
+    <div class="ac-group-hd" style="margin-top:0;"><span class="t">💎 ${anyStarted ? 'Recommended for you' : 'Popular premium courses'}</span><span class="line"></span></div>
+    <div class="ac-reco-list">
+      ${recoMods.map(m => `
+      <div class="ac-reco-row" onclick="_acOpenModule('${m.id}')">
+        <div class="i">${m.icon}</div>
+        <div class="b"><div class="t">${esc(m.title)}</div><div class="w">${m.lessons.length} lessons · ${esc(m.blurb)}</div></div>
+        <div class="p">KSh ${_acPriceFor(m, state)} ›</div>
+      </div>`).join('')}
+    </div>
+  </div>` : ''}
+
+  ${lockedMods.length > recoMods.length ? `
   <div class="ac-premium-teaser" onclick="_acScrollToPremium()">
     <div class="ac-premium-teaser-icon">💎</div>
     <div class="ac-premium-teaser-body">
-      <div class="ac-premium-teaser-title">${lockedMods.length} Premium Courses — from KSh ${Math.min(...lockedMods.map(m => m.priceKes || ACADEMY_PREMIUM_PRICE_KES))}</div>
+      <div class="ac-premium-teaser-title">See all ${lockedMods.length} premium courses — from KSh ${Math.min(...lockedMods.map(m => m.priceKes || ACADEMY_PREMIUM_PRICE_KES))}</div>
       <div class="ac-premium-teaser-sub">Deeper, step-by-step guides beyond the free lessons. Pay with M-Pesa or use your reward points.</div>
     </div>
     <div class="ac-premium-teaser-arrow">↓</div>
@@ -1319,6 +1532,7 @@ async function _acOpenModule(moduleId) {
     </div>
     <button class="ac-grad-btn" onclick="acOpenCertificate('${mod.id}')">Get Certificate →</button>
   </div>` : ''}
+  ${(!mod.premium && badgeEarned) ? _acFollowUpCard(mod, state, true) : ''}
   <div style="display:flex;flex-direction:column;gap:10px;max-width:640px;">
     ${mod.lessons.map((l, i) => {
       const complete = !!state.completed[mod.id + ':' + l.id];
@@ -1334,7 +1548,8 @@ async function _acOpenModule(moduleId) {
         <div style="color:var(--muted);font-size:14px;">›</div>
       </div>`;
     }).join('')}
-  </div>`;
+  </div>
+  ${(!mod.premium && !badgeEarned) ? _acFollowUpCard(mod, state, false) : ''}`;
 }
 
 // ─── Rendering: lesson modal ────────────────────────────────────────────────
@@ -1357,6 +1572,7 @@ function openAcademyLesson(moduleId, lessonId) {
   document.getElementById('acLessonEyebrow').textContent = mod.icon + ' ' + mod.title.toUpperCase();
   document.getElementById('acLessonTitle').textContent = lesson.title;
   document.getElementById('acLessonMeta').textContent = lesson.minutes + ' min read';
+  _acTemplates = [];
   document.getElementById('acLessonBody').innerHTML = lesson.body.map(block => {
     if (block.type === 'p') return `<p style="margin-bottom:12px;">${esc(block.text)}</p>`;
     if (block.type === 'ul') return `<ul style="margin:0 0 12px 18px;padding:0;">${block.items.map(it => `<li style="margin-bottom:7px;color:var(--muted);">${esc(it)}</li>`).join('')}</ul>`;
@@ -1368,6 +1584,22 @@ function openAcademyLesson(moduleId, lessonId) {
       const head = (block.headers || []).map(h => `<th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);border-bottom:1px solid var(--border);">${esc(h)}</th>`).join('');
       const rows = (block.rows || []).map(r => `<tr>${r.map(c => `<td style="padding:8px 10px;font-size:13px;color:var(--white);border-bottom:1px solid var(--border);">${esc(c)}</td>`).join('')}</tr>`).join('');
       return `<div style="overflow-x:auto;margin-bottom:14px;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+    // Copy-paste template (caption formula, pitch message, AI prompt, script…)
+    if (block.type === 'template') {
+      const i = _acTemplates.push(block.text || '') - 1;
+      return `<div class="ac-tpl"><div class="ac-tpl-hd"><span>📋 ${esc(block.label || 'Template')}</span><button type="button" class="ac-tpl-copy" onclick="_acCopyTemplate(${i}, this)">Copy</button></div><pre class="ac-tpl-body">${esc(block.text || '')}</pre></div>`;
+    }
+    // Order card — upsells the EndaViral service that fits this lesson and
+    // opens New Order with that platform + service type pre-selected.
+    if (block.type === 'service') {
+      const plat = String(block.platform || 'all').replace(/[^a-z]/g, '');
+      const sub  = String(block.subcat || 'all').replace(/[^a-z]/g, '');
+      return `<div class="ac-svc"><div class="ac-svc-kicker">🚀 ENDAVIRAL GROWTH</div><div class="ac-svc-title">${esc(block.label || '')}</div><div class="ac-svc-text">${esc(block.text || '')}</div><button type="button" class="ac-svc-btn" onclick="acOrderService('${plat}','${sub}')">${esc(block.cta || 'Order now')} →</button><div class="ac-svc-note">Works best as social proof on content you're proud of. Bought numbers don't count toward monetisation, so keep them out of brand pitches.</div></div>`;
+    }
+    // "Do this today" action checklist — ticks are just for the learner, not saved
+    if (block.type === 'action') {
+      return `<div class="ac-act"><div class="ac-act-hd">✅ ${esc(block.label || 'Do this today')}</div>${(block.items || []).map(it => `<label class="ac-act-row"><input type="checkbox"><span>${esc(it)}</span></label>`).join('')}</div>`;
     }
     return '';
   }).join('');
@@ -1381,6 +1613,34 @@ function openAcademyLesson(moduleId, lessonId) {
   }
 
   document.getElementById('academyLessonModal').classList.add('show');
+}
+
+let _acTemplates = []; // texts of the template blocks in the open lesson (copied by index)
+
+// From a lesson's order card straight to New Order, filtered to the right
+// platform and service type (e.g. TikTok → Views).
+async function acOrderService(platform, subcat) {
+  closeAcademyLesson();
+  if (typeof navTo === 'function') navTo('services');
+  try { if (typeof loadServices === 'function') await loadServices(); } catch (_) {}
+  try {
+    if (typeof selectPlatform === 'function') selectPlatform(platform && platform !== 'all' ? platform : 'all');
+    if (subcat && subcat !== 'all' && document.querySelector(`.subcat-tile[data-subcat="${subcat}"]`) && typeof selectSubcat === 'function') selectSubcat(subcat);
+  } catch (_) {}
+  const target = document.getElementById('subcatBar') || document.getElementById('sec-services');
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function _acCopyTemplate(i, btn) {
+  const text = _acTemplates[i] || '';
+  const done = () => { if (btn) { btn.textContent = 'Copied ✓'; setTimeout(() => { btn.textContent = 'Copy'; }, 1800); } };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, () => toast('Could not copy — press and hold the text to copy it', 'error'));
+  } else {
+    const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); done(); } catch (_) { toast('Could not copy', 'error'); }
+    t.remove();
+  }
 }
 
 function closeAcademyLesson() {

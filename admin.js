@@ -2615,6 +2615,8 @@ async function syncServices() {
     if (geoHidden)  detailParts.push(`${geoHidden} geo`);
     if (qtyHidden)  detailParts.push(`${qtyHidden} qty`);
     if (rateHidden) detailParts.push(`${rateHidden} rate`);
+    const typeHidden = breakdown.unsupported_order_type ?? 0;
+    if (typeHidden) detailParts.push(`${typeHidden} need extra details (comments/usernames/polls)`);
     const msg = `Synced! ${visible} visible · ${hidden} hidden (${detailParts.join(', ')}) · Markup: ${markupPct}%`;
     toast(msg, 'success');
     loadAdminServices(); loadServices(true);
@@ -2996,6 +2998,7 @@ function openOrderDetailModal(orderId) {
         <div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Link</div>
         <a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:var(--green);font-size:12px;word-break:break-all;">${safeLink}</a>
       </div>` : ''}
+      <div id="odmPanelErrors" data-order="${fullId}"></div>
     </div>
     <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;">
       ${rawLink ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="action-btn" style="text-decoration:none;">🔗 Open Link</a>` : ''}
@@ -3005,6 +3008,42 @@ function openOrderDetailModal(orderId) {
     </div>
   `;
   modal.style.display = 'flex';
+  _loadOrderPanelErrors(o.id);
+}
+
+// Staff-only: the panel's EXACT error text for this order (submit rejected,
+// refill / cancel refused, nightly auto-refill refused). Customers never see
+// this — they get brand-safe wording. Fetched once per modal open.
+const _ODM_ERR_LABEL = { order: 'Order submit', refill: 'Refill', cancel: 'Cancel', reorder: 'Reorder', 'auto-refill': 'Auto-refill' };
+async function _loadOrderPanelErrors(orderId) {
+  const box = document.getElementById('odmPanelErrors');
+  if (!box || !orderId) return;
+  box.innerHTML = '<div style="padding:10px 0;color:var(--muted);font-size:11px;">Checking provider errors…</div>';
+  let errors = [];
+  try {
+    const data = await api(`/admin/orders/${encodeURIComponent(orderId)}/errors`);
+    errors = (data && data.errors) || [];
+  } catch (e) {
+    if (box.dataset.order === orderId) box.innerHTML = `<div style="padding:10px 0;color:var(--muted);font-size:11px;">Couldn't load provider errors: ${esc(e.message || '')}</div>`;
+    return;
+  }
+  if (box.dataset.order !== orderId) return;   // staff already opened another order
+  if (!errors.length) {
+    box.innerHTML = '<div style="padding:10px 0;color:var(--muted);font-size:11px;">No provider errors recorded for this order.</div>';
+    return;
+  }
+  box.innerHTML = `
+    <div style="padding:10px 0;">
+      <div style="color:#ff8a80;font-size:11px;font-weight:700;margin-bottom:6px;">⚠️ Provider error${errors.length > 1 ? 's' : ''} (staff only)</div>
+      ${errors.map(er => `
+        <div style="background:rgba(255,82,82,.08);border:1px solid rgba(255,82,82,.25);border-radius:8px;padding:8px 10px;margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--muted);margin-bottom:4px;">
+            <span>${esc(_ODM_ERR_LABEL[er.context] || er.context || '')}</span>
+            <span>${er.at ? esc(new Date(er.at).toLocaleString('en-KE')) : ''}</span>
+          </div>
+          <div style="font-family:monospace;font-size:11.5px;color:var(--white);white-space:pre-wrap;overflow-wrap:anywhere;">${esc(er.message || '')}</div>
+        </div>`).join('')}
+    </div>`;
 }
 
 // Jumps straight to the "Create Order" tab (already accessible to CCR

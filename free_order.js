@@ -26,13 +26,18 @@ function _foDots(done, total) {
 async function freeOrderRefreshCard() {
   const card = document.getElementById('dashFreeOrderCard');
   if (!card) return;
+  // Signed out: never call the API. (Previously this kept polling after
+  // logout, got a 401 every minute and popped "Your session has expired"
+  // on the login screen.)
+  if (typeof token === 'undefined' || !token) return;
   try {
     _foState = await api('/free-order/status');
   } catch (_) { return; }
-  // keep the card live: re-check every minute while the dashboard is open
-  if (!_foTimer) _foTimer = setInterval(() => {
-    if (!document.hidden && document.getElementById('dashFreeOrderCard')) freeOrderRefreshCard();
-  }, 60000);
+  // No timer: each status check runs several database queries, and a
+  // 60-second poll kept the (Neon) database awake for as long as anyone
+  // had the dashboard open. The card refreshes on login, whenever the Free
+  // Order card is opened, and the moment a free-order update arrives over
+  // the live connection (auth.js → ticket_reply).
 
   const desc = document.getElementById('dashFreeOrderDesc');
   const arrow = document.getElementById('dashFreeOrderArrow');
@@ -113,7 +118,7 @@ async function freeOrderOpen() {
       + _foProgressBlock(s) + _foHistoryBlock(s);
   } else {
     const list = s.allowed_services || [];
-    const single = list.length === 1 && list[0].usable;
+    const single = list.length === 1 && list[0].usable && !(list[0].alternatives || []).length;
     _foFlow = { step: single ? 'details' : 'service', svc: single ? list[0] : null, reward: r, single };
     _foRender();
   }
@@ -139,25 +144,34 @@ function _foRender() {
 
   if (f.step === 'service') {
     const list = _foState.allowed_services || [];
+    const card = 'padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);cursor:pointer;';
+    const usableCount = list.filter(x => x.usable).length + list.reduce((n, x) => n + (x.alternatives || []).length, 0);
     html += `<div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Pick one of your recent services</div>
-      <div style="display:flex;flex-direction:column;gap:8px;">${list.map(s => s.usable ? `
-        <div onclick="_foPickService(${s.service})" style="padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);cursor:pointer;">
+      <div style="display:flex;flex-direction:column;gap:8px;">${list.map((s, i) => s.usable ? `
+        <div role="button" tabindex="0" onclick="_foPickService(${s.service}, -1)" style="${card}">
           <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">${esc(s.name)}</div>
-          ${s.replaces ? `<div style="font-size:11.5px;color:#ffc107;margin-bottom:4px;">${s.match === 'same_type' ? 'Closest match to' : 'Replacement for'} "${esc(s.replaces)}" (unavailable)</div>` : ''}
           <div style="font-size:12px;color:var(--muted);">You get <b style="color:#3dd44a">${s.quantity.toLocaleString()}</b> free</div>
         </div>` : `
-        <div style="padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.1);opacity:.55;">
-          <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">${esc(s.name)}</div>
-          <div style="font-size:12px;color:var(--muted);">Currently unavailable</div>
+        <div style="padding:12px 14px;border-radius:12px;background:rgba(255,193,7,.05);border:1px dashed rgba(255,193,7,.35);">
+          <div style="font-size:13.5px;font-weight:600;margin-bottom:2px;text-decoration:line-through;opacity:.7;">${esc(s.name)}</div>
+          ${(s.alternatives || []).length ? `
+            <div style="font-size:12px;color:#ffc107;margin-bottom:8px;">No longer available — choose a similar service instead:</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">${s.alternatives.map(a => `
+              <div role="button" tabindex="0" onclick="_foPickService(${a.service}, ${i})" style="${card}padding:10px 12px;">
+                <div style="font-size:13px;font-weight:600;margin-bottom:3px;">${esc(a.name)}</div>
+                <div style="font-size:12px;color:var(--muted);">You get <b style="color:#3dd44a">${a.quantity.toLocaleString()}</b> free${a.match === 'same_type' ? ' · <span style="color:#3dd44a;">same kind</span>' : ''}</div>
+              </div>`).join('')}</div>` : `
+            <div style="font-size:12px;color:var(--muted);margin:2px 0 8px;">No longer available, and there's no similar service right now.</div>
+            <button class="btn-secondary" style="padding:8px 12px;font-size:12.5px;" onclick="_foAskSupport(${i})">💬 Ask support to choose one</button>`}
         </div>`).join('') || '<p style="color:var(--muted)">No eligible services found. Please contact support.</p>'}</div>
-      ${list.length && !list.some(x => x.usable) ? '<p style="color:var(--muted);font-size:13px;margin-top:10px;">None of these services can be used right now. Please contact support and we\'ll sort it out.</p>' : ''}`;
+      ${list.length && !usableCount ? '<p style="color:var(--muted);font-size:13px;margin-top:10px;">None of these services can be used right now. Ask support and we\'ll sort it out — your free order stays saved.</p>' : ''}`;
 
   } else if (f.step === 'details') {
     const s = f.svc;
     html += (f.single ? '' : `<div onclick="_foGo('service')" style="cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:10px;">← Back</div>`) + `
       <div style="padding:12px 14px;border-radius:12px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.25);margin-bottom:12px;">
         <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">${esc(s.name)}</div>
-        ${s.replaces ? `<div style="font-size:11.5px;color:#ffc107;margin-bottom:4px;">${s.match === 'same_type' ? 'Closest match to' : 'Replacement for'} "${esc(s.replaces)}" (unavailable)</div>` : ''}
+        ${s.replaces ? `<div style="font-size:11.5px;color:#ffc107;margin-bottom:4px;">Instead of "${esc(s.replaces)}" (no longer available)</div>` : ''}
         <div style="font-size:12px;color:var(--muted);">Quantity: <b style="color:#3dd44a">${s.quantity.toLocaleString()}</b> (set automatically)</div>
       </div>
       <div class="field"><label>Profile or post link</label><input type="url" id="foLink" placeholder="https://…"/></div>
@@ -166,10 +180,34 @@ function _foRender() {
   body.innerHTML = html;
 }
 
-function _foPickService(id) {
-  _foFlow.svc = (_foState.allowed_services || []).find(s => s.service === id);
+// fromIdx = -1 → one of their own services; otherwise the index of the
+// unavailable service this alternative replaces.
+function _foPickService(id, fromIdx) {
+  const list = _foState.allowed_services || [];
+  let svc = null;
+  if (fromIdx >= 0 && list[fromIdx]) {
+    const a = (list[fromIdx].alternatives || []).find(x => x.service === id);
+    if (a) svc = { ...a, replaces: list[fromIdx].name };
+  } else {
+    svc = list.find(s => s.usable && s.service === id) || null;
+  }
+  if (!svc) return;
+  _foFlow.svc = svc;
   _foFlow.step = 'details';
   _foRender();
+}
+
+function _foAskSupport(idx) {
+  const gone = ((_foState.allowed_services || [])[idx] || {}).name || 'my service';
+  freeOrderClose();
+  const prefill = () => {
+    if (typeof window.evOpenNewTicketForm === 'function') window.evOpenNewTicketForm();
+    const desc = document.getElementById('ev-nt-desc');
+    if (desc) { desc.value = `Free order: "${gone}" is no longer available and there's no similar service to pick. Please help me choose one.`; desc.focus(); }
+  };
+  const win = document.getElementById('ev-chat-window');
+  if (typeof window.evChatToggle === 'function' && win && !win.classList.contains('open')) { window.evChatToggle(); setTimeout(prefill, 150); }
+  else prefill();
 }
 
 async function freeOrderSubmit() {
@@ -196,7 +234,8 @@ async function loadAdminFreeOrders() {
   loadFreeOrderStats();
   try {
     const rows = await api(`/free-order/staff/requests?status=${status}`);
-    if (!rows.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🎁</div><p>No free-order requests.</p></div>'; return; }
+    if (!rows.length) { el.classList.remove('fo-has-cards'); el.innerHTML = '<div class="empty-state"><div class="icon">🎁</div><p>No free-order requests.</p></div>'; return; }
+    el.classList.add('fo-has-cards');
     el.innerHTML = `<table><thead><tr><th>Client</th><th>Service</th><th>Link</th><th>Qty</th><th>Value</th><th>Status</th><th>Delivery</th><th>Actions</th></tr></thead><tbody>${rows.map(r => `
       <tr>
         <td><strong>${esc(r.user?.name || '—')}</strong><div style="font-size:12px;color:var(--muted)">${esc(r.user?.phone || r.user?.email || '')}</div></td>
@@ -204,15 +243,69 @@ async function loadAdminFreeOrders() {
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;"><a href="${esc(r.link || '#')}" target="_blank" rel="noopener noreferrer" style="color:var(--green)">${esc(r.link || '')}</a></td>
         <td>${r.quantity ?? ''}</td>
         <td>${fmtKES(r.value_kes || 0)}<div style="font-size:11px;color:var(--muted)">cap ${fmtKES(r.allowance_kes)}</div></td>
-        <td>${esc(r.status)}</td>
+        <td>${_foStatusLabel(r)}</td>
         <td>${esc(r.order_status || '—')}</td>
-        <td>${r.status === 'pending' ? `
-          <button class="btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="adminFreeOrderApprove('${r.id}',this)">Approve</button>
-          <button class="btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="adminFreeOrderReject('${r.id}')">Reject</button>` : (r.status === 'approved' && ['failed','cancelled','partial'].includes(r.order_status) ? `<button class="btn-secondary" style="padding:6px 12px;font-size:12px;" onclick="adminFreeOrderRegrant('${r.id}',this)">Restore</button>` : (r.bonus_order_id ? `#${esc(r.bonus_order_id.slice(0,8))}` : ''))}</td>
-      </tr>`).join('')}</tbody></table>`;
+        <td style="white-space:nowrap;">${_foStaffActions(r)}</td>
+      </tr>`).join('')}</tbody></table>
+    <div class="fo-cards">${rows.map(r => `
+      <div class="fo-card">
+        <div class="fo-card-top">
+          <div style="min-width:0;"><strong>${esc(r.user?.name || '—')}</strong>
+            <div class="fo-muted">${esc(r.user?.phone || r.user?.email || '')}</div></div>
+          <div class="fo-status">${_foStatusLabel(r)}</div>
+        </div>
+        <div class="fo-card-svc">${esc(r.service_name || '')}</div>
+        <div class="fo-muted">${(r.quantity ?? 0).toLocaleString()} qty · ${fmtKES(r.value_kes || 0)} <span>(cap ${fmtKES(r.allowance_kes)})</span>${r.order_status ? ` · delivery: <b>${esc(r.order_status)}</b>` : ''}</div>
+        ${r.link ? `<a class="fo-card-link" href="${esc(r.link)}" target="_blank" rel="noopener noreferrer">${esc(r.link)}</a>` : ''}
+        <div class="fo-card-actions">${_foStaffActions(r)}</div>
+      </div>`).join('')}</div>`;
   } catch (e) {
     el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
   }
+}
+
+// A request is "stuck" when approval started but never finished (server
+// restart mid-approval, or the provider never answered). Matches
+// STUCK_AFTER in app/services/free_order.py.
+const _FO_STUCK_MS = 90 * 1000;
+function _foIsStuck(r) {
+  return r.status === 'approving' && r.reviewed_at && (Date.now() - new Date(r.reviewed_at).getTime()) > _FO_STUCK_MS;
+}
+function _foIsOwn(r) {
+  return currentUser && r.user && r.user.id === currentUser.id && currentUser.role !== 'admin';
+}
+function _foStatusLabel(r) {
+  if (r.status === 'approving') return _foIsStuck(r)
+    ? '<span style="color:#ff6b6b;font-weight:700;">⚠️ Needs checking</span>'
+    : '<span style="color:#ffc107;">Approving…</span>';
+  return esc(r.status);
+}
+function _foStaffActions(r) {
+  const b = (label, fn) => `<button class="btn-secondary fo-act" onclick="${fn}">${label}</button>`;
+  if (_foIsOwn(r)) return '<span class="fo-muted">Your own — another team member must handle it</span>';
+  if (r.status === 'pending') return b('Approve', `adminFreeOrderApprove('${r.id}',this)`) + b('Reject', `adminFreeOrderReject('${r.id}')`);
+  if (_foIsStuck(r)) return b('Resolve', `adminFreeOrderResolve('${r.id}',this)`);
+  if (r.status === 'approving') return '<span class="fo-muted">Sending to provider… refresh in a minute</span>';
+  if (r.status === 'approved' && ['failed','cancelled','partial'].includes(r.order_status)) return b('Restore', `adminFreeOrderRegrant('${r.id}',this)`);
+  return r.bonus_order_id ? `<span class="fo-muted">#${esc(r.bonus_order_id.slice(0,8))}</span>` : '';
+}
+
+async function adminFreeOrderResolve(id, btn) {
+  const v = prompt(
+    'This free order was sent to the provider but we never got a clear answer.\n\n' +
+    'Check the provider panel for this link:\n' +
+    '• If the order IS there, enter the provider\'s order ID.\n' +
+    '• If it is NOT there, leave this empty and press OK — it goes back to Pending so you can approve again.');
+  if (v === null) return;                       // cancelled
+  const providerId = v.trim();
+  if (providerId && !/^\d+$/.test(providerId)) { toast('Provider order ID must be a number', 'error'); return; }
+  if (!providerId && !confirm('Confirm: the order is NOT in the provider panel. Put it back to Pending?')) return;
+  if (btn) btn.disabled = true;
+  try {
+    const res = await api(`/free-order/staff/${id}/resolve`, { method: 'POST', body: JSON.stringify({ provider_order_id: providerId || null }) });
+    toast(res.message || 'Resolved', 'success');
+  } catch (e) { toast(e.message, 'error'); }
+  loadAdminFreeOrders();
 }
 
 async function adminFreeOrderApprove(id, btn) {
@@ -221,7 +314,10 @@ async function adminFreeOrderApprove(id, btn) {
   try {
     await api(`/free-order/staff/${id}/approve`, { method: 'POST' });
     toast('Approved — sent to provider', 'success');
-  } catch (e) { toast(e.message, 'error'); }
+  } catch (e) {
+    // "Couldn't confirm with the provider" must be read, not missed in a 4s toast.
+    if (/Resolve/.test(e.message || '')) alert(e.message); else toast(e.message, 'error');
+  }
   loadAdminFreeOrders();
 }
 
@@ -266,3 +362,30 @@ async function adminFreeOrderRegrant(id, btn) {
   } catch (e) { toast(e.message, 'error'); }
   loadAdminFreeOrders();
 }
+
+/* Staff list: cards on phones (the 8-column table hid Approve/Reject off-screen). */
+(function () {
+  const css = `
+  .fo-cards{display:none;}
+  @media(max-width:768px){
+    .tbl-wrap.fo-has-cards > table{display:none;}
+    .tbl-wrap.fo-has-cards{overflow:hidden;}
+    .fo-cards{display:flex;flex-direction:column;}
+  }
+  .fo-card{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;font-size:13.5px;}
+  .fo-card:last-child{border-bottom:none;}
+  .fo-card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+  .fo-status{font-size:12px;white-space:nowrap;text-transform:capitalize;}
+  .fo-card-svc{font-weight:600;line-height:1.35;word-break:break-word;}
+  .fo-muted{color:var(--muted);font-size:12px;}
+  .fo-card-link{color:var(--green);font-size:12.5px;word-break:break-all;}
+  .fo-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+  .fo-card-actions .fo-act{flex:1;min-width:110px;padding:10px 12px;}
+  .fo-act{padding:6px 12px;font-size:12px;margin:2px 4px 2px 0;}`;
+  const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+})();
+
+// The dashboard can finish loading before this file does (it's near the end
+// of the page), in which case loadDashboard() skipped the card refresh.
+// Catch up once. Duplicate calls are free: api() shares in-flight GETs.
+if (typeof token !== 'undefined' && token) setTimeout(() => freeOrderRefreshCard(), 0);

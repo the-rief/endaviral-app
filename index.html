@@ -2045,7 +2045,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 
   <div class="main-content">
     <div class="topbar">
-      <div style="display:flex;align-items:center;gap:14px;">
+      <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1;">
         <button class="hamburger" id="hamburger" onclick="toggleSidebar()">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
@@ -2087,6 +2087,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div id="howToGuideDesc" style="font-size:12px;color:var(--muted);line-height:1.5;">
             Pick a platform &amp; service → paste your <span style="color:var(--white);font-weight:600;">profile or post link</span> → pay with M-Pesa. Done in under a minute.
           </div>
+          <button type="button" onclick="acGoToCourse('basics')" style="margin-top:9px;background:none;border:none;padding:0;color:var(--green);font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;text-align:left;">📘 New here? See how EndaViral works — 5 short lessons →</button>
         </div>
 
         <!-- ── Stat row: compact, one line, no wasted space ── -->
@@ -2111,7 +2112,7 @@ tbody td{padding:13px 16px;font-size:14px;}
             <div class="promo-icon">🎓</div>
             <div class="promo-body">
               <div class="promo-title">Creator Academy</div>
-              <div class="promo-desc">Free lessons, Learn &amp; Grow</div>
+              <div class="promo-desc">Free &amp; premium courses from KSh 50</div>
             </div>
             <div class="promo-arrow">Open →</div>
           </div>
@@ -2254,8 +2255,12 @@ tbody td{padding:13px 16px;font-size:14px;}
   <div class="modal" style="max-width:440px;">
     <button class="modal-close" onclick="closeNewTicketModal()">✕</button>
     <div class="modal-title">OPEN NEW TICKET</div>
+    <div class="nt-howto">
+      <button type="button" class="nt-howto-btn" onclick="ntToggleOrderHowto(this)">🛒 How do I place an order? <span>Show me ▾</span></button>
+      <div class="nt-howto-body" id="ntOrderHowto" style="display:none;"></div>
+    </div>
     <div class="modal-sub" style="margin-bottom:20px;">
-      Select what applies, or just describe it below.
+      Still need help? Select what applies, or just describe it below.
     </div>
 
     <div class="modal-field">
@@ -3257,12 +3262,44 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div id="omResultIcon" style="font-size:56px;margin-bottom:16px;">✅</div>
       <div class="modal-title" id="omResultTitle">ORDER PLACED!</div>
       <div class="modal-sub" id="omResultDesc" style="margin-bottom:24px;"></div>
+      <div id="omAcademyTip"></div>
       <button class="btn-primary" id="omResultBtn" onclick="closeOrderModal()" style="width:100%;">View My Orders</button>
     </div>
   </div>
 </div>
 
 <div id="toastWrap"></div>
+<style>
+  /* Quick answers on the New Ticket forms */
+  .ev-nt-quick{margin:2px 0 12px;padding:11px 12px;border-radius:12px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.28);}
+  .ev-nt-quick-label{font-size:11px;font-weight:800;color:#3dd44a;letter-spacing:.4px;margin-bottom:8px;}
+  .ev-nt-quick-btn{display:block;width:100%;text-align:left;margin-top:6px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .ev-ia-actions{display:flex;flex-direction:column;gap:8px;margin:6px 0 10px 40px;}
+  .ev-ia-btn{padding:11px 12px;border-radius:10px;border:none;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;text-align:center;}
+  .ev-ia-btn + .ev-ia-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);}
+  .nt-howto{margin:4px 0 14px;border:1px solid rgba(61,212,74,.3);border-radius:12px;background:rgba(61,212,74,.06);overflow:hidden;}
+  .nt-howto-btn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;background:none;border:none;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13.5px;font-weight:700;cursor:pointer;text-align:left;}
+  .nt-howto-btn span{color:var(--green);font-size:12px;white-space:nowrap;}
+  .nt-howto-body{padding:0 14px 14px;font-size:13px;line-height:1.6;color:#c9d4e3;}
+  .nt-howto-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+</style>
+<script>
+  function ntToggleOrderHowto(btn) {
+    const body = document.getElementById('ntOrderHowto');
+    if (!body) return;
+    const open = body.style.display === 'none';
+    if (open && !body.innerHTML) {
+      body.innerHTML = (typeof evOrderHowtoHTML === 'function' ? evOrderHowtoHTML() : '') +
+        `<div class="nt-howto-actions">
+           <button class="btn-primary" style="flex:1;min-width:150px;margin-top:0;padding:11px;" onclick="closeNewTicketModal();navTo('services')">👆 Start an order</button>
+           <button class="btn-secondary" style="flex:1;min-width:150px;" onclick="closeNewTicketModal();acGoToCourse('basics')">📘 How EndaViral Works</button>
+         </div>`;
+    }
+    body.style.display = open ? '' : 'none';
+    const tag = btn && btn.querySelector('span');
+    if (tag) tag.textContent = open ? 'Hide ▴' : 'Show me ▾';
+  }
+</script>
 
 <!-- T&C MODAL -->
 <div class="tnc-overlay" id="tncOverlay" onclick="if(event.target===this)closeTnc()">
@@ -3797,19 +3834,27 @@ function renderDashOrders(orders) {
     document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders yet. <a href="#" onclick="navTo(\'services\')" style="color:var(--green);">Place your first order →</a></p></div>';
     return;
   }
-  document.getElementById('dashOrdersTable').innerHTML = `
+  // Rows (desktop) and cards (phones) both open the order details sheet
+  // (order_details.js). The card list replaces the table on small screens,
+  // where the table squeezed the ID into 4 lines and cut off Cost/Status.
+  const dashWrap = document.getElementById('dashOrdersTable');
+  dashWrap.classList.add('od-has-cards');
+  if (typeof orderRememberList === 'function') orderRememberList(orders);
+  const _oid = o => String(o.id||o._id||'').replace(/[^A-Za-z0-9_-]/g,'');
+  dashWrap.innerHTML = `
     <table>
       <thead><tr><th>#ID</th><th>Service</th><th class="hide-mobile">Qty</th><th>Cost</th><th>Status</th></tr></thead>
       <tbody>${orders.map(o => `
-        <tr>
-          <td style="color:var(--muted);font-size:12px;">#${o.id||o._id||'—'}</td>
+        <tr class="od-tr" tabindex="0" title="View order details" onclick="openOrderDetail('${_oid(o)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openOrderDetail('${_oid(o)}')}">
+          <td style="color:var(--muted);font-size:12px;white-space:nowrap;">#${_oid(o).slice(0,8)||'—'}</td>
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.service_name||o.serviceName||o.service||'—'}</td>
           <td class="hide-mobile">${(o.quantity||o.qty||'—').toLocaleString?.()|| o.quantity||'—'}</td>
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost||o.amount)}</td>
           <td>${statusPill(o.status)}</td>
         </tr>`).join('')}
       </tbody>
-    </table>`;
+    </table>
+    ${typeof orderCardsHTML === 'function' ? orderCardsHTML(orders) : ''}`;
 }
 
 async function loadServices(force = false) {
@@ -4223,6 +4268,18 @@ function showOrderResult(success, msg) {
   document.getElementById('omResultIcon').textContent = success ? '✅' : '❌';
   document.getElementById('omResultTitle').textContent = success ? 'ORDER PLACED!' : 'PAYMENT FAILED';
   document.getElementById('omResultDesc').textContent = msg;
+  // Successful order → suggest the Academy course for that platform
+  // (academy.js). Most order customers never open the Academy otherwise.
+  const tipEl = document.getElementById('omAcademyTip');
+  if (tipEl) {
+    let tip = '';
+    try {
+      if (success && typeof acOrderSuggestionHTML === 'function') {
+        tip = acOrderSuggestionHTML(currentSvc && (currentSvc._platKey || (typeof getPlatformKey === 'function' ? getPlatformKey(currentSvc) : '')));
+      }
+    } catch (_) { tip = ''; }
+    tipEl.innerHTML = tip;
+  }
   document.getElementById('omResultBtn').onclick = () => { closeOrderModal(); if (success) navTo('orders'); };
   document.getElementById('omResultBtn').textContent = success ? 'View My Orders' : 'Close';
 
@@ -4274,11 +4331,14 @@ function renderOrders() {
   let list = allOrders;
   if (orderFilter !== 'all') list = list.filter(o => (o.status||'').toLowerCase().includes(orderFilter));
   const el = document.getElementById('ordersTable');
-  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
+  if (!list.length) { el.classList.remove('od-has-cards'); el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
+  // Tap a row (desktop) or card (phones) → order details sheet (order_details.js)
+  el.classList.add('od-has-cards');
+  if (typeof orderRememberList === 'function') orderRememberList(list);
   el.innerHTML = `<table>
     <thead><tr><th>#ID</th><th>Service</th><th class="hide-mobile">Link</th><th>Qty</th><th class="hide-mobile">Start/Remains</th><th>Cost</th><th>Status</th><th>M-Pesa Ref</th><th class="hide-mobile">Date</th><th>Actions</th></tr></thead>
     <tbody>${list.map(o => {
-      const fullId  = o.id || o._id || '';
+      const fullId  = String(o.id || o._id || '').replace(/[^A-Za-z0-9_-]/g, '');
       const shortId = fullId.slice(0,8) || '—';
       const status  = (o.status||'').toLowerCase();
       const startRemains = (o.start_count != null || o.remains != null)
@@ -4302,10 +4362,10 @@ function renderOrders() {
       const actions = [
         canRefill ? `<button class="action-btn" onclick="event.stopPropagation();requestOrderRefill('${fullId}')" title="Request a refill for dropped counts">♻️ Refill</button>` : '',
       ].filter(Boolean).join(' ') || '<span style="color:var(--muted);font-size:11px;">—</span>';
-      return `<tr>
+      return `<tr class="od-tr" tabindex="0" title="View order details" onclick="openOrderDetail('${fullId}')" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();openOrderDetail('${fullId}')}">
         <td style="font-size:11px;white-space:nowrap;">
           <span style="color:var(--muted);">#${shortId}</span>
-          <button onclick="navigator.clipboard.writeText('${fullId}').then(()=>toast('Order ID copied!','success'))" title="Copy Order ID" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:2px 4px;margin-left:2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button>
+          <button onclick="event.stopPropagation();navigator.clipboard.writeText('${fullId}').then(()=>toast('Order ID copied!','success'))" title="Copy Order ID" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:2px 4px;margin-left:2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button>
         </td>
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${o.service_name||o.serviceName||o.service||'—'}</td>
         <td class="hide-mobile" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--muted);">${o.link||'—'}</td>
@@ -4319,11 +4379,12 @@ function renderOrders() {
       </tr>`;
     }).join('')}
     </tbody>
-  </table>`;
+  </table>
+  ${typeof orderCardsHTML === 'function' ? orderCardsHTML(list) : ''}`;
 }
 
 async function requestOrderRefill(orderId) {
-  if (!confirm('Request a refill for this order? Your provider will re-check delivery and top up any drop.')) return;
+  if (!confirm('Request a refill for this order? We\'ll re-check delivery and top up any drop for free.')) return;
   try {
     const data = await api(`/orders/${orderId}/refill`, { method: 'POST' });
     toast(data.message || 'Refill request submitted', 'success');
@@ -4493,6 +4554,8 @@ function resetDeposit() {
 <script src="admin_academy_stats.js"></script>
 <script src="admin_connect_stats.js"></script>
 <script src="account.js"></script>
+<!-- Must load before auth.js: auth.js boots the app, which renders Recent Orders using orderCardsHTML(). -->
+<script src="order_details.js"></script>
 <script src="auth.js"></script>
 <script src="admin_creator_events.js"></script>
 <script src="admin_consultation.js"></script>
@@ -4697,7 +4760,12 @@ body:has(.bw-overlay.show) #ev-chat-widget{
           <button class="ev-nt-back" onclick="evGoHome()">←</button>
           <div class="ev-nt-title">New Ticket</div>
         </div>
-        <div class="ev-nt-sub">Select what applies, or just describe it below.</div>
+        <div class="ev-nt-quick">
+          <div class="ev-nt-quick-label">⚡ Quick answers — no ticket needed</div>
+          <button class="ev-nt-quick-btn" onclick="evShowInstantAnswer(0)">🛒 How do I place an order?</button>
+          <button class="ev-nt-quick-btn" onclick="evShowInstantAnswer(1)">🔗 Which link do I paste?</button>
+        </div>
+        <div class="ev-nt-sub">Still need help? Select what applies, or just describe it below.</div>
 
         <div class="ev-nt-checkboxes">
           <label class="ev-nt-cb-row">

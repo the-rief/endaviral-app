@@ -31,21 +31,37 @@
      INSTANT ANSWERS — shown as shortcuts. Tapping one renders the
      canned Q/A locally only. Never posted to the server.
   ═══════════════════════════════════════════════════════════════ */
+  // Shared with the "New Ticket" forms (here and on the My Tickets page) —
+  // most "tickets" from new customers are really "how do I order?".
+  const EV_ORDER_HOWTO =
+    `🛒 **How to place an order (about 1 minute):**\n\n` +
+    `**1. Start** — tap **Start an order** on your dashboard, or **New Order** in the menu.\n` +
+    `**2. Pick the platform** — TikTok, Instagram, YouTube, Facebook…\n` +
+    `**3. Pick what you want** — views, likes, followers, comments…\n` +
+    `**4. Choose a service** — sorted cheapest first. The colour shows the tier:\n` +
+    `   🟡 **Basic** — cheapest, drops more likely\n` +
+    `   🟢 **Medium** — balanced, more stable\n` +
+    `   🔵 **Elite** — best for long-term results\n` +
+    `**5. Paste your link** — your *profile* link for followers, the *post or video* link for likes and views. The account must be **Public**.\n` +
+    `**6. Enter the quantity** — prices are per 1,000 and the cost updates as you type. Stay within the min/max shown.\n` +
+    `**7. Pay with M-Pesa** — enter your M-Pesa number, tap pay, then enter your **PIN** on the prompt that pops up on your phone.\n\n` +
+    `✅ **That's it.** Once M-Pesa confirms, your order starts automatically — no approval needed. Track it in **My Orders** (tap any order to see live progress).\n\n` +
+    `💡 Every **5 completed orders** earns you a **free order**, and orders earn reward points you can spend in the Creator Academy.\n\n` +
+    `Not sure which link to paste? Tap **Which link to paste 🔗** on the support home screen.`;
+  window.evOrderHowtoHTML = () => _fmt(EV_ORDER_HOWTO);
+
   const _shortcuts = [
     {
-      label: 'How ordering works 🛒',
-      question: 'How does ordering work on this platform?',
-      answer:
-        `🛒 **Ordering SMM services is simple:**\n\n` +
-        `1. Click **New Order** in the left menu and pick a category (Instagram, TikTok, YouTube, etc.)\n` +
-        `2. Choose the exact service you want — pricing is shown **per 1,000**\n` +
-        `3. Paste your **profile or post link** and enter the **quantity**\n` +
-        `4. Confirm and pay via **M-Pesa STK push**\n\n` +
-        `Once payment is confirmed, your order is sent to processing automatically — no manual approval needed. ` +
-        `You can track progress any time from **My Orders**. Delivery start times vary by service, usually within a few hours.`
+      label: 'How to place an order 🛒',
+      question: 'How do I place an order?',
+      answer: EV_ORDER_HOWTO,
+      actions: [
+        { label: '👆 Start an order', fn: 'evStartOrderFromChat()' },
+        { label: '📘 Full guide: How EndaViral Works', fn: "evOpenCourseFromChat('basics')" },
+      ],
     },
     {
-      label: 'How to get my link 🔗',
+      label: 'Which link to paste 🔗',
       question: 'How do I get my profile or post link?',
       answer:
         `🔗 **How to get your link:**\n\n` +
@@ -57,7 +73,7 @@
         `Paste the copied link directly — make sure the account is set to **Public**!`
     },
     {
-      label: 'Delivery start times ⏱️',
+      label: 'Delivery times ⏱️',
       question: 'How long does delivery take to start?',
       answer:
         `⏱️ **Delivery start times** vary by service:\n\n` +
@@ -67,7 +83,7 @@
         `If your order hasn't started after **24 hours**, open a ticket and tick **Delayed Service** — our team will investigate.`
     },
     {
-      label: 'Refund & cancellation 💰',
+      label: 'Refunds & cancelling 💰',
       question: 'What is your refund and cancellation policy?',
       answer:
         `💰 **Refund & cancellation policy:**\n\n` +
@@ -75,7 +91,7 @@
         `That said, if an order **stalls, delays, or delivers partially**, our team will **complete it or re-queue it** at no extra cost. Open a ticket with your **Order ID** and we'll sort it out.`
     },
     {
-      label: 'Why did my count drop 📉',
+      label: 'Why counts drop 📉',
       question: 'Why did my follower/like count drop after delivery?',
       answer:
         `📉 **Noticed your count going down?** Here's why it happens:\n\n` +
@@ -87,7 +103,7 @@
         `If you're seeing drops on a **Basic** order, that's expected, not a fault. For lasting results, consider **Medium** or **Elite** next time. If you'd like us to look at a specific order, open a ticket with the **Order ID**.`
     },
     {
-      label: 'What services you offer 📦',
+      label: 'All our services 📦',
       question: 'What services do you offer?',
       answer:
         `📦 **Our services include:**\n\n` +
@@ -98,14 +114,40 @@
         `• 📘 Facebook — Likes, Followers, Views\n\n` +
         `Click **New Order** to browse all available packages and pricing!`
     },
+    {
+      label: 'Hire EndaViral 📞',
+      question: 'Why should I hire EndaViral?',
+      answer:
+        `📞 **Hire EndaViral — a real strategist for your socials**\n\n` +
+        `Ordering views and followers gives you a boost. A consultation tells you **what to post, who to target and how to turn followers into money** — so every shilling you spend on growth works harder.\n\n` +
+        `**Why it's worth KES 500:**\n` +
+        `• **A review of your actual pages** — we look at what's working, what's holding you back and what your audience responds to.\n` +
+        `• **A clear plan you can act on the same day** — content ideas, branding fixes, growth moves and monetisation options that fit *your* niche and budget.\n` +
+        `• **Advice for the Kenyan market** — M-Pesa selling, local audiences, posting habits and brand deals here, not generic tips.\n` +
+        `• **A real person, not a bot** — ask anything about your page, your business or your next campaign.\n\n` +
+        `**How it works:**\n` +
+        `**1.** Tap **Book your call** and pay **KES 500** via M-Pesa.\n` +
+        `**2.** Our team calls your number to set up a **30–45 minute Google Meet** session.\n` +
+        `**3.** You walk away with a plan for content, growth and monetisation.\n\n` +
+        `💼 **Too busy to do it yourself?** After the call we can agree to **run your growth for you, month to month**.\n\n` +
+        `Great for business owners, new creators who want to start right, and anyone whose page has stalled.`,
+      actions: [
+        { label: '📞 Book your call — KES 500', fn: 'evBookConsultFromChat()' },
+      ],
+    },
   ];
 
   function _renderShortcuts() {
     const grid = document.getElementById('ev-shortcuts-grid');
     if (!grid) return;
-    grid.innerHTML = _shortcuts.map((s, i) =>
-      `<button class="ev-shortcut-btn" onclick="evShowInstantAnswer(${i})">${s.label}</button>`
-    ).join('');
+    // Icon first, text after, so every tile lines up (labels end in an emoji).
+    grid.innerHTML = _shortcuts.map((s, i) => {
+      const m = s.label.match(/^(.*?)\s*([\u{1F000}-\u{1FFFF}\u{2300}-\u{23FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}][\u{FE0F}]?)$/u);
+      const text = m ? m[1] : s.label, icon = m ? m[2] : '💬';
+      return `<button class="ev-shortcut-btn${i === 0 ? ' primary' : ''}" onclick="evShowInstantAnswer(${i})">` +
+        `<span class="ev-sc-i">${icon}</span><span class="ev-sc-t">${_escape(text)}</span>` +
+        `${i === 0 ? '<span class="ev-sc-arrow">→</span>' : ''}</button>`;
+    }).join('');
   }
 
   // Tapping a shortcut — local-only, never touches the server.
@@ -129,6 +171,10 @@
       const t = document.getElementById('ev-instant-typing');
       if (t) t.remove();
       _appendLocal(panel, _adminBubbleHtml(s.answer, evNow(), true));
+      if (s.actions && s.actions.length) {
+        _appendLocal(panel, `<div class="ev-ia-actions">${s.actions.map(a =>
+          `<button class="ev-ia-btn" onclick="${a.fn}">${_escape(a.label)}</button>`).join('')}</div>`);
+      }
       // Scroll so the START of the new answer is visible, not the tail end.
       const bubbles = panel.querySelectorAll('.ev-msg.from-admin');
       const lastAdminMsg = bubbles[bubbles.length - 1];
@@ -138,6 +184,23 @@
         panel.scrollTop = panel.scrollHeight;
       }
     }, 500);
+  };
+
+  // Buttons under the "How to place an order" answer.
+  window.evStartOrderFromChat = function() {
+    if (typeof window.evChatToggle === 'function' && state.open) window.evChatToggle();
+    if (!token) { _scrollToLogin(); return; }
+    if (typeof window.navTo === 'function') window.navTo('services');
+  };
+  window.evOpenCourseFromChat = function(moduleId) {
+    if (typeof window.evChatToggle === 'function' && state.open) window.evChatToggle();
+    if (!token) { _scrollToLogin(); return; }
+    if (typeof window.acGoToCourse === 'function') window.acGoToCourse(moduleId);
+  };
+
+  window.evBookConsultFromChat = function() {
+    if (typeof window.evChatToggle === 'function' && state.open) window.evChatToggle();
+    if (typeof window.consultOpenBooking === 'function') window.consultOpenBooking();
   };
 
   // Back arrow — return to the shortcuts/home view.
@@ -628,14 +691,26 @@
       /* Shortcuts */
       .ev-shortcuts-wrap { padding:12px 14px 4px; flex-shrink:0; }
       .ev-shortcuts-label { font-size:11px; font-weight:800; color:#3dd44a; letter-spacing:.4px; text-transform:uppercase; margin-bottom:8px; }
-      .ev-shortcuts-grid { display:flex; flex-wrap:wrap; gap:7px; }
+      /* Even 2-column grid of equal tiles; the first (ordering) spans both columns */
+      .ev-shortcuts-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
       .ev-shortcut-btn {
-        padding:7px 12px; border-radius:20px; font-size:11.5px; font-weight:600;
-        background:rgba(61,212,74,.1); border:1px solid rgba(61,212,74,.25);
-        color:#3dd44a; cursor:pointer; font-family:'Montserrat',sans-serif;
-        transition:all .2s; white-space:nowrap;
+        display:flex; align-items:center; gap:8px; min-height:40px; text-align:left;
+        padding:8px 10px; border-radius:11px; font-size:11.5px; font-weight:600; line-height:1.25;
+        background:rgba(61,212,74,.08); border:1px solid rgba(61,212,74,.22);
+        color:#d7f5da; cursor:pointer; font-family:'Montserrat',sans-serif;
+        transition:all .2s; white-space:normal;
       }
-      .ev-shortcut-btn:hover { background:rgba(61,212,74,.2); border-color:rgba(61,212,74,.5); }
+      .ev-shortcut-btn .ev-sc-i { font-size:15px; flex-shrink:0; width:18px; text-align:center; }
+      .ev-shortcut-btn .ev-sc-t { flex:1; min-width:0; }
+      .ev-shortcut-btn:hover { background:rgba(61,212,74,.18); border-color:rgba(61,212,74,.5); }
+      .ev-shortcut-btn.primary {
+        grid-column:1 / -1; min-height:44px; font-size:12.5px; font-weight:800; color:#06210a;
+        background:linear-gradient(135deg,#3dd44a,#28a035); border-color:transparent;
+      }
+      .ev-shortcut-btn.primary:hover { filter:brightness(1.07); }
+      /* an odd tile left alone on the last row spans the full width */
+      .ev-shortcut-btn:not(.primary):last-child:nth-child(even) { grid-column:1 / -1; }
+      .ev-shortcut-btn.primary .ev-sc-arrow { margin-left:auto; font-size:14px; }
 
       #ev-view-instant .ev-nt-hd { padding:14px 14px 10px; flex-shrink:0; }
       #ev-instant-answer-panel {

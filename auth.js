@@ -203,17 +203,33 @@ function _evtJitter(ms) {
   return Math.round(ms - spread + Math.random() * spread * 2);
 }
 
+let _evtConnecting = false; // true while a ticket is being minted — see the guard below
+
 async function startEventStream() {
   if (!token) return;
   if (_evtSource) return; // already connected — don't stack a second one
+  // FIX: _evtSource is only set AFTER the ticket request returns, so two
+  // calls in quick succession (initApp() runs twice on page load: once with
+  // the cached session, once after /auth/me) both passed the check above and
+  // opened TWO streams per tab — the first one orphaned and never closed.
+  if (_evtConnecting) return;
   if (document.hidden) return; // tab backgrounded — visibilitychange handler resumes this on focus
   clearTimeout(_evtReconnectTimer);
   _evtReconnectTimer = null;
 
   let openedAt = 0;
+  _evtConnecting = true;
   try {
     const { ticket } = await api('/connect/events/ticket', { method: 'POST' });
-    _evtSource = new EventSource(`${API_BASE}/connect/events?ticket=${ticket}`);
+    if (!token || _evtSource || document.hidden) { _evtConnecting = false; return; } // logged out / tab hidden while minting
+    // FIX: this used `${API_BASE}`, which only exists inside one function in
+    // index.html — here it threw a ReferenceError on EVERY attempt, so the
+    // live stream never connected and the catch below re-minted a ticket
+    // (a database query) every few seconds for as long as a tab was open.
+    // That was the "ticket POST every ~5-6s" pattern noted further up.
+    // API is the page-wide base URL (index.html), already ending in /api/v1.
+    _evtSource = new EventSource(`${API}/connect/events?ticket=${encodeURIComponent(ticket)}`);
+    _evtConnecting = false;
     _evtSource.onopen = () => {
       openedAt = Date.now();
       // Catch up on anything pushed while we had no live connection — e.g.
@@ -225,7 +241,9 @@ async function startEventStream() {
       // ran this same catch-up immediately before calling startEventStream().
       if (_evtHasConnectedBefore) {
         if (typeof _bgTicketWatchTick === 'function') _bgTicketWatchTick();
-        if (typeof sbOnTicketEvent === 'function') sbOnTicketEvent(evt);   // live-refresh the Support Centre tabs
+        // (was sbOnTicketEvent(evt) — `evt` doesn't exist here, so this threw
+        // and skipped the unread-count catch-up on the next line)
+        if (typeof sbOnTicketEvent === 'function') sbOnTicketEvent();   // live-refresh the Support Centre tabs
         if (typeof _cnPollUnread === 'function') _cnPollUnread();
       }
       _evtHasConnectedBefore = true;
@@ -238,6 +256,11 @@ async function startEventStream() {
         if (typeof _cnPollUnread === 'function') _cnPollUnread();
       } else if (evt.type === 'new_ticket_message' || evt.type === 'ticket_reply') {
         if (typeof _bgTicketWatchTick === 'function') _bgTicketWatchTick();
+        if (typeof sbOnTicketEvent === 'function') sbOnTicketEvent();   // staff Support Centre live refresh (no-op for customers)
+        // Free-order approvals / rejections / restores arrive as ticket_reply
+        // pushes (backend support_tickets.py) — refresh the dashboard card
+        // now instead of polling for it.
+        if (evt.type === 'ticket_reply' && typeof freeOrderRefreshCard === 'function') freeOrderRefreshCard();
         // Refresh the open thread itself if this push is for the one
         // currently on-screen (thread_id is included in both push types
         // from support_chat.py) — this is what replaces the old 15s
@@ -271,6 +294,7 @@ async function startEventStream() {
       if (token) _evtReconnectTimer = setTimeout(startEventStream, _evtJitter(_evtReconnectDelay));
     };
   } catch(e) {
+    _evtConnecting = false;
     if (document.hidden) return;
     _evtReconnectDelay = Math.min(_evtReconnectDelay * 2, _EVT_MAX_RECONNECT_DELAY);
     clearTimeout(_evtReconnectTimer);
@@ -279,6 +303,7 @@ async function startEventStream() {
 }
 
 function stopEventStream() {
+  _evtConnecting = false;
   clearTimeout(_evtReconnectTimer);
   _evtReconnectTimer = null;
   _evtReconnectDelay = 1000;
