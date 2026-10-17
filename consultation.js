@@ -20,28 +20,57 @@
  * ════════════════════════════════════════════════════════════════════════ */
 
 const CONSULT_TIERS = [
+  // outcome = the promise · bullets = what they get + why it matters
+  // value = the "cheap for what it is" line · cta = button text
   {
     key: 'quick_fix', name: 'Quick Fix', price: 500, per: '',
-    outcome: "Find out what's holding your account back",
-    bullets: ['20-min call · 1 account', 'Your top 3 fixes, sent on WhatsApp', 'Call booked within 3 days'],
+    outcome: 'Stop guessing. Find the 3 things killing your reach.',
+    bullets: [
+      '20-min call: a strategist goes through 1 account with you',
+      'Your top 3 fixes in writing on WhatsApp, yours to keep',
+      'Talk within 3 days, not weeks',
+    ],
+    value: 'One fix you would never spot alone can beat months of posting blind.',
+    cta: 'Get my 3 fixes',
     eta: 'within 3 days',
   },
   {
     key: 'growth_plan', name: 'Growth Plan', price: 1000, per: '', popular: true,
-    outcome: 'Know exactly what to post, and when',
-    bullets: ['45-min call · we review your account first', 'Bio, highlights & pinned posts rewritten', '30-day content plan + boost plan', '7 days of WhatsApp follow-up'],
+    outcome: 'Never wonder what to post again. Your next 30 days, planned.',
+    bullets: [
+      '45-min call. We study your account <b>before</b> we ring',
+      'Bio, highlights &amp; pinned posts rewritten to turn visitors into followers',
+      '30-day content + boost plan: what to post, when, and what to boost',
+      '7 days of WhatsApp follow-up. Stuck? Just message us',
+    ],
+    value: 'About KES 33 a day for a full month of direction.',
+    cta: 'Get my 30-day plan',
     eta: 'within 48 hours',
   },
   {
     key: 'money_plan', name: 'Money Plan', price: 1500, per: '',
-    outcome: 'Turn your followers into income',
-    bullets: ['Everything in Growth Plan', '60-min call · up to 2 accounts', 'Rate card for brand deals, or DM-to-sale script', '14 days follow-up + check-in call'],
+    outcome: 'Your followers are worth money. Start charging for them.',
+    bullets: [
+      'Everything in Growth Plan, plus:',
+      '60-min call · up to 2 accounts',
+      'Your own rate card so you know what to charge brands, <b>or</b> a DM-to-sale script that turns chats into M-Pesa payments',
+      '14 days of follow-up + a check-in call to keep you on track',
+    ],
+    value: 'Only KES 500 more than Growth. One brand deal or a few sales covers it.',
+    cta: 'Start earning from my page',
     eta: 'within 24 hours',
   },
   {
     key: 'management', name: 'Account Management', price: 5000, per: '/month', monthly: true,
-    outcome: 'We run your account. You run your business.',
-    bullets: ['12 posts a month, edited & captioned', 'Monthly content calendar', 'KES 1,000 of boosts every month', 'Monthly results report on WhatsApp'],
+    outcome: 'Stop doing it all yourself. We run your page, you run your business.',
+    bullets: [
+      '12 posts a month, edited &amp; captioned. Your page never goes quiet',
+      'Monthly content calendar, planned ahead for you',
+      'KES 1,000 of boosts included every month at no extra cost',
+      'Monthly results report on WhatsApp so you see exactly what you got',
+    ],
+    value: 'Boosts included, so each done-for-you post works out to about KES 333. Month to month, no contract.',
+    cta: 'Hand it over this month',
     eta: 'within 24 hours',
   },
 ];
@@ -102,7 +131,8 @@ function _tierCardsHTML(onclickFn) {
       </div>
       <div class="hv-tier-outcome">${t.outcome}</div>
       <ul class="hv-tier-list">${t.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
-      <span class="hv-tier-go">${t.monthly ? 'Start this month' : 'Choose ' + t.name} →</span>
+      ${t.value ? `<div class="hv-tier-value">💡 ${t.value}</div>` : ''}
+      <span class="hv-tier-go">${t.cta || (t.monthly ? 'Start this month' : 'Choose ' + t.name)} →</span>
     </button>
   `).join('');
 }

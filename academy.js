@@ -151,6 +151,15 @@ const ACADEMY_MODULES = [
   {
     id: 'basics', icon: '🧭', title: 'How EndaViral Works',
     blurb: 'Start here: ordering, M-Pesa payments, delivery, refills & rewards, step by step',
+    // Plain-language "in a nutshell" box shown above the lesson list (see _acSummaryBox).
+    summary: [
+      { icon: '👆', text: '<b>Order:</b> pick a platform and a service, paste your link, choose how many, then pay.' },
+      { icon: '📱', text: '<b>Pay:</b> an M-Pesa prompt pops up on your phone. Enter your PIN and the order starts by itself. Minimum is KES&nbsp;20.' },
+      { icon: '🔓', text: '<b>Keep it public:</b> your account or post must be public, and the link must be correct. A wrong link can\'t be refunded.' },
+      { icon: '⏳', text: '<b>Delivery:</b> some services arrive slowly over hours or days so growth looks natural. Track it in My Orders.' },
+      { icon: '💬', text: '<b>Stuck?</b> Don\'t order again. Open a ticket with your order ID and we\'ll sort it out.' },
+      { icon: '🎁', text: '<b>Rewards:</b> every 5 orders gets you 1 free order.' },
+    ],
     lessons: [
       { id: 'b1', title: 'Your First Order, Step by Step', minutes: 4, body: [
         { type: 'p', text: "Every order follows the same simple path: pick a platform, choose a service, paste your link, set a quantity, then pay with M-Pesa. The moment payment confirms, your order status moves from Pending → Processing → Completed, and you can track it any time from My Orders." },
@@ -172,7 +181,7 @@ const ACADEMY_MODULES = [
       { id: 'b3', title: 'Payments, Minimums & Refunds', minutes: 3, body: [
         { type: 'p', text: 'Every payment on EndaViral goes through an M-Pesa STK push — you\'ll get a prompt on your phone, enter your PIN, and the order starts automatically once it confirms.' },
         { type: 'ul', items: [
-          'There\'s a 10 KES minimum across deposits and orders — useful to know if you\'re testing a service for the first time.',
+          'There\'s a 20 KES minimum across deposits and orders — useful to know if you\'re testing a service for the first time.',
           'Refunds are considered for delivery problems (order stuck or short-delivered) — not for links that were pasted incorrectly, so always re-check that link.',
           'If something looks stuck for more than a few hours, don\'t re-order — open a ticket instead so support can trace the original order.',
         ]},
@@ -1296,6 +1305,24 @@ function acOrderSuggestionHTML(platKey) {
 }
 
 // Open a specific course from anywhere in the app.
+// Quick plain-language summary shown at the top of a course page.
+// Only modules with a `summary` array get one; text is static, trusted copy.
+function _acSummaryBox(mod) {
+  if (!mod || !Array.isArray(mod.summary) || !mod.summary.length) return '';
+  return `
+  <div style="max-width:640px;margin:0 0 16px;background:rgba(61,212,74,.06);border:1px solid rgba(61,212,74,.22);border-radius:14px;padding:14px 16px;">
+    <div style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.4px;margin-bottom:10px;">⚡ QUICK SUMMARY · 30 SECONDS</div>
+    <div style="display:flex;flex-direction:column;gap:9px;">
+      ${mod.summary.map(s => `
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="font-size:15px;line-height:1.3;flex-shrink:0;width:20px;text-align:center;">${s.icon}</div>
+        <div style="font-size:12.5px;line-height:1.45;color:#c9d4e3;">${s.text}</div>
+      </div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:11px;">Want more detail? Tap any lesson below.</div>
+  </div>`;
+}
+
 async function acGoToCourse(moduleId) {
   if (typeof closeOrderModal === 'function') closeOrderModal();
   if (typeof navTo === 'function') navTo('academy');   // shows the section (and starts loading)
@@ -1589,6 +1616,7 @@ async function _acOpenModule(moduleId) {
       </div>
     </div>
   </div>
+  ${_acSummaryBox(mod)}
   <div style="display:flex;flex-direction:column;gap:10px;max-width:640px;">
     ${mod.lessons.map((l, i) => {
       const complete = !!state.completed[mod.id + ':' + l.id];

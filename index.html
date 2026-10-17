@@ -7,7 +7,7 @@
 
 <!-- ═══════════════════ PRIMARY SEO ═══════════════════ -->
 <title>EndaViral | Buy Followers, Likes & Views - Kenya's Creator Growth Platform </title>
-<meta name="description" content="EndaViral is Kenya's Creator Growth Platform — grow your social media, master in-demand skills at Creator Academy, and get hired through our Marketplace. All paid via M-Pesa."/>
+<meta name="description" content="EndaViral is Kenya's Creator Growth Platform — grow your social media presence, master in-demand skills at Creator Academy, and get hired through our Marketplace. All paid via M-Pesa."/>
 <meta name="keywords" content="creator growth platform Kenya, SMM panel Kenya, creator academy Kenya, creator marketplace Kenya, buy Instagram followers Kenya, TikTok likes Kenya, YouTube views Kenya, social media marketing Kenya, M-Pesa SMM panel, grow social media Kenya, EndaViral"/>
 <meta name="robots" content="index, follow"/>
 <meta name="author" content="EndaViral"/>
@@ -382,6 +382,10 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 .hv-tier-list li{font-size:12px;color:var(--muted);padding-left:16px;position:relative;line-height:1.4;}
 .hv-tier-list li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:800;}
 .hv-tier-monthly .hv-tier-list li::before{color:var(--gold);}
+.hv-tier-value{font-size:11.5px;line-height:1.4;color:#e8f5ea;background:rgba(61,212,74,.08);border-left:2px solid var(--green);border-radius:6px;padding:7px 9px;margin:0 0 12px;}
+.hv-tier-monthly .hv-tier-value{background:rgba(255,176,32,.08);border-left-color:var(--gold);color:#fbefd6;}
+.hv-tier-list li b{color:var(--white);font-weight:700;}
+.hv-fomo{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.45;color:#ffd58a;background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.25);border-radius:10px;padding:9px 11px;margin-bottom:16px;}
 .hv-tier-go{font-size:12.5px;font-weight:800;color:var(--green);}
 .hv-tier-monthly .hv-tier-go{color:var(--gold);}
 .hv-trust{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:16px;font-size:11.5px;color:var(--muted);}
@@ -2168,13 +2172,16 @@ tbody td{padding:13px 16px;font-size:14px;}
         </div>
 
         <!-- ── Quick-start guide: always visible — copy switches from "place your first order" to "place your next order" once the user has placed one; see renderDashOrders() ── -->
-        <div id="howToGuide" style="background:rgba(61,212,74,.05);border:1px solid rgba(61,212,74,.15);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
-          <div id="howToGuideTitle" style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px;letter-spacing:.3px;">🚀 PLACE YOUR FIRST ORDER</div>
-          <button id="howToGuideBtn" onclick="navTo('services')" style="width:100%;margin-bottom:10px;background:linear-gradient(135deg,#3dd44a,#28a035);color:#000;border:none;border-radius:10px;padding:13px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;">👆 Start an order →</button>
-          <div id="howToGuideDesc" style="font-size:12px;color:var(--muted);line-height:1.5;">
-            Pick a platform &amp; service → paste your <span style="color:var(--white);font-weight:600;">profile or post link</span> → pay with M-Pesa.
+        <!-- Compact one-row layout: text left, button right (was a tall stacked card) -->
+        <div id="howToGuide" style="background:rgba(61,212,74,.05);border:1px solid rgba(61,212,74,.15);border-radius:12px;padding:10px 12px;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;min-width:0;">
+              <div id="howToGuideTitle" style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.3px;line-height:1.3;">🚀 PLACE YOUR FIRST ORDER</div>
+              <div id="howToGuideDesc" style="font-size:11.5px;color:var(--muted);line-height:1.35;margin-top:2px;">Pick service → paste <span style="color:var(--white);font-weight:600;">link</span> → pay M-Pesa</div>
+              <button id="howToGuideLearn" type="button" onclick="acGoToCourse('basics')" style="margin-top:3px;background:none;border:none;padding:0;color:var(--green);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:2px;">📘 How EndaViral works →</button>
+            </div>
+            <button id="howToGuideBtn" onclick="navTo('services')" style="flex-shrink:0;background:linear-gradient(135deg,#3dd44a,#28a035);color:#000;border:none;border-radius:9px;padding:9px 14px;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;">Start order →</button>
           </div>
-          <button type="button" onclick="acGoToCourse('basics')" style="margin-top:9px;background:none;border:none;padding:0;color:var(--green);font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;text-align:left;">📘 New here? See how EndaViral works →</button>
         </div>
 
         <!-- ── Stat row: compact, one line, no wasted space ── -->
@@ -3946,7 +3953,6 @@ function renderDashOrders(orders) {
   // instead of disappearing after the first purchase.
   const title = document.getElementById('howToGuideTitle');
   if (title) title.textContent = orders.length ? '🚀 PLACE YOUR NEXT ORDER' : '🚀 PLACE YOUR FIRST ORDER';
-
   if (!orders.length) {
     document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders yet. <a href="#" onclick="navTo(\'services\')" style="color:var(--green);">Place your first order →</a></p></div>';
     return;
@@ -5098,12 +5104,14 @@ async function _maybeHideAffBanner() {
     <!-- Step 1: pick a package -->
     <div id="consultStepTiers">
       <div class="modal-title" style="margin-bottom:4px;">💼 Hire EndaViral</div>
-      <div class="modal-sub" style="margin-bottom:16px;">You've got the followers. Now make them pay. Pick how much help you want.</div>
+      <div class="modal-sub" style="margin-bottom:10px;">People already visit your page. Most leave without following, buying or booking. We show you why, and fix it.</div>
+      <div class="hv-fomo">⏳ <span>Every week you post without a plan is a week of visitors you don't get back. Start from KES 500.</span></div>
       <div class="hv-tiers" id="consultTierList"></div>
       <div class="hv-trust">
         <span>👤 Real strategist, not a bot</span>
         <span>🔍 We review your account before the call</span>
         <span>📲 Paid securely via M-Pesa</span>
+        <span>💸 Go monthly later and your fee comes off month one</span>
       </div>
     </div>
 
