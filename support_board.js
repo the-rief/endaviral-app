@@ -87,7 +87,8 @@ function sbCounts() {
   return {
     inbox: c.inbox || 0, followup: c.followup || 0, automatic: c.automatic || 0,
     stale: c.stale_followups || 0,
-    reorders: (r.pending || 0) + (r.replied || 0), replied: r.replied || 0,
+    // Replied clients are counted in the Inbox (that's where they're worked), not here.
+    reorders: r.pending || 0, replied: r.in_inbox || 0,
   };
 }
 

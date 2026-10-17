@@ -1,0 +1,9 @@
+# Files in this folder that must NOT be published by Cloudflare
+.git
+.wrangler
+docs/
+templates/
+scripts/
+README.md
+wrangler.jsonc
+ChatGPT Image*.png

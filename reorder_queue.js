@@ -32,7 +32,7 @@ const RQ_REASON = {
 // A client moves Needs contact → Follow-up the moment they are messaged.
 const RQ_SUBS = [
   { id: 'needs',     status: 'pending',   icon: '📨', label: 'Needs contact', sub: 'Nobody has messaged these clients yet. Ask for a fresh link — or re-place on the original link in one press.' },
-  { id: 'followup',  status: 'contacted', icon: '⏳', label: 'Follow-up',     sub: 'Clients we already messaged. Replied ones are on top — reorder with their new link. Quiet ones can be nudged, or re-placed on the original link once they have been silent long enough.' },
+  { id: 'followup',  status: 'contacted', icon: '⏳', label: 'Follow-up',     sub: 'Clients we messaged and are waiting on. When a client replies, they leave this list and appear in 📥 Inbox — open the chat there and press “🔁 Reorder for client”. If you answer them without reordering, they come back here. Quiet ones can be nudged, or re-placed on the original link once they have been silent long enough.' },
   { id: 'reordered', status: 'reordered', icon: '✅', label: 'Reordered',     sub: 'Replacement orders already placed.' },
   { id: 'dismissed', status: 'dismissed', icon: '✕',  label: 'Dismissed',     sub: 'Marked as nothing to redo.' },
 ];
@@ -52,11 +52,12 @@ async function rqRefreshBadge() {
 
 function rqRenderSubtabs() {
   const el = document.getElementById('rqSubTabs'); if (!el) return;
-  const n = { needs: _rqSum.pending, followup: _rqSum.contacted, reordered: _rqSum.reordered, dismissed: _rqSum.dismissed };
+  // Follow-up counts only clients we're waiting on; ones who replied last are in the Inbox.
+  const n = { needs: _rqSum.pending, followup: _rqSum.followup ?? _rqSum.contacted, reordered: _rqSum.reordered, dismissed: _rqSum.dismissed };
   el.innerHTML = RQ_SUBS.map(t => {
     const c = n[t.id] || 0;
     let badge = c ? `<span class="sb-badge ${t.id === 'needs' ? 'red' : t.id === 'followup' ? 'amber' : ''}">${c}</span>` : '';
-    if (t.id === 'followup' && _rqSum.replied) badge += `<span class="sb-badge green" title="Customers who replied">💬 ${_rqSum.replied}</span>`;
+    if (t.id === 'followup' && _rqSum.in_inbox) badge += `<span class="sb-badge green" title="Clients who replied — waiting for us in the Inbox">📥 ${_rqSum.in_inbox} in Inbox</span>`;
     return `<button class="sb-tab ${t.id === _rqSub ? 'on' : ''}" onclick="rqSetSub('${t.id}')">${t.icon} ${t.label} ${badge}</button>`;
   }).join('');
 }
@@ -77,7 +78,8 @@ function rqRenderBar() {
       <button class="btn-primary" ${btn} onclick="rqMessageAll()">✉ Message all unsent</button>
       <button class="btn-primary" ${warn} onclick="rqReorderAll()" title="Re-place every open order on its original link and tell each customer">🔁 Reorder ALL on original links</button>`;
   } else if (_rqSub === 'followup') {
-    html += chip('all', 'All') + chip('replied', `💬 Replied${_rqSum.replied ? ' (' + _rqSum.replied + ')' : ''}`)
+    html += chip('all', 'All')
+      + (_rqSum.in_inbox ? `<button class="sb-chip" onclick="sbSetTab('inbox')" title="These clients replied — reorder from their chat in the Inbox" style="border-color:#3dd44a;color:#3dd44a;">📥 ${_rqSum.in_inbox} replied → Inbox</button>` : '')
       + chip('waiting', `⏳ Waiting${_rqSum.waiting ? ' (' + _rqSum.waiting + ')' : ''}`) + chip('overdue', `⚠ Overdue${_rqSum.stale ? ' (' + _rqSum.stale + ')' : ''}`)
       + `<button class="btn-primary" ${btn} onclick="rqNudgeStale()" title="Send a follow-up message to everyone who hasn't replied in 24h+">👋 Nudge overdue</button>
          <button class="btn-primary" ${warn} onclick="rqReorderOverdue()" title="Give up waiting: re-place silent clients on their original link">🔁 Reorder silent ones…</button>`;
@@ -429,6 +431,16 @@ const _rqOptCard = (name, value, checked, disabled, inner) => `
   </label>`;
 const _rqLbl = (t) => `<div style="font-size:11px;font-weight:700;color:var(--muted);margin:14px 0 6px;">${t}</div>`;
 
+/* "🔁 Reorder for client" in an Inbox chat: the task isn't in the loaded
+ * Follow-up list while its conversation is in the Inbox, so fetch it first. */
+async function rqReorderTask(taskId) {
+  if (!_rqTasks.some(x => x.id === taskId)) {
+    try { _rqTasks.push(await api(`/reorders/task/${encodeURIComponent(taskId)}`)); }
+    catch (e) { toast(e.message || 'Could not load the reorder task', 'error'); return; }
+  }
+  return rqReorder(taskId);
+}
+
 async function rqReorder(id) {
   const t = _rqTasks.find(x => x.id === id); if (!t) return;
   let o;
@@ -510,6 +522,12 @@ async function rqReorder(id) {
         const res = await api(`/reorders/${id}/reorder`, { method: 'POST', body: JSON.stringify(body) });
         toast(`Reorder placed (#${res.new_order_id.slice(0, 8)})${res.service_substituted ? ' on a similar service' : ''}`, 'success');
         rqLoad();
+        // Started from an Inbox chat: refresh it so the confirmation shows and the
+        // conversation moves out of the Inbox.
+        if (typeof _sb !== 'undefined' && _sb.tab !== 'reorders') {
+          if (typeof sbRefresh === 'function') sbRefresh();
+          if (typeof activeSupportThreadId !== 'undefined' && activeSupportThreadId && typeof openSupportThread === 'function') openSupportThread(activeSupportThreadId);
+        }
       } catch (e) {
         // Provider refused it — most often a dead service. Open the alternatives so the next click can fix it.
         if (alts.length && sel('rqSvc') === 'orig' && /provider|service/i.test(e.message || '')) {

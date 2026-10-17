@@ -22,10 +22,14 @@ async function loadAdminConsultations() {
   el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading consultations…</span></div>';
 
   const stage = document.getElementById('consultStageFilter')?.value || '';
+  const tier = document.getElementById('consultTierFilter')?.value || '';
+  const qs = new URLSearchParams();
+  if (stage) qs.set('stage', stage);
+  if (tier) qs.set('tier', tier);
 
   try {
     const [bookings, stats] = await Promise.all([
-      api(`/admin/consultations${stage ? `?stage=${encodeURIComponent(stage)}` : ''}`),
+      api(`/admin/consultations${qs.toString() ? `?${qs}` : ''}`),
       api('/admin/consultations/stats'),
     ]);
     _adminConsultCache = bookings || [];
@@ -51,6 +55,50 @@ function _renderConsultStats(stats) {
       <div style="font-size:20px;font-weight:700;margin-top:4px;">${val}</div>
     </div>
   `).join('');
+  _renderConsultTierStats(stats.by_tier || []);
+}
+
+const _CONSULT_TIER_STYLE = {
+  quick_fix:   ['rgba(122,143,173,.16)', '#a9b8d0'],
+  growth_plan: ['rgba(61,212,74,.14)', 'var(--green)'],
+  money_plan:  ['rgba(34,211,238,.14)', 'var(--cyan)'],
+  management:  ['rgba(255,176,32,.15)', 'var(--gold)'],
+};
+const _CONSULT_GOAL_LABEL = {
+  sales: 'More customers', brand_deals: 'Brand deals',
+  grow_audience: 'Grow audience', engagement: 'Engagement',
+};
+
+function _tierBadge(tier, label) {
+  const [bg, fg] = _CONSULT_TIER_STYLE[tier] || _CONSULT_TIER_STYLE.quick_fix;
+  return `<span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:${bg};color:${fg};white-space:nowrap;">${esc(label || tier)}</span>`;
+}
+
+// One card per package — click to filter the table to that package
+function _renderConsultTierStats(rows) {
+  const el = document.getElementById('consultTierStatsRow');
+  if (!el) return;
+  const active = document.getElementById('consultTierFilter')?.value || '';
+  el.innerHTML = rows.map(r => {
+    const [, fg] = _CONSULT_TIER_STYLE[r.tier] || _CONSULT_TIER_STYLE.quick_fix;
+    const on = active === r.tier;
+    return `
+    <div onclick="adminConsultFilterTier('${esc(r.tier)}')" style="cursor:pointer;background:var(--card);border:1px solid ${on ? fg : 'var(--border)'};border-left:3px solid ${fg};border-radius:12px;padding:12px 14px;">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:2px 6px;">
+        <div style="font-size:12.5px;font-weight:800;color:${fg};">${esc(r.label)}</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;">${fmtKES(r.price_kes)}${r.kind === 'monthly' ? '/mo' : ''}</div>
+      </div>
+      <div style="font-size:20px;font-weight:700;margin-top:4px;">${r.paid} <span style="font-size:12px;color:var(--muted);font-weight:600;">paid</span></div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${fmtKES(r.revenue_kes)} · ${r.awaiting_contact ? `<span style="color:#ffc107;">${r.awaiting_contact} to call</span>` : 'all contacted'}</div>
+    </div>`;
+  }).join('');
+}
+
+function adminConsultFilterTier(tier) {
+  const sel = document.getElementById('consultTierFilter');
+  if (!sel) return;
+  sel.value = sel.value === tier ? '' : tier;
+  loadAdminConsultations();
 }
 
 function _stageBadge(stage) {
@@ -72,12 +120,14 @@ function _renderAdminConsultations() {
     return;
   }
   el.innerHTML = `<table>
-    <thead><tr><th>Name</th><th>Phone</th><th>Business</th><th>Notes</th><th>Paid</th><th>Stage</th><th>Meet</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Package</th><th>Name</th><th>Phone</th><th>Account &amp; goal</th><th>Notes</th><th>Paid</th><th>Stage</th><th>Meet</th><th>Actions</th></tr></thead>
     <tbody>${_adminConsultCache.map(b => `
       <tr>
-        <td><strong>${esc(b.name)}</strong>${b.email ? `<div style="font-size:11px;color:var(--muted);">${esc(b.email)}</div>` : ''}</td>
+        <td>${_tierBadge(b.tier, b.tier_label)}
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${fmtKES(b.amount_kes)}${b.credit_kes ? ` <span title="Consult fee credited">(−${fmtKES(b.credit_kes)} credit)</span>` : ''}</div></td>
+        <td><strong>${esc(b.name)}</strong>${b.business_name ? `<div style="font-size:11px;color:var(--muted);">${esc(b.business_name)}</div>` : ''}${b.email ? `<div style="font-size:11px;color:var(--muted);">${esc(b.email)}</div>` : ''}</td>
         <td><a href="tel:${esc(b.phone)}" style="color:var(--white);">${esc(b.phone)}</a></td>
-        <td>${esc(b.business_name || '—')}</td>
+        <td>${b.social_handle ? `<strong>${esc(b.social_handle)}</strong>` : '—'}${b.goal ? `<div style="font-size:11px;color:var(--muted);">🎯 ${esc(_CONSULT_GOAL_LABEL[b.goal] || b.goal)}</div>` : ''}</td>
         <td style="max-width:220px;font-size:12.5px;color:var(--muted);white-space:normal;">${esc(b.notes || '—')}</td>
         <td>${b.paid_at ? new Date(b.paid_at).toLocaleString() : '—'}</td>
         <td>${_stageBadge(b.stage)}</td>
@@ -145,4 +195,4 @@ async function adminConsultSaveSchedule() {
   } catch (e) {
     toast(e.message, 'error');
   }
-}
+}

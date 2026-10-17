@@ -33,6 +33,7 @@ function adminTab(tab, el) {
   if (tab === 'ccr-agents') ccrAdminInit();
   if (tab === 'creator-events') { if (typeof adminEventsInit === 'function') adminEventsInit(); }
   if (tab === 'payments-health') { if (typeof loadPaymentsHealth === 'function') loadPaymentsHealth(); }
+  if (tab === 'link-queue') { if (typeof loadAdminLinkQueue === 'function') loadAdminLinkQueue(); }
   if (tab === 'free-orders') { if (typeof loadAdminFreeOrders === 'function') loadAdminFreeOrders(); }
   if (tab === 'consultations') { if (typeof loadAdminConsultations === 'function') loadAdminConsultations(); }
 }
@@ -82,8 +83,9 @@ async function loadAdminOrders() {
   const orderIdFilter = (document.getElementById('adminOrderIdSearch')?.value || '').trim().replace(/^#/, '');
   const statusFilter = (document.getElementById('adminOrderStatusFilter')?.value || '').trim().toLowerCase();
   const freeOnly = (document.getElementById('adminOrderTypeFilter')?.value || '') === 'free';
+  const upsellOnly = (document.getElementById('adminOrderTypeFilter')?.value || '') === 'upsell';
   try {
-    const qs = '?limit=100' + (emailFilter ? `&email=${encodeURIComponent(emailFilter)}` : '') + (freeOnly ? '&free_only=true' : '');
+    const qs = '?limit=100' + (emailFilter ? `&email=${encodeURIComponent(emailFilter)}` : '') + (freeOnly ? '&free_only=true' : '') + (upsellOnly ? '&kind=upsell' : '');
     const data = await api('/admin/orders' + qs);
     let orders = data.orders || data.data || data || [];
 
@@ -97,7 +99,10 @@ async function loadAdminOrders() {
     if (statusFilter) {
       orders = orders.filter(o => {
         const s = (o.status || '').toLowerCase();
-        return statusFilter === 'processing' ? (s === 'processing' || s === 'inprogress') : s === statusFilter;
+        // "queued" = paid, waiting for an earlier order on the same link (o.queued);
+        // those are kept out of "processing" so the two don't overlap.
+        if (statusFilter === 'queued') return !!o.queued;
+        return statusFilter === 'processing' ? ((s === 'processing' || s === 'inprogress') && !o.queued) : s === statusFilter;
       });
     }
 
@@ -106,7 +111,7 @@ async function loadAdminOrders() {
 
     // Only shown when a filter is actually active, so it doesn't clutter
     // the default "browse everything" view.
-    const hasFilter = !!(emailFilter || orderIdFilter || statusFilter || freeOnly);
+    const hasFilter = !!(emailFilter || orderIdFilter || statusFilter || freeOnly || upsellOnly);
     const clearBtn = hasFilter
       ? `<div style="padding:0 0 12px;">
            <button class="action-btn" onclick="clearAdminOrderFilters()">✕ Clear Filters</button>
@@ -168,12 +173,13 @@ async function loadAdminOrders() {
             ${userName && userName !== '—' ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${userName}</div>` : ''}
             ${phoneDisplay}
           </td>
-          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${svcName}</td>
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${svcName}${o.from_upsell
+            ? `<div style="margin-top:3px;"><span title="${o.upsell_how === 'suggested' ? 'Ordered the suggested service' : 'Came from a suggestion, picked another service'} · from ${o.upsell_source === 'after_order' ? 'order-placed screen' : 'dashboard'}" style="font-size:10px;font-weight:700;color:#3dd44a;background:rgba(61,212,74,.12);border:1px solid rgba(61,212,74,.3);border-radius:6px;padding:1px 6px;">💡 Suggested${o.upsell_how === 'other_service' ? ' · other svc' : ''}</span></div>` : ''}</td>
           <td style="max-width:160px;" onclick="event.stopPropagation();">${linkDisplay}</td>
           <td>${parseInt(o.quantity||0).toLocaleString()}</td>
           <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${startRemains}</td>
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:15px;">${fmtKES(o.charge||o.cost)}</td>
-          <td>${statusPill(o.status)}</td>
+          <td>${statusPill(o.status, o.queued)}</td>
           <td style="white-space:nowrap;">${mpesaCell}</td>
           <td style="font-size:12px;color:var(--muted);">${date}</td>
           <td style="white-space:nowrap;" onclick="event.stopPropagation();">
@@ -850,10 +856,11 @@ async function loadAdminCommandCenter(force = false) {
     api('/admin/allocations/tax-reserve'),                          // 17
     api(`/admin/stats/platforms/outcomes?days=${_chc.trendsDays}`), // 18
     api(`/admin/stats/order-kinds?days=${_chc.trendsDays}`),         // 19
+    api(`/upsell/admin/stats?days=${_chc.trendsDays}`),               // 20
   ]);
   const [snap, stats, breakdown, revenue, trends, engagement,
          connectStats, connectRevenue, academyStats, academyRevenue,
-         affiliates, ccrAgents, platforms, titan, ownerPay, expenses, panelGrowth, taxReserve, outcomes, orderKinds] = results;
+         affiliates, ccrAgents, platforms, titan, ownerPay, expenses, panelGrowth, taxReserve, outcomes, orderKinds, upsellStats] = results;
   _chc.data.snapshot   = snap.status === 'fulfilled' ? snap.value : null;
   _chc.data.stats      = stats.status === 'fulfilled' ? stats.value : null;
   _chc.data.breakdown  = breakdown.status === 'fulfilled' ? breakdown.value : null;
@@ -874,6 +881,7 @@ async function loadAdminCommandCenter(force = false) {
   _chc.data.taxReserve      = taxReserve.status === 'fulfilled' ? taxReserve.value : null;
   _chc.data.outcomes        = outcomes.status === 'fulfilled' ? outcomes.value : null;
   _chc.data.orderKinds      = orderKinds.status === 'fulfilled' ? orderKinds.value : null;
+  _chc.data.upsell          = upsellStats.status === 'fulfilled' ? upsellStats.value : null;
   _chc.loadedAt = Date.now();
 
   _chcRenderAlerts();
@@ -887,6 +895,69 @@ async function loadAdminCommandCenter(force = false) {
   _chcRenderUnits();
   _chcSetRefreshing(false);
   _chcUpdateTimestamp();
+}
+
+// ── 💡 Upsell ("next step" suggestions) panel — Growth section ─────────
+// Data: GET /upsell/admin/stats (app/services/upsell.py::admin_stats).
+// Funnel: customers shown a suggestion → orders started from one →
+// orders paid → revenue. Orders are also flagged "💡 Suggested" in
+// All Orders, with a "From suggestions" filter there.
+function _chcUpsellPanel(u) {
+  if (!u) {
+    return _chcPanel({ title: 'Upsell Suggestions', icon: '💡', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load suggestion stats (is the latest backend deployed?).</div>` });
+  }
+  const tile = (label, value, sub, color) => `
+    <div style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);">${label}</div>
+      <div style="font-size:20px;font-weight:800;color:${color || 'var(--white)'};margin-top:4px;">${value}</div>
+      ${sub ? `<div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${sub}</div>` : ''}
+    </div>`;
+  const line = (label, v) => `
+    <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+      <span style="color:var(--white);">${label}</span>
+      <span style="color:var(--muted);white-space:nowrap;">${v.paid} paid of ${v.orders} · <b style="color:#3dd44a;">${fmtKES(v.revenue_kes)}</b></span>
+    </div>`;
+  const LBL = {
+    dashboard: '🏠 Dashboard row', after_order: '✅ Order-placed screen',
+    suggested: '🎯 Ordered the suggested service', other_service: '🔀 Picked another service',
+    medium: '<span style="color:#22c55e;">●</span> Medium', elite: '<span style="color:#3b82f6;">●</span> Elite',
+    unmarked: '⚪ No tier in name', basic: '<span style="color:#facc15;">●</span> Basic',
+  };
+  const group = (title, obj) => {
+    const rows = Object.entries(obj || {}).map(([k, v]) => line(LBL[k] || esc(k), v)).join('');
+    return rows ? `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px;">${title}</div>${rows}` : '';
+  };
+  const kinds = (u.top_kinds || []).map(([k, v]) => line(esc(k), v)).join('');
+  const recent = (u.recent || []).slice(0, 6).map(r => `
+    <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:4px 0;">
+      <span style="color:var(--white);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.service_name)}">${esc(r.email)} · ${esc(r.service_name)}</span>
+      <span style="color:var(--muted);white-space:nowrap;">${fmtKES(r.charge)} · ${esc(r.status || '')}</span>
+    </div>`).join('');
+  const empty = !u.orders_started && !u.customers_shown;
+  return _chcPanel({
+    title: 'Upsell Suggestions', icon: '💡',
+    sub: `last ${u.window_days}d · "Suggested for you" rows + order-placed screen · only 🟢 Medium / 🔵 Elite services are ever suggested`,
+    extra: `<button class="action-btn" onclick="_chcJumpUpsellOrders()" style="font-size:11px;">View orders →</button>`,
+    body: empty ? `<div style="font-size:12px;color:var(--muted);">No suggestions shown yet in this window. They appear to customers once an order is delivered.</div>` : `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+        ${tile('Customers shown', Number(u.customers_shown).toLocaleString(), 'saw at least one suggestion')}
+        ${tile('Orders started', Number(u.orders_started).toLocaleString(), 'from a suggestion')}
+        ${tile('Orders paid', Number(u.orders_paid).toLocaleString(), `${u.pay_rate_pct}% of started`, '#3dd44a')}
+        ${tile('Revenue', fmtKES(u.revenue_kes), `avg ${fmtKES(u.avg_order_kes)}`, '#3dd44a')}
+        ${tile('Conversion', u.conversion_pct + '%', 'of shown customers paid')}
+      </div>
+      ${group('Where they clicked', u.by_source)}
+      ${group('What they ordered', u.by_how)}
+      ${group('Tier of ordered service', u.by_tier)}
+      ${kinds ? `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px;">Top follow-ups</div>${kinds}` : ''}
+      ${recent ? `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px;">Latest</div>${recent}` : ''}`,
+  });
+}
+
+function _chcJumpUpsellOrders() {
+  _chcJump('allorders');
+  const sel = document.getElementById('adminOrderTypeFilter');
+  if (sel) { sel.value = 'upsell'; loadAdminOrders(); }
 }
 
 // Jump straight to another admin tab (e.g. from a Business Units card) by
@@ -2245,6 +2316,7 @@ function _chcRenderGrowth() {
     ${platformPanel}
     ${outcomesPanel}
     ${kindsPanel}
+    ${_chcUpsellPanel(_chc.data.upsell)}
     ${_chcPanel({
       title: 'New Users per Day', icon: '👤', body: `
         <div style="font-size:18px;font-weight:800;color:var(--white);margin-bottom:8px;">${g.this_week ? g.this_week.new_users : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> /7d</span> ${_growthBadge(g.users_wow_pct)}</div>
@@ -2877,6 +2949,7 @@ async function openSupportThread(threadId) {
           <div style="font-size:11px;color:var(--muted);margin-top:2px;">Wallet: KES ${(t.user?.wallet_balance||0).toFixed(0)} · Member since ${t.user?.member_since ? new Date(t.user.member_since).toLocaleDateString('en-KE') : '—'}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;">
+          ${t.reorder_task_id ? `<button class="action-btn" onclick="rqReorderTask('${esc(t.reorder_task_id)}')" title="This client is in the Reorder Queue — re-place their paid order free of charge, using the link they sent in this chat" style="border-color:#ff7043;color:#ff7043;font-weight:700;">🔁 Reorder for client</button>` : ''}
           ${userEmail ? `<button class="action-btn" onclick="ccrCreateOrderForThreadUser()" title="Place an order for ${userEmail} without leaving this ticket">🧾 Place Order</button>` : ''}
           <select onchange="adminUpdateThreadStatus(this.value)" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;padding:6px 10px;border-radius:8px;outline:none;cursor:pointer;">
             <option value="open"     ${t.status==='open'    ?'selected':''}>🔴 Open</option>
@@ -2981,7 +3054,7 @@ function openOrderDetailModal(orderId) {
     <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0;">
       <div>
         <div style="font-weight:800;font-size:14px;color:var(--white);">${esc(o.service_name || 'Order details')}</div>
-        <div style="margin-top:6px;">${statusPill(o.status)}</div>
+        <div style="margin-top:6px;">${statusPill(o.status, o.queued)}</div>
       </div>
       <button onclick="closeOrderDetailModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
     </div>

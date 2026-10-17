@@ -98,6 +98,7 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 
 .lp-hero-eyebrow{display:inline-flex;align-items:center;gap:10px;background:rgba(61,212,74,.12);border:1px solid rgba(61,212,74,.22);color:#6efb7a;font-size:11.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:7px 16px;border-radius:30px;margin-bottom:28px;}
 .lp-hero-eyebrow span{width:7px;height:7px;border-radius:50%;background:#3dd44a;flex-shrink:0;animation:pulse 2s infinite;}
+.lp-hero-kw{font-size:15px;font-weight:700;color:#3dd44a;letter-spacing:.2px;margin:-8px 0 14px;line-height:1.4;}
 .lp-hero-h1{font-family:var(--font-display);font-size:clamp(42px,5.5vw,70px);font-weight:900;line-height:1.06;letter-spacing:-2px;color:#fff;margin-bottom:22px;}
 .lp-hero-h1 em{font-style:normal;color:#3dd44a;}
 .lp-hero-sub{color:#8faab8;font-size:17px;line-height:1.7;margin-bottom:40px;max-width:460px;font-weight:400;}
@@ -362,6 +363,62 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 .lp-hire-decline{background:linear-gradient(135deg,#ff5d5d,#c9302c);box-shadow:0 8px 20px rgba(201,48,44,.4);}
 .lp-hire-accept{background:linear-gradient(135deg,#3dd44a,#28a035);box-shadow:0 8px 20px rgba(61,212,74,.4);}
 .lp-hire-act-label{position:relative;z-index:1;font-size:10px;color:#4d6b5c;font-weight:600;margin-top:10px;letter-spacing:.3px;}
+
+/* ═══ Hire EndaViral tiers: booking modal (hv-) + landing ladder (lp-tier-) ═══ */
+.hv-modal{max-width:720px;max-height:92vh;overflow-y:auto;}
+.hv-tiers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.hv-tier{position:relative;text-align:left;background:var(--navy);border:1px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;color:var(--white);font-family:'Montserrat',sans-serif;transition:border-color .2s,transform .2s;display:flex;flex-direction:column;}
+.hv-tier:hover{border-color:var(--green);transform:translateY(-2px);}
+.hv-tier-pop{border-color:rgba(61,212,74,.6);box-shadow:0 0 0 1px rgba(61,212,74,.25),0 10px 30px rgba(61,212,74,.12);}
+.hv-tier-monthly{background:linear-gradient(160deg,rgba(255,176,32,.09),var(--navy) 55%);border-color:rgba(255,176,32,.35);}
+.hv-tier-badge{position:absolute;top:-9px;left:14px;background:var(--green);color:#04170a;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:3px 9px;border-radius:20px;}
+.hv-tier-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:2px 8px;margin-bottom:4px;}
+.hv-tier-name{font-size:15px;font-weight:800;}
+.hv-tier-price{font-size:16px;font-weight:900;color:var(--green);white-space:nowrap;}
+.hv-tier-monthly .hv-tier-price{color:var(--gold);}
+.hv-tier-price small{font-size:11px;font-weight:600;color:var(--muted);}
+.hv-tier-outcome{font-size:12.5px;color:#c7d3e8;margin-bottom:10px;line-height:1.4;}
+.hv-tier-list{list-style:none;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:5px;flex:1;}
+.hv-tier-list li{font-size:12px;color:var(--muted);padding-left:16px;position:relative;line-height:1.4;}
+.hv-tier-list li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:800;}
+.hv-tier-monthly .hv-tier-list li::before{color:var(--gold);}
+.hv-tier-go{font-size:12.5px;font-weight:800;color:var(--green);}
+.hv-tier-monthly .hv-tier-go{color:var(--gold);}
+.hv-trust{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:16px;font-size:11.5px;color:var(--muted);}
+.hv-back{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:0;margin-bottom:12px;}
+.hv-back:hover{color:var(--white);}
+.hv-sum{background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px;}
+.hv-sum-name{font-size:15px;font-weight:800;color:var(--white);}
+.hv-sum-outcome{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.hv-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.hv-chip{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#c7d3e8;font-family:inherit;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:20px;cursor:pointer;}
+.hv-chip.on{background:rgba(61,212,74,.14);border-color:var(--green);color:var(--white);}
+.hv-two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.hv-price{background:rgba(61,212,74,.06);border:1px solid rgba(61,212,74,.25);border-radius:12px;padding:12px 14px;margin-top:4px;}
+.hv-price-row{display:flex;justify-content:space-between;font-size:13px;color:#c7d3e8;padding:2px 0;}
+.hv-credit{color:var(--green);}
+.hv-total{font-size:16px;font-weight:900;color:var(--white);}
+.hv-price-note{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.45;}
+.hv-done-tick{width:56px;height:56px;border-radius:50%;background:rgba(61,212,74,.15);color:var(--green);font-size:28px;font-weight:900;display:flex;align-items:center;justify-content:center;margin:6px auto 12px;}
+.hv-done-title{text-align:center;font-size:19px;font-weight:900;color:var(--white);margin-bottom:16px;}
+.hv-done-steps{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+.hv-done-steps div{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;color:#c7d3e8;line-height:1.5;}
+.hv-done-steps b{flex-shrink:0;width:24px;height:24px;border-radius:7px;background:rgba(61,212,74,.14);color:var(--green);font-size:12px;display:flex;align-items:center;justify-content:center;}
+.hv-done-steps strong{color:var(--white);}
+@media(max-width:600px){.hv-tiers,.hv-two{grid-template-columns:1fr;}}
+
+.lp-tiers-wrap{max-width:1140px;margin:64px auto 0;}
+.lp-tiers-title{text-align:center;color:#fff;font-size:clamp(18px,2.2vw,24px);font-weight:900;letter-spacing:-.4px;margin-bottom:28px;}
+.lp-tiers-title span{color:#ffd166;margin:0 6px;}
+.lp-tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;}
+.lp-tiers .hv-tier{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.08);padding:22px 18px;}
+.lp-tiers .hv-tier-pop{border-color:rgba(61,212,74,.6);background:rgba(61,212,74,.05);}
+.lp-tiers .hv-tier-monthly{background:linear-gradient(160deg,rgba(255,176,32,.1),rgba(255,255,255,.02) 60%);border-color:rgba(255,176,32,.35);}
+.lp-tiers .hv-tier-head{flex-direction:column;align-items:flex-start;gap:2px;}
+.lp-tiers .hv-tier-price{font-size:22px;}
+.lp-tiers-foot{text-align:center;color:#7a9aad;font-size:12.5px;margin-top:18px;}
+@media(max-width:1000px){.lp-tiers{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:560px){.lp-tiers{grid-template-columns:1fr;}}
 @media(max-width:640px){
   .lp-hire-section{padding:70px 5%;}
   .lp-hire-wrap{gap:36px;}
@@ -717,6 +774,25 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .promo-title{font-size:12.5px;font-weight:800;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .promo-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .promo-arrow{flex-shrink:0;color:var(--muted);font-size:15px;}
+/* ── Next step / upsell (upsell.js) — deliberately quiet ── */
+.up-label{font-size:10.5px;font-weight:700;letter-spacing:.6px;color:var(--muted);margin:0 0 6px 2px;}
+.up-list{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;}
+.up-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:7px 8px 7px 10px;font-size:12.5px;}
+.up-ic{flex-shrink:0;font-size:13px;}
+.up-txt{flex:1;min-width:150px;color:var(--white);line-height:1.35;word-break:break-word;}
+.up-price{color:var(--muted);}
+.up-tier{font-size:11px;font-weight:700;white-space:nowrap;}
+.up-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:1px;}
+.up-acts{display:flex;align-items:center;gap:2px;margin-left:auto;}
+.up-link{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:4px 7px;border-radius:6px;}
+.up-link:hover{color:var(--white);background:rgba(255,255,255,.05);}
+.up-link.up-main{color:var(--green);}
+.up-x{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 6px;opacity:.7;}
+.up-x:hover{opacity:1;color:var(--white);}
+#omUpsell{margin:-10px 0 16px;}
+.up-after{font-size:12.5px;color:var(--muted);line-height:1.6;}
+.up-after a,#omUpsellNote a{color:var(--green);font-weight:600;text-decoration:none;}
+#omUpsellNote{font-size:11.5px;color:var(--muted);margin:-8px 0 12px;}
 
 @media(max-width:768px){
   .dash-stats-row{gap:8px;margin-bottom:14px;}
@@ -1344,7 +1420,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 <div id="authWrap">
   <nav class="lp-nav">
     <a href="#" class="lp-nav-logo">
-      <img src="ChatGPT Image May 7, 2026, 12_54_26 PM.png" alt="EndaViral" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+      <img src="endaviral-logo-nav.webp" width="60" height="40" alt="EndaViral" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
       <span style="display:none;font-weight:900;font-size:22px;color:#131b27;">Enda<span style="color:#3dd44a">Viral</span></span>
     </a>
     <div class="lp-nav-center">
@@ -1352,6 +1428,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <a href="#academy" class="lp-nav-link">Creator Academy</a>
       <a href="#creator-events" class="lp-nav-link">Creator Events</a>
       <a href="#hire-endaviral" class="lp-nav-link">Hire EndaViral</a>
+      <a href="/blog" class="lp-nav-link">Blog</a>
       <a href="#marketplace" class="lp-nav-link">Marketplace</a>
       <a href="#faq" class="lp-nav-link">FAQ</a>
     </div>
@@ -1370,6 +1447,7 @@ tbody td{padding:13px 16px;font-size:14px;}
     <a href="#academy"     class="lp-mobile-link" onclick="closeLpMenu()">Creator Academy</a>
     <a href="#creator-events" class="lp-mobile-link" onclick="closeLpMenu()">Creator Events</a>
     <a href="#hire-endaviral" class="lp-mobile-link" onclick="closeLpMenu()">Hire EndaViral</a>
+    <a href="/blog" class="lp-mobile-link">Free Guides &amp; Blog</a>
     <a href="#marketplace" class="lp-mobile-link" onclick="closeLpMenu()">Marketplace</a>
     <a href="#faq"         class="lp-mobile-link" onclick="closeLpMenu()">FAQ</a>
     <div style="display:flex;flex-direction:column;gap:10px;padding:0 20px 20px;">
@@ -1385,6 +1463,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="lp-hero-text">
         <h1 class="lp-hero-h1">Grow. Learn. <em>Earn</em> with <em>EndaViral</em></h1>
 
+        <h2 class="lp-hero-kw">Buy followers, likes &amp; views in Kenya, paid via M-Pesa</h2>
         <p class="lp-hero-sub">EndaViral is Kenya's Creator Growth Platform. Grow your social media, master in-demand skills at Creator Academy, and get hired through our Marketplace — all in one place, all paid via M-Pesa.</p>
         <div class="lp-auth-card" id="loginBox">
           <div class="lp-auth-card-header">
@@ -1632,18 +1711,18 @@ tbody td{padding:13px 16px;font-size:14px;}
     <div class="lp-hire-wrap">
       <div class="lp-hire-copy lp-reveal">
         <div class="lp-hire-eyebrow"><span class="dot"></span>Hire EndaViral</div>
-        <h2>Don't have time to grow your socials? <em>We'll do it for you</em></h2>
-        <p>Book a paid strategy consultation and our team reviews your social media presence, flags growth opportunities, and recommends a plan - content, branding, monetisation and a clear next step.</p>
-        <p>Want it off your plate entirely? We can agree to run your growth month-to-month after the call.</p>
+        <h2>You've got the followers. <em>Now make them pay.</em></h2>
+        <p>We grow thousands of Kenyan accounts, so we see what actually works here. A strategist reviews your account, finds what's stopping your audience from buying, booking or hiring you, and gives you the fix.</p>
+        <p>Start with a single call, or hand us the whole account for KES 5,000 a month.</p>
 
         <ol class="lp-hire-steps">
-          <li><span class="hs-num">01</span><span class="hs-text"><b>Pay KES 500</b><span>Via M-Pesa, right from this page.</span></span></li>
-          <li><span class="hs-num">02</span><span class="hs-text"><b>We call you</b><span>Our team rings your number for a 30–45 min session on Google Meet.</span></span></li>
-          <li><span class="hs-num">03</span><span class="hs-text"><b>Walk away with a plan</b><span>Content, growth and monetisation moves you can act on the same day.</span></span></li>
+          <li><span class="hs-num">01</span><span class="hs-text"><b>Pick your package</b><span>From KES 500, paid via M-Pesa right from this page.</span></span></li>
+          <li><span class="hs-num">02</span><span class="hs-text"><b>We review your account first</b><span>Then we call you. No generic advice.</span></span></li>
+          <li><span class="hs-num">03</span><span class="hs-text"><b>Walk away with the fix in writing</b><span>Sent to your WhatsApp. Go monthly later and the fee comes off month one.</span></span></li>
         </ol>
 
         <div class="lp-hire-cta-row">
-          <a href="#" class="lp-hire-btn" onclick="consultOpenBooking();return false;">Book Your Call — KES 500 →</a>
+          <a href="#hire-tiers" class="lp-hire-btn">See packages: from KES 500 →</a>
           <span class="lp-hire-more">Real strategist on the line — not a bot.</span>
         </div>
       </div>
@@ -1652,7 +1731,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="lp-hire-phone-glow"></div>
         <div class="lp-hire-device">
           <div class="lp-hire-screen">
-            <div class="lp-hire-fee-tag">KES 500</div>
+            <div class="lp-hire-fee-tag">From KES 500</div>
             <div class="lp-hire-callbar">Incoming call</div>
             <div class="lp-hire-avatar-ring"><div class="lp-hire-avatar">EV</div></div>
             <div class="lp-hire-callername">EndaViral Growth Team</div>
@@ -1671,6 +1750,13 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Tier ladder — cards rendered from CONSULT_TIERS (consultation.js) -->
+    <div class="lp-tiers-wrap lp-reveal" id="hire-tiers">
+      <div class="lp-tiers-title">Fix it <span>→</span> Plan it <span>→</span> Monetise it <span>→</span> We run it</div>
+      <div class="lp-tiers" id="lpTierGrid"></div>
+      <div class="lp-tiers-foot">Every consult fee comes off your first month if you move to Account Management within 30 days.</div>
     </div>
   </section>
 
@@ -1904,6 +1990,8 @@ tbody td{padding:13px 16px;font-size:14px;}
         <a href="/buy-youtube-watch-hours-kenya">YouTube Watch Hours</a>
         <a href="/telegram-members-kenya">Telegram Members</a>
         <a href="/buy-facebook-page-likes-kenya">Facebook Likes</a>
+        <a href="/social-media-management-kenya">Social Media Management</a>
+        <a href="/social-media-consultant-kenya">Strategy Calls</a>
       </div>
 
       <!-- Learn column -->
@@ -1915,6 +2003,8 @@ tbody td{padding:13px 16px;font-size:14px;}
         <a href="/blog">Free Guides &amp; Blog</a>
         <a href="/how-to-grow-on-tiktok-in-kenya">Grow on TikTok Kenya</a>
         <a href="/how-to-grow-on-instagram-in-kenya">Grow on Instagram Kenya</a>
+        <a href="/how-to-sell-on-instagram-in-kenya">Sell on Instagram Kenya</a>
+        <a href="/why-your-followers-arent-buying-kenya">Why Followers Don't Buy</a>
       </div>
 
       <!-- Earn column -->
@@ -2136,7 +2226,7 @@ tbody td{padding:13px 16px;font-size:14px;}
             <div class="promo-icon">💼</div>
             <div class="promo-body">
               <div class="promo-title">Hire EndaViral</div>
-              <div class="promo-desc">KES 500 consult us — we grow your socials</div>
+              <div class="promo-desc">Fix it, plan it, monetise it, or let us run it. From KES 500</div>
             </div>
             <div class="promo-arrow">Open →</div>
           </div>
@@ -2149,6 +2239,12 @@ tbody td{padding:13px 16px;font-size:14px;}
             </div>
             <div class="promo-arrow" id="dashFreeOrderArrow">Open →</div>
           </div>
+        </div>
+
+        <!-- ── Quiet next-step suggestions for delivered orders (upsell.js) ── -->
+        <div id="dashNextSteps" style="display:none;">
+          <div class="up-label">SUGGESTED FOR YOU</div>
+          <div class="up-list" id="dashNextStepsList"></div>
         </div>
 
         <div class="sec-hd">
@@ -2591,6 +2687,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="admin-tab" onclick="adminTab('consultations', this)">💼 Consultations</div>
           <div class="admin-tab" onclick="adminTab('free-orders', this)">🎁 Free Orders</div>
           <div class="admin-tab" onclick="adminTab('payments-health', this)">🛡️ Payments Health</div>
+          <div class="admin-tab" onclick="adminTab('link-queue', this)" id="lqTabBtn">⏳ Queued Orders</div>
         </div>
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
@@ -2606,6 +2703,7 @@ tbody td{padding:13px 16px;font-size:14px;}
                 <option value="">All Status</option>
                 <option value="pending">Pending</option>
                 <option value="processing">Processing</option>
+                <option value="queued">Queued (link busy)</option>
                 <option value="completed">Completed</option>
                 <option value="partial">Partial</option>
                 <option value="failed">Failed</option>
@@ -2614,6 +2712,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <select id="adminOrderTypeFilter" onchange="loadAdminOrders()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;">
                 <option value="">All Orders</option>
                 <option value="free">🎁 Free Orders only</option>
+                <option value="upsell">💡 From suggestions</option>
               </select>
             </div>
           </div>
@@ -2943,6 +3042,10 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-payments-health">
           <div id="paymentsHealthRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
         </div><!-- /ap-payments-health -->
+        <!-- Paid orders waiting for an earlier order on the same link (admin_link_queue.js) -->
+        <div class="admin-panel" id="ap-link-queue">
+          <div id="linkQueueRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+        </div><!-- /ap-link-queue -->
 
         <div class="admin-panel" id="ap-free-orders">
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
@@ -2958,7 +3061,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <!-- ══ HIRE ENDAVIRAL: CONSULTATIONS (admin) ══ -->
         <div class="admin-panel" id="ap-consultations">
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
-            <div><div class="sec-title">💼 CONSULTATIONS</div><div class="sec-sub">Paid KES 500 "Hire EndaViral" consults — call these people and set up a Google Meet</div></div>
+            <div><div class="sec-title">💼 CONSULTATIONS</div><div class="sec-sub">Paid "Hire EndaViral" bookings across all four packages. Call these people, review their account, set up the session</div></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <select id="consultStageFilter" onchange="loadAdminConsultations()" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;">
                 <option value="">All paid bookings</option>
@@ -2967,10 +3070,18 @@ tbody td{padding:13px 16px;font-size:14px;}
                 <option value="scheduled">Scheduled</option>
                 <option value="completed">Completed</option>
               </select>
+              <select id="consultTierFilter" onchange="loadAdminConsultations()" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;">
+                <option value="">All packages</option>
+                <option value="quick_fix">Quick Fix · KES 500</option>
+                <option value="growth_plan">Growth Plan · KES 1,000</option>
+                <option value="money_plan">Money Plan · KES 1,500</option>
+                <option value="management">Account Mgmt · KES 5,000/mo</option>
+              </select>
               <button class="btn-secondary" onclick="loadAdminConsultations()">↻ Refresh</button>
             </div>
           </div>
           <div id="consultStatsRow" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;"></div>
+          <div id="consultTierStatsRow" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px;"></div>
           <div class="tbl-wrap" id="adminConsultationsList"><div class="loading-spinner"><div class="spinner"></div><span>Loading consultations…</span></div></div>
         </div>
 
@@ -3206,6 +3317,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="modal-title" id="omTitle">PLACE ORDER</div>
       <div class="modal-sub" id="omSub">Fill in the details below</div>
       <div id="omServiceInfo" style="margin-bottom:16px;"></div>
+      <div id="omUpsellNote" style="display:none;"></div>
       <div class="modal-field"><label>Link / URL</label><input type="url" id="omLink" placeholder="https://instagram.com/yourprofile"/><div id="omLinkHint" style="font-size:11.5px;color:var(--muted,#8a97a8);margin-top:5px;line-height:1.4;"></div></div>
       <div class="modal-field"><label>Quantity</label><input type="number" id="omQty" placeholder="1000" oninput="calcOrderCost()"/></div>
       <div class="cost-preview"><span class="cost-lbl">Total Cost</span><span class="cost-val" id="omCost">KES 0</span></div>
@@ -3259,6 +3371,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div id="omResultIcon" style="font-size:56px;margin-bottom:16px;">✅</div>
       <div class="modal-title" id="omResultTitle">ORDER PLACED!</div>
       <div class="modal-sub" id="omResultDesc" style="margin-bottom:24px;"></div>
+      <div id="omUpsell"></div>
       <div id="omAcademyTip"></div>
       <button class="btn-primary" id="omResultBtn" onclick="closeOrderModal()" style="width:100%;">View My Orders</button>
     </div>
@@ -3595,7 +3708,11 @@ function fmtKES(n) {
   return 'KES ' + parseFloat(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-function statusPill(s) {
+function statusPill(s, queued) {
+  // `queued` (STAFF views only — admin APIs send order.queued; customers are
+  // never told): paid order held behind an earlier order on the same link
+  // (backend services/link_queue.py).
+  if (queued) return `<span class="status-pill pending" title="Held until the earlier order on this link completes (internal — customers see processing)">queued</span>`;
   const map = { pending:'pending', processing:'processing', inprogress:'processing', completed:'completed', failed:'failed', cancelled:'failed', partial:'partial' };
   const cls = map[(s||'').toLowerCase()] || 'pending';
   return `<span class="status-pill ${cls}">${s||'pending'}</span>`;
@@ -3769,6 +3886,8 @@ function navTo(page) {
     // version did.
     const fallbackTabEl = [...document.querySelectorAll('.admin-tab')].find(t => t.style.display !== 'none');
     adminTab(tabName, activeTabEl || fallbackTabEl);
+    // One small count query so the "Queued Orders" tab shows how many are waiting.
+    if (isFullAdmin && typeof lqRefreshBadge === 'function') lqRefreshBadge();
   }
   if (page === 'account') { initAccountPage(); }
   if (page === 'affiliate') { if (typeof initAffiliatePage === 'function') initAffiliatePage(); }
@@ -3815,6 +3934,7 @@ async function loadDashboard() {
     document.getElementById('dash-spent').textContent = fmtKES(spent);
     if (typeof _acUpdateBadges === 'function') _acUpdateBadges();
     if (typeof freeOrderRefreshCard === 'function') freeOrderRefreshCard();
+    if (typeof upsellRefreshCard === 'function') upsellRefreshCard();
   } catch(_) {
     document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders yet. Place your first order!</p></div>';
   }
@@ -4069,6 +4189,8 @@ function openOrderModal(svc) {
   document.getElementById('omLink').placeholder = linkGuide.placeholder;
   document.getElementById('omLinkHint').textContent = linkGuide.hint;
   document.getElementById('omPhone').value = '';
+  const _upNote = document.getElementById('omUpsellNote');  // set again by upsellStart() if this came from a suggestion
+  if (_upNote) { _upNote.style.display = 'none'; _upNote.innerHTML = ''; }
 
   // Starting quantity must satisfy BOTH the service's own minimum AND the
   // KES 20 payment floor. Rather than defaulting to the service min and
@@ -4170,7 +4292,10 @@ async function placeOrder() {
   btn.classList.add('loading');
   try {
     const payload = { service_id: currentSvc.service || currentSvc.id || currentSvc._id, link, quantity: qty, phone };
+    const _upTag = typeof upsellTagFor === 'function' ? upsellTagFor(currentSvc) : null;  // came from a suggestion? (admin stats)
+    if (_upTag) payload.upsell = _upTag;
     const resp = await api('/orders', { method:'POST', body:JSON.stringify(payload) });
+    if (_upTag && typeof upsellClearCtx === 'function') upsellClearCtx();
     pendingOrderId = resp.id;
     pendingCheckoutId = resp.checkout_request_id;
     document.getElementById('omPayPhone').textContent = phone;
@@ -4265,6 +4390,7 @@ function showOrderResult(success, msg) {
   document.getElementById('omResultIcon').textContent = success ? '✅' : '❌';
   document.getElementById('omResultTitle').textContent = success ? 'ORDER PLACED!' : 'PAYMENT FAILED';
   document.getElementById('omResultDesc').textContent = msg;
+  if (typeof upsellShowAfterOrder === 'function') upsellShowAfterOrder(success ? pendingOrderId : null);
   // Successful order → suggest the Academy course for that platform
   // (academy.js). Most order customers never open the Academy otherwise.
   const tipEl = document.getElementById('omAcademyTip');
@@ -4545,6 +4671,7 @@ function resetDeposit() {
 <script src="reorder_queue.js"></script>
 <script src="support_board.js"></script>
 <script src="admin_payments_health.js"></script>
+<script src="admin_link_queue.js"></script>
 <script src="admin_affiliate_payouts.js"></script>
 <script src="admin_ccr.js"></script>
 <script src="ccr_agent.js"></script>
@@ -4965,19 +5092,48 @@ async function _maybeHideAffBanner() {
 </div>
 
 <div class="modal-overlay" id="consultBookModal" onclick="if(event.target===this)consultCloseBooking()">
-  <div class="modal" style="max-width:440px;">
+  <div class="modal hv-modal">
     <button class="modal-close" onclick="consultCloseBooking()">✕</button>
-    <div class="modal-title" style="margin-bottom:4px;">💼 Hire EndaViral</div>
-    <div class="modal-sub" style="margin-bottom:10px;">Book a 30–45 min consult on Google Meet — pay KES 500, we'll call you to set it up.</div>
-    <div style="font-size:26px;font-weight:800;color:var(--green);margin-bottom:14px;">KES 500</div>
-    <div class="field"><label>Your Name</label><input type="text" id="consultName" placeholder="Jane Wanjiru"/></div>
-    <div class="field"><label>M-Pesa Phone Number</label><input type="tel" id="consultPhone" placeholder="07XXXXXXXX"/></div>
-    <div class="field"><label>Email (optional)</label><input type="email" id="consultEmail" placeholder="jane@business.co.ke"/></div>
-    <div class="field"><label>Business Name (optional)</label><input type="text" id="consultBusiness" placeholder="Your business"/></div>
-    <div class="field"><label>What do you want help with? (optional)</label><textarea id="consultNotes" rows="3" placeholder="e.g. growing our Instagram, TikTok strategy, brand deals..."></textarea></div>
-    <div style="font-size:13px;color:var(--muted);min-height:18px;margin:8px 0 4px;" id="consultBookStatus"></div>
-    <button class="btn-primary" style="width:100%;" onclick="consultConfirmBooking()">Pay &amp; Book Consultation</button>
+
+    <!-- Step 1: pick a package -->
+    <div id="consultStepTiers">
+      <div class="modal-title" style="margin-bottom:4px;">💼 Hire EndaViral</div>
+      <div class="modal-sub" style="margin-bottom:16px;">You've got the followers. Now make them pay. Pick how much help you want.</div>
+      <div class="hv-tiers" id="consultTierList"></div>
+      <div class="hv-trust">
+        <span>👤 Real strategist, not a bot</span>
+        <span>🔍 We review your account before the call</span>
+        <span>📲 Paid securely via M-Pesa</span>
+      </div>
+    </div>
+
+    <!-- Step 2: account + contact details -->
+    <div id="consultStepDetails" style="display:none;">
+      <button type="button" class="hv-back" onclick="consultBackToTiers()">← All packages</button>
+      <div class="hv-sum" id="consultTierSummary"></div>
+      <div class="field"><label>Which account should we look at?</label><input type="text" id="consultHandle" placeholder="@yourbusiness on Instagram / TikTok"/></div>
+      <div class="field"><label>Your main goal</label><div class="hv-chips" id="consultGoalChips"></div></div>
+      <div class="field"><label>Anything we should know? (optional)</label><textarea id="consultNotes" rows="2" placeholder="e.g. we sell cakes in Nairobi, followers grew but sales didn't"></textarea></div>
+      <div class="hv-two">
+        <div class="field"><label>Your Name</label><input type="text" id="consultName" placeholder="Jane Wanjiru"/></div>
+        <div class="field"><label>M-Pesa Number</label><input type="tel" id="consultPhone" placeholder="07XXXXXXXX"/></div>
+      </div>
+      <div class="hv-two">
+        <div class="field"><label>Email (optional)</label><input type="email" id="consultEmail" placeholder="jane@business.co.ke"/></div>
+        <div class="field"><label>Business (optional)</label><input type="text" id="consultBusiness" placeholder="Your business"/></div>
+      </div>
+      <div class="hv-price" id="consultPriceBox"></div>
+      <div style="font-size:13px;color:var(--muted);min-height:18px;margin:8px 0 4px;" id="consultBookStatus"></div>
+      <button class="btn-primary" id="consultPayBtn" style="width:100%;" onclick="consultConfirmBooking()">Pay with M-Pesa</button>
+    </div>
+
+    <!-- Step 3: paid -->
+    <div id="consultStepDone" style="display:none;">
+      <div id="consultDoneBody"></div>
+      <button class="btn-primary" style="width:100%;" onclick="consultCloseBooking()">Done</button>
+    </div>
   </div>
+</div>
 </div>
 
 <!-- ══════════════════ CREATOR EVENTS: TICKET MODAL (canvas-rendered, same
@@ -5108,6 +5264,7 @@ async function _maybeHideAffBanner() {
 <script src="creator_events.js"></script>
 <script src="consultation.js"></script>
 <script src="free_order.js"></script>
+<script src="upsell.js"></script>
 
 </body>
 </html>
