@@ -2998,6 +2998,8 @@ function openOrderDetailModal(orderId) {
         <div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Link</div>
         <a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:var(--green);font-size:12px;word-break:break-all;">${safeLink}</a>
       </div>` : ''}
+      <div id="odmAutoRefill" data-order="${fullId}" data-refill="${o.service_refill ? '1' : ''}"></div>
+      <div id="odmRefillHistory" data-order="${fullId}"></div>
       <div id="odmPanelErrors" data-order="${fullId}"></div>
     </div>
     <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;">
@@ -3009,6 +3011,7 @@ function openOrderDetailModal(orderId) {
   `;
   modal.style.display = 'flex';
   _loadOrderPanelErrors(o.id);
+  _loadOrderRefillHistory(o.id, false);
 }
 
 // Staff-only: the panel's EXACT error text for this order (submit rejected,
@@ -3019,15 +3022,16 @@ async function _loadOrderPanelErrors(orderId) {
   const box = document.getElementById('odmPanelErrors');
   if (!box || !orderId) return;
   box.innerHTML = '<div style="padding:10px 0;color:var(--muted);font-size:11px;">Checking provider errors…</div>';
-  let errors = [];
+  let errors = [], data = null;
   try {
-    const data = await api(`/admin/orders/${encodeURIComponent(orderId)}/errors`);
+    data = await api(`/admin/orders/${encodeURIComponent(orderId)}/errors`);
     errors = (data && data.errors) || [];
   } catch (e) {
     if (box.dataset.order === orderId) box.innerHTML = `<div style="padding:10px 0;color:var(--muted);font-size:11px;">Couldn't load provider errors: ${esc(e.message || '')}</div>`;
     return;
   }
   if (box.dataset.order !== orderId) return;   // staff already opened another order
+  _renderOrderAutoRefill(orderId, data && data.auto_refill);
   if (!errors.length) {
     box.innerHTML = '<div style="padding:10px 0;color:var(--muted);font-size:11px;">No provider errors recorded for this order.</div>';
     return;
@@ -3042,6 +3046,93 @@ async function _loadOrderPanelErrors(orderId) {
             <span>${er.at ? esc(new Date(er.at).toLocaleString('en-KE')) : ''}</span>
           </div>
           <div style="font-family:monospace;font-size:11.5px;color:var(--white);white-space:pre-wrap;overflow-wrap:anywhere;">${esc(er.message || '')}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// Staff-only: what the nightly auto-refill has done for this order
+// (attempts, how many the panel accepted, last try, whether it gave up)
+// and until when the order stays covered. Shown only for refill services
+// or orders the job has already touched.
+function _renderOrderAutoRefill(orderId, ar) {
+  const box = document.getElementById('odmAutoRefill');
+  if (!box || box.dataset.order !== orderId) return;
+  if (!ar || (!ar.tracked && !box.dataset.refill)) { box.innerHTML = ''; return; }
+  const when = v => v ? esc(new Date(v).toLocaleString('en-KE')) : '—';
+  const now = Date.now();
+  const end = ar.window_end ? new Date(ar.window_end).getTime() : null;
+  let state, color;
+  if (ar.stopped) { state = 'Stopped — panel won\'t refill this order'; color = '#ff8a80'; }
+  else if (end && end < now) { state = 'Guarantee ended'; color = 'var(--muted)'; }
+  else if (!ar.tracked) { state = 'Covered — not refilled yet'; color = '#ffb347'; }
+  else { state = 'Active'; color = '#3dd44a'; }
+  const line = (k, v) => `<div style="display:flex;justify-content:space-between;gap:10px;font-size:11.5px;padding:3px 0;"><span style="color:var(--muted);">${k}</span><span style="color:var(--white);text-align:right;">${v}</span></div>`;
+  box.innerHTML = `
+    <div style="padding:10px 0;">
+      <div style="background:rgba(33,150,243,.07);border:1px solid rgba(33,150,243,.25);border-radius:8px;padding:8px 10px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;">
+          <span style="color:#64b5f6;font-size:11px;font-weight:700;">♻️ Auto-refill (staff only)</span>
+          <span style="color:${color};font-size:11px;font-weight:700;">${state}</span>
+        </div>
+        ${line('Attempts / accepted', `${ar.attempts || 0} / ${ar.accepted || 0}`)}
+        ${line('Last attempt', when(ar.last_attempt_at))}
+        ${ar.last_refill_id ? line('Last panel refill ID', `#${esc(ar.last_refill_id)}`) : ''}
+        ${line('Covered until', when(ar.window_end))}
+      </div>
+    </div>`;
+}
+
+// Staff-only: every refill the panel accepted for this order (customer
+// button, staff button, nightly auto-refill) with the panel's refill
+// status. "Check status" asks the panel live (action=refill_status).
+const _ODM_REFILL_SRC = { customer: 'Customer', admin: 'Staff', auto: 'Auto-refill' };
+function _odmRefillColor(st) {
+  const s = (st || '').toLowerCase();
+  if (s === 'completed') return '#3dd44a';
+  if (['rejected', 'error', 'canceled', 'cancelled', 'not found'].includes(s)) return '#ff8a80';
+  return '#ffb347';
+}
+async function _loadOrderRefillHistory(orderId, check) {
+  const box = document.getElementById('odmRefillHistory');
+  if (!box || !orderId) return;
+  if (!check) box.innerHTML = '';
+  const btn = document.getElementById('odmRefillCheckBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+  let data;
+  try {
+    data = await api(`/admin/orders/${encodeURIComponent(orderId)}/refills${check ? '?check=true' : ''}`);
+  } catch (e) {
+    if (box.dataset.order === orderId) {
+      if (check) { toast(`Status check failed: ${e.message || ''}`, 'error'); if (btn) { btn.disabled = false; btn.textContent = '⟳ Check status'; } }
+      else box.innerHTML = `<div style="padding:10px 0;color:var(--muted);font-size:11px;">Couldn't load refill history: ${esc(e.message || '')}</div>`;
+    }
+    return;
+  }
+  if (box.dataset.order !== orderId) return;
+  const list = (data && data.refills) || [];
+  if (check && data && data.check) toast(`Checked ${data.check.checked} refill(s) with the panel`, data.check.errors ? 'error' : 'success');
+  if (!list.length) {
+    box.innerHTML = '<div style="padding:10px 0;color:var(--muted);font-size:11px;">No refills recorded for this order yet.</div>';
+    return;
+  }
+  const anyOpen = list.some(r => !r.final && r.provider_refill_id);
+  box.innerHTML = `
+    <div style="padding:10px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="color:#64b5f6;font-size:11px;font-weight:700;">♻️ Refill history (${list.length})</span>
+        ${anyOpen ? `<button id="odmRefillCheckBtn" class="action-btn" style="font-size:10.5px;padding:3px 8px;" onclick="_loadOrderRefillHistory('${esc(orderId)}', true)">⟳ Check status</button>` : ''}
+      </div>
+      ${list.map(r => `
+        <div style="border:1px solid var(--border);border-radius:8px;padding:7px 10px;margin-bottom:6px;font-size:11.5px;">
+          <div style="display:flex;justify-content:space-between;gap:8px;">
+            <span style="color:var(--white);">${esc(_ODM_REFILL_SRC[r.source] || r.source)}${r.requested_by ? ` · <span style="color:var(--muted);">${esc(r.requested_by)}</span>` : ''}</span>
+            <span style="color:${_odmRefillColor(r.status)};font-weight:700;">${esc(r.status || 'Pending')}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:10.5px;margin-top:3px;">
+            <span>${r.created_at ? esc(new Date(r.created_at).toLocaleString('en-KE')) : ''}${r.provider_refill_id ? ` · refill #${esc(r.provider_refill_id)}` : ''}</span>
+            <span>${r.status_checked_at ? 'checked ' + esc(new Date(r.status_checked_at).toLocaleString('en-KE')) : 'not checked yet'}</span>
+          </div>
+          ${r.status_error ? `<div style="color:#ff8a80;font-size:10.5px;margin-top:3px;font-family:monospace;">${esc(r.status_error)}</div>` : ''}
         </div>`).join('')}
     </div>`;
 }

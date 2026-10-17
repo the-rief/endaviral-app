@@ -100,6 +100,8 @@ function _phRender(d) {
         <div>Paid orders submitted<br><b style="color:var(--white);font-size:18px;">${(lr.paid_orders_submitted || []).length}</b></div>
         <div>Orders checked<br><b style="color:var(--white);font-size:18px;">${lr.orders_checked || 0}</b></div>
         <div>New reorder flags<br><b style="color:var(--white);font-size:18px;">${(lr.reorder_queue || {}).new ?? 0}</b></div></div>
+      ${_phAutoRefill(lr.auto_refill)}
+      ${lr.refill_status && lr.refill_status.open != null ? `<div style="margin-top:8px;font-size:12px;color:var(--muted);">Refill status check: ${esc(lr.refill_status.open)} open refill(s) asked · ${esc(lr.refill_status.checked || 0)} answered · ${esc(lr.refill_status.updated || 0)} changed${lr.refill_status.errors ? ` · <span style="color:#ff5252;">${esc(lr.refill_status.errors)} failed request(s)</span>` : ''}</div>` : ''}
       ${lr.truncated ? '<div style="margin-top:10px;font-size:12px;color:#ffb347;">⚠ Hit the provider-check limit; some rows were not re-checked. Raise NIGHTLY_RECONCILIATION_MAX_POLLS if this repeats.</div>' : ''}
       ${(lr.errors || []).length ? `<div style="margin-top:10px;font-size:12px;color:#ff5252;">Errors: ${(lr.errors).slice(0, 5).map(esc).join(' · ')}</div>` : ''}
       ${probs.map(k => `<div style="margin-top:14px;"><div style="${_phLabel}color:#ff5252;">${probLabels[k]} (${pr[k].length})</div>
@@ -108,7 +110,51 @@ function _phRender(d) {
         ${_phTable(['Checkout', 'Stream', 'Change'], lr.recovered_late_payments.slice(0, 20).map(r => [esc(String(r.checkout_request_id).slice(0, 14)), esc(r.stream), esc(r.from + ' → ' + r.to)]))}</div>` : ''}
     </div>`;
   }
-  return header + policy + stats + missing + unpaid + queue + recon;
+  return header + policy + stats + missing + unpaid + queue + _phRefills(d.refills_7d) + recon;
+}
+
+// Refill history, last 7 days (order_refills): who asked, and how the
+// panel says those refills are going.
+function _phRefills(rf) {
+  if (!rf) return '';
+  const src = rf.by_source || {}, st = rf.by_status || {};
+  const SRC = { customer: 'Customer', admin: 'Staff', auto: 'Auto-refill' };
+  const color = s => { s = (s || '').toLowerCase(); return s === 'completed' ? '#3dd44a' : ['rejected','error','canceled','cancelled','not found'].includes(s) ? '#ff5252' : '#ffb347'; };
+  const statusPills = Object.keys(st).sort((a, b) => st[b] - st[a]).map(k =>
+    `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid ${color(k)};color:${color(k)};">${esc(k)} · ${st[k]}</span>`).join(' ');
+  return `<div style="${_phCard}margin-bottom:16px;">
+    <div style="${_phLabel}">♻️ Refills — last 7 days</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;font-size:12px;color:var(--muted);">
+      <div>Total<br><b style="color:var(--white);font-size:18px;">${rf.total || 0}</b></div>
+      ${['customer', 'admin', 'auto'].map(k => `<div>${SRC[k]}<br><b style="color:var(--white);font-size:18px;">${src[k] || 0}</b></div>`).join('')}
+    </div>
+    ${statusPills ? `<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;">${statusPills}</div>` : ''}
+    ${_phTable(['When', 'Order', 'Service', 'By', 'Panel refill', 'Status'], (rf.list || []).map(r => [
+      esc(_phWhen(r.created_at)), _phShort(r.order_id), esc(r.service_name || ''), esc(SRC[r.source] || r.source),
+      r.refill_id ? '#' + esc(r.refill_id) : '—', `<span style="color:${color(r.status)};font-weight:700;">${esc(r.status || '')}</span>`]))}
+    ${!rf.total ? '<div style="font-size:12px;color:var(--muted);margin-top:8px;">No refills recorded in the last 7 days.</div>' : ''}
+  </div>`;
+}
+
+// Nightly auto-refill summary (report["auto_refill"], see
+// services/auto_refill.py). Older reports without it render nothing.
+function _phAutoRefill(ar) {
+  if (!ar || typeof ar !== 'object' || !Object.keys(ar).length) return '';
+  let status;
+  if (ar.enabled === false) status = '<span style="color:#ffb347;">Turned off (auto_refill_enabled = 0)</span>';
+  else if (ar.skipped) status = `<span style="color:#ffb347;">Skipped — ${esc(ar.skipped)}</span>`;
+  else status = `<span style="color:#3dd44a;">Ran</span>${ar.every_days ? ` · every ${esc(ar.every_days)} days` : ''}${ar.refillable_services != null ? ` · ${esc(ar.refillable_services)} refillable services on panel` : ''}`;
+  const n = (label, v, c) => `<div>${label}<br><b style="color:${c || 'var(--white)'};font-size:18px;">${v ?? 0}</b></div>`;
+  const ran = ar.enabled !== false && !ar.skipped;
+  return `<div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06);">
+    <div style="${_phLabel}">♻️ Auto-refill</div>
+    <div style="font-size:12px;color:var(--muted);">${status}</div>
+    ${ran ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px;font-size:12px;color:var(--muted);">
+      ${n('Eligible', ar.eligible)}${n('Requested', ar.requested)}${n('Accepted', ar.accepted, '#3dd44a')}
+      ${n('Declined', ar.declined)}${n('Stopped', ar.stopped, ar.stopped ? '#ffb347' : null)}
+      ${n('Batch errors', ar.batch_errors, ar.batch_errors ? '#ff5252' : null)}${n('Customers notified', ar.customers_notified)}</div>` : ''}
+    ${(ar.sample_declines || []).length ? `<div style="margin-top:10px;">${_phTable(['Order', 'Panel reason'], ar.sample_declines.map(r => [esc(r.order), esc(r.reason)]))}</div>` : ''}
+  </div>`;
 }
 
 async function phRunReconciliation() {
