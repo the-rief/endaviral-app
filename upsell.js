@@ -2,11 +2,13 @@
  * After an order is delivered, quietly suggest the natural follow-up for
  * that account (followers → likes, views → likes, …).
  *
- * Kept deliberately small: one slim row per suggestion on the dashboard
- * (#dashNextSteps, max 2) and one text line on the "order placed" screen
- * (#omUpsell). The customer stays in control:
+ * One slim row per suggestion on the dashboard (#dashNextSteps, max 2), and
+ * a prominent offer card on the "order placed" screen (#omUpsell), which
+ * becomes that screen's main button. The customer stays in control:
  *   • "Order"  → opens the normal order form with the suggested service and
- *                quantity, but the LINK IS LEFT EMPTY for them to enter.
+ *                quantity. The link is left empty for them to enter, except
+ *                when the offer is for the same post/video they just paid
+ *                for (e.g. views → likes), where it's pre-filled (editable).
  *   • "Other services" → opens the catalog filtered to that platform + type
  *                (e.g. Instagram → Views) so they can pick any service.
  * Payment is the usual M-Pesa flow; nothing is charged here.
@@ -123,18 +125,31 @@ async function upsellStart(where, idx) {
   const s = _upPick(where, idx);
   if (!s) return;
   _upSetCtx(where, s);
+  // The M-Pesa number they just paid with (still shown on the payment step).
+  const lastPhone = where === 'after' ? (document.getElementById('omPayPhone')?.textContent || '').trim() : '';
   if (where === 'after' && typeof closeOrderModal === 'function') closeOrderModal();
   await _upEnsureServices();
   const svc = (allServices || []).find(x => String(x.service) === String(s.service.service)) || s.service;
   openOrderModal(svc);
   document.getElementById('omQty').value = s.quantity;
   calcOrderCost();
+  // Same post/video as the order just placed → re-use its link (editable).
+  const same = where === 'after' && _upSameLink(s);
+  const linkEl = document.getElementById('omLink');
+  if (same && linkEl) linkEl.value = s.link;
+  const phoneEl = document.getElementById('omPhone');
+  if (lastPhone && phoneEl && !phoneEl.value) phoneEl.value = lastPhone;
   const note = document.getElementById('omUpsellNote');
   if (note) {
-    note.innerHTML = `Suggested service · <a href="#" onclick="upsellBrowse('${where}', ${idx});return false;">choose a different one</a>`;
+    note.innerHTML = (same ? 'Same link as your last order · ' : 'Suggested service · ') +
+      `<a href="#" onclick="upsellBrowse('${where}', ${idx});return false;">choose a different one</a>`;
     note.style.display = '';
   }
-  setTimeout(() => document.getElementById('omLink')?.focus(), 50);
+  // Nothing left to type? Point them at the pay button; else at the empty field.
+  setTimeout(() => {
+    const target = !linkEl?.value ? linkEl : (!phoneEl?.value ? phoneEl : document.getElementById('placeOrderBtn'));
+    target?.focus();
+  }, 50);
 }
 
 /** Show the catalog filtered to the suggestion's platform + type, so the
@@ -154,21 +169,70 @@ async function upsellBrowse(where, idx) {
   document.getElementById('subcatBar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-/** "Order placed" screen: one quiet text line for the order just paid for. */
+/* Types that apply to one post/video. If the customer just bought one of
+ * these and the suggestion is another, it's for the SAME post, so the link
+ * they already entered can be re-used (no need to paste it again). A
+ * follower order's link is a profile, so likes/views still need a post link. */
+const _UP_POST_TYPES = ['likes', 'views', 'comments', 'shares', 'saves'];
+function _upSameLink(s) {
+  return !!(s && s.link && _UP_POST_TYPES.includes(s.from_type) && _UP_POST_TYPES.includes(s.to_type));
+}
+const _UP_TYPE_LABEL = { live: 'live viewers' };
+
+function _upAfterCardHTML(s) {
+  const typ = _UP_TYPE_LABEL[s.to_type] || s.to_type;
+  const qty = Number(s.quantity || 0).toLocaleString('en-KE');
+  const price = fmtKES(s.price_kes);
+  const tierWord = s.tier === 'elite' ? 'Elite quality' : 'Medium quality';
+  const tierCol = s.tier === 'elite' ? '#3b82f6' : '#22c55e';
+  return `
+  <div class="upa-card" role="region" aria-label="Recommended next step">
+    <div class="upa-kicker">⚡ COMPLETE YOUR BOOST</div>
+    <div class="upa-head">
+      <div class="upa-ic">${_UP_ICON[s.platform] || '🚀'}</div>
+      <div class="upa-body">
+        <div class="upa-title">Add ${qty} ${esc(typ)} to ${esc(s.link_label || 'your account')}</div>
+        <div class="upa-meta"><span class="up-tier" style="color:${tierCol}"><span class="up-dot" style="background:${tierCol}"></span>${tierWord}</span> · only <strong style="color:var(--white)">${price}</strong></div>
+      </div>
+    </div>
+    ${s.pitch ? `<div class="upa-pitch">${esc(s.pitch)}</div>` : ''}
+    ${s.social_proof ? `<div class="upa-proof"><span>👥</span><span>${esc(s.social_proof)}</span></div>` : ''}
+    <button class="upa-cta" onclick="upsellStart('after', 0)">Add ${qty} ${esc(typ)} · ${price} →</button>
+    <div class="upa-alt">
+      <a href="#" onclick="upsellBrowse('after', 0);return false;">Other packages</a>
+      <a href="#" onclick="upsellHideAfter();return false;">No thanks</a>
+    </div>
+  </div>`;
+}
+
+function _upSetAfterMode(on) {
+  document.getElementById('omStep3')?.classList.toggle('om-has-upsell', !!on);
+}
+
+function upsellHideAfter() {
+  const el = document.getElementById('omUpsell');
+  if (el) el.innerHTML = '';
+  _upSetAfterMode(false);
+}
+
+/** "Order placed" screen: the recommended follow-up for the order just
+ *  paid for, shown as the main call to action. */
 async function upsellShowAfterOrder(orderId) {
   const el = document.getElementById('omUpsell');
   if (!el) return;
   el.innerHTML = '';
+  _upSetAfterMode(false);
   _upAfterOrder = null;
   if (!orderId) return;
   try {
     const data = await api('/upsell/next-steps?order_id=' + encodeURIComponent(orderId));
     const s = (data.suggestions || [])[0];
     if (!s) return;
+    // The modal may have been closed (or another order opened) while loading.
+    if (document.getElementById('omStep3')?.style.display === 'none') return;
     _upAfterOrder = s;
-    el.innerHTML = `<div class="up-after">💡 Next: ${esc(s.title.charAt(0).toLowerCase() + s.title.slice(1))} ·
-      <a href="#" onclick="upsellStart('after', 0);return false;">Order</a> ·
-      <a href="#" onclick="upsellBrowse('after', 0);return false;">Other services</a></div>`;
+    el.innerHTML = _upAfterCardHTML(s);
+    _upSetAfterMode(true);
   } catch (_) { /* optional — the order itself already succeeded */ }
 }
 

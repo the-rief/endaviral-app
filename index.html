@@ -794,8 +794,45 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .up-x{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 6px;opacity:.7;}
 .up-x:hover{opacity:1;color:var(--white);}
 #omUpsell{margin:-10px 0 16px;}
-.up-after{font-size:12.5px;color:var(--muted);line-height:1.6;}
-.up-after a,#omUpsellNote a{color:var(--green);font-weight:600;text-decoration:none;}
+#omUpsell:empty{display:none;}
+#omUpsellNote a{color:var(--green);font-weight:600;text-decoration:none;}
+/* "Order placed" screen: the next-step offer is the main thing to act on */
+.upa-card{position:relative;text-align:left;padding:16px 15px 14px;border-radius:16px;
+  background:linear-gradient(160deg,rgba(61,212,74,.16),rgba(61,212,74,.04) 55%,rgba(26,36,53,.6));
+  border:1.5px solid rgba(61,212,74,.55);box-shadow:0 10px 30px rgba(61,212,74,.14);
+  animation:upaIn .45s cubic-bezier(.2,.8,.2,1) both;}
+@keyframes upaIn{from{opacity:0;transform:translateY(10px) scale(.98);}to{opacity:1;transform:none;}}
+.upa-kicker{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:1.1px;
+  color:#0d1117;background:var(--green);padding:4px 9px;border-radius:999px;margin-bottom:11px;}
+.upa-head{display:flex;align-items:center;gap:12px;}
+.upa-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;background:rgba(61,212,74,.16);flex-shrink:0;}
+.upa-body{flex:1;min-width:0;}
+.upa-title{font-family:'Montserrat',sans-serif;font-size:15.5px;font-weight:800;color:var(--white);line-height:1.3;}
+.upa-meta{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.4;}
+.upa-meta .up-tier{font-size:11.5px;}
+.upa-pitch{font-size:13px;color:#c9d4e3;line-height:1.5;margin:12px 0 0;}
+.upa-proof{display:flex;gap:7px;align-items:flex-start;font-size:12px;color:var(--white);line-height:1.45;
+  margin-top:9px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.05);}
+.upa-cta{width:100%;margin-top:14px;border:none;border-radius:12px;padding:14px 12px;cursor:pointer;
+  background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;font-family:'Montserrat',sans-serif;
+  font-size:15px;font-weight:800;letter-spacing:.2px;box-shadow:0 6px 20px rgba(61,212,74,.35);
+  animation:upaPulse 2.4s ease-in-out .8s 3;}
+.upa-cta:active{transform:scale(.98);}
+@keyframes upaPulse{0%,100%{box-shadow:0 6px 20px rgba(61,212,74,.35);}50%{box-shadow:0 6px 28px rgba(61,212,74,.7);}}
+.upa-alt{display:flex;justify-content:center;gap:16px;margin-top:10px;font-size:12px;}
+.upa-alt a{color:var(--muted);font-weight:600;text-decoration:none;}
+.upa-alt a:first-child{color:var(--green);}
+/* When the offer is showing: tighten the screen so it's visible without
+   scrolling, shrink the Academy card to one row, demote "View My Orders". */
+#omStep3.om-has-upsell #omResultIcon{font-size:40px !important;margin-bottom:8px !important;}
+#omStep3.om-has-upsell #omResultDesc{margin-bottom:22px !important;}
+#omStep3.om-has-upsell .om-ac-tip{padding:10px 12px;margin-bottom:12px;}
+#omStep3.om-has-upsell .om-ac-line,#omStep3.om-has-upsell .om-ac-cta,#omStep3.om-has-upsell .om-ac-sub{display:none;}
+#omStep3.om-has-upsell .om-ac-kicker{margin-bottom:6px;}
+#omStep3.om-has-upsell .om-ac-icon{width:34px;height:34px;font-size:17px;}
+#omStep3.om-has-upsell #omResultBtn{background:transparent;box-shadow:none;border:1px solid var(--border);
+  color:var(--white);font-size:14px;font-weight:600;padding:12px;}
 #omUpsellNote{font-size:11.5px;color:var(--muted);margin:-8px 0 12px;}
 
 @media(max-width:768px){
@@ -4237,13 +4274,20 @@ function closeOrderModal() {
   pendingCheckoutId = null;
 }
 
+// What the customer actually pays: rounded UP to the next KES 5, min KES 20.
+// Mirrors the backend rule in app/services/pricing.py — keep the two in step.
+function orderFinalKes(qty, rate) {
+  const raw = Math.round((qty / 1000) * rate * 10000) / 10000;  // 4 dp, like the backend
+  return Math.max(20, Math.ceil(raw / 5 - 1e-9) * 5);
+}
+
 function calcOrderCost() {
   if (!currentSvc) return;
   const qty = parseInt(document.getElementById('omQty').value) || 0;
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
-  const costKes = (qty / 1000) * rate;
+  const costKes = qty > 0 ? orderFinalKes(qty, rate) : 0;
   document.getElementById('omCost').textContent = fmtKES(costKes);
-  _checkProviderLimit(Math.ceil(costKes), 'placeOrderBtn', 'omProviderWarn', 20);
+  _checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 20);
 }
 
 
@@ -4290,7 +4334,7 @@ async function placeOrder() {
   if (!phone) { toast('Please enter your M-Pesa phone number', 'error'); return; }
   // Provider capacity hard-gate (safety net if button was somehow not disabled)
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
-  const costKes = Math.ceil((qty / 1000) * rate);
+  const costKes = orderFinalKes(qty, rate);
   if (!_checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 20)) return;
   const btn = document.getElementById('placeOrderBtn');
   btn.textContent = 'Sending STK Push…';
