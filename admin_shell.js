@@ -16,6 +16,7 @@
 (function () {
   const MOBILE_NAV_MQ = window.matchMedia('(max-width: 1099.98px)');
   const PHONE_MQ      = window.matchMedia('(max-width: 768px)');
+  const COMPACT_MAX_TABS = 6;   // at or below this many visible sections, use top tabs
 
   const tabKey = el => {
     const m = (el?.getAttribute('onclick') || '').match(/adminTab\('([^']+)'/);
@@ -40,6 +41,13 @@
       const visible = [...g.querySelectorAll('.admin-tab')].some(t => t.style.display !== 'none');
       g.hidden = !visible;
     });
+
+    // Few sections (e.g. CCR agents: Support, All Orders, Create Order, Free
+    // Orders) → plain tab row across the top instead of the grouped menu.
+    const visibleTabs = [...nav.querySelectorAll('.admin-tab')].filter(t => t.style.display !== 'none').length;
+    const compact = visibleTabs > 0 && visibleTabs <= COMPACT_MAX_TABS;
+    document.getElementById('sec-admin')?.classList.toggle('adm-compact', compact);
+    if (compact) adminNavClose();
 
     const active = nav.querySelector('.admin-tab.active');
     nav.querySelectorAll('.admin-tab').forEach(t => {
@@ -69,7 +77,7 @@
   /* ── Bottom sheet ───────────────────────────────────────────────── */
   let _lastFocus = null;
   window.adminNavOpen = function () {
-    if (!MOBILE_NAV_MQ.matches) return;
+    if (!MOBILE_NAV_MQ.matches || document.getElementById('sec-admin')?.classList.contains('adm-compact')) return;
     _lastFocus = document.activeElement;
     document.body.classList.add('adm-nav-open');
     const nav = document.getElementById('adminNav');

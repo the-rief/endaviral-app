@@ -3080,11 +3080,147 @@ function openOrderDetailModal(orderId) {
       ${rawLink ? `<button class="action-btn" onclick="navigator.clipboard.writeText('${safeLink}').then(()=>toast('Link copied!','success'))">⎘ Copy Link</button>` : ''}
       ${canRefill ? `<button class="action-btn" onclick="adminRefillOrder('${fullId}')">↻ Refill</button>` : ''}
       <button class="action-btn" onclick="jumpToOrderInAllOrders('${fullId}')">📋 View in All Orders</button>
+      <button class="action-btn" id="odmReorderBtn" onclick="odmOpenReorder('${fullId}')" style="border-color:rgba(255,112,67,.55);color:#ff8a65;font-weight:700;">🔁 Reorder</button>
     </div>
   `;
   modal.style.display = 'flex';
   _loadOrderPanelErrors(o.id);
   _loadOrderRefillHistory(o.id, false);
+}
+
+// ─── Reorder ANY order from its popup ─────────────────────────────────────
+// Always available (any status, any number of times). Staff choose the same
+// link or a new one; the replacement is free (KES 0) on the same service and
+// goes straight to the provider. Backend: GET/POST /reorders/order/{id}/manual
+// (app/services/reorder_queue.py → place_manual_reorder). Earlier reorders of
+// the order are listed so nobody re-places it twice by accident.
+let _odmRe = null;   // { orderId, info }
+
+function _odmReorderBox() {
+  let box = document.getElementById('odmReorder');
+  if (!box) {
+    const scroller = document.querySelector('#orderDetailModalBody > div:nth-child(2)');
+    if (!scroller) return null;
+    box = document.createElement('div');
+    box.id = 'odmReorder';
+    scroller.prepend(box);
+  }
+  return box;
+}
+
+async function odmOpenReorder(orderId) {
+  const box = _odmReorderBox();
+  if (!box) return;
+  box.style.cssText = 'margin:10px 0 6px;padding:14px;border:1px solid rgba(255,112,67,.45);border-radius:12px;background:rgba(255,112,67,.06);';
+  box.innerHTML = '<div class="loading-spinner" style="padding:16px;"><div class="spinner"></div><span>Loading…</span></div>';
+  box.scrollIntoView({ block: 'nearest' });
+  try {
+    const info = await api(`/reorders/order/${encodeURIComponent(orderId)}/manual`);
+    _odmRe = { orderId, info };
+    _odmRenderReorder();
+  } catch (e) {
+    box.innerHTML = `<div style="color:#ff8a80;font-size:12.5px;">⚠️ ${esc(e.message || 'Could not load reorder options')}</div>
+      <button class="action-btn" style="margin-top:8px;" onclick="odmCloseReorder()">Close</button>`;
+  }
+}
+
+function odmCloseReorder() {
+  const box = document.getElementById('odmReorder');
+  if (box) box.remove();
+  _odmRe = null;
+}
+
+function _odmRenderReorder() {
+  const box = document.getElementById('odmReorder');
+  if (!box || !_odmRe) return;
+  const i = _odmRe.info;
+  const orig = i.original_link || {};
+  const chk = orig.check || {};
+  const chkColor = chk.level === 'bad' ? '#ff8a80' : chk.level === 'warn' ? '#ffb74d' : 'var(--green)';
+  const hasOrig = !!orig.url;
+  const prev = i.previous || [];
+  const inp = 'width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:9px;padding:9px 11px;color:var(--white);font-family:inherit;font-size:13px;outline:none;';
+  const prevHtml = prev.length ? `
+    <div style="margin:0 0 12px;padding:9px 11px;border-radius:9px;background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.35);font-size:12px;color:#ffcc80;line-height:1.5;">
+      ⚠️ Already reordered <b>${prev.length}×</b> from this popup:
+      ${prev.slice(0, 3).map(p => `<div style="color:var(--muted);">• ${p.created_at ? new Date(p.created_at).toLocaleString('en-KE') : ''} — x${Number(p.quantity).toLocaleString()} · ${esc(p.status || '')} · ${p.same_link ? 'same link' : 'new link'}</div>`).join('')}
+    </div>` : '';
+  const taskHtml = i.queue_task && i.queue_task.status === 'reordered' ? `
+    <div style="margin:0 0 12px;font-size:12px;color:#ffcc80;">⚠️ The Reorder Queue already re-placed this order once.</div>` : '';
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-weight:800;font-size:13.5px;color:var(--white);">🔁 Reorder this order</div>
+      <button onclick="odmCloseReorder()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;" aria-label="Close">×</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.5;">Free replacement (KES 0) on <b style="color:var(--white);">${esc(i.service_name || 'the same service')}</b>, sent straight to the provider.</div>
+    ${!i.service_available ? `<div style="margin:0 0 12px;font-size:12px;color:#ff8a80;">⚠️ ${esc(i.service_reason || 'Service unavailable')} — use the Reorder Queue to pick a similar service.</div>` : ''}
+    ${prevHtml}${taskHtml}
+    <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Link</div>
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--white);margin-bottom:6px;cursor:pointer;${hasOrig ? '' : 'opacity:.5;pointer-events:none;'}">
+      <input type="radio" name="odmReLink" value="same" ${hasOrig ? 'checked' : ''} onchange="_odmLinkMode()" style="margin-top:2px;">
+      <span style="min-width:0;">Same link<br><span style="color:var(--muted);font-size:11.5px;word-break:break-all;">${esc(orig.url || 'no link on this order')}</span>
+      ${hasOrig && chk.level && chk.level !== 'ok' ? `<br><span style="color:${chkColor};font-size:11.5px;">${esc(chk.reason || '')}</span>` : ''}</span>
+    </label>
+    <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--white);margin-bottom:6px;cursor:pointer;">
+      <input type="radio" name="odmReLink" value="new" ${hasOrig ? '' : 'checked'} onchange="_odmLinkMode()"> A different link
+    </label>
+    <input id="odmReNewLink" type="url" placeholder="https://…" style="${inp}display:${hasOrig ? 'none' : 'block'};margin-bottom:10px;">
+    <div style="display:flex;gap:10px;align-items:flex-end;margin:10px 0;">
+      <div style="flex:1;">
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Quantity</div>
+        <input id="odmReQty" type="number" min="1" max="${Number(i.max_quantity) || ''}" value="${Number(i.quantity) || ''}" style="${inp}">
+      </div>
+      <div style="font-size:11px;color:var(--muted);padding-bottom:9px;white-space:nowrap;">max ${Number(i.max_quantity || 0).toLocaleString()}</div>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin-bottom:12px;cursor:pointer;">
+      <input id="odmReNotify" type="checkbox" checked> Message the customer that it was re-placed
+    </label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn-primary" id="odmReGo" onclick="odmSubmitReorder()" style="margin:0;width:auto;padding:10px 16px;font-size:13px;" ${i.service_available ? '' : 'disabled'}>🔁 Place reorder (free)</button>
+      <button class="action-btn" onclick="odmCloseReorder()">Cancel</button>
+    </div>
+    <div id="odmReMsg" style="margin-top:10px;font-size:12.5px;"></div>`;
+}
+
+function _odmLinkMode() {
+  const isNew = document.querySelector('input[name="odmReLink"]:checked')?.value === 'new';
+  const inp = document.getElementById('odmReNewLink');
+  if (inp) { inp.style.display = isNew ? 'block' : 'none'; if (isNew) inp.focus(); }
+}
+
+async function odmSubmitReorder() {
+  if (!_odmRe) return;
+  const msg = document.getElementById('odmReMsg');
+  const btn = document.getElementById('odmReGo');
+  const isNew = document.querySelector('input[name="odmReLink"]:checked')?.value === 'new';
+  const link = (document.getElementById('odmReNewLink')?.value || '').trim();
+  const qty = parseInt(document.getElementById('odmReQty')?.value, 10);
+  const max = Number(_odmRe.info.max_quantity) || 0;
+  const say = (t, ok) => { if (msg) msg.innerHTML = `<span style="color:${ok ? 'var(--green)' : '#ff8a80'};">${t}</span>`; };
+  if (isNew && !/^https?:\/\/\S+\.\S+/i.test(link)) { say('Enter a valid link starting with https://'); return; }
+  if (!qty || qty < 1 || (max && qty > max)) { say(`Quantity must be between 1 and ${max.toLocaleString()}`); return; }
+  const prevN = (_odmRe.info.previous || []).length;
+  if (prevN && !confirm(`This order was already reordered ${prevN}×. Place another free reorder?`)) return;
+
+  const body = { quantity: qty, notify_customer: !!document.getElementById('odmReNotify')?.checked };
+  if (isNew) body.link = link; else body.use_original_link = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending to provider…'; }
+  try {
+    const r = await api(`/reorders/order/${encodeURIComponent(_odmRe.orderId)}/manual`, { method: 'POST', body: JSON.stringify(body) });
+    const box = document.getElementById('odmReorder');
+    if (box) box.innerHTML = `
+      <div style="font-weight:800;font-size:13.5px;color:var(--green);margin-bottom:6px;">✅ Reorder placed</div>
+      <div style="font-size:12.5px;color:var(--white);line-height:1.6;">New order <b>#${esc(String(r.new_order_id || '').slice(0, 8))}</b>
+        ${r.provider_order_id ? ` · provider #${esc(r.provider_order_id)}` : ''} · x${Number(r.quantity || qty).toLocaleString()}<br>
+        <span style="color:var(--muted);word-break:break-all;">${esc(r.link || '')}</span></div>
+      <button class="action-btn" style="margin-top:10px;" onclick="odmCloseReorder()">Done</button>`;
+    toast('Reorder placed — sent to the provider', 'success');
+    if (document.getElementById('ap-allorders')?.classList.contains('active') && typeof loadAdminOrders === 'function') loadAdminOrders();
+    if (typeof rqLoad === 'function' && document.getElementById('reorderQueuePane')?.style.display !== 'none') rqLoad();
+  } catch (e) {
+    say('⚠️ ' + esc(e.message || 'Reorder failed'));
+    if (btn) { btn.disabled = false; btn.textContent = '🔁 Place reorder (free)'; }
+  }
 }
 
 // Staff-only: the panel's EXACT error text for this order (submit rejected,

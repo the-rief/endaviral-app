@@ -344,3 +344,42 @@
   /* Non-stacked tables (few columns) still scroll inside their card */
   #sec-admin .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   COMPACT MODE — few sections (CCR / support agents): a plain tab row
+   above the content at every width. admin_shell.js adds .adm-compact.
+   ═══════════════════════════════════════════════════════════════════ */
+#sec-admin.adm-compact .admin-switch,
+#sec-admin.adm-compact .admin-nav-backdrop { display: none !important; }
+#sec-admin.adm-compact .admin-shell { display: block !important; }
+#sec-admin.adm-compact .admin-nav {
+  position: static !important; transform: none !important; visibility: visible !important;
+  max-height: none !important; max-width: none !important; margin: 0 0 22px !important;
+  padding: 0 !important; background: none !important; border: none !important;
+  border-bottom: 1px solid var(--border) !important; border-radius: 0 !important; box-shadow: none !important;
+  display: flex !important; flex-direction: row !important; align-items: stretch; gap: 0 !important;
+  overflow-x: auto !important; overflow-y: visible !important; scrollbar-width: none; transition: none !important;
+}
+#sec-admin.adm-compact .admin-nav::-webkit-scrollbar { display: none; }
+#sec-admin.adm-compact .admin-nav .an-head,
+#sec-admin.adm-compact .admin-nav .an-title { display: none !important; }
+#sec-admin.adm-compact .admin-nav .an-group { display: contents !important; }
+#sec-admin.adm-compact .admin-nav .an-group[hidden] { display: none !important; }
+#sec-admin.adm-compact .admin-tab {
+  width: auto !important; min-height: 0 !important; flex-shrink: 0;
+  padding: 10px 18px !important; margin-bottom: -1px !important;
+  background: none !important; border: none !important; border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important; font-size: 14px !important; white-space: nowrap !important; gap: 8px;
+}
+#sec-admin.adm-compact .admin-tab .at-ic { width: auto; }
+#sec-admin.adm-compact .admin-tab:hover { color: var(--white); }
+#sec-admin.adm-compact .admin-tab.active {
+  color: var(--green); border-bottom-color: var(--green) !important; background: none !important;
+}
+#sec-admin.adm-compact .admin-tab:focus-visible { outline-offset: -2px; }
+@media (max-width: 768px) {
+  #sec-admin.adm-compact .admin-nav { margin-bottom: 16px !important; }
+  #sec-admin.adm-compact .admin-tab { padding: 10px 13px !important; font-size: 13px !important; }
+}
+/* Support is an agent's main job — show it first */
+#sec-admin.adm-compact .admin-tab[onclick*="'support'"] { order: -1; }
