@@ -1,0 +1,346 @@
+/* ════════════════════════════════════════════════════════════════════
+   ADMIN SHELL — section navigation + mobile layout for the admin panel
+   ────────────────────────────────────────────────────────────────────
+   Loaded after the inline <style> in index.html, so equal-specificity
+   rules here win. Everything is scoped to #sec-admin (or the nav itself)
+   so no other page is affected.
+
+   Layout
+     ≥1100px : grouped section rail on the left, content on the right
+     <1100px : "current section" switch bar (sticky) that opens the same
+               nav as a bottom sheet with 2-column tiles
+     ≤640px  : data tables re-flow into cards (admin_shell.js labels cells)
+   ════════════════════════════════════════════════════════════════════ */
+
+#sec-admin { --adm-top: 64px; }
+
+/* ── Shell grid ─────────────────────────────────────────────────────── */
+.admin-shell { display: block; }
+.admin-main  { min-width: 0; }
+/* Mobile-only "back to list" button in Support (shown by the ≤768px rules) */
+.adm-sb-back { display: none; }
+/* With the section rail taking width, wide tables scroll inside their card
+   instead of being clipped */
+#sec-admin .tbl-wrap { overflow-x: auto; }
+
+/* ── Section nav (shared) ───────────────────────────────────────────── */
+.admin-nav { display: flex; flex-direction: column; gap: 4px; }
+.admin-nav .an-head { display: none; }
+.admin-nav .an-group { display: flex; flex-direction: column; gap: 2px; }
+.admin-nav .an-group[hidden] { display: none; }
+.admin-nav .an-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase;
+  color: var(--muted); padding: 14px 12px 6px; opacity: .8;
+}
+.admin-nav .an-group:first-of-type .an-title { padding-top: 4px; }
+
+.admin-tab {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: 1px solid transparent; border-radius: 10px;
+  padding: 9px 12px; margin: 0;
+  font-family: inherit; font-size: 13.5px; font-weight: 500; text-align: left;
+  color: var(--muted); cursor: pointer; white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.admin-tab:hover { background: var(--card); color: var(--white); }
+.admin-tab:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+.admin-tab.active {
+  background: rgba(61,212,74,.12); color: var(--green);
+  border-color: rgba(61,212,74,.22); font-weight: 600;
+}
+.admin-tab .at-ic  { width: 20px; text-align: center; font-size: 15px; flex-shrink: 0; }
+.admin-tab .at-lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.admin-tab .at-badge {
+  margin-left: auto; font-size: 10.5px; font-weight: 800; line-height: 1.5;
+  border-radius: 10px; padding: 0 7px; background: #ff9800; color: #1a1200;
+}
+.admin-tab .at-badge:empty { display: none; }
+
+/* ── Switch bar (only visible below the rail breakpoint) ────────────── */
+.admin-switch { display: none; }
+.admin-nav-backdrop { display: none; }
+
+/* ═════════════ DESKTOP: rail ═════════════ */
+@media (min-width: 1100px) {
+  .admin-nav .an-title { padding: 12px 12px 4px; }
+  .admin-tab { padding: 7px 11px; }
+  .admin-shell {
+    display: grid; grid-template-columns: 210px minmax(0, 1fr);
+    gap: 28px; align-items: start;
+  }
+  .admin-nav {
+    position: sticky; top: calc(var(--adm-top) + 16px);
+    max-height: calc(100vh - var(--adm-top) - 32px); overflow-y: auto;
+    padding: 10px 8px; background: var(--navy);
+    border: 1px solid var(--border); border-radius: 14px;
+    scrollbar-width: thin;
+  }
+}
+
+/* ═════════════ TABLET / PHONE: switch bar + bottom sheet ═════════════ */
+@media (max-width: 1099.98px) {
+  .admin-switch {
+    position: sticky; top: var(--adm-top); z-index: 9;
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    margin: -4px 0 18px; padding: 10px 12px 10px 10px;
+    background: rgba(26,36,53,.94); backdrop-filter: blur(8px);
+    border: 1px solid var(--border); border-radius: 14px;
+    color: var(--white); font-family: inherit; text-align: left; cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,.25);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .admin-switch:active { border-color: rgba(61,212,74,.45); }
+  .admin-switch .as-ic {
+    width: 38px; height: 38px; flex-shrink: 0; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    background: rgba(61,212,74,.12); border: 1px solid rgba(61,212,74,.22);
+  }
+  .admin-switch .as-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .admin-switch .as-grp {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted);
+  }
+  .admin-switch .as-lbl {
+    font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .admin-switch .as-badge {
+    font-size: 10.5px; font-weight: 800; border-radius: 10px; padding: 1px 7px;
+    background: #ff9800; color: #1a1200; flex-shrink: 0;
+  }
+  .admin-switch .as-cta {
+    display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+    font-size: 11.5px; font-weight: 700; color: var(--green);
+    padding: 7px 10px; border-radius: 9px; background: rgba(61,212,74,.08);
+  }
+
+  .admin-nav-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 89;
+    background: rgba(0,0,0,.55); backdrop-filter: blur(2px);
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .admin-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+    max-height: 82vh; max-height: 82dvh; overflow-y: auto; overscroll-behavior: contain;
+    padding: 0 14px calc(18px + env(safe-area-inset-bottom));
+    background: var(--navy); border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.45);
+    max-width: 640px; margin: 0 auto;
+    transform: translateY(105%); visibility: hidden;
+    transition: transform .26s cubic-bezier(.2,.8,.2,1), visibility 0s linear .26s;
+  }
+  body.adm-nav-open .admin-nav { transform: translateY(0); visibility: visible; transition-delay: 0s; }
+  body.adm-nav-open .admin-nav-backdrop { opacity: 1; pointer-events: auto; }
+  body.adm-nav-open { overflow: hidden; }
+  body.adm-nav-open #ev-chat-widget { display: none !important; }
+
+  .admin-nav .an-head {
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 1; background: var(--navy);
+    padding: 16px 2px 8px; font-size: 15px; font-weight: 800;
+  }
+  .admin-nav .an-head::before {
+    content: ''; position: absolute; top: 7px; left: 50%; transform: translateX(-50%);
+    width: 40px; height: 4px; border-radius: 4px; background: var(--border);
+  }
+  .admin-nav .an-close {
+    width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--card); color: var(--muted); font-size: 14px; cursor: pointer;
+  }
+  .admin-nav .an-title { padding: 12px 2px 6px; }
+  .admin-nav .an-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .admin-nav .an-group .an-title { grid-column: 1 / -1; }
+  .admin-tab {
+    min-height: 48px; padding: 10px 12px; font-size: 13px; white-space: normal; line-height: 1.25;
+    background: var(--card); border-color: var(--border);
+  }
+  .admin-tab .at-lbl { overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-nav, .admin-nav-backdrop { transition: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PANEL CONTENT — phones & small tablets
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Section headers: title on top, actions in a wrapping row underneath */
+  #sec-admin .sec-hd,
+  #sec-admin .adm-hd { flex-direction: column; align-items: stretch !important; gap: 10px; }
+  #sec-admin .sec-title { font-size: 17px; }
+  #sec-admin .sec-sub   { font-size: 12px; line-height: 1.5; }
+  #sec-admin .sec-hd > div:last-child:not(:first-child),
+  #sec-admin .adm-hd > div:last-child:not(:first-child) {
+    display: flex; flex-direction: row !important; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%;
+  }
+  #sec-admin .sec-hd > button,
+  #sec-admin .adm-hd > button,
+  #sec-admin .sec-hd > select { align-self: flex-start; }
+  #sec-admin .sec-hd .btn-secondary,
+  #sec-admin .sec-hd .btn-primary { padding: 9px 14px; font-size: 13px; }
+  #sec-admin .sec-hd select,
+  #sec-admin .sec-hd input:not([type=number]):not([type=checkbox]) {
+    flex: 1 1 150px; min-width: 0 !important; max-width: none !important; font-size: 13px;
+  }
+  /* A lone select/input sitting directly in the header column */
+  #sec-admin .sec-hd > select,
+  #sec-admin .sec-hd > input { flex: none; align-self: stretch; width: 100%; }
+
+  /* Filter bars: full-width search, selects share a row */
+  #sec-admin .adm-filters { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }
+  #sec-admin .adm-filters .search-inp { grid-column: 1 / -1; max-width: none !important; width: 100%; }
+  #sec-admin .adm-filters select { width: 100%; min-width: 0; }
+  #sec-admin .search-inp { max-width: none !important; width: 100%; font-size: 13px; }
+
+  /* Services pricing controls: 2-up grid, action button full width */
+  #sec-admin .adm-pricing { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; width: 100%; }
+  #sec-admin .adm-pricing > div { padding: 8px 10px !important; justify-content: space-between; min-width: 0; }
+  #sec-admin .adm-pricing > div span:first-child { font-size: 10.5px !important; }
+  #sec-admin .adm-pricing input { width: 100% !important; min-width: 0; font-size: 15px !important; }
+  #sec-admin .adm-pricing > button { grid-column: 1 / -1; width: 100% !important; }
+
+  /* Sub-tab rows (Payouts / Academy / Connect): one swipeable row */
+  #sec-admin .adm-subtabs {
+    flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch; gap: 4px !important;
+    border-bottom: 1px solid var(--border); margin-bottom: 16px !important;
+  }
+  #sec-admin .adm-subtabs::-webkit-scrollbar { display: none; }
+  #sec-admin .adm-subtabs > * { flex-shrink: 0; white-space: nowrap; padding: 10px 12px !important; margin-bottom: -1px; }
+
+  /* Support centre tabs: swipeable instead of wrapping onto 2–3 lines */
+  #sec-admin .sb-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  #sec-admin .sb-tabs::-webkit-scrollbar { display: none; }
+  #sec-admin .sb-tab { flex-shrink: 0; }
+  #sec-admin .sb-hint { min-width: 0; flex-basis: 100%; }
+  #sec-admin .sb-bar .sb-sel, #sec-admin .sb-bar .sb-in { flex: 1 1 130px; min-width: 0; }
+
+  /* Support centre: list ↔ chat (master/detail) instead of a cramped split */
+  #supportInboxWrap { grid-template-columns: minmax(0, 1fr) !important; height: auto !important; }
+  #supportChatPane, #supportChatPane > div { min-width: 0; max-width: 100%; }
+  #supportThreadList { border-right: none !important; max-height: none !important; min-height: 240px; }
+  #supportChatPane   { display: none !important; height: calc(100dvh - var(--adm-top) - 140px) !important; min-height: 420px; }
+  #supportInboxWrap.sb-chat-open #supportThreadList { display: none !important; }
+  #supportInboxWrap.sb-chat-open #supportChatPane   { display: flex !important; }
+  /* Open chat on phones: header wraps, messages get the screen, customer
+     info (linked/recent orders) follows underneath instead of squeezing it */
+  #supportInboxWrap.sb-chat-open #supportChatPane { height: auto !important; overflow: visible !important; }
+  #supportChatPane > div:first-child { flex-wrap: wrap; padding: 12px 14px !important; }
+  #supportChatPane > div:first-child > div:last-child { flex-shrink: 1 !important; flex-wrap: wrap; }
+  #supportChatPane > div:nth-child(2) { display: block !important; overflow: visible !important; }
+  #supportChatPane > div:nth-child(2) > div:first-child {
+    height: calc(100dvh - var(--adm-top) - 150px); min-height: 380px; border-right: none !important;
+  }
+  #supportChatPane > div:nth-child(2) > div:last-child { border-top: 1px solid var(--border); overflow: visible !important; }
+  body:has(#supportInboxWrap.sb-chat-open) #ev-chat-widget { display: none !important; }
+  .adm-sb-back { margin-bottom: 10px; padding: 9px 14px; font-size: 13px; }
+  #supportThreadsView.sb-chat-open-wrap .adm-sb-back { display: inline-flex; }
+
+  /* Command Center section nav: one swipeable row */
+  #ap-stats #chcNav {
+    flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none;
+    padding-bottom: 12px !important;
+  }
+  #ap-stats #chcNav::-webkit-scrollbar { display: none; }
+  #ap-stats #chcNav .chc-nav-btn { flex-shrink: 0; padding: 8px 12px; }
+
+  /* Reorder queue detail rows: drop the desktop indent */
+  #sec-admin .rq-detail { padding: 10px 12px 12px !important; grid-template-columns: 1fr !important; }
+  #sec-admin .rq-row { padding: 10px 12px; }
+
+  /* Create order: stacked, no forced min width */
+  #sec-admin .adm-aco-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+  #sec-admin .adm-aco-grid > div { padding: 16px !important; border-radius: 14px !important; }
+
+  /* Providers grid */
+  #providersGrid { grid-template-columns: 1fr !important; }
+
+  /* Generic: inline grids that ask for wide minimum tracks */
+  #sec-admin .admin-main [style*="minmax(3"],
+  #sec-admin .admin-main [style*="minmax(280px"],
+  #sec-admin .admin-main [style*="minmax(260px"] { grid-template-columns: 1fr !important; }
+
+  /* Wide inline min-widths on inputs/selects shouldn't push the page */
+  #sec-admin .admin-main input, #sec-admin .admin-main select, #sec-admin .admin-main textarea { max-width: 100%; }
+
+  /* Anything inside the admin should never cause sideways page scroll */
+  #sec-admin { overflow-x: clip; }
+  #sec-admin img, #sec-admin canvas, #sec-admin svg { max-width: 100%; }
+}
+
+@media (max-width: 600px) {
+  /* KPI / stat tiles that use auto-fit minmax(1xx px): keep two per row
+     instead of collapsing to one tall column */
+  #sec-admin .admin-main [style*="minmax(1"][style*="grid-template-columns"],
+  #sec-admin .admin-main [style*="minmax(200px"][style*="grid-template-columns"],
+  #sec-admin .admin-main [style*="minmax(220px"][style*="grid-template-columns"],
+  #sec-admin .admin-main [style*="minmax(230px"][style*="grid-template-columns"],
+  #sec-admin .admin-main [style*="minmax(240px"][style*="grid-template-columns"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important;
+  }
+  /* Fixed multi-column inline grids (side-by-side panels) stack */
+  #sec-admin .admin-main [style*="grid-template-columns:1fr 1fr"]:not([style*="1fr 1fr 1fr"]),
+  #sec-admin .admin-main [style*="grid-template-columns:1.4fr 1fr"],
+  #sec-admin .admin-main [style*="grid-template-columns:1fr 220px"] { grid-template-columns: 1fr !important; }
+  #sec-admin .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* Command Center KPI tiles: 2-up, slightly smaller numbers */
+  #ap-stats .chc-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+  #ap-stats .chc-kpi { padding: 12px 12px 13px !important; min-width: 0; }
+  #ap-stats .chc-kpi > div:nth-child(1) { font-size: 16px !important; margin-bottom: 4px !important; }
+  #ap-stats .chc-kpi > div:nth-child(2) { font-size: 9.5px !important; letter-spacing: .4px !important; }
+  #ap-stats .chc-kpi > div:nth-child(3) { font-size: 18px !important; overflow-wrap: anywhere; }
+}
+
+/* ── Tables → cards (≤640px). admin_shell.js adds .adm-stack + data-label ── */
+@media (max-width: 640px) {
+  #sec-admin .tbl-wrap:has(> table.adm-stack),
+  #sec-admin .tbl-wrap:has(> div > table.adm-stack) {
+    background: none; border: none; border-radius: 0; overflow: visible;
+  }
+  #sec-admin table.adm-stack { min-width: 0 !important; width: 100%; border-collapse: separate; }
+  #sec-admin table.adm-stack thead { display: none; }
+  #sec-admin table.adm-stack tbody { display: flex; flex-direction: column; gap: 10px; }
+  #sec-admin table.adm-stack tr {
+    display: block; background: var(--card); border: 1px solid var(--border) !important;
+    border-radius: 12px; padding: 4px 14px;
+  }
+  /* Cells: label floats left, value flows right-aligned beside it. Float
+     (not flex) so cells holding several blocks/inline bits keep their
+     natural stacking instead of being squeezed into one row. */
+  #sec-admin table.adm-stack td {
+    display: flow-root; padding: 8px 0 !important; border: none !important;
+    border-bottom: 1px solid rgba(36,48,72,.55) !important;
+    text-align: right; font-size: 13px; min-width: 0; overflow-wrap: anywhere;
+    white-space: normal !important; max-width: none !important; width: auto !important;
+  }
+  #sec-admin table.adm-stack td:last-child { border-bottom: none !important; }
+  #sec-admin table.adm-stack td::before {
+    content: attr(data-label); float: left; max-width: 42%; margin-right: 12px; padding-top: 2px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+    color: var(--muted); text-align: left; line-height: 1.4;
+  }
+  #sec-admin table.adm-stack td > div,
+  #sec-admin table.adm-stack td > a[style*="display:block"] { margin-left: auto; }
+  #sec-admin table.adm-stack td:not(.adm-act):not(.adm-first) > div[style*="display:flex"],
+  #sec-admin table.adm-stack td:not(.adm-act):not(.adm-first) > div[style*="display: flex"] { justify-content: flex-end; flex-wrap: wrap; }
+  #sec-admin table.adm-stack td[data-label=""]::before { display: none; }
+  /* First cell = card title */
+  #sec-admin table.adm-stack td.adm-first { text-align: left; font-size: 14px; padding-top: 12px !important; }
+  #sec-admin table.adm-stack td.adm-first > div { margin-left: 0; }
+  #sec-admin table.adm-stack td.adm-first::before { display: none; }
+  /* Action cells: full-width button row */
+  #sec-admin table.adm-stack td.adm-act { text-align: left; padding: 10px 0 12px !important; }
+  #sec-admin table.adm-stack td.adm-act::before { display: none; }
+  #sec-admin table.adm-stack td.adm-act > div { margin-left: 0; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
+  #sec-admin table.adm-stack td.adm-act .action-btn,
+  #sec-admin table.adm-stack td.adm-act button { padding: 8px 12px; font-size: 12px; }
+  /* Empty-state / full-width rows */
+  #sec-admin table.adm-stack td[colspan] { display: block; text-align: center; }
+  #sec-admin table.adm-stack td[colspan]::before { display: none; }
+  /* Cells hidden by existing mobile rules stay hidden */
+  #sec-admin table.adm-stack .hide-mobile { display: none !important; }
+  #sec-admin table.adm-stack td:empty { display: none; }
+
+  /* Non-stacked tables (few columns) still scroll inside their card */
+  #sec-admin .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}

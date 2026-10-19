@@ -60,8 +60,14 @@ async function lqRefreshBadge() {
   if (!currentUser || currentUser.role !== 'admin') return;
   try {
     _lqSum = await api('/admin/link-queue/summary');
+    // Badge sits inside the nav button (admin_shell.css styles .at-badge);
+    // admin_shell.js mirrors it onto the mobile section switcher.
     const tab = document.getElementById('lqTabBtn');
-    if (tab) tab.innerHTML = '⏳ Queued Orders' + (_lqSum.open ? ` <span style="font-size:10.5px;font-weight:800;border-radius:10px;padding:1px 7px;margin-left:4px;background:#ff9800;color:#1a1200;">${_lqSum.open}</span>` : '');
+    if (tab) {
+      let b = document.getElementById('lqTabBadge');
+      if (!b) { b = document.createElement('span'); b.id = 'lqTabBadge'; b.className = 'at-badge'; tab.appendChild(b); }
+      b.textContent = _lqSum.open ? String(_lqSum.open) : '';
+    }
   } catch (_) { /* badge is optional */ }
 }
 

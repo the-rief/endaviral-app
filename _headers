@@ -11,6 +11,9 @@
 /*.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/*.css
+  Cache-Control: public, max-age=0, must-revalidate
+
 /sitemap.xml
   Cache-Control: public, max-age=86400
   Content-Type: application/xml; charset=utf-8
@@ -27,4 +30,4 @@
   Cache-Control: public, max-age=604800, immutable
 
 /*.webp
-  Cache-Control: public, max-age=604800, immutable
+  Cache-Control: public, max-age=604800, immutable

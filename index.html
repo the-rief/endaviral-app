@@ -785,6 +785,12 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .up-ic{flex-shrink:0;font-size:13px;}
 .up-txt{flex:1;min-width:150px;color:var(--white);line-height:1.35;word-break:break-word;}
 .up-price{color:var(--muted);}
+.up-now{color:var(--white);font-weight:700;}
+.up-was{color:var(--muted);opacity:.75;font-weight:500;text-decoration:line-through;}
+.up-off{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.4px;line-height:1.5;padding:0 6px;border-radius:6px;
+  background:rgba(61,212,74,.16);color:var(--green);border:1px solid rgba(61,212,74,.35);vertical-align:1px;white-space:nowrap;}
+.cost-val .up-was{font-size:.62em;margin-right:4px;}
+.cost-val .up-off{font-size:11px;vertical-align:4px;}
 .up-tier{font-size:11px;font-weight:700;white-space:nowrap;}
 .up-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:1px;}
 .up-acts{display:flex;align-items:center;gap:2px;margin-left:auto;}
@@ -1157,10 +1163,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 .tx-amt.in{color:var(--green);}
 .tx-amt.out{color:#ff8a80;}
 
-.admin-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:24px;overflow-x:auto;scrollbar-width:none;}
-.admin-tabs::-webkit-scrollbar{display:none;}
-.admin-tab{padding:10px 20px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;margin-bottom:-1px;white-space:nowrap;flex-shrink:0;}
-.admin-tab.active{color:var(--green);border-bottom-color:var(--green);}
+/* Admin section nav (.admin-tab etc.) lives in admin_shell.css */
 .admin-panel{display:none;}
 .admin-panel.active{display:block;}
 .action-btn{background:var(--navy);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer;transition:all .2s;}
@@ -1373,7 +1376,6 @@ tbody td{padding:13px 16px;font-size:14px;}
   /* Admin */
   #ap-stats .chc-kpi-grid{ grid-template-columns:1fr; }
   #ap-stats .chc-two-col{ grid-template-columns:1fr !important; }
-  .admin-tab{ padding:9px 14px; font-size:13px; }
   #ap-support .sec-hd > div{ flex-direction:column; gap:8px; width:100%; }
   #ap-support .sec-hd > div select{ width:100%; }
 
@@ -1454,6 +1456,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 
 /* ── Tickets, chat, idle, toast: handled in comprehensive block above ── 
 </style>
+<link rel="stylesheet" href="admin_shell.css"/>
 </head>
 <body>
 
@@ -2714,24 +2717,59 @@ tbody td{padding:13px 16px;font-size:14px;}
 
       <!-- ADMIN -->
       <div class="page-section" id="sec-admin">
-        <div class="admin-tabs">
-          <div class="admin-tab active" onclick="adminTab('users',this)">Users</div>
-          <div class="admin-tab" onclick="adminTab('allorders',this)">All Orders</div>
-          <div class="admin-tab" onclick="adminTab('services-mgmt',this)">Services</div>
-          <div class="admin-tab" onclick="adminTab('providers',this)">⚡ Providers</div>
-          <div class="admin-tab" onclick="adminTab('stats',this)">Stats</div>
-          <div class="admin-tab" onclick="adminTab('support',this)">💬 Support</div>
-          <div class="admin-tab" onclick="adminTab('create-order',this)">➕ Create Order</div>
-          <div class="admin-tab" onclick="adminTab('affiliate-payouts',this)" id="affPayoutsTabBtn">💸 Payouts</div>
-          <div class="admin-tab" onclick="adminTab('academy', this)">🎓 Academy</div>
-          <div class="admin-tab" onclick="adminTab('connect', this)">🤝 Connect</div>
-          <div class="admin-tab" onclick="adminTab('ccr-agents', this)">🎧 CCR Agents</div>
-          <div class="admin-tab" onclick="adminTab('creator-events', this)">🎤 Creator Events</div>
-          <div class="admin-tab" onclick="adminTab('consultations', this)">💼 Consultations</div>
-          <div class="admin-tab" onclick="adminTab('free-orders', this)">🎁 Free Orders</div>
-          <div class="admin-tab" onclick="adminTab('payments-health', this)">🛡️ Payments Health</div>
-          <div class="admin-tab" onclick="adminTab('link-queue', this)" id="lqTabBtn">⏳ Queued Orders</div>
-        </div>
+        <!-- Admin shell: grouped section nav (rail on desktop, bottom sheet on
+             phones — see admin_shell.css / admin_shell.js). Every section button
+             keeps class="admin-tab" + onclick="adminTab('key',this)" because
+             other scripts find tabs by that signature (CCR restrictions, jumps). -->
+        <button type="button" class="admin-switch" id="adminSwitch" onclick="adminNavOpen()" aria-haspopup="dialog" aria-controls="adminNav">
+          <span class="as-ic" id="adminSwitchIcon" aria-hidden="true">👥</span>
+          <span class="as-txt"><span class="as-grp" id="adminSwitchGroup">Customers</span><span class="as-lbl" id="adminSwitchLabel">Users</span></span>
+          <span class="as-badge" id="adminSwitchBadge" hidden></span>
+          <span class="as-cta">All sections <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+        </button>
+        <div class="admin-nav-backdrop" id="adminNavBackdrop" onclick="adminNavClose()"></div>
+        <div class="admin-shell">
+          <nav class="admin-nav" id="adminNav" aria-label="Admin sections">
+            <div class="an-head">
+              <span>Admin sections</span>
+              <button type="button" class="an-close" onclick="adminNavClose()" aria-label="Close">✕</button>
+            </div>
+            <div class="an-group">
+              <div class="an-title">Overview</div>
+              <button type="button" class="admin-tab" onclick="adminTab('stats',this)"><span class="at-ic" aria-hidden="true">📊</span><span class="at-lbl">Command Center</span></button>
+            </div>
+            <div class="an-group">
+              <div class="an-title">Orders</div>
+              <button type="button" class="admin-tab" onclick="adminTab('allorders',this)"><span class="at-ic" aria-hidden="true">📦</span><span class="at-lbl">All Orders</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('create-order',this)"><span class="at-ic" aria-hidden="true">➕</span><span class="at-lbl">Create Order</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('link-queue',this)" id="lqTabBtn"><span class="at-ic" aria-hidden="true">⏳</span><span class="at-lbl">Queued Orders</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('free-orders',this)"><span class="at-ic" aria-hidden="true">🎁</span><span class="at-lbl">Free Orders</span></button>
+            </div>
+            <div class="an-group">
+              <div class="an-title">Customers</div>
+              <button type="button" class="admin-tab" onclick="adminTab('support',this)"><span class="at-ic" aria-hidden="true">💬</span><span class="at-lbl">Support</span></button>
+              <button type="button" class="admin-tab active" onclick="adminTab('users',this)"><span class="at-ic" aria-hidden="true">👥</span><span class="at-lbl">Users</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('consultations',this)"><span class="at-ic" aria-hidden="true">💼</span><span class="at-lbl">Consultations</span></button>
+            </div>
+            <div class="an-group">
+              <div class="an-title">Catalogue</div>
+              <button type="button" class="admin-tab" onclick="adminTab('services-mgmt',this)"><span class="at-ic" aria-hidden="true">🛒</span><span class="at-lbl">Services</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('providers',this)"><span class="at-ic" aria-hidden="true">⚡</span><span class="at-lbl">Providers</span></button>
+            </div>
+            <div class="an-group">
+              <div class="an-title">Programmes</div>
+              <button type="button" class="admin-tab" onclick="adminTab('affiliate-payouts',this)" id="affPayoutsTabBtn"><span class="at-ic" aria-hidden="true">💸</span><span class="at-lbl">Affiliate Payouts</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('academy',this)"><span class="at-ic" aria-hidden="true">🎓</span><span class="at-lbl">Academy</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('connect',this)"><span class="at-ic" aria-hidden="true">🤝</span><span class="at-lbl">Connect</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('creator-events',this)"><span class="at-ic" aria-hidden="true">🎤</span><span class="at-lbl">Creator Events</span></button>
+            </div>
+            <div class="an-group">
+              <div class="an-title">Team &amp; Finance</div>
+              <button type="button" class="admin-tab" onclick="adminTab('ccr-agents',this)"><span class="at-ic" aria-hidden="true">🎧</span><span class="at-lbl">CCR Agents</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('payments-health',this)"><span class="at-ic" aria-hidden="true">🛡️</span><span class="at-lbl">Payments Health</span></button>
+            </div>
+          </nav>
+          <div class="admin-main">
         <div class="admin-panel active" id="ap-users">
           <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
           <div class="tbl-wrap" id="adminUsersTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading users…</span></div></div>
@@ -2739,7 +2777,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-allorders">
           <div class="sec-hd"><div><div class="sec-title">ALL ORDERS</div><div class="sec-sub">Every order across all users</div></div><button class="btn-secondary" onclick="loadAdminOrders()">↻ Refresh</button></div>
           <div style="padding:0 0 14px 0;">
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div class="adm-filters" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
               <input class="search-inp" id="adminOrderSearch" placeholder="🔍  Search by customer email…" style="max-width:300px;" oninput="loadAdminOrders()"/>
               <input class="search-inp" id="adminOrderIdSearch" placeholder="🔍  Search by Order ID…" style="max-width:300px;" oninput="loadAdminOrders()"/>
               <select id="adminOrderStatusFilter" onchange="loadAdminOrders()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;">
@@ -2765,7 +2803,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-services-mgmt">
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
             <div><div class="sec-title">SERVICES MANAGEMENT</div><div class="sec-sub">Change markup &amp; toggle/delete services</div></div>
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="adm-pricing" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
               <div style="display:flex;align-items:center;gap:8px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:8px 14px;">
                 <span style="font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap;">MARKUP %</span>
                 <input type="number" id="markupInput" min="0" max="500" step="1" value="40" style="width:64px;background:transparent;border:none;color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;font-weight:700;outline:none;text-align:center;"/>
@@ -2806,7 +2844,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div class="sec-sub">Place an M-Pesa order on behalf of a registered user</div>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:minmax(360px,480px) 1fr;gap:24px;align-items:start;" class="wallet-main-grid">
+          <div style="display:grid;grid-template-columns:minmax(360px,480px) 1fr;gap:24px;align-items:start;" class="wallet-main-grid adm-aco-grid">
             <!-- ── Left: Form ── -->
             <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;">
               <div>
@@ -2926,6 +2964,7 @@ tbody td{padding:13px 16px;font-size:14px;}
             <div id="sbBackBar" style="display:none;margin-bottom:10px;">
               <button class="btn-secondary" onclick="sbBackFromChat()">← Back to Reorders</button>
             </div>
+            <button type="button" class="btn-secondary adm-sb-back" id="sbMobileBack" onclick="adminSupportBack()">← All conversations</button>
             <div id="supportInboxWrap" style="display:grid;grid-template-columns:340px 1fr;gap:0;border:1px solid var(--border);border-radius:14px;overflow:hidden;height:680px;">
               <div id="supportThreadList" style="border-right:1px solid var(--border);overflow-y:auto;background:var(--navy);">
                 <div class="loading-spinner"><div class="spinner"></div><span>Loading conversations…</span></div>
@@ -2953,7 +2992,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
 
           <!-- Sub-tabs: Payouts | Referrals -->
-          <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;scrollbar-width:none;">
+          <div class="adm-subtabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;scrollbar-width:none;">
             <div id="affSubTab-payouts"
               onclick="affAdminSubTab('payouts')"
               style="padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--green);color:var(--green);white-space:nowrap;margin-bottom:-1px;transition:all .2s;">
@@ -2988,14 +3027,14 @@ tbody td{padding:13px 16px;font-size:14px;}
         </div>
 
         <div class="admin-panel" id="ap-academy">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+          <div class="adm-hd" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
             <div>
               <div style="font-size:16px;font-weight:900;color:var(--white);" id="acAdminPanelTitle">📊 ACADEMY OVERVIEW</div>
               <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="acAdminPanelSub">Learner activity, drop-off, revenue &amp; top performers</div>
             </div>
             <button class="btn-secondary" id="acAdminRefreshBtn" style="font-size:12px;padding:8px 16px;">↻ Refresh</button>
           </div>
-          <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+          <div class="adm-subtabs" style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
             <button id="acSubTab-overview"    onclick="acAdminSubTab('overview')"    style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Overview</button>
             <button id="acSubTab-funnel"      onclick="acAdminSubTab('funnel')"      style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Funnel</button>
             <button id="acSubTab-revenue"     onclick="acAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
@@ -3008,14 +3047,14 @@ tbody td{padding:13px 16px;font-size:14px;}
         </div>
 
         <div class="admin-panel" id="ap-connect">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+          <div class="adm-hd" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
             <div>
               <div style="font-size:16px;font-weight:900;color:var(--white);" id="cnAdminPanelTitle">📊 CONNECT OVERVIEW</div>
               <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="cnAdminPanelSub">Marketplace visibility, campaign lifecycle, revenue &amp; top performers</div>
             </div>
             <button class="btn-secondary" id="cnAdminRefreshBtn" style="font-size:12px;padding:8px 16px;">↻ Refresh</button>
           </div>
-          <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+          <div class="adm-subtabs" style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
             <button id="cnSubTab-overview"    onclick="cnAdminSubTab('overview')"    style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Overview</button>
             <button id="cnSubTab-funnel"      onclick="cnAdminSubTab('funnel')"      style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Funnel</button>
             <button id="cnSubTab-revenue"     onclick="cnAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
@@ -3128,6 +3167,8 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="tbl-wrap" id="adminConsultationsList"><div class="loading-spinner"><div class="spinner"></div><span>Loading consultations…</span></div></div>
         </div>
 
+          </div><!-- /admin-main -->
+        </div><!-- /admin-shell -->
       </div>
 
     </div>
@@ -4285,8 +4326,16 @@ function calcOrderCost() {
   if (!currentSvc) return;
   const qty = parseInt(document.getElementById('omQty').value) || 0;
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
-  const costKes = qty > 0 ? orderFinalKes(qty, rate) : 0;
-  document.getElementById('omCost').textContent = fmtKES(costKes);
+  let costKes = qty > 0 ? orderFinalKes(qty, rate) : 0;
+  // Came from a "next step" suggestion → 10% off (upsell.js; backend re-checks).
+  const up = (qty > 0 && typeof upsellPriceFor === 'function') ? upsellPriceFor(currentSvc, qty) : null;
+  const costEl = document.getElementById('omCost');
+  if (up && up.final < up.original) {
+    costKes = up.final;
+    costEl.innerHTML = `<s class="up-was">${fmtKES(up.original)}</s> ${fmtKES(up.final)} <span class="up-off">${up.pct}% OFF</span>`;
+  } else {
+    costEl.textContent = fmtKES(costKes);
+  }
   _checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 20);
 }
 
@@ -4334,14 +4383,15 @@ async function placeOrder() {
   if (!phone) { toast('Please enter your M-Pesa phone number', 'error'); return; }
   // Provider capacity hard-gate (safety net if button was somehow not disabled)
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
-  const costKes = orderFinalKes(qty, rate);
+  const _upPrice = typeof upsellPriceFor === 'function' ? upsellPriceFor(currentSvc, qty) : null;
+  const costKes = _upPrice ? _upPrice.final : orderFinalKes(qty, rate);
   if (!_checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 20)) return;
   const btn = document.getElementById('placeOrderBtn');
   btn.textContent = 'Sending STK Push…';
   btn.classList.add('loading');
   try {
     const payload = { service_id: currentSvc.service || currentSvc.id || currentSvc._id, link, quantity: qty, phone };
-    const _upTag = typeof upsellTagFor === 'function' ? upsellTagFor(currentSvc) : null;  // came from a suggestion? (admin stats)
+    const _upTag = typeof upsellTagFor === 'function' ? upsellTagFor(currentSvc) : null;  // came from a suggestion? (10% off + admin stats)
     if (_upTag) payload.upsell = _upTag;
     const resp = await api('/orders', { method:'POST', body:JSON.stringify(payload) });
     if (_upTag && typeof upsellClearCtx === 'function') upsellClearCtx();
@@ -4351,6 +4401,12 @@ async function placeOrder() {
     document.getElementById('omPayService').textContent = currentSvc.name || '';
     document.getElementById('omPayQty').textContent = qty.toLocaleString();
     document.getElementById('omPayAmount').textContent = fmtKES(resp.stk_amount || resp.charge);
+    // The backend decides the upsell discount; say so if it differs from the preview.
+    if (resp.upsell_discount_pct) {
+      document.getElementById('omPayAmount').insertAdjacentHTML('beforeend', ` <span class="up-off">${resp.upsell_discount_pct}% OFF</span>`);
+    } else if (_upPrice) {
+      toast('The suggestion discount didn\'t apply to this order — the amount on your M-Pesa prompt is the normal price.', 'info');
+    }
     showOrderStep(2);
     startPaymentPoll();
   } catch(e) {
@@ -4716,6 +4772,7 @@ function resetDeposit() {
 
 <script src="tnc.js"></script>
 <script src="admin.js"></script>
+<script src="admin_shell.js"></script>
 <script src="ccr_support.js"></script>
 <script src="reorder_queue.js"></script>
 <script src="support_board.js"></script>

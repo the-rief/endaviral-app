@@ -12,6 +12,10 @@
  *   • "Other services" → opens the catalog filtered to that platform + type
  *                (e.g. Instagram → Views) so they can pick any service.
  * Payment is the usual M-Pesa flow; nothing is charged here.
+ * Every suggestion is 10% off (UPSELL_DISCOUNT_PCT in the backend's
+ * services/pricing.py). The order form shows the discounted price while the
+ * customer is acting on a suggestion (upsellPriceFor); the backend re-checks
+ * the offer and charges the real amount, which the payment step displays.
  * Backend: GET /upsell/next-steps[?order_id=…]  (app/services/upsell.py)
  * Depends on: api(), esc(), fmtKES(), openOrderModal(), calcOrderCost(),
  *             navTo(), loadServices(), selectPlatform(), selectSubcat(),
@@ -52,12 +56,23 @@ function _upTierHTML(tier) {
   return t ? `<span class="up-tier" style="color:${t[1]}"><span class="up-dot" style="background:${t[1]}"></span>${t[0]}</span> ` : '';
 }
 
+// Discount shown on suggestions — the backend sends discount_pct with each one.
+const UPSELL_DISCOUNT_PCT = 10;
+function _upPct(s) { return Number((s && s.discount_pct) || 0); }
+function _upWasHTML(s) {
+  return _upPct(s) && s.original_price_kes > s.price_kes
+    ? `<s class="up-was">${fmtKES(s.original_price_kes)}</s> ` : '';
+}
+function _upOffHTML(s) {
+  return _upPct(s) ? `<span class="up-off">${_upPct(s)}% OFF</span>` : '';
+}
+
 function _upRowHTML(s, idx) {
   const tip = esc([s.pitch, s.social_proof].filter(Boolean).join(' · '));
   return `
     <div class="up-row" data-key="${esc(s.key)}" title="${tip}">
       <span class="up-ic">${_UP_ICON[s.platform] || '🚀'}</span>
-      <span class="up-txt">${esc(s.title)} ${_upTierHTML(s.tier)}<span class="up-price">· from ${fmtKES(s.price_kes)}</span></span>
+      <span class="up-txt">${esc(s.title)} ${_upTierHTML(s.tier)}<span class="up-price">· ${_upWasHTML(s)}<strong class="up-now">${fmtKES(s.price_kes)}</strong></span> ${_upOffHTML(s)}</span>
       <span class="up-acts">
         <button class="up-link up-main" onclick="upsellStart('dash', ${idx})">Order</button>
         <button class="up-link" onclick="upsellBrowse('dash', ${idx})">Other services</button>
@@ -96,6 +111,7 @@ function _upSetCtx(where, s) {
     key: s.key, from_order_id: s.for_order_id,
     suggested_service_id: s.service && s.service.service,
     platform: s.platform, to_type: s.to_type, at: Date.now(),
+    discount_pct: _upPct(s),
   };
 }
 
@@ -112,6 +128,23 @@ function upsellTagFor(svc) {
 }
 
 function upsellClearCtx() { _upCtx = null; }
+
+/** Discounted price for the order form, mirroring the backend
+ *  (services/pricing.py → upsell_amount_kes): price minus the discount,
+ *  then the usual round-up to KES 5 (min KES 20). Returns null when this
+ *  order isn't from a suggestion. The backend has the final say (it also
+ *  never goes below cost); the payment step shows what it charged. */
+function upsellPriceFor(svc, qty) {
+  const tag = upsellTagFor(svc);
+  const pct = _upCtx && _upCtx.discount_pct;
+  if (!tag || !pct || !(qty > 0)) return null;
+  const rate = parseFloat(svc.rate || svc.price_per_1000 || svc.price || 0);
+  const raw = Math.round((qty / 1000) * rate * 10000) / 10000;
+  const disc = Math.round(raw * (100 - pct) / 100 * 10000) / 10000;
+  const final = Math.max(20, Math.ceil(disc / 5 - 1e-9) * 5);
+  const original = typeof orderFinalKes === 'function' ? orderFinalKes(qty, rate) : final;
+  return { final: Math.min(final, original), original, pct };
+}
 
 async function _upEnsureServices() {
   if ((!allServices || !allServices.length) && typeof loadServices === 'function') {
@@ -141,7 +174,8 @@ async function upsellStart(where, idx) {
   if (lastPhone && phoneEl && !phoneEl.value) phoneEl.value = lastPhone;
   const note = document.getElementById('omUpsellNote');
   if (note) {
-    note.innerHTML = (same ? 'Same link as your last order · ' : 'Suggested service · ') +
+    note.innerHTML = (_upPct(s) ? `<span class="up-off">${_upPct(s)}% OFF</span> ` : '') +
+      (same ? 'Same link as your last order · ' : 'Suggested service · ') +
       `<a href="#" onclick="upsellBrowse('${where}', ${idx});return false;">choose a different one</a>`;
     note.style.display = '';
   }
@@ -160,6 +194,10 @@ async function upsellBrowse(where, idx) {
   _upSetCtx(where, s);
   if (typeof closeOrderModal === 'function') closeOrderModal();
   navTo('services');
+  if (_upPct(s) && typeof toast === 'function') {
+    const typ = _UP_TYPE_LABEL[s.to_type] || s.to_type;
+    toast(`${_upPct(s)}% off any ${s.platform_label || ''} ${typ} package you pick — applied at checkout`, 'success');
+  }
   await _upEnsureServices();
   if (typeof selectPlatform === 'function') selectPlatform(s.platform);
   if (typeof selectSubcat === 'function' &&
@@ -183,16 +221,17 @@ function _upAfterCardHTML(s) {
   const typ = _UP_TYPE_LABEL[s.to_type] || s.to_type;
   const qty = Number(s.quantity || 0).toLocaleString('en-KE');
   const price = fmtKES(s.price_kes);
+  const pct = _upPct(s);
   const tierWord = s.tier === 'elite' ? 'Elite quality' : 'Medium quality';
   const tierCol = s.tier === 'elite' ? '#3b82f6' : '#22c55e';
   return `
   <div class="upa-card" role="region" aria-label="Recommended next step">
-    <div class="upa-kicker">⚡ COMPLETE YOUR BOOST</div>
+    <div class="upa-kicker">⚡ COMPLETE YOUR BOOST${pct ? ` · ${pct}% OFF` : ''}</div>
     <div class="upa-head">
       <div class="upa-ic">${_UP_ICON[s.platform] || '🚀'}</div>
       <div class="upa-body">
         <div class="upa-title">Add ${qty} ${esc(typ)} to ${esc(s.link_label || 'your account')}</div>
-        <div class="upa-meta"><span class="up-tier" style="color:${tierCol}"><span class="up-dot" style="background:${tierCol}"></span>${tierWord}</span> · only <strong style="color:var(--white)">${price}</strong></div>
+        <div class="upa-meta"><span class="up-tier" style="color:${tierCol}"><span class="up-dot" style="background:${tierCol}"></span>${tierWord}</span> · only ${_upWasHTML(s)}<strong style="color:var(--white)">${price}</strong>${pct ? ` <span class="up-off">save ${pct}%</span>` : ''}</div>
       </div>
     </div>
     ${s.pitch ? `<div class="upa-pitch">${esc(s.pitch)}</div>` : ''}
