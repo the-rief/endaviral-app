@@ -94,13 +94,15 @@
       label: 'Why counts drop 📉',
       question: 'Why did my follower/like count drop after delivery?',
       answer:
-        `📉 **Noticed your count going down?** Here's why it happens:\n\n` +
-        `Platforms like TikTok and Instagram regularly run cleanup sweeps that remove inactive or low-activity accounts. Sources more likely to get flagged in these sweeps will naturally lose more over time.\n\n` +
-        `That's why we grade services by tier:\n\n` +
-        `🟡 **Basic** — cheapest, pulled from sources platforms flag most often, so drops are more likely.\n` +
-        `🟢 **Medium** — a balanced option with better stability than Basic.\n` +
-        `🔵 **Elite** — highest quality sources, built for long-term retention.\n\n` +
-        `If you're seeing drops on a **Basic** order, that's expected, not a fault. For lasting results, consider **Medium** or **Elite** next time. If you'd like us to look at a specific order, open a ticket with the **Order ID**.`
+        `📉 **Why might your followers drop? Here’s what to know.**\n\n` +
+        `Have you noticed your follower count going down after placing an order? We understand how frustrating that can be.\n\n` +
+        `TikTok and Instagram regularly review accounts and may remove followers or adjust displayed numbers. Accounts that are not actively posting or engaging with their audience may also find it harder to maintain their growth over time.\n\n` +
+        `💡 **How to get the most out of your growth:**\n` +
+        `🟡 **Basic** – An affordable option for those looking for budget-friendly growth.\n` +
+        `🟢 **Medium** – An alternative for customers looking for a balance between price and quality.\n` +
+        `🔵 **Elite** – A premium option for customers who prefer to invest in higher-tier services.\n\n` +
+        `🚀 **Our tip:** Keep posting consistently, create content your audience enjoys, and engage with your followers. Growing your numbers is one step; keeping your audience active and interested is just as important.\n\n` +
+        `💚 Thank you for growing with EndaViral!`
     },
     {
       label: 'All our services 📦',
