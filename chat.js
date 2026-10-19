@@ -95,7 +95,6 @@
       question: 'Why did my follower/like count drop after delivery?',
       answer:
         `📉 **Why might your followers drop? Here’s what to know.**\n\n` +
-        `Have you noticed your follower count going down after placing an order? We understand how frustrating that can be.\n\n` +
         `TikTok and Instagram regularly review accounts and may remove followers or adjust displayed numbers. Accounts that are not actively posting or engaging with their audience may also find it harder to maintain their growth over time.\n\n` +
         `💡 **How to get the most out of your growth:**\n` +
         `🟡 **Basic** – An affordable option for those looking for budget-friendly growth.\n` +
