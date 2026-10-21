@@ -877,9 +877,8 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .oa-why{font-size:11.5px;color:var(--muted);line-height:1.35;}
 .oa-price{flex-shrink:0;text-align:right;display:flex;flex-direction:column;align-items:flex-end;font-size:14px;color:var(--white);}
 .oa-price s{font-size:11px;color:var(--muted);}
-.oa-link{margin-top:8px;}
-.oa-link input{width:100%;}
 .oa-note{font-size:11px;color:var(--muted);margin:6px 2px 0;}
+
 
 @media(max-width:768px){
   .dash-stats-row{gap:8px;margin-bottom:14px;}
@@ -3620,12 +3619,152 @@ const LINK_GUIDANCE = {
 // Subcategory keys that expect an account/page/channel link rather than a single post/video link
 const PROFILE_SUBCATS = new Set(['followers', 'members']);
 
+/* ── Link kinds: profile vs post vs live ─────────────────────────────────
+ * Decided per SERVICE from its name, not only its category: "Facebook Page
+ * Likes" are likes but need a page link; "Instagram Story Views" are views
+ * but need a profile link. MIRRORS the backend app/services/link_kind.py —
+ * keep the two in step (same test table on both sides). */
+const _PROFILE_PHRASES = ['page like', 'page follow', 'fan page', 'profile visit', 'profile view',
+  'story view', 'stories view', 'story', 'stories', 'subscriber', 'channel member',
+  'group member', 'monthly listener', 'connection', 'follower'];
+function linkKindOf(name, typ) {
+  const n = String(name || '').toLowerCase();
+  if (typ === 'live' || /(^|[^a-z])live([^a-z]|$)/.test(n)) return 'live';
+  if (typ === 'followers' || typ === 'members' || _PROFILE_PHRASES.some(p => n.includes(p))) return 'profile';
+  return 'post';
+}
+function svcLinkKind(svc) {
+  const typ = getSubcatKey(svc);
+  return linkKindOf(svc.name || svc.service_name || '', typ === 'followers' || typ === 'members' || typ === 'live' ? typ : '');
+}
+function _linkParts(link) {
+  let u;
+  try { u = new URL(String(link || '').trim()); } catch (_) { return { host: '', parts: [], q: new URLSearchParams() }; }
+  let host = u.hostname.toLowerCase();
+  for (const pre of ['www.', 'm.', 'mobile.', 'web.']) if (host.startsWith(pre)) { host = host.slice(pre.length); break; }
+  return { host, parts: u.pathname.split('/').filter(Boolean), q: u.searchParams };
+}
+/** 'profile' | 'post' | 'live' for a URL, or null when it can't be told. */
+function linkShape(link) {
+  const { host, parts, q } = _linkParts(link);
+  if (!host) return null;
+  const has = x => parts.includes(x);
+  if (host.endsWith('instagram.com')) {
+    if (!parts.length) return null;
+    if (['p', 'reel', 'reels', 'tv'].includes(parts[0]) || (parts.length >= 2 && ['p', 'reel', 'tv'].includes(parts[1]))) return 'post';
+    if (parts[0] === 'stories') return 'profile';
+    return parts.length === 1 ? 'profile' : null;
+  }
+  if (host.endsWith('tiktok.com')) {
+    if (host.startsWith('vm.') || host.startsWith('vt.')) return null;
+    if (has('live')) return 'live';
+    if (has('video') || has('photo')) return 'post';
+    return parts.length === 1 && parts[0].startsWith('@') ? 'profile' : null;
+  }
+  if (host === 'youtu.be') return 'post';
+  if (host.endsWith('youtube.com')) {
+    if (parts[0] === 'live') return 'live';
+    if (['watch', 'shorts', 'embed'].includes(parts[0]) || q.has('v')) return 'post';
+    if (parts[0] && (parts[0].startsWith('@') || ['channel', 'c', 'user'].includes(parts[0]))) return 'profile';
+    return null;
+  }
+  if (host === 'fb.watch') return 'post';
+  if (host.endsWith('facebook.com')) {
+    const postBits = ['posts', 'videos', 'photo', 'photos', 'watch', 'reel', 'permalink.php', 'story.php', 'photo.php', 'events'];
+    if (postBits.some(has) || (parts[0] === 'share' && parts.length >= 2 && ['p', 'v', 'r'].includes(parts[1]))) return 'post';
+    if (parts[0] === 'groups') return parts.length <= 2 ? 'profile' : 'post';
+    return parts.length === 1 || parts[0] === 'profile.php' ? 'profile' : null;
+  }
+  if (host === 'x.com' || host === 'twitter.com') {
+    if (has('status')) return 'post';
+    return parts.length === 1 ? 'profile' : null;
+  }
+  if (host.endsWith('threads.net') || host.endsWith('threads.com')) {
+    if (has('post')) return 'post';
+    return parts.length === 1 && parts[0].startsWith('@') ? 'profile' : null;
+  }
+  if (host === 't.me' || host === 'telegram.me') {
+    if (parts.length >= 2 && /^\d+$/.test(parts[parts.length - 1])) return 'post';
+    return parts.length ? 'profile' : null;
+  }
+  if (host.endsWith('spotify.com')) {
+    if (['track', 'album', 'episode'].some(has)) return 'post';
+    if (['artist', 'user', 'show'].some(has)) return 'profile';
+    return null;
+  }
+  return null;
+}
+/** true = clearly a video (views make sense), false = clearly not, null = can't tell
+ *  (an Instagram /p/ link may be a photo). Mirrors link_kind.is_video_link(). */
+function isVideoLink(link) {
+  const { host, parts } = _linkParts(link);
+  if (!host) return null;
+  const has = x => parts.includes(x);
+  if (host.endsWith('instagram.com')) return ['reel', 'reels', 'tv'].some(has) ? true : null;
+  if (host.endsWith('tiktok.com')) { if (has('photo')) return false; return has('video') ? true : null; }
+  if (host === 'youtu.be' || host.endsWith('youtube.com')) return ['post', 'live'].includes(linkShape(link)) ? true : null;
+  if (host === 'fb.watch') return true;
+  if (host.endsWith('facebook.com')) {
+    return (['videos', 'reel', 'watch'].some(has) || (parts[0] === 'share' && parts.length >= 2 && ['v', 'r'].includes(parts[1]))) ? true : null;
+  }
+  if (host === 'x.com' || host === 'twitter.com') return has('status') ? true : null;
+  if (host === 't.me' || host === 'telegram.me') return linkShape(link) === 'post' ? true : null;
+  return null;
+}
+
+/** The account link inside a post/live link, when the URL carries it. */
+function deriveProfileLink(link) {
+  const { host, parts } = _linkParts(link);
+  if (!host || !parts.length) return null;
+  if (host.endsWith('tiktok.com') && !host.startsWith('vm.') && !host.startsWith('vt.') && parts[0].startsWith('@')) return `https://www.tiktok.com/${parts[0]}`;
+  if ((host === 'x.com' || host === 'twitter.com') && parts.length >= 3 && parts[1] === 'status') return `https://x.com/${parts[0]}`;
+  if ((host.endsWith('threads.net') || host.endsWith('threads.com')) && parts[0].startsWith('@')) return `https://www.threads.net/${parts[0]}`;
+  if (host.endsWith('instagram.com')) {
+    if (parts[0] === 'stories' && parts.length >= 2) return `https://www.instagram.com/${parts[1]}/`;
+    if (parts.length >= 2 && ['p', 'reel', 'tv'].includes(parts[1]) && !['p', 'reel', 'reels', 'tv', 'stories'].includes(parts[0])) return `https://www.instagram.com/${parts[0]}/`;
+    return null;
+  }
+  if (host.endsWith('youtube.com') && parts[0].startsWith('@')) return `https://www.youtube.com/${parts[0]}`;
+  if ((host === 't.me' || host === 'telegram.me') && parts.length >= 2 && /^\d+$/.test(parts[parts.length - 1])) return `https://t.me/${parts[0]}`;
+  if (host.endsWith('facebook.com') && parts.length >= 2 && ['posts', 'videos', 'photos', 'reel'].includes(parts[1]) &&
+      !['groups', 'watch', 'share', 'photo', 'reel', 'story.php', 'permalink.php', 'profile.php'].includes(parts[0])) return `https://www.facebook.com/${parts[0]}`;
+  return null;
+}
+const _KIND_NEED = { profile: 'your profile / page / channel link', post: 'the link to the specific post or video', live: 'the link to your live stream' };
+const _KIND_SHAPE = { profile: 'a profile link', post: 'a post / video link', live: 'a live-stream link' };
+/** Message when `link` is clearly the wrong kind for `need`; null if it fits or can't be told. */
+function linkKindProblem(need, link) {
+  const shape = linkShape(link);
+  if (!shape || shape === need || need === 'live') return null;
+  return `That looks like ${_KIND_SHAPE[shape]}. This service needs ${_KIND_NEED[need]}.`;
+}
+
 function getLinkGuidance(svc) {
   const platKey = getPlatformKey(svc);
-  const subcatKey = getSubcatKey(svc);
   const g = LINK_GUIDANCE[platKey] || LINK_GUIDANCE.other;
-  const shape = PROFILE_SUBCATS.has(subcatKey) ? 'profile' : 'content';
+  // Per service (page likes / story views need the account), not per category.
+  const shape = svcLinkKind(svc) === 'profile' ? 'profile' : 'content';
   return { placeholder: g[shape], hint: g.hint };
+}
+
+// Main order form: warn when the pasted link is clearly the wrong kind
+// (a post link for followers, a profile link for likes…). Orders can't be
+// refunded once paid, so the first Pay tap stops and explains; a second tap
+// goes ahead (the check never guesses, but the customer has the last word).
+let _linkWarnAck = '';
+function checkOrderLink() {
+  const el = document.getElementById('omLink');
+  const hint = document.getElementById('omLinkHint');
+  if (!el || !hint || !currentSvc) return null;
+  const problem = el.value.trim() ? linkKindProblem(svcLinkKind(currentSvc), el.value.trim()) : null;
+  if (problem) {
+    hint.textContent = '⚠️ ' + problem;
+    hint.style.color = '#ff9800';
+  } else {
+    hint.textContent = getLinkGuidance(currentSvc).hint;
+    hint.style.color = '';
+  }
+  return problem;
 }
 
 // Some subcategory keys mean something different depending on platform —
@@ -4417,6 +4556,16 @@ function openOrderModal(svc) {
   const linkGuide = getLinkGuidance(svc);
   document.getElementById('omLink').placeholder = linkGuide.placeholder;
   document.getElementById('omLinkHint').textContent = linkGuide.hint;
+  document.getElementById('omLinkHint').style.color = '';
+  _linkWarnAck = '';
+  const _linkEl = document.getElementById('omLink');
+  if (!_linkEl._kindWatch) {   // once: re-check the link kind as they type/paste
+    _linkEl._kindWatch = true;
+    _linkEl.addEventListener('input', () => {
+      checkOrderLink();
+      if (typeof addonOnMainLink === 'function') addonOnMainLink();
+    });
+  }
   document.getElementById('omPhone').value = '';
   const _upNote = document.getElementById('omUpsellNote');  // set again by upsellStart() if this came from a suggestion
   if (_upNote) { _upNote.style.display = 'none'; _upNote.innerHTML = ''; }
@@ -4530,6 +4679,13 @@ async function placeOrder() {
   const qty = parseInt(document.getElementById('omQty').value);
   const phone = document.getElementById('omPhone').value.trim();
   if (!link) { toast('Please enter a link', 'error'); return; }
+  const _linkProblem = checkOrderLink();
+  if (_linkProblem && _linkWarnAck !== link) {
+    _linkWarnAck = link;   // a second tap with the same link goes ahead
+    toast(_linkProblem + ' Fix it, or tap Pay again if you\'re sure.', 'error');
+    document.getElementById('omLink').focus();
+    return;
+  }
   if (!qty || qty < 1) { toast('Invalid quantity', 'error'); return; }
   if (!phone) { toast('Please enter your M-Pesa phone number', 'error'); return; }
   // Provider capacity hard-gate (safety net if button was somehow not disabled)
@@ -4553,8 +4709,6 @@ async function placeOrder() {
     if (_recTag) payload.recommended = _recTag;
     const resp = await api('/orders', { method:'POST', body:JSON.stringify(payload) });
     window._omAddonWhat = resp.addon ? _addonWhat : '';
-    // Offered an add-on and left it unticked → don't offer again after paying.
-    window._omAddonDeclined = !resp.addon && typeof addonWasOffered === 'function' && addonWasOffered();
     if (_upTag && typeof upsellClearCtx === 'function') upsellClearCtx();
     if (_recTag) _recCtx = null;
     pendingOrderId = resp.id;
@@ -4584,10 +4738,6 @@ async function placeOrder() {
       toast(msg || 'The add-on is no longer available — tap Pay again to continue without it.', 'info');
       if (typeof addonReset === 'function') addonReset(true);
       calcOrderCost();
-      return;
-    }
-    if ((e.status === 400 || e.status === 422) && _addonReq && /add-on|link/i.test(msg)) {
-      toast(msg, 'error');   // a fixable add-on input problem — not worth a support ticket
       return;
     }
     const isGatewayErr = e.status === 502 || e.status === 503 || msg.includes('502') || msg.toLowerCase().includes('payment request failed') || msg.toLowerCase().includes('bad gateway') || msg.toLowerCase().includes('unreachable');
@@ -4674,7 +4824,9 @@ function showOrderResult(success, msg) {
   document.getElementById('omResultIcon').textContent = success ? '✅' : '❌';
   document.getElementById('omResultTitle').textContent = success ? 'ORDER PLACED!' : 'PAYMENT FAILED';
   document.getElementById('omResultDesc').textContent = msg;
-  if (typeof upsellShowAfterOrder === 'function') upsellShowAfterOrder(success && !window._omAddonDeclined ? pendingOrderId : null);
+  // After payment: a follow-up that needs a DIFFERENT link (same-link ones
+  // were the tick box on the order form).
+  if (typeof upsellShowAfterOrder === 'function') upsellShowAfterOrder(success ? pendingOrderId : null);
   // Successful order → suggest the Academy course for that platform
   // (academy.js). Most order customers never open the Academy otherwise.
   const tipEl = document.getElementById('omAcademyTip');

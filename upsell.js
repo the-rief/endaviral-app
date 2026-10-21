@@ -234,17 +234,21 @@ async function upsellStart(where, idx) {
   openOrderModal(svc);
   document.getElementById('omQty').value = s.quantity;
   calcOrderCost();
-  // Same post/video as the original order → re-use its link (editable).
-  // The discount only applies to that post, so pre-fill it from anywhere.
-  const same = _upSameLink(s);
+  // The backend decided which link this follow-up needs (services/
+  // link_kind.py): the same one, the profile derived from it (TikTok video
+  // → @profile), or a new one the customer pastes. Pre-fill when known.
+  const same = !!s.same_link;
+  const derived = !same && s.suggested_link;
   const linkEl = document.getElementById('omLink');
-  if (same && linkEl) linkEl.value = s.link;
+  if (linkEl && (same || derived)) linkEl.value = s.suggested_link || s.link;
+  if (typeof checkOrderLink === 'function') checkOrderLink();
   const phoneEl = document.getElementById('omPhone');
   if (lastPhone && phoneEl && !phoneEl.value) phoneEl.value = lastPhone;
   const note = document.getElementById('omUpsellNote');
   if (note) {
     note.innerHTML = (_upPct(s) ? `<span class="up-off">${_upPct(s)}% OFF</span> ` : '') +
-      (same ? 'Same link · ' : '') +
+      (same ? 'Same link · ' : derived ? 'Your profile from that order · '
+        : (s.to_link_kind === 'profile' ? 'Paste your profile link · ' : 'Paste the post link · ')) +
       `<a href="#" onclick="upsellBrowse('${where}', ${idx});return false;">choose a different one</a>`;
     note.style.display = '';
   }
@@ -276,14 +280,9 @@ async function upsellBrowse(where, idx) {
   document.getElementById('subcatBar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-/* Types that apply to one post/video. If the customer just bought one of
- * these and the suggestion is another, it's for the SAME post, so the link
- * they already entered can be re-used (no need to paste it again). A
- * follower order's link is a profile, so likes/views still need a post link. */
-const _UP_POST_TYPES = ['likes', 'views', 'comments', 'shares', 'saves'];
-function _upSameLink(s) {
-  return !!(s && s.link && _UP_POST_TYPES.includes(s.from_type) && _UP_POST_TYPES.includes(s.to_type));
-}
+/* Which link a follow-up uses is decided server-side per service
+ * (services/link_kind.py → same_link / suggested_link / to_link_kind). */
+function _upSameLink(s) { return !!(s && s.same_link); }
 const _UP_TYPE_LABEL = { live: 'live viewers' };
 
 function _upAfterCardHTML(s) {
@@ -333,7 +332,9 @@ async function upsellShowAfterOrder(orderId) {
   _upAfterOrder = null;
   if (!orderId) return;
   try {
-    const data = await api('/upsell/next-steps?order_id=' + encodeURIComponent(orderId));
+    // after=1 → only follow-ups that need a different link (same-link ones
+    // were the tick box's job before paying).
+    const data = await api('/upsell/next-steps?after=1&order_id=' + encodeURIComponent(orderId));
     const s = (data.suggestions || [])[0];
     if (!s) return;
     // The modal may have been closed (or another order opened) while loading.
@@ -347,7 +348,9 @@ async function upsellShowAfterOrder(orderId) {
 /* ════════════════════ CHECKOUT ADD-ON ════════════════════
  * A tick box on the order form ("+ Add 100 likes · KES 45"), shown BEFORE
  * paying, so the add-on rides on the same M-Pesa prompt: one PIN, two
- * orders. Unticked by default. The offer comes from
+ * orders. Unticked by default. Only add-ons that go on the SAME link the
+ * customer pasted are offered here (nothing extra to type); follow-ups
+ * that need a different link are offered after payment (upsellShowAfterOrder). The offer comes from
  * GET /upsell/checkout-offer and is re-fetched when the service or quantity
  * changes; POST /orders re-checks it and prices it server-side (`addon`).
  * Hooks in index.html: openOrderModal → addonReset(), calcOrderCost →
@@ -370,29 +373,13 @@ function addonReset(suppress) {
 
 function _addonChecked() { return !!(_addon && document.getElementById('omAddonChk')?.checked); }
 
-/** True if an add-on was shown on the form (ticked or not). Used to skip
- *  the "order placed" offer when the customer already said no to one —
- *  we ask once per purchase, not twice. */
-function addonWasOffered() { return !!_addon; }
-
 /** Extra KES the add-on adds to the total (0 when not ticked). */
 function addonKes() { return _addonChecked() ? Number(_addon.price_kes || 0) : 0; }
 
-/** `addon` field for POST /orders, or null. Throws a friendly message if a
- *  needed link is missing. */
+/** `addon` field for POST /orders, or null. Same link as the main order. */
 function addonPayload() {
   if (!_addonChecked()) return null;
-  const out = { service_id: _addon.service.service, quantity: _addon.quantity };
-  if (_addon.needs_link) {
-    const link = (document.getElementById('omAddonLink')?.value || '').trim();
-    if (!/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(link)) {
-      document.getElementById('omAddonLink')?.focus();
-      throw new Error(link ? `That add-on link doesn't look right — paste the full post link (https://…), or untick the add-on.`
-                           : `Paste the link for your ${_addon.type_label}, or untick the add-on.`);
-    }
-    out.link = link;
-  }
-  return out;
+  return { service_id: _addon.service.service, quantity: _addon.quantity };
 }
 
 /** Short summary for the payment / result screens, e.g. "100 likes". */
@@ -405,19 +392,24 @@ function addonOnQty() {
   if (_addonOff || typeof token === 'undefined' || !token || !currentSvc) return;
   const qty = parseInt(document.getElementById('omQty')?.value) || 0;
   const sid = currentSvc.service || currentSvc.id;
-  const key = `${sid}:${qty}`;
+  // The offer depends on the link only through "is it clearly a video?"
+  // (views aren't suggested for a photo post), so refetch only when that changes.
+  const link = (document.getElementById('omLink')?.value || '').trim();
+  const video = typeof isVideoLink === 'function' ? isVideoLink(link) : null;
+  const key = `${sid}:${qty}:${video}`;
   if (key === _addonKey) return;
   _addonKey = key;
   clearTimeout(_addonTimer);
   if (!(qty > 0)) { _addonRender(null); return; }
-  _addonTimer = setTimeout(() => addonFetch(sid, qty), 350);
+  _addonTimer = setTimeout(() => addonFetch(sid, qty, link), 350);
 }
 
-async function addonFetch(sid, qty) {
+async function addonFetch(sid, qty, link) {
   const seq = ++_addonSeq;
   let offer = null;
   try {
-    const data = await api(`/upsell/checkout-offer?service_id=${encodeURIComponent(sid)}&quantity=${qty}`);
+    const data = await api(`/upsell/checkout-offer?service_id=${encodeURIComponent(sid)}&quantity=${qty}` +
+                           (link ? `&link=${encodeURIComponent(link)}` : ''));
     offer = data && data.offer;
   } catch (_) { offer = null; }
   if (seq !== _addonSeq) return;   // a newer request is on its way
@@ -431,7 +423,6 @@ function _addonRender(offer) {
   const prevType = _addon && _addon.to_type;
   const prevQty = _addon && _addon.quantity;
   const prevPrice = _addon && _addon.price_kes;
-  const prevLink = document.getElementById('omAddonLink')?.value || '';
   _addon = offer || null;
   if (!_addon) { el.innerHTML = ''; calcOrderCost(); return; }
   const a = _addon;
@@ -452,18 +443,16 @@ function _addonRender(offer) {
       </span>
       <span class="oa-price">${a.original_price_kes > a.price_kes ? `<s>${fmtKES(a.original_price_kes)}</s>` : ''}<strong>+${fmtKES(a.price_kes)}</strong></span>
     </label>
-    ${a.needs_link ? `<div class="oa-link modal-field" id="omAddonLinkWrap" style="display:${keep ? '' : 'none'}">
-      <input type="url" id="omAddonLink" placeholder="Paste the post/video link for your ${esc(a.type_label)}" value="${esc(prevLink)}"/>
-    </div>` : ''}
-    <div class="oa-note">Paid in the same M-Pesa prompt — one PIN.</div>`;
+    <div class="oa-note">Same link · paid in the same M-Pesa prompt — one PIN.</div>`;
   calcOrderCost();
 }
 
+/** Main link changed → refetch the offer if that changes what's realistic
+ *  (e.g. a reel vs a photo post: views only make sense on a video). */
+function addonOnMainLink() { addonOnQty(); }
+
 function addonToggle() {
-  const on = _addonChecked();
-  document.querySelector('#omAddon .oa-box')?.classList.toggle('on', on);
-  const wrap = document.getElementById('omAddonLinkWrap');
-  if (wrap) { wrap.style.display = on ? '' : 'none'; if (on) document.getElementById('omAddonLink')?.focus(); }
+  document.querySelector('#omAddon .oa-box')?.classList.toggle('on', _addonChecked());
   calcOrderCost();
 }
 
