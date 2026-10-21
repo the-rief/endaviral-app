@@ -778,14 +778,22 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .promo-title{font-size:12.5px;font-weight:800;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .promo-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .promo-arrow{flex-shrink:0;color:var(--muted);font-size:15px;}
-/* ── Next step / upsell (upsell.js) — deliberately quiet ── */
-.up-label{font-size:10.5px;font-weight:700;letter-spacing:.6px;color:var(--muted);margin:0 0 6px 2px;}
-.up-list{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;}
-.up-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:7px 8px 7px 10px;font-size:12.5px;}
-.up-ic{flex-shrink:0;font-size:13px;}
-.up-txt{flex:1;min-width:150px;color:var(--white);line-height:1.35;word-break:break-word;}
-.up-price{color:var(--muted);}
-.up-now{color:var(--white);font-weight:700;}
+/* ── Next step / upsell (upsell.js) ── */
+.up-label{font-size:10.5px;font-weight:800;letter-spacing:.8px;color:var(--green);margin:0 0 8px 2px;}
+.up-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
+.up-row{position:relative;background:linear-gradient(160deg,rgba(61,212,74,.09),var(--card) 60%);border:1px solid rgba(61,212,74,.35);
+  border-radius:14px;padding:12px 12px 11px;font-size:12.5px;}
+.up-top{display:flex;gap:10px;align-items:center;padding-right:22px;}
+.up-ic{flex-shrink:0;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;background:rgba(61,212,74,.14);}
+.up-main-txt{flex:1;min-width:0;}
+.up-head{font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;color:var(--white);line-height:1.3;}
+.up-sub{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.35;}
+.up-why{font-size:12.5px;color:#c9d4e3;line-height:1.5;margin-top:9px;}
+.up-proof{font-size:11.5px;color:var(--white);margin-top:7px;padding:6px 9px;border-radius:8px;background:rgba(255,255,255,.05);}
+.up-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.up-price{color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.up-now{color:var(--white);font-weight:800;font-size:15px;}
+.up-until{font-size:11px;color:var(--muted);}
 .up-was{color:var(--muted);opacity:.75;font-weight:500;text-decoration:line-through;}
 .up-off{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.4px;line-height:1.5;padding:0 6px;border-radius:6px;
   background:rgba(61,212,74,.16);color:var(--green);border:1px solid rgba(61,212,74,.35);vertical-align:1px;white-space:nowrap;}
@@ -793,12 +801,15 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .cost-val .up-off{font-size:11px;vertical-align:4px;}
 .up-tier{font-size:11px;font-weight:700;white-space:nowrap;}
 .up-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:1px;}
-.up-acts{display:flex;align-items:center;gap:2px;margin-left:auto;}
-.up-link{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:4px 7px;border-radius:6px;}
+.up-acts{display:flex;align-items:center;gap:6px;margin-left:auto;}
+.up-link{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:8px;}
 .up-link:hover{color:var(--white);background:rgba(255,255,255,.05);}
-.up-link.up-main{color:var(--green);}
-.up-x{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 6px;opacity:.7;}
+.up-btn{border:none;border-radius:10px;padding:9px 14px;cursor:pointer;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;
+  font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:800;box-shadow:0 4px 14px rgba(61,212,74,.3);white-space:nowrap;}
+.up-btn:active{transform:scale(.97);}
+.up-x{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 6px;opacity:.7;}
 .up-x:hover{opacity:1;color:var(--white);}
+@media(max-width:480px){.up-acts{width:100%;}.up-btn{flex:1;}}
 #omUpsell{margin:-10px 0 16px;}
 #omUpsell:empty{display:none;}
 #omUpsellNote a{color:var(--green);font-weight:600;text-decoration:none;}
@@ -815,18 +826,28 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
   font-size:22px;background:rgba(61,212,74,.16);flex-shrink:0;}
 .upa-body{flex:1;min-width:0;}
 .upa-title{font-family:'Montserrat',sans-serif;font-size:15.5px;font-weight:800;color:var(--white);line-height:1.3;}
-.upa-meta{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.4;}
+.upa-meta{font-size:12.5px;color:#c9d4e3;margin-top:3px;line-height:1.4;}
 .upa-meta .up-tier{font-size:11.5px;}
 .upa-pitch{font-size:13px;color:#c9d4e3;line-height:1.5;margin:12px 0 0;}
 .upa-proof{display:flex;gap:7px;align-items:flex-start;font-size:12px;color:var(--white);line-height:1.45;
   margin-top:9px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.05);}
-.upa-cta{width:100%;margin-top:14px;border:none;border-radius:12px;padding:14px 12px;cursor:pointer;
+.upa-checks{list-style:none;margin:11px 0 0;padding:0;display:flex;flex-direction:column;gap:5px;}
+.upa-checks li{position:relative;padding-left:21px;font-size:12px;color:var(--white);line-height:1.4;}
+.upa-checks li::before{content:'✓';position:absolute;left:2px;top:0;color:var(--green);font-weight:900;}
+.upa-price{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:12px;
+  padding-top:11px;border-top:1px dashed rgba(255,255,255,.12);}
+.upa-price .up-was{font-size:13px;margin-right:4px;}
+.upa-now{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:900;color:var(--white);}
+.upa-save{font-size:11.5px;font-weight:700;color:var(--green);}
+.upa-when{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.4;}
+.upa-cta{width:100%;margin-top:12px;border:none;border-radius:12px;padding:14px 12px;cursor:pointer;
   background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;font-family:'Montserrat',sans-serif;
   font-size:15px;font-weight:800;letter-spacing:.2px;box-shadow:0 6px 20px rgba(61,212,74,.35);
   animation:upaPulse 2.4s ease-in-out .8s 3;}
+.upa-cta .up-was{color:rgba(255,255,255,.7);font-size:13px;margin-right:2px;}
 .upa-cta:active{transform:scale(.98);}
 @keyframes upaPulse{0%,100%{box-shadow:0 6px 20px rgba(61,212,74,.35);}50%{box-shadow:0 6px 28px rgba(61,212,74,.7);}}
-.upa-alt{display:flex;justify-content:center;gap:16px;margin-top:10px;font-size:12px;}
+.upa-alt{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:10px;font-size:12px;}
 .upa-alt a{color:var(--muted);font-weight:600;text-decoration:none;}
 .upa-alt a:first-child{color:var(--green);}
 /* When the offer is showing: tighten the screen so it's visible without
@@ -840,6 +861,25 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 #omStep3.om-has-upsell #omResultBtn{background:transparent;box-shadow:none;border:1px solid var(--border);
   color:var(--white);font-size:14px;font-weight:600;padding:12px;}
 #omUpsellNote{font-size:11.5px;color:var(--muted);margin:-8px 0 12px;}
+/* Checkout add-on on the order form (upsell.js) — one tap, same M-Pesa prompt */
+#omAddon:empty{display:none;}
+#omAddon{margin:0 0 12px;}
+.oa-box{display:flex;align-items:center;gap:10px;cursor:pointer;padding:11px 12px;border-radius:12px;
+  border:1.5px dashed rgba(61,212,74,.55);background:rgba(61,212,74,.06);transition:background .15s,border-color .15s;}
+.oa-box.on{border-style:solid;border-color:var(--green);background:rgba(61,212,74,.13);}
+.oa-box input{position:absolute;opacity:0;pointer-events:none;}
+.oa-tick{flex-shrink:0;width:22px;height:22px;border-radius:6px;border:2px solid var(--green);display:flex;align-items:center;justify-content:center;}
+.oa-box.on .oa-tick{background:var(--green);}
+.oa-box.on .oa-tick::after{content:'✓';color:#0d1117;font-weight:900;font-size:14px;line-height:1;}
+.oa-box input:focus-visible + .oa-tick{outline:2px solid var(--white);outline-offset:2px;}
+.oa-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.oa-title{font-size:13.5px;font-weight:800;color:var(--white);}
+.oa-why{font-size:11.5px;color:var(--muted);line-height:1.35;}
+.oa-price{flex-shrink:0;text-align:right;display:flex;flex-direction:column;align-items:flex-end;font-size:14px;color:var(--white);}
+.oa-price s{font-size:11px;color:var(--muted);}
+.oa-link{margin-top:8px;}
+.oa-link input{width:100%;}
+.oa-note{font-size:11px;color:var(--muted);margin:6px 2px 0;}
 
 @media(max-width:768px){
   .dash-stats-row{gap:8px;margin-bottom:14px;}
@@ -1063,6 +1103,19 @@ tbody td{padding:13px 16px;font-size:14px;}
 
 .svc-rank-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0;}
 .svc-rank-badge.cheapest{background:rgba(61,212,74,.15);color:var(--green);border:1px solid rgba(61,212,74,.3);}
+.svc-rank-badge.rec{background:rgba(250,204,21,.14);color:#facc15;border:1px solid rgba(250,204,21,.35);}
+/* EndaViral recommends — refill pick per type, above the normal list */
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:14px;margin-bottom:6px;}
+.svc-card.rec-card{border:1.5px solid rgba(250,204,21,.55);background:linear-gradient(160deg,rgba(250,204,21,.10),var(--card) 55%);
+  box-shadow:0 8px 26px rgba(250,204,21,.08);}
+.svc-card.rec-card:hover{border-color:#facc15;}
+.rec-kicker{font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#facc15;}
+.rec-why{font-size:12px;color:var(--muted);}
+.svc-feature-badge.rec-tier.medium{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.3);}
+.svc-feature-badge.rec-tier.elite{background:rgba(59,130,246,.12);color:#3b82f6;border:1px solid rgba(59,130,246,.3);}
+.rec-btn{border:none;border-radius:10px;padding:9px 16px;cursor:pointer;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;
+  font-family:'Montserrat',sans-serif;font-size:13px;font-weight:800;}
+.rec-divider{font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--muted);text-transform:uppercase;margin:16px 2px 10px;}
 .svc-rank-badge.popular{background:rgba(255,112,67,.12);color:var(--orange);border:1px solid rgba(255,112,67,.25);}
 .svc-feature-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
 .svc-feature-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap;}
@@ -2287,9 +2340,9 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
         </div>
 
-        <!-- ── Quiet next-step suggestions for delivered orders (upsell.js) ── -->
+        <!-- ── Next-step offers for delivered orders (upsell.js) ── -->
         <div id="dashNextSteps" style="display:none;">
-          <div class="up-label">SUGGESTED FOR YOU</div>
+          <div class="up-label">⚡ FINISH YOUR BOOST</div>
           <div class="up-list" id="dashNextStepsList"></div>
         </div>
 
@@ -3404,6 +3457,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div id="omUpsellNote" style="display:none;"></div>
       <div class="modal-field"><label>Paste Your Link</label><input type="url" id="omLink" placeholder="https://instagram.com/yourprofile"/><div id="omLinkHint" style="font-size:11.5px;color:var(--muted,#8a97a8);margin-top:5px;line-height:1.4;"></div></div>
       <div class="modal-field"><label>Enter Quantity</label><input type="number" id="omQty" placeholder="1000" oninput="calcOrderCost()"/></div>
+      <div id="omAddon"></div>
       <div class="cost-preview"><span class="cost-lbl">Total Cost</span><span class="cost-val" id="omCost">KES 0</span></div>
       <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="omPhone" placeholder="07XX XXX XXX"/></div></div>
       <details class="order-tips" style="margin-bottom:10px;">
@@ -4217,24 +4271,115 @@ function applyFilters() {
     const rb = parseFloat(b.rate || b.price_per_1000 || b.price || 0);
     return ra - rb;
   });
-  renderServices(list);
+  renderServices(list, recommendedPicks(list));
 }
 
-function renderServices(list) {
+/* ── EndaViral recommends ─────────────────────────────────────────────
+ * One pick for the chosen platform + type (e.g. Instagram → Likes), shown
+ * above the normal list — only once a type is picked, so a platform with
+ * many types doesn't stack a card per type before the list. Always a service WITH refill; among those Medium
+ * first (balanced price/stability), then Elite, then untiered; Basic only
+ * if nothing better has refill. Cheapest within a tier. No refill service
+ * for a type → no recommendation for it. Same tier rule as the backend's
+ * tier_of() in services/upsell.py. */
+function svcTierOf(name) {
+  const n = String(name || ''), low = n.toLowerCase();
+  const has = (w, dot) => n.includes(dot) || new RegExp(`(^|[^a-z])${w}([^a-z]|$)`).test(low);
+  if (has('basic', '\u{1F7E1}')) return 'basic';
+  if (has('elite', '\u{1F535}')) return 'elite';
+  if (has('medium', '\u{1F7E2}')) return 'medium';
+  return null;
+}
+const _REC_TIER_RANK = { medium: 0, elite: 1, null: 2, basic: 3 };
+
+function recommendedPicks(list) {
+  if (activePlatform === 'all' || activeSubcat === 'all') return [];   // only for a chosen platform + type
+  const best = {};
+  for (const s of list) {
+    if (!s.refill || s._subcatKey === 'other') continue;
+    const type = s._subcatKey;
+    const rank = _REC_TIER_RANK[svcTierOf(s.name)];
+    const rate = parseFloat(s.rate || s.price_per_1000 || s.price || 0);
+    const cur = best[type];
+    if (!cur || rank < cur.rank || (rank === cur.rank && rate < cur.rate)) best[type] = { s, rank, rate };
+  }
+  const order = Object.keys(SUBCATS);
+  return Object.keys(best)
+    .sort((a, b) => order.indexOf(a) - order.indexOf(b))
+    .map(k => best[k].s);
+}
+
+// Analytics for the recommended picks (admin → Growth → "EndaViral
+// Recommends"). Logged-in only; fire-and-forget, never blocks the UI.
+// The server keeps one "view" per customer per day and one "click" per
+// customer/service/day, so repeats here cost nothing.
+let _recCtx = null;                 // { service_id, placement, at } — tags the order
+const _REC_CTX_TTL = 30 * 60 * 1000;
+let _recViewSent = false;
+function _recSend(body) {
+  if (typeof token === 'undefined' || !token) return;
+  try { api('/recommended/event', { method: 'POST', body: JSON.stringify(body) }).catch(() => {}); } catch (_) {}
+}
+function recTrackView() {
+  if (_recViewSent) return;
+  _recViewSent = true;
+  _recSend({ kind: 'view' });
+}
+function recOpen(ev, placement) {
+  const card = ev.currentTarget;
+  const s = JSON.parse(card.dataset.svc);
+  _recCtx = { service_id: s.service, placement, at: Date.now() };
+  _recSend({ kind: 'click', service_id: s.service, placement });
+  openOrderModal(s);
+}
+/** `recommended` field for POST /orders, or null. */
+function recTagFor(svc) {
+  if (!_recCtx || !svc || Date.now() - _recCtx.at > _REC_CTX_TTL) return null;
+  if (String(svc.service) !== String(_recCtx.service_id)) return null;
+  return { service_id: _recCtx.service_id, placement: _recCtx.placement };
+}
+
+function _recCardHTML(s) {
+  const name = s.name || s.service_name || '';
+  const rate = parseFloat(s.rate || s.price_per_1000 || s.price || 0);
+  const tier = svcTierOf(name);
+  const tierHTML = tier && tier !== 'basic'
+    ? `<span class="svc-feature-badge rec-tier ${tier}">${tier === 'elite' ? '🔵 Elite' : '🟢 Medium'}</span>` : '';
+  const svcJson = JSON.stringify(s).replace(/"/g, '&quot;');
+  return `<div class="svc-card rec-card" data-svc="${svcJson}" onclick="recOpen(event,'card')">
+    <div class="rec-kicker">⭐ ENDAVIRAL RECOMMENDS${SUBCATS[s._subcatKey] ? ' · ' + _subcatLabelFor(s._subcatKey, s._platKey).replace(/^\S+\s/, '').toUpperCase() : ''}</div>
+    <div class="svc-name">${name}</div>
+    <div class="svc-feature-badges"><span class="svc-feature-badge refill">♻️ Refill</span>${tierHTML}</div>
+    <div class="rec-why">Refills free if your numbers drop.</div>
+    <div class="svc-meta">
+      <div class="svc-price-block"><div class="svc-price">${fmtKES(rate)}</div><div class="svc-price-label">per 1,000</div></div>
+      <button class="rec-btn" type="button">Order →</button>
+    </div>
+  </div>`;
+}
+
+function renderServices(list, recs = []) {
   const c = document.getElementById('servicesContainer');
   if (!list.length) {
     c.innerHTML = '<div class="no-results-block"><div class="nr-emoji">🔍</div><p>No services found. Try a different filter or search term.</p></div>';
     return;
   }
+  const recIds = new Set(recs.map(r => String(r.service)));
+  const recBlock = recs.length
+    ? `<div class="rec-grid">${recs.map(_recCardHTML).join('')}</div>
+       <div class="rec-divider">All ${activeSubcat !== 'all' && SUBCATS[activeSubcat] ? _subcatLabelFor(activeSubcat, activePlatform).replace(/^\S+\s/, '').toLowerCase() : 'services'} · cheapest first</div>`
+    : '';
+  if (recs.length) recTrackView();
   const cheapestRate = parseFloat(list[0]?.rate || list[0]?.price_per_1000 || list[0]?.price || 0);
-  c.innerHTML = `<div class="services-grid">${list.map((s, idx) => {
+  c.innerHTML = recBlock + `<div class="services-grid">${list.map((s, idx) => {
     const name = s.name || s.service_name || '';
     const rate = parseFloat(s.rate || s.price_per_1000 || s.price || 0);
     const minQ = s.min || s.min_quantity || 100;
     const maxQ = s.max || s.max_quantity || 1000000;
     const subcatDef = SUBCATS[s._subcatKey];
     let rankBadge = '';
-    if (idx === 0) rankBadge = '<span class="svc-rank-badge cheapest">💚 Cheapest</span>';
+    if (recIds.has(String(s.service))) rankBadge = '<span class="svc-rank-badge rec">⭐ Recommended</span>';
+    else if (idx === 0) rankBadge = '<span class="svc-rank-badge cheapest">💚 Cheapest</span>';
     else if (rate === cheapestRate) rankBadge = '<span class="svc-rank-badge cheapest">💚 Best Price</span>';
     else if (idx < 3) rankBadge = '<span class="svc-rank-badge popular">🔥 Popular</span>';
     const subcatLabel = subcatDef ? `<div class="svc-subcat">${_subcatLabelFor(s._subcatKey, s._platKey)}</div>` : '';
@@ -4243,7 +4388,8 @@ function renderServices(list) {
         ${s.cancel ? '<span class="svc-feature-badge cancel">✕ Cancellable</span>' : ''}
       </div>` : '';
     const svcJson = JSON.stringify(s).replace(/"/g, '&quot;');
-    return `<div class="svc-card" onclick="openOrderModal(${svcJson})">
+    const _isRec = recIds.has(String(s.service));
+    return `<div class="svc-card" ${_isRec ? `data-svc="${svcJson}" onclick="recOpen(event,'list')"` : `onclick="openOrderModal(${svcJson})"`}>
       <div class="svc-card-top">${platformTag(s)}${rankBadge}</div>
       <div class="svc-name">${name}</div>
       ${subcatLabel}
@@ -4274,6 +4420,7 @@ function openOrderModal(svc) {
   document.getElementById('omPhone').value = '';
   const _upNote = document.getElementById('omUpsellNote');  // set again by upsellStart() if this came from a suggestion
   if (_upNote) { _upNote.style.display = 'none'; _upNote.innerHTML = ''; }
+  if (typeof addonReset === 'function') addonReset();   // checkout add-on (upsell.js)
 
   // Starting quantity must satisfy BOTH the service's own minimum AND the
   // KES 20 payment floor. Rather than defaulting to the service min and
@@ -4330,10 +4477,14 @@ function calcOrderCost() {
   // Came from a "next step" suggestion → 10% off (upsell.js; backend re-checks).
   const up = (qty > 0 && typeof upsellPriceFor === 'function') ? upsellPriceFor(currentSvc, qty) : null;
   const costEl = document.getElementById('omCost');
+  // Ticked checkout add-on (upsell.js) — paid in the same M-Pesa prompt.
+  if (typeof addonOnQty === 'function') addonOnQty();
+  const addKes = (qty > 0 && typeof addonKes === 'function') ? addonKes() : 0;
   if (up && up.final < up.original) {
-    costKes = up.final;
-    costEl.innerHTML = `<s class="up-was">${fmtKES(up.original)}</s> ${fmtKES(up.final)} <span class="up-off">${up.pct}% OFF</span>`;
+    costKes = up.final + addKes;
+    costEl.innerHTML = `<s class="up-was">${fmtKES(up.original + addKes)}</s> ${fmtKES(costKes)} <span class="up-off">${up.pct}% OFF</span>`;
   } else {
+    costKes += addKes;
     costEl.textContent = fmtKES(costKes);
   }
   _checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 20);
@@ -4384,7 +4535,11 @@ async function placeOrder() {
   // Provider capacity hard-gate (safety net if button was somehow not disabled)
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
   const _upPrice = typeof upsellPriceFor === 'function' ? upsellPriceFor(currentSvc, qty) : null;
-  const costKes = _upPrice ? _upPrice.final : orderFinalKes(qty, rate);
+  let _addonReq = null;
+  try { _addonReq = typeof addonPayload === 'function' ? addonPayload() : null; }
+  catch (err) { toast(err.message, 'error'); return; }
+  const _addonWhat = _addonReq && typeof addonSummary === 'function' ? addonSummary() : '';
+  const costKes = (_upPrice ? _upPrice.final : orderFinalKes(qty, rate)) + (_addonReq && typeof addonKes === 'function' ? addonKes() : 0);
   if (!_checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 20)) return;
   const btn = document.getElementById('placeOrderBtn');
   btn.textContent = 'Sending STK Push…';
@@ -4393,12 +4548,19 @@ async function placeOrder() {
     const payload = { service_id: currentSvc.service || currentSvc.id || currentSvc._id, link, quantity: qty, phone };
     const _upTag = typeof upsellTagFor === 'function' ? upsellTagFor(currentSvc) : null;  // came from a suggestion? (10% off + admin stats)
     if (_upTag) payload.upsell = _upTag;
+    if (_addonReq) payload.addon = _addonReq;
+    const _recTag = typeof recTagFor === 'function' ? recTagFor(currentSvc) : null;   // opened from a ⭐ recommendation (admin stats)
+    if (_recTag) payload.recommended = _recTag;
     const resp = await api('/orders', { method:'POST', body:JSON.stringify(payload) });
+    window._omAddonWhat = resp.addon ? _addonWhat : '';
+    // Offered an add-on and left it unticked → don't offer again after paying.
+    window._omAddonDeclined = !resp.addon && typeof addonWasOffered === 'function' && addonWasOffered();
     if (_upTag && typeof upsellClearCtx === 'function') upsellClearCtx();
+    if (_recTag) _recCtx = null;
     pendingOrderId = resp.id;
     pendingCheckoutId = resp.checkout_request_id;
     document.getElementById('omPayPhone').textContent = phone;
-    document.getElementById('omPayService').textContent = currentSvc.name || '';
+    document.getElementById('omPayService').textContent = (currentSvc.name || '') + (window._omAddonWhat ? ` + ${window._omAddonWhat}` : '');
     document.getElementById('omPayQty').textContent = qty.toLocaleString();
     document.getElementById('omPayAmount').textContent = fmtKES(resp.stk_amount || resp.charge);
     // The backend decides the upsell discount; say so if it differs from the preview.
@@ -4411,6 +4573,23 @@ async function placeOrder() {
     startPaymentPoll();
   } catch(e) {
     const msg = e.message || '';
+    // The add-on offer changed between showing it and paying — nothing was
+    // charged; show the current offer and let them decide again.
+    if (e.status === 409 && _addonReq) {
+      toast(msg || 'The add-on changed — please check it and tap Pay again.', 'info');
+      if (typeof addonRefetch === 'function') addonRefetch();
+      return;
+    }
+    if (e.status === 410 && _addonReq) {   // add-on no longer available — drop it
+      toast(msg || 'The add-on is no longer available — tap Pay again to continue without it.', 'info');
+      if (typeof addonReset === 'function') addonReset(true);
+      calcOrderCost();
+      return;
+    }
+    if ((e.status === 400 || e.status === 422) && _addonReq && /add-on|link/i.test(msg)) {
+      toast(msg, 'error');   // a fixable add-on input problem — not worth a support ticket
+      return;
+    }
     const isGatewayErr = e.status === 502 || e.status === 503 || msg.includes('502') || msg.toLowerCase().includes('payment request failed') || msg.toLowerCase().includes('bad gateway') || msg.toLowerCase().includes('unreachable');
     if (isGatewayErr) {
       toast('M-Pesa is currently unreachable. A support ticket has been raised — admin will contact you shortly.', 'error');
@@ -4447,7 +4626,7 @@ function startPaymentPoll() {
         stopPaymentPoll();
         try {
           await api(`/orders/${pendingOrderId}/submit`, { method:'POST' });
-          showOrderResult(true, 'Payment confirmed' + (status.mpesaReceipt ? ' (M-Pesa ref ' + status.mpesaReceipt + ')' : '') + ' and order submitted! Track it in My Orders.');
+          showOrderResult(true, 'Payment confirmed' + (status.mpesaReceipt ? ' (M-Pesa ref ' + status.mpesaReceipt + ')' : '') + ' and order submitted!' + (window._omAddonWhat ? ` Your ${window._omAddonWhat} add-on starts right after it.` : '') + ' Track it in My Orders.');
         } catch(_) {
           showOrderResult(true, 'Payment confirmed' + (status.mpesaReceipt ? ' (M-Pesa ref ' + status.mpesaReceipt + ')' : '') + '! Order is being processed. Check My Orders.');
         }
@@ -4495,7 +4674,7 @@ function showOrderResult(success, msg) {
   document.getElementById('omResultIcon').textContent = success ? '✅' : '❌';
   document.getElementById('omResultTitle').textContent = success ? 'ORDER PLACED!' : 'PAYMENT FAILED';
   document.getElementById('omResultDesc').textContent = msg;
-  if (typeof upsellShowAfterOrder === 'function') upsellShowAfterOrder(success ? pendingOrderId : null);
+  if (typeof upsellShowAfterOrder === 'function') upsellShowAfterOrder(success && !window._omAddonDeclined ? pendingOrderId : null);
   // Successful order → suggest the Academy course for that platform
   // (academy.js). Most order customers never open the Academy otherwise.
   const tipEl = document.getElementById('omAcademyTip');

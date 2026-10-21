@@ -857,10 +857,11 @@ async function loadAdminCommandCenter(force = false) {
     api(`/admin/stats/platforms/outcomes?days=${_chc.trendsDays}`), // 18
     api(`/admin/stats/order-kinds?days=${_chc.trendsDays}`),         // 19
     api(`/upsell/admin/stats?days=${_chc.trendsDays}`),               // 20
+    api(`/recommended/admin/stats?days=${_chc.trendsDays}`),          // 21
   ]);
   const [snap, stats, breakdown, revenue, trends, engagement,
          connectStats, connectRevenue, academyStats, academyRevenue,
-         affiliates, ccrAgents, platforms, titan, ownerPay, expenses, panelGrowth, taxReserve, outcomes, orderKinds, upsellStats] = results;
+         affiliates, ccrAgents, platforms, titan, ownerPay, expenses, panelGrowth, taxReserve, outcomes, orderKinds, upsellStats, recStats] = results;
   _chc.data.snapshot   = snap.status === 'fulfilled' ? snap.value : null;
   _chc.data.stats      = stats.status === 'fulfilled' ? stats.value : null;
   _chc.data.breakdown  = breakdown.status === 'fulfilled' ? breakdown.value : null;
@@ -882,6 +883,7 @@ async function loadAdminCommandCenter(force = false) {
   _chc.data.outcomes        = outcomes.status === 'fulfilled' ? outcomes.value : null;
   _chc.data.orderKinds      = orderKinds.status === 'fulfilled' ? orderKinds.value : null;
   _chc.data.upsell          = upsellStats.status === 'fulfilled' ? upsellStats.value : null;
+  _chc.data.recommended     = recStats.status === 'fulfilled' ? recStats.value : null;
   _chc.loadedAt = Date.now();
 
   _chcRenderAlerts();
@@ -951,6 +953,72 @@ function _chcUpsellPanel(u) {
       ${group('Tier of ordered service', u.by_tier)}
       ${kinds ? `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px;">Top follow-ups</div>${kinds}` : ''}
       ${recent ? `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px;">Latest</div>${recent}` : ''}`,
+  });
+}
+
+// ── ⭐ EndaViral Recommends panel — Growth section ─────────────────────
+// Data: GET /recommended/admin/stats (app/services/recommended.py).
+// The catalog shows one refill pick per platform + type above the list
+// (index.html → recommendedPicks()). Funnel: customers shown → opened the
+// pick → orders started → paid. "Share" = the picks' paid orders as a % of
+// all paid orders of the same platform + type — are customers following it?
+function _chcRecommendedPanel(r) {
+  if (!r) {
+    return _chcPanel({ title: 'EndaViral Recommends', icon: '⭐', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load recommendation stats (is the latest backend deployed?).</div>` });
+  }
+  const tile = (label, value, sub, color) => `
+    <div style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);">${label}</div>
+      <div style="font-size:20px;font-weight:800;color:${color || 'var(--white)'};margin-top:4px;">${value}</div>
+      ${sub ? `<div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${sub}</div>` : ''}
+    </div>`;
+  const hd = t => `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px;">${t}</div>`;
+  const PL = { card: '⭐ Top card', list: '📋 ⭐ badge in the list' };
+  const placements = Object.entries(r.by_placement || {}).filter(([, v]) => v.opened || v.orders).map(([k, v]) => `
+    <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+      <span style="color:var(--white);">${PL[k] || esc(k)}</span>
+      <span style="color:var(--muted);white-space:nowrap;">${v.opened} opened · ${v.paid} paid of ${v.orders} · <b style="color:#3dd44a;">${fmtKES(v.revenue_kes)}</b></span>
+    </div>`).join('');
+  const kinds = (r.by_kind || []).map(([k, v]) => {
+    const share = v.kind_paid_orders ? `${v.share_pct}% of ${v.kind_paid_orders}` : '—';
+    return `<tr style="font-size:12px;">
+      <td style="padding:5px 6px 5px 0;color:var(--white);white-space:nowrap;font-size:12px;">${esc(k)}</td>
+      <td style="padding:5px 6px;text-align:right;font-size:12px;">${v.opened}</td>
+      <td style="padding:5px 6px;text-align:right;font-size:12px;">${v.paid}/${v.orders}</td>
+      <td style="padding:5px 6px;text-align:right;color:#3dd44a;font-weight:700;white-space:nowrap;font-size:12px;">${fmtKES(v.revenue_kes)}</td>
+      <td style="padding:5px 0 5px 6px;text-align:right;white-space:nowrap;font-size:12px;">${share}</td>
+    </tr>`;
+  }).join('');
+  const kindTable = kinds ? `${hd('By platform · type')}
+    <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;color:var(--muted);">
+      <thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;">
+        <th style="text-align:left;padding:4px 6px 4px 0;font-weight:700;">Kind</th>
+        <th style="text-align:right;padding:4px 6px;font-weight:700;" title="Customers who opened the recommended service">Opened</th>
+        <th style="text-align:right;padding:4px 6px;font-weight:700;">Paid / started</th>
+        <th style="text-align:right;padding:4px 6px;font-weight:700;">Revenue</th>
+        <th style="text-align:right;padding:4px 0 4px 6px;font-weight:700;" title="Recommended paid orders as a % of ALL paid orders of this platform + type">Share</th>
+      </tr></thead><tbody>${kinds}</tbody></table></div>` : '';
+  const recent = (r.recent || []).slice(0, 6).map(x => `
+    <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:4px 0;">
+      <span style="color:var(--white);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(x.service_name)}">${esc(x.email)} · ${esc(x.service_name)}</span>
+      <span style="color:var(--muted);white-space:nowrap;">${fmtKES(x.charge)} · ${esc(x.status || '')}</span>
+    </div>`).join('');
+  const empty = !r.customers_shown && !r.orders_started;
+  return _chcPanel({
+    title: 'EndaViral Recommends', icon: '⭐',
+    sub: `last ${r.window_days}d · one ♻️ refill pick per platform + type, shown above the services list · logged-in customers`,
+    body: empty ? `<div style="font-size:12px;color:var(--muted);">No recommendations seen yet in this window. They show once a customer picks a platform in Services.</div>` : `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+        ${tile('Customers shown', Number(r.customers_shown).toLocaleString(), 'saw a ⭐ pick')}
+        ${tile('Opened', Number(r.customers_opened).toLocaleString(), `${r.open_rate_pct}% of shown`)}
+        ${tile('Orders paid', Number(r.orders_paid).toLocaleString(), `${r.pay_rate_pct}% of ${r.orders_started} started`, '#3dd44a')}
+        ${tile('Revenue', fmtKES(r.revenue_kes), `avg ${fmtKES(r.avg_order_kes)}`, '#3dd44a')}
+        ${tile('Conversion', r.conversion_pct + '%', 'of shown customers paid')}
+        ${tile('Share', r.share_pct + '%', 'of paid orders in those types', '#facc15')}
+      </div>
+      ${placements ? hd('Where they clicked') + placements : ''}
+      ${kindTable}
+      ${recent ? hd('Latest') + recent : ''}`,
   });
 }
 
@@ -2317,6 +2385,7 @@ function _chcRenderGrowth() {
     ${outcomesPanel}
     ${kindsPanel}
     ${_chcUpsellPanel(_chc.data.upsell)}
+    ${_chcRecommendedPanel(_chc.data.recommended)}
     ${_chcPanel({
       title: 'New Users per Day', icon: '👤', body: `
         <div style="font-size:18px;font-weight:800;color:var(--white);margin-bottom:8px;">${g.this_week ? g.this_week.new_users : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> /7d</span> ${_growthBadge(g.users_wow_pct)}</div>
