@@ -22,7 +22,7 @@ function adminTab(tab, el) {
   document.getElementById('ap-' + tab).classList.add('active');
   if (tab === 'users') loadAdminUsers();
   if (tab === 'allorders') loadAdminOrders();
-  if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); }
+  if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); loadServiceSyncStatus(); }
   if (tab === 'stats') { loadAdminCommandCenter(); }
   if (tab === 'providers') loadAdminProviders();
   if (tab === 'support') openAdminSupportTab();
@@ -2705,6 +2705,48 @@ async function adminCleanupLoginEvents() {
   }
 }
 
+/* "Last refresh" line under the Services Management title: when services
+ * were last synced from the provider (automatic 00:00 / 12:00 EAT, or a
+ * manual Sync & Apply), the next automatic run, and any failure. */
+function _syncWhen(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return esc(iso);
+  const opts = { timeZone: 'Africa/Nairobi', hour: '2-digit', minute: '2-digit', hour12: false };
+  const day = d.toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi', day: 'numeric', month: 'short' });
+  const today = new Date().toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi', day: 'numeric', month: 'short' });
+  return (day === today ? 'today' : day) + ' ' + d.toLocaleTimeString('en-KE', opts);
+}
+
+async function loadServiceSyncStatus() {
+  const el = document.getElementById('svcSyncStatus');
+  if (!el) return;
+  try {
+    const st = await api('/admin/services/sync/status');
+    const r = st.last_run;
+    const parts = [];
+    if (r && r.ran_at_eat) {
+      const how = r.trigger === 'manual' ? 'manual' : 'automatic';
+      parts.push(`<span style="color:var(--green);">●</span> Last refresh: <strong style="color:var(--white);">${_syncWhen(r.ran_at_eat)}</strong> (${how}) · ${Number(r.visible || 0).toLocaleString()} shown, ${Number(r.hidden || 0).toLocaleString()} hidden`);
+    } else {
+      parts.push('<span style="color:var(--orange);">●</span> No refresh recorded yet');
+    }
+    if (st.enabled) {
+      parts.push(`Next automatic: ${_syncWhen(st.next_run_eat)}`);
+      if (!st.current_slot_done && !st.last_error) parts.push('<span style="color:var(--orange);">this slot\'s run is pending (server may be waking up)</span>');
+    } else {
+      parts.push('<span style="color:var(--orange);">Automatic refresh is OFF</span>');
+    }
+    let html = parts.join(' · ');
+    if (st.last_error) {
+      html += `<div style="margin-top:4px;color:var(--red);">⚠️ Automatic refresh failed ${_syncWhen(st.last_error.at_eat)}: ${esc(st.last_error.error || 'unknown error')} — retrying in ${st.last_error.retry_in_minutes || 30} min</div>`;
+    }
+    el.innerHTML = html;
+  } catch (e) {
+    el.textContent = '';
+  }
+}
+
 async function loadSavedPricingSettings() {
   // Pre-fill all filter inputs from whatever is saved in the DB
   try {
@@ -2760,7 +2802,7 @@ async function syncServices() {
     if (typeHidden) detailParts.push(`${typeHidden} need extra details (comments/usernames/polls)`);
     const msg = `Synced! ${visible} visible · ${hidden} hidden (${detailParts.join(', ')}) · Markup: ${markupPct}%`;
     toast(msg, 'success');
-    loadAdminServices(); loadServices(true);
+    loadAdminServices(); loadServices(true); loadServiceSyncStatus();
   } catch(e) { toast(e.message, 'error'); }
   finally { btn.textContent = '⟳ Sync & Apply'; btn.disabled = false; }
 }
