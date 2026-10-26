@@ -265,13 +265,15 @@ function ccrqrRenderBar(threadId) {
   const existing = document.getElementById('ccrQuickReplyBar');
   if (existing) existing.remove();
 
-  const replyRow = input.closest('div'); // the flex row wrapping textarea + send button
-  if (!replyRow || !replyRow.parentNode) return;
+  // New chat layout: the bar lives in the ⚡ pop-up (#supQuickReplies, admin.js).
+  const popup = document.getElementById('supQuickReplies');
+  const replyRow = input.closest('div'); // older layout: the flex row wrapping textarea + send button
+  if (!popup && (!replyRow || !replyRow.parentNode)) return;
 
   const bar = document.createElement('div');
   bar.id = 'ccrQuickReplyBar';
   bar.dataset.threadId = threadId;
-  bar.style.cssText = 'padding:8px 14px 8px;border-top:1px solid rgba(61,212,74,.08);background:rgba(0,0,0,.15);flex-shrink:0;';
+  bar.style.cssText = popup ? '' : 'padding:8px 14px 8px;border-top:1px solid rgba(61,212,74,.08);background:rgba(0,0,0,.15);flex-shrink:0;';
 
   const categoryOptions = ['All', ...ccrqrCategories()].map(c =>
     `<option value="${c === 'All' ? '' : esc(c)}">${esc(c)}</option>`
@@ -286,10 +288,11 @@ function ccrqrRenderBar(threadId) {
       <input id="ccrqrSearchInput" placeholder="Search…" oninput="ccrqrOnSearchInput()" style="flex:1;min-width:60px;background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:10.5px;padding:4px 8px;border-radius:6px;outline:none;" />
       <button onclick="ccrqrOpenManage()" title="Add / edit your own quick replies" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:10.5px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">⚙️ Manage</button>
     </div>
-    <div id="ccrqrChipRow" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;"></div>
+    <div id="ccrqrChipRow" style="display:flex;gap:6px;${document.getElementById('supQuickReplies') ? 'flex-wrap:wrap;max-height:150px;overflow-y:auto;' : 'overflow-x:auto;padding-bottom:2px;'}"></div>
   `;
 
-  replyRow.parentNode.insertBefore(bar, replyRow);
+  if (popup) { popup.innerHTML = ''; popup.appendChild(bar); }
+  else replyRow.parentNode.insertBefore(bar, replyRow);
 
   const catSelect = bar.querySelector('#ccrqrCategoryFilter');
   if (catSelect) catSelect.value = _ccrqrCategoryFilter;
@@ -362,6 +365,7 @@ function ccrqrInsert(replyId) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
   input.focus();
   input.selectionStart = input.selectionEnd = input.value.length;
+  if (typeof supportToggleQuickReplies === 'function') supportToggleQuickReplies(false);   // close the ⚡ pop-up
 }
 
 // ─── Manage modal (add / edit / delete custom replies) ─────────────────────

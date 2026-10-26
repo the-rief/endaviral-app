@@ -2978,185 +2978,167 @@ async function openSupportThread(threadId, opts) {
     const statusColor = { open:'#e53935', pending:'#ff7043', resolved:'#3dd44a', closed:'#7a8fad' };
     const typeLabel   = { wrong_order:'📦 Wrong Order', delay:'⏳ Delay' };
 
-    // Build recent orders HTML — each row is clickable and opens the
-    // full order-detail modal (openOrderDetailModal), so an agent can
-    // pull up everything about any of the customer's orders without
-    // leaving the ticket. Reset + repopulate the lookup cache every
-    // time the thread (re)renders so it never serves stale data.
     _supportOrdersCache = {};
     (t.recent_orders || []).forEach(o => { if (o && o.id) _supportOrdersCache[o.id] = o; });
     if (t.linked_order && t.linked_order.id) _supportOrdersCache[t.linked_order.id] = t.linked_order;
     _supportThreadUser = t.user || null;
 
-    const ordersHtml = (t.recent_orders || []).map(o => {
-      const rawLink   = o.link || '';
-      const safeLink  = esc(rawLink);
-      const link = rawLink ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:var(--green);font-size:10px;word-break:break-all;display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;" title="${safeLink}">${safeLink}</a>` : '';
-      const provId = (o.provider_order_id ? `<div style="font-size:10px;color:var(--muted);">Provider #${esc(o.provider_order_id)}</div>` : '')
-        + (o.mpesa_receipt ? `<div style="font-size:10px;color:var(--muted);">M-Pesa: <span style="font-family:monospace;color:var(--green);">${esc(o.mpesa_receipt)}</span></div>` : '');
-      const oStatus = esc(o.status||'');
-      const oid = esc(o.id||'');
-      const clickable = !!o.id;
-      return `<div ${clickable ? `onclick="openOrderDetailModal('${oid}')" title="Click for full order details"` : ''} style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;${clickable ? 'cursor:pointer;transition:background .15s;border-radius:6px;' : ''}" ${clickable ? `onmouseover="this.style.background='rgba(61,212,74,.06)'" onmouseout="this.style.background=''"` : ''}>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <span style="color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.service_name || 'Unknown service')}</span>
-          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-            <span style="color:var(--white);">KES ${parseFloat(o.charge).toFixed(0)}</span>
-            <span class="status-pill ${oStatus}" style="font-size:9px;">${oStatus}</span>
-          </div>
-        </div>
-        <div style="color:var(--muted);font-size:10px;margin-top:2px;">Qty: ${parseInt(o.quantity||0).toLocaleString()}</div>
-        ${reorderedTag(o)}
-        ${link}${provId}
-      </div>`;
-    }).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px 0;">No recent orders</div>';
+    // Order panel: the orders being discussed now ("In this chat") as cards,
+    // then the client's other recent orders as a short list.
+    const inChatIds = [...((t.board && t.board.episode_orders) || [])];
+    if (t.linked_order && t.linked_order.id && !inChatIds.includes(t.linked_order.id)) inChatIds.push(t.linked_order.id);
+    const inChat = inChatIds.map(id => _supportOrdersCache[id]).filter(Boolean);
+    const others = (t.recent_orders || []).filter(o => o && o.id && !inChatIds.includes(o.id));
+    const inChatHtml = inChat.map(o => _supOrderPanelCard(o)).join('')
+      || '<div style="font-size:12px;color:#93a3ba;">No order mentioned yet in this chat.</div>';
+    const othersHtml = others.map(o => _supOrderPanelRow(o)).join('')
+      || '<div style="font-size:12px;color:#93a3ba;">No other orders.</div>';
 
-    // Build messages HTML
-    // One conversation per client: each message carries the order it is about
-    // (click to open that order) and its topic; a divider marks each new day.
+    // Messages — WhatsApp layout from the agent's side: OUR messages on the
+    // right (staff = green, automatic = muted), the CLIENT on the left,
+    // automatic system reports as a small note in the middle. Each message
+    // carries its order tag (click → that order) and topic.
+    _supMsgById = {};
+    if (_supReplyTo && _supReplyTo.threadId !== threadId) _supReplyTo = null;
     const resolvedAt = t.resolved_at ? new Date(t.resolved_at) : null;
     let _lastDay = '', _doneMarked = false;
+    const dayLabel = (d) => {
+      const today = new Date(), y = new Date(Date.now() - 864e5);
+      if (d.toDateString() === today.toDateString()) return 'Today';
+      if (d.toDateString() === y.toDateString()) return 'Yesterday';
+      return d.toLocaleDateString('en-KE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    };
     function msgBubble(m) {
       let pre = '';
       const mDate = m.created_at ? new Date(m.created_at) : null;
       if (resolvedAt && !_doneMarked && mDate && mDate > resolvedAt) {
         _doneMarked = true;
-        pre += `<div style="display:flex;align-items:center;gap:8px;font-size:10.5px;color:#3dd44a;margin:6px 0;"><span style="flex:1;height:1px;background:rgba(61,212,74,.25);"></span>✅ Marked done ${esc(resolvedAt.toLocaleString('en-KE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))} — new messages below<span style="flex:1;height:1px;background:rgba(61,212,74,.25);"></span></div>`;
+        pre += `<div style="display:flex;align-items:center;gap:8px;font-size:10.5px;color:#7fe08b;margin:4px 0;"><span style="flex:1;height:1px;background:rgba(61,212,74,.25);"></span>Marked done ${esc(resolvedAt.toLocaleString('en-KE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))} · new messages below<span style="flex:1;height:1px;background:rgba(61,212,74,.25);"></span></div>`;
       }
-      const day = mDate ? mDate.toLocaleDateString('en-KE',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '';
-      if (day && day !== _lastDay) {
-        _lastDay = day;
-        pre += `<div style="text-align:center;font-size:10.5px;color:var(--muted);margin:4px 0;">${esc(day)}</div>`;
+      if (mDate) {
+        const day = dayLabel(mDate);
+        if (day !== _lastDay) {
+          _lastDay = day;
+          pre += `<div style="align-self:center;font-size:11px;color:#93a3ba;background:#111a2c;border-radius:999px;padding:3px 12px;">${esc(day)}</div>`;
+        }
       }
-      const onGreen = m.sender === 'admin' && !m.is_bot;          // staff reply = green bubble
-      const tag = (m.order_id || m.topic) ? `<div style="font-size:10px;font-weight:700;margin-bottom:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-          ${m.order_id ? `<span onclick="event.stopPropagation();openOrderDetailModal('${esc(m.order_id)}')" title="Open this order" style="cursor:pointer;color:${onGreen ? '#fff' : '#7fd88a'};background:${onGreen ? 'rgba(0,0,0,.18)' : 'rgba(61,212,74,.12)'};border-radius:5px;padding:1px 6px;">📦 #${esc(String(m.order_id).slice(0,8))}${_supportOrdersCache[m.order_id] ? ' · ' + esc(String(_supportOrdersCache[m.order_id].service_name || '').slice(0, 28)) : ''}</span>` : ''}
-          ${m.topic ? `<span style="color:${onGreen ? 'rgba(255,255,255,.8)' : 'var(--muted)'};">${esc(m.topic)}</span>` : ''}</div>` : '';
+      const onGreen = m.sender === 'admin' && !m.is_bot;
+      const tag = (m.order_id || m.topic) ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px;">
+          ${m.order_id ? `<span onclick="event.stopPropagation();openOrderDetailModal('${esc(m.order_id)}')" title="Open this order" style="cursor:pointer;font-size:10.5px;font-weight:700;color:${onGreen ? '#fff' : '#7fe08b'};background:${onGreen ? 'rgba(0,0,0,.2)' : 'rgba(61,212,74,.12)'};border-radius:6px;padding:1px 6px;">#${esc(String(m.order_id).slice(0,8))}${_supportOrdersCache[m.order_id] ? ' · ' + esc(String(_supportOrdersCache[m.order_id].service_name || '').split('|')[0].trim().slice(0, 24)) : ''}</span>` : ''}
+          ${m.topic ? `<span style="font-size:10.5px;color:${onGreen ? 'rgba(255,255,255,.82)' : '#93a3ba'};">${esc(m.topic)}</span>` : ''}</div>` : '';
       return pre + _msgBubbleInner(m, tag);
     }
     function _msgBubbleInner(m, tag) {
       const isAdmin = m.sender === 'admin';
       const safeBody = (m.body||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      const formatted = tag + supLinkifyOrderRefs(safeBody.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')).replace(/\n/g,'<br>');
+      _supMsgById[m.id] = m;
+      const onGreen = isAdmin && !m.is_bot;
+      const quote = m.reply_to_id ? supQuoteHtml(m.reply_to, 'staff', t.user, onGreen) : '';
+      const formatted = quote + tag + supLinkifyOrderRefs(safeBody.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')).replace(/\n/g,'<br>');
       const time = m.created_at ? new Date(m.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'}) : '';
-      // WhatsApp layout from the agent's side: OUR messages on the right
-      // (staff = green, automatic = muted dark), the CLIENT on the left,
-      // automatic system reports as a small note in the middle.
+      const replyBtn = m.id ? ` · <a href="javascript:void(0)" onclick="supportReplyTo('${esc(m.id)}')" title="Reply to this message" style="color:#7fe08b;text-decoration:none;font-weight:700;">Reply</a>` : '';
       if (m.sender === 'user' && (m.body || '').startsWith('🚨 Automatic')) {
-        return `<div style="align-self:center;max-width:80%;background:rgba(255,179,71,.08);border:1px solid rgba(255,179,71,.25);border-radius:10px;padding:8px 12px;font-size:11.5px;color:#ffcc80;line-height:1.5;">
-          ${formatted}<div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:right;">⚙️ System report · ${time}</div></div>`;
+        return `<div data-msg-id="${esc(m.id || '')}" style="align-self:center;max-width:78%;background:rgba(255,179,71,.07);border:1px solid rgba(255,179,71,.25);border-radius:10px;padding:8px 12px;font-size:11.5px;color:#ffd08a;line-height:1.5;">
+          <div class="ev-msg-bubble" style="all:unset;display:block;">${formatted}</div><div style="font-size:10px;color:#93a3ba;margin-top:4px;text-align:right;">System report · ${time}</div></div>`;
       }
-      if (isAdmin) {
-        const who = m.is_bot ? '🤖 Automatic' : (m.sender_id && currentUser && m.sender_id === currentUser.id ? 'You' : 'Staff');
-        return `<div class="ev-msg from-user" style="max-width:80%;">
-          <div class="ev-msg-avatar">${m.is_bot ? '🤖' : '🦠'}</div>
-          <div><div class="ev-msg-bubble" ${m.is_bot ? 'style="background:#1d2a3d;border:1px solid rgba(255,255,255,.08);color:var(--white);"' : ''}>${formatted}</div><div class="ev-msg-time">${who} · ${time}</div></div>
-        </div>`;
-      }
-      const initial = esc((t.user?.name || t.user?.email || 'U').charAt(0).toUpperCase());
-      return `<div class="ev-msg from-admin" style="max-width:80%;">
-        <div class="ev-msg-avatar" style="background:linear-gradient(135deg,#243048,#1a2435);color:var(--green);font-weight:800;font-size:14px;">${initial}</div>
-        <div><div class="ev-msg-bubble">${formatted}</div><div class="ev-msg-time">${time}</div></div>
+      const bubble = isAdmin
+        ? (m.is_bot
+            ? 'background:#16223a;border:1px solid #22314f;color:#e8eef7;border-radius:14px 14px 4px 14px;'
+            : 'background:#187a2b;color:#ffffff;border-radius:14px 14px 4px 14px;')
+        : 'background:#172238;color:#e8eef7;border-radius:14px 14px 14px 4px;';
+      const who = isAdmin ? (m.is_bot ? 'Automatic' : (m.sender_id && currentUser && m.sender_id === currentUser.id ? 'You' : 'Staff')) : '';
+      return `<div data-msg-id="${esc(m.id || '')}" style="align-self:${isAdmin ? 'flex-end' : 'flex-start'};max-width:68%;display:flex;flex-direction:column;align-items:${isAdmin ? 'flex-end' : 'flex-start'};gap:4px;">
+        <div class="ev-msg-bubble" style="${bubble}padding:10px 12px;font-size:13px;line-height:1.5;word-break:break-word;">${formatted}</div>
+        <div style="font-size:10.5px;color:#93a3ba;">${who ? esc(who) + ' · ' : ''}${time}${replyBtn}</div>
       </div>`;
     }
 
     const userName  = esc(t.user?.name || t.user?.email || '—');
     const userEmail = esc(t.user?.email || '');
-    const tType     = esc(t.type||'');
-    const tStatus   = esc(t.status||'');
-    const tStatusColor = statusColor[t.status] || '#7a8fad';
-    const tTypeLabel = typeLabel[t.type] || tType;
-    const tIsSystem  = t.source === 'system';
-    const tSourceBadge = tIsSystem
-      ? `<span style="font-size:9px;font-weight:700;color:#ffb347;background:rgba(255,179,71,.12);border-radius:5px;padding:2px 7px;margin-left:8px;white-space:nowrap;">⚙️ AUTO-RAISED — no customer reply expected</span>`
-      : '';
+    const initial   = esc((t.user?.name || t.user?.email || '?').trim().charAt(0).toUpperCase());
+    const bucket    = (t.board && t.board.bucket) || '';
+    const pill = ['resolved','closed'].includes(t.status) ? ['Done', '#7fe08b', 'rgba(61,212,74,.12)']
+      : bucket === 'inbox' || t.status === 'open' ? ['Waiting on us', '#ff8a8a', 'rgba(255,92,92,.14)']
+      : bucket === 'automatic' ? ['Automatic only', '#b9c6d8', 'rgba(255,255,255,.08)']
+      : ['Waiting on client', '#ffc46b', 'rgba(255,179,71,.14)'];
+    const btn2 = 'height:38px;padding:0 14px;background:#111a2c;border:1px solid #1e2a40;border-radius:10px;color:#e8eef7;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;';
+    const orderOpts = Object.values(_supportOrdersCache).map(o =>
+      `<option value="${esc(o.id)}" title="${esc(o.service_name || '')}" ${t.board && t.board.episode_orders && t.board.episode_orders[0] === o.id ? 'selected' : ''}>#${esc(String(o.id).slice(0,8))}</option>`).join('');
 
-    // linked order fields
-    const lo = t.linked_order;
-    const loHtml = lo ? (() => {
-      const loSvc     = esc(lo.service_name||'—');
-      const loStatus  = esc(lo.status||'');
-      const loProvId  = lo.provider_order_id ? `<div style="color:var(--muted);margin-top:2px;font-size:11px;">Provider ID: #${esc(lo.provider_order_id)}</div>` : '';
-      const loStart   = lo.start_count != null ? `<div style="color:var(--muted);margin-top:2px;font-size:11px;">Start: ${parseInt(lo.start_count)} · Remains: ${lo.remains != null ? parseInt(lo.remains) : '—'}</div>` : '';
-      const rawLoLink = lo.link || '';
-      const safeLoLink= esc(rawLoLink);
-      const loLink    = rawLoLink ? `<a href="${safeLoLink}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:var(--green);font-size:11px;word-break:break-all;display:block;margin-top:6px;">${safeLoLink}</a>` : '';
-      const loClickable = !!lo.id;
-      const loId = esc(lo.id||'');
-      return `<div ${loClickable ? `onclick="openOrderDetailModal('${loId}')" title="Click for full order details"` : ''} style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;${loClickable ? 'cursor:pointer;transition:border-color .15s;' : ''}" ${loClickable ? `onmouseover="this.style.borderColor='rgba(61,212,74,.4)'" onmouseout="this.style.borderColor='var(--border)'"` : ''}>
-              <div style="color:var(--white);font-weight:700;margin-bottom:4px;">${loSvc}</div>
-              <div style="color:var(--muted);">Qty: ${parseInt(lo.quantity||0).toLocaleString()} · KES ${parseFloat(lo.charge||0).toFixed(0)}</div>
-              ${loProvId}${loStart}${loLink}
-              <span class="status-pill ${loStatus}" style="margin-top:8px;display:inline-block;">${loStatus}</span>
-              ${reorderedTag(lo)}
-            </div>`;
-    })() : '<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">No linked order</div>';
-
-    // Ensure the pane itself is a proper bounded flex column
-    pane.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;min-height:0;height:100%;background:var(--black);';
+    pane.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;min-height:0;height:100%;background:#0c1322;font-family:Montserrat,system-ui,sans-serif;';
 
     pane.innerHTML = `
-      <!-- Thread header — fixed, never scrolls -->
-      <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0;background:rgba(61,212,74,.03);">
-        <div>
-          <div style="font-size:13px;font-weight:800;color:var(--white);">${userName}
-            <span style="font-size:11px;color:var(--muted);font-weight:500;margin-left:8px;">${userEmail}</span>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #1e2a40;flex-shrink:0;">
+        <div style="display:flex;gap:12px;align-items:center;min-width:0;">
+          <span style="width:40px;height:40px;border-radius:50%;background:#3dd44a;color:#062b0c;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initial}</span>
+          <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
+            <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;"><b style="font-size:15px;color:#fff;">${userName}</b><span style="font-size:12px;color:#93a3ba;">${userEmail}</span></div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11.5px;">
+              <span style="background:${pill[2]};color:${pill[1]};border-radius:999px;padding:2px 9px;font-weight:700;">${pill[0]}</span>
+              ${t.board && t.board.topic ? `<span style="color:#b9c6d8;">${esc(t.board.topic)}</span>` : ''}
+              <span style="color:#93a3ba;">Wallet KES ${(t.user?.wallet_balance||0).toFixed(0)} · Client since ${t.user?.member_since ? new Date(t.user.member_since).toLocaleDateString('en-KE',{month:'short',year:'numeric'}) : '—'}</span>
+            </div>
           </div>
-          <div style="font-size:11px;color:var(--green);font-weight:600;margin-top:2px;">💬 Support chat${t.board && t.board.topic ? ' · ' + esc(t.board.topic) : ''} · <span style="color:${tStatusColor}">${{open:'WAITING ON US', pending:'WAITING ON CLIENT', resolved:'DONE', closed:'DONE'}[t.status] || tStatus.toUpperCase()}</span></div>
-          ${(t.board && t.board.episode_orders && t.board.episode_orders.length) ? `<div style="font-size:10.5px;color:var(--muted);margin-top:3px;">Orders in this conversation now: ${t.board.episode_orders.map(id => `<a href="javascript:void(0)" onclick="openOrderDetailModal('${esc(id)}')" style="color:#7fd88a;">#${esc(String(id).slice(0,8))}</a>`).join(' · ')}</div>` : ''}
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Wallet: KES ${(t.user?.wallet_balance||0).toFixed(0)} · Member since ${t.user?.member_since ? new Date(t.user.member_since).toLocaleDateString('en-KE') : '—'}</div>
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0;">
-          ${t.reorder_task_id ? `<button class="action-btn" onclick="rqReorderTask('${esc(t.reorder_task_id)}')" title="This client is in the Reorder Queue — re-place their paid order free of charge, using the link they sent in this chat" style="border-color:#ff7043;color:#ff7043;font-weight:700;">🔁 Reorder for client</button>` : ''}
-          ${userEmail ? `<button class="action-btn" onclick="ccrCreateOrderForThreadUser()" title="Place an order for ${userEmail} without leaving this ticket">🧾 Place Order</button>` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${t.reorder_task_id ? `<button onclick="rqReorderTask('${esc(t.reorder_task_id)}')" title="This client is in the Reorder Queue — re-place their paid order free of charge" style="${btn2}border-color:rgba(255,112,67,.6);color:#ff9a70;">Reorder for client</button>` : ''}
+          ${userEmail ? `<button onclick="ccrCreateOrderForThreadUser()" title="Place an order for ${userEmail} without leaving this chat" style="${btn2}">Place order</button>` : ''}
           ${['resolved','closed'].includes(t.status)
-            ? `<button class="action-btn" onclick="adminUpdateThreadStatus('open')" title="Move it back to the Inbox">↩ Reopen</button>`
-            : `<button class="action-btn" onclick="adminUpdateThreadStatus('resolved')" title="Sorted for now — the conversation stays; the client's next message reopens it in the Inbox" style="border-color:#3dd44a;color:#3dd44a;font-weight:700;">✅ Mark done</button>`}
+            ? `<button onclick="adminUpdateThreadStatus('open')" title="Move it back to the Inbox" style="${btn2}">Reopen</button>`
+            : `<button onclick="adminUpdateThreadStatus('resolved')" title="Sorted for now — the client's next message reopens it in the Inbox" style="height:38px;padding:0 16px;background:#3dd44a;border:0;border-radius:10px;color:#062b0c;font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;">Mark done</button>`}
         </div>
       </div>
 
-      <!-- Two-col body: messages + user sidebar — takes remaining height -->
-      <div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 220px;overflow:hidden;">
-
-        <!-- Messages column: flex col, constrained, scrollable messages area -->
-        <div style="display:flex;flex-direction:column;min-height:0;overflow:hidden;border-right:1px solid var(--border);">
-          <div id="adminMsgArea" style="flex:1;min-height:0;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;">
-            ${hasMore ? `<button id="supLoadEarlier" class="action-btn" onclick="supportLoadEarlier()" style="align-self:center;font-size:11px;">⬆ Load earlier messages</button>`
-                      : `<div style="align-self:center;font-size:10.5px;color:var(--muted);">Start of the conversation · ${t.message_count || (t.messages||[]).length} messages</div>`}
+      <div style="flex:1;min-height:0;display:flex;overflow:hidden;">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
+          <div id="adminMsgArea" style="flex:1;min-height:0;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;background:#0a101d;">
+            ${hasMore ? `<button id="supLoadEarlier" onclick="supportLoadEarlier()" style="align-self:center;padding:6px 14px;background:#111a2c;border:1px solid #1e2a40;border-radius:999px;color:#b9c6d8;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;">Load earlier messages</button>`
+                      : `<div style="align-self:center;font-size:10.5px;color:#93a3ba;">Start of the conversation · ${t.message_count || (t.messages||[]).length} messages</div>`}
             ${(t.messages||[]).map(m=>msgBubble(m)).join('')}
           </div>
-          <!-- Reply input — pinned to bottom -->
-          <div style="padding:6px 14px 0;flex-shrink:0;background:var(--black);border-top:1px solid rgba(61,212,74,.1);">
-            <select id="adminReplyOrder" title="Tag this reply with the order it is about" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:11px;padding:4px 8px;border-radius:6px;outline:none;max-width:100%;">
-              <option value="">Reply about: no specific order</option>
-              ${Object.values(_supportOrdersCache).map(o => `<option value="${esc(o.id)}" ${t.board && t.board.episode_orders && t.board.episode_orders[0] === o.id ? 'selected' : ''}>📦 #${esc(String(o.id).slice(0,8))} · ${esc(String(o.service_name||'').slice(0,40))} · ${esc(o.status||'')}</option>`).join('')}
-            </select>
-          </div>
-          <div style="padding:8px 14px 12px;display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--black);">
-            <textarea id="adminReplyInput" placeholder="Type your reply…" style="flex:1;background:#1a2435;border:1px solid rgba(61,212,74,.18);border-radius:10px;padding:10px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;outline:none;resize:none;height:42px;max-height:100px;transition:border-color .2s;line-height:1.4;" oninput="this.style.height='42px';this.style.height=Math.min(this.scrollHeight,100)+'px';" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();adminSendReply();}"></textarea>
-            <button onclick="adminSendReply()" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,#3dd44a,#28a035);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            </button>
+
+          <div style="border-top:1px solid #1e2a40;padding:10px 14px 12px;display:flex;flex-direction:column;gap:8px;background:#0c1322;flex-shrink:0;position:relative;">
+            <div id="supQuickReplies" style="display:none;position:absolute;left:14px;right:14px;bottom:100%;margin-bottom:6px;background:#0f1729;border:1px solid #2a3a58;border-radius:12px;padding:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);z-index:5;"></div>
+            <div id="supReplyPreview" style="display:none;"></div>
+            <div style="display:flex;gap:8px;align-items:flex-end;">
+              <label title="Which order this reply is about" style="position:relative;display:flex;align-items:center;gap:6px;height:44px;padding:0 10px;background:#111a2c;border:1px solid #1e2a40;border-radius:12px;color:#7fe08b;flex-shrink:0;max-width:140px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="flex-shrink:0;"><path d="M3 7l9-4 9 4-9 4-9-4z"></path><path d="M3 7v10l9 4 9-4V7"></path></svg>
+                <select id="adminReplyOrder" aria-label="Reply about order" style="appearance:none;-webkit-appearance:none;background:transparent;border:0;color:#7fe08b;font-family:inherit;font-size:12px;font-weight:700;outline:none;cursor:pointer;min-width:0;max-width:100px;text-overflow:ellipsis;">
+                  <option value="">No order</option>
+                  ${orderOpts}
+                </select>
+              </label>
+              <textarea id="adminReplyInput" rows="1" placeholder="Type your reply…" style="flex:1;min-width:0;background:#111a2c;border:1px solid #2a3a58;border-radius:12px;padding:11px 14px;color:#e8eef7;font-family:inherit;font-size:13px;outline:none;resize:none;height:44px;max-height:120px;line-height:1.4;box-sizing:border-box;" oninput="this.style.height='44px';this.style.height=Math.min(this.scrollHeight,120)+'px';" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();adminSendReply();}"></textarea>
+              <button id="supQuickBtn" onclick="supportToggleQuickReplies()" title="Quick replies" aria-label="Quick replies" style="width:44px;height:44px;flex-shrink:0;background:#111a2c;border:1px solid #1e2a40;border-radius:12px;color:#ffcf6e;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"></path></svg>
+              </button>
+              <button onclick="adminSendReply()" aria-label="Send" style="width:44px;height:44px;flex-shrink:0;background:#3dd44a;border:0;border-radius:12px;color:#062b0c;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M4 12l16-8-6 16-3-6-7-2z"></path></svg>
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- User sidebar — independently scrollable -->
-        <div style="overflow-y:auto;padding:14px;background:rgba(0,0,0,.2);min-height:0;">
-          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">FIND AN ORDER</div>
-          <div style="display:flex;gap:6px;margin-bottom:6px;">
-            <input id="supOrderSearch" placeholder="Order ID, provider # or M-Pesa code" onkeydown="if(event.key==='Enter'){event.preventDefault();supportFindOrder();}" style="flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 9px;color:var(--white);font-family:inherit;font-size:11.5px;outline:none;">
-            <button class="action-btn" onclick="supportFindOrder()" title="Search" style="padding:6px 9px;">🔎</button>
+        <div style="width:280px;flex-shrink:0;border-left:1px solid #1e2a40;display:flex;flex-direction:column;min-height:0;background:#0c1322;">
+          <div style="padding:14px;border-bottom:1px solid #1e2a40;display:flex;flex-direction:column;gap:8px;">
+            <span style="font-size:10.5px;font-weight:800;letter-spacing:1.4px;color:#93a3ba;">FIND AN ORDER</span>
+            <label style="display:flex;align-items:center;gap:8px;background:#111a2c;border:1px solid #1e2a40;border-radius:10px;padding:0 10px;height:40px;box-sizing:border-box;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#93a3ba" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+              <input id="supOrderSearch" aria-label="Find an order" placeholder="Order ID or M-Pesa code" onkeydown="if(event.key==='Enter'){event.preventDefault();supportFindOrder();}" style="flex:1;min-width:0;background:transparent;border:0;outline:none;color:#e8eef7;font-family:inherit;font-size:12px;">
+            </label>
+            <div id="supOrderResults"></div>
           </div>
-          <div id="supOrderResults" style="margin-bottom:14px;"></div>
-          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">LINKED ORDER</div>
-          ${loHtml}
-          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">RECENT ORDERS</div>
-          <div>${ordersHtml}</div>
+          <div style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;">
+            <span style="font-size:10.5px;font-weight:800;letter-spacing:1.4px;color:#93a3ba;">IN THIS CHAT</span>
+            ${inChatHtml}
+            <span style="font-size:10.5px;font-weight:800;letter-spacing:1.4px;color:#93a3ba;margin-top:6px;">OTHER ORDERS</span>
+            <div>${othersHtml}</div>
+          </div>
         </div>
-
       </div>`;
 
     // Scroll messages to bottom — use rAF + fallback timeout for reliability
+    _supRenderReplyPreview();
     const msgArea = document.getElementById('adminMsgArea');
     if (msgArea && fromBottom !== null) {
       msgArea.scrollTop = msgArea.scrollHeight - fromBottom;        // stay where you were after loading earlier
@@ -3168,6 +3150,131 @@ async function openSupportThread(threadId, opts) {
   } catch(e) {
     pane.innerHTML = `<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:13px;">${e.message||'Failed to load thread'}</div>`;
   }
+}
+
+// ── WhatsApp-style "reply to a specific message" ───────────────────────────
+// ↩ Reply on any bubble → a "Replying to …" bar above the reply box; the reply
+// is sent with reply_to_id and shows a quote of that message (tap it to jump to
+// the original). It also takes the quoted message's order tag, so two issues
+// in one conversation stay apart.
+let _supMsgById = {};
+let _supReplyTo = null;          // { threadId, id }
+
+function _quoteWho(q, viewer, user) {
+  if (!q) return '';
+  if (viewer === 'client') return q.sender === 'user' ? 'You' : (q.is_bot ? 'EndaViral Team' : 'EndaViral Support');
+  if (q.sender === 'user') return (user && (user.name || user.email)) ? String(user.name || user.email).split(' ')[0] : 'Client';
+  return q.is_bot ? '🤖 Automatic' : 'Staff';
+}
+
+// Quote block shown on top of a reply. onGreen: the reply sits in a green bubble.
+function supQuoteHtml(q, viewer, user, onGreen) {
+  if (!q) return `<div style="font-size:11px;font-style:italic;opacity:.7;margin-bottom:6px;">↩ Replying to a deleted message</div>`;
+  const jump = viewer === 'client' ? `ticketJumpTo('${esc(q.id)}')` : `supportJumpTo('${esc(q.id)}')`;
+  const body = esc(String(q.body || '').replace(/\*\*/g, '')).replace(/\n/g, ' ');
+  return `<div onclick="event.stopPropagation();${jump}" title="Show the original message" style="cursor:pointer;margin-bottom:6px;padding:5px 8px;border-left:3px solid ${onGreen ? 'rgba(255,255,255,.75)' : '#3dd44a'};border-radius:6px;background:${onGreen ? 'rgba(0,0,0,.16)' : 'rgba(255,255,255,.06)'};font-size:11.5px;line-height:1.4;">
+    <div style="font-weight:800;color:${onGreen ? '#fff' : '#7fd88a'};font-size:10.5px;">${esc(_quoteWho(q, viewer, user))}${q.order_id ? ` · #${esc(String(q.order_id).slice(0, 8))}` : ''}</div>
+    <div style="opacity:.85;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${body}</div>
+  </div>`;
+}
+
+function _flashMsg(el) {
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const b = el.querySelector('.ev-msg-bubble, .tt-bubble') || el;
+  const old = b.style.boxShadow;
+  b.style.transition = 'box-shadow .3s';
+  b.style.boxShadow = '0 0 0 3px rgba(255,204,128,.85)';
+  setTimeout(() => { b.style.boxShadow = old; }, 1400);
+}
+
+function supportJumpTo(id) {
+  const el = document.querySelector(`#adminMsgArea [data-msg-id="${CSS.escape(id)}"]`);
+  if (el) _flashMsg(el);
+  else toast('That message is further up — tap “Load earlier messages”', 'info');
+}
+
+function supportReplyTo(id) {
+  const m = _supMsgById[id];
+  if (!m || !activeSupportThreadId) return;
+  _supReplyTo = { threadId: activeSupportThreadId, id };
+  // the reply is about the same order as the message being answered
+  if (m.order_id) {
+    const sel = document.getElementById('adminReplyOrder');
+    if (sel) {
+      if (![...sel.options].some(op => op.value === m.order_id)) {
+        sel.insertAdjacentHTML('beforeend', `<option value="${esc(m.order_id)}">#${esc(String(m.order_id).slice(0, 8))}</option>`);
+      }
+      sel.value = m.order_id;
+    }
+  }
+  _supRenderReplyPreview();
+  document.getElementById('adminReplyInput')?.focus();
+}
+
+function supportCancelReply() { _supReplyTo = null; _supRenderReplyPreview(); }
+
+function _supRenderReplyPreview() {
+  const box = document.getElementById('supReplyPreview');
+  if (!box) return;
+  const m = _supReplyTo && _supReplyTo.threadId === activeSupportThreadId ? _supMsgById[_supReplyTo.id] : null;
+  if (!m) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const q = { id: m.id, sender: m.sender, is_bot: m.is_bot, order_id: m.order_id, body: String(m.body || '').slice(0, 160) };
+  box.style.display = 'block';
+  const who = _quoteWho(q, 'staff', _supportThreadUser);
+  const body = esc(String(q.body || '').replace(/\*\*/g, '')).replace(/\n/g, ' ');
+  box.innerHTML = `<div style="display:flex;gap:10px;align-items:center;background:#111a2c;border-radius:10px;padding:8px 10px;">
+    <div style="flex:1;min-width:0;border-left:3px solid #3dd44a;padding-left:9px;">
+      <div style="font-size:10.5px;font-weight:800;color:#7fe08b;">Replying to ${esc(who)}${q.order_id ? ' · #' + esc(String(q.order_id).slice(0, 8)) : ''}</div>
+      <div style="font-size:12px;color:#b9c6d8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${body}</div>
+    </div>
+    <button onclick="supportCancelReply()" aria-label="Cancel reply" style="width:32px;height:32px;background:transparent;border:0;color:#93a3ba;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </button>
+  </div>`;
+}
+
+// ── Order panel cards (staff chat) ─────────────────────────────────────────
+const _SUP_ST = {
+  completed: ['Completed', '#7fe08b', 'rgba(61,212,74,.12)'],
+  partial: ['Partial', '#ffc46b', 'rgba(255,179,71,.14)'],
+  failed: ['Failed', '#ff8a8a', 'rgba(255,92,92,.12)'],
+  cancelled: ['Cancelled', '#ff8a8a', 'rgba(255,92,92,.12)'],
+};
+function _supStatusPill(s) {
+  const k = String(s || '').toLowerCase();
+  const [label, fg, bg] = _SUP_ST[k] || [k ? k.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()) : '—', '#6cb6ff', 'rgba(108,182,255,.12)'];
+  return `<span style="font-size:10.5px;font-weight:800;color:${fg};background:${bg};border-radius:999px;padding:2px 8px;white-space:nowrap;">${esc(label)}</span>`;
+}
+function _supOrderPanelCard(o) {
+  const id = esc(o.id || '');
+  const qty = Number(o.quantity || 0);
+  const delivered = (o.remains != null && qty) ? Math.max(0, Math.min(qty, qty - Number(o.remains))) : null;
+  const pct = delivered != null && qty ? Math.round(delivered / qty * 100) : null;
+  const live = ['failed','cancelled','completed'].indexOf(String(o.status || '').toLowerCase()) === -1;
+  return `<button onclick="openOrderDetailModal('${id}')" title="Open full order details" style="text-align:left;background:#111a2c;border:1px solid ${live ? '#2b6a3a' : '#1e2a40'};border-radius:12px;padding:12px;color:#e8eef7;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;gap:6px;width:100%;">
+    <span style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b style="font-size:12.5px;">#${esc(String(o.id || '').slice(0, 8))}</b>${_supStatusPill(o.status)}</span>
+    <span style="font-size:12px;color:#d4deeb;">${esc(o.service_name || '—')} · ×${qty.toLocaleString()}</span>
+    ${pct != null && live ? `<span style="height:6px;border-radius:3px;background:#1e2a40;overflow:hidden;display:block;"><span style="display:block;width:${pct}%;height:6px;background:#3dd44a;"></span></span>` : ''}
+    <span style="font-size:11px;color:#93a3ba;">${delivered != null && live ? `${delivered.toLocaleString()} of ${qty.toLocaleString()} delivered · ` : ''}KES ${Number(o.charge || 0).toFixed(0)}${o.mpesa_receipt ? ` · M-Pesa ${esc(o.mpesa_receipt)}` : ''}</span>
+    ${typeof reorderedTag === 'function' ? reorderedTag(o) : ''}
+  </button>`;
+}
+function _supOrderPanelRow(o) {
+  const id = esc(o.id || '');
+  return `<button onclick="openOrderDetailModal('${id}')" title="Open full order details" style="text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;background:transparent;border:0;border-bottom:1px solid #16213a;padding:9px 0;color:#e8eef7;font-family:inherit;cursor:pointer;">
+    <span style="display:flex;flex-direction:column;gap:2px;min-width:0;"><b style="font-size:12px;">#${esc(String(o.id || '').slice(0, 8))}</b><span style="font-size:11px;color:#93a3ba;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${esc(o.service_name || '—')} · ×${Number(o.quantity || 0).toLocaleString()}</span>${typeof reorderedTag === 'function' ? reorderedTag(o) : ''}</span>
+    ${_supStatusPill(o.status)}
+  </button>`;
+}
+
+// ⚡ opens the quick replies as a pop-up above the reply box (ccr_support.js
+// renders its bar into #supQuickReplies).
+function supportToggleQuickReplies(force) {
+  const box = document.getElementById('supQuickReplies');
+  if (!box) return;
+  const show = typeof force === 'boolean' ? force : box.style.display === 'none';
+  box.style.display = show ? 'block' : 'none';
+  if (show && !box.firstElementChild && typeof ccrqrRenderBar === 'function' && activeSupportThreadId) ccrqrRenderBar(activeSupportThreadId);
 }
 
 // ── Find the exact order a client is talking about ────────────────────────
@@ -3838,11 +3945,13 @@ async function adminSendReply() {
   input.value = '';
   input.style.height = '42px';
   const order_id = document.getElementById('adminReplyOrder')?.value || null;
+  const reply_to_id = (_supReplyTo && _supReplyTo.threadId === activeSupportThreadId) ? _supReplyTo.id : null;
   try {
     await api(`/support/admin/threads/${activeSupportThreadId}/reply`, {
       method: 'POST',
-      body: JSON.stringify({ body, order_id })
+      body: JSON.stringify({ body, order_id, reply_to_id })
     });
+    _supReplyTo = null;
     // Re-render the thread to show the new message (earlier pages stay loaded)
     await openSupportThread(activeSupportThreadId, { keepEarlier: true });
     toast('Reply sent ✓', 'success');
@@ -4156,10 +4265,8 @@ async function _loadTicketThread(threadId, opts) {
     _markTicketSeen(threadId, t.message_count || latestIds);
     if (typeof _updateTicketsBadge === 'function') _updateTicketsBadge();
     if (typeof _updateDashTicketBanner === 'function') _updateDashTicketBanner();
-    document.getElementById('ttTitle').textContent = 'EndaViral Support';
-    document.getElementById('ttMeta').textContent  =
-      `Your support chat since ${new Date(t.created_at).toLocaleDateString('en-KE',
-        {day:'numeric',month:'short',year:'numeric'})} · ${t.message_count || (t.messages||[]).length} messages`;
+    document.getElementById('ttTitle').textContent = 'Support';
+    document.getElementById('ttMeta').textContent  = 'We usually reply within a few hours';
     const stLabel = _CONV_STATUS[t.status] || esc(t.status);
     document.getElementById('ttStatusBadge').innerHTML =
       `<span class="ticket-status ts-${esc(t.status)}" style="font-size:12px;">${stLabel}</span>`;
@@ -4172,7 +4279,8 @@ async function _loadTicketThread(threadId, opts) {
       el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">No messages yet.</div>';
     } else {
       if (hasMore) el.insertAdjacentHTML('beforeend', `<button id="ttLoadEarlier" onclick="ticketLoadEarlier()" style="align-self:center;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--white);border-radius:14px;padding:6px 14px;font-size:11.5px;font-family:inherit;cursor:pointer;">⬆ Load earlier messages</button>`);
-      _ttRenderMessages(el, msgs, initial);
+      _ttMsgById = {};
+    _ttRenderMessages(el, msgs, initial);
     }
     if (fromBottom !== null) el.scrollTop = el.scrollHeight - fromBottom;
     else setTimeout(() => { el.scrollTop = el.scrollHeight; }, 60);
@@ -4197,7 +4305,7 @@ function _ttRenderMessages(el, msgs, initial) {
     const d = m.created_at ? new Date(m.created_at).toLocaleDateString('en-KE', { weekday:'short', day:'numeric', month:'short', year:'numeric' }) : '';
     if (d && d !== day) {
       day = d;
-      el.insertAdjacentHTML('beforeend', `<div style="text-align:center;font-size:10.5px;color:var(--muted);margin:6px 0 2px;">${esc(d)}</div>`);
+      el.insertAdjacentHTML('beforeend', `<div style="align-self:center;font-size:11px;color:#93a3ba;background:#111a2c;border-radius:999px;padding:3px 12px;margin:4px 0;">${esc(d)}</div>`);
     }
     el.insertAdjacentHTML('beforeend', _ttMsgHtml(m, initial));
   });
@@ -4205,7 +4313,7 @@ function _ttRenderMessages(el, msgs, initial) {
 
 function _msgTagHtml(m) {
   const bits = [];
-  if (m.order_id) bits.push(`📦 Order #${esc(String(m.order_id).slice(0, 8))}`);
+  if (m.order_id) bits.push(`Order #${esc(String(m.order_id).slice(0, 8))}`);
   if (m.topic) bits.push(esc(m.topic));
   const mine = m.sender === 'user';                 // the client's own (green) bubble
   return bits.length ? `<div style="font-size:10px;font-weight:700;color:${mine ? 'rgba(255,255,255,.85)' : '#7fd88a'};margin-bottom:4px;">${bits.join(' · ')}</div>` : '';
@@ -4233,13 +4341,13 @@ async function ticketLoadEarlier() {
 function _ttMsgHtml(m, userInitial) {
   const isAdmin  = m.sender === 'admin';
   const isBot    = m.is_bot;
+  // Our messages carry the EndaViral logo (WhatsApp-style, the client's own
+  // messages need no avatar).
   const avatar   = isAdmin
-    ? (isBot
-        ? `<div class="tt-avatar" style="background:linear-gradient(135deg,#3dd44a,#1a6b23);font-size:14px;">🦠</div>`
-        : `<div class="tt-avatar" style="background:linear-gradient(135deg,#28a035,#1a6b23);font-size:14px;box-shadow:0 0 0 2px rgba(61,212,74,.4);">👤</div>`)
-    : `<div class="tt-avatar" style="background:linear-gradient(135deg,#243048,#1a2435);color:#3dd44a;font-weight:800;font-size:13px;">${userInitial}</div>`;
+    ? `<div class="tt-avatar ev-logo" title="EndaViral Support"><img src="EndaViral_logo_transparent.png" alt="EndaViral"></div>`
+    : '';
   const humanCls = isAdmin ? (isBot ? 'is-bot' : 'is-human') : '';
-  const senderName = isAdmin ? (isBot ? 'EndaViral Team' : 'EndaViral Support') : 'You';
+  const senderName = '';
   const time = m.created_at
     ? new Date(m.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})
     : '';
@@ -4247,12 +4355,62 @@ function _ttMsgHtml(m, userInitial) {
     .replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
     .replace(/\n/g,'<br>');
-  return `<div class="tt-msg from-${isAdmin?'admin':'user'} ${humanCls}">
+  if (m.id) _ttMsgById[m.id] = m;
+  const quote = m.reply_to_id ? supQuoteHtml(m.reply_to, 'client', null, m.sender === 'user') : '';
+  const replyBtn = m.id ? ` · <a href="javascript:void(0)" onclick="ticketReplyTo('${esc(m.id)}')" title="Reply to this message" style="color:#7fe08b;text-decoration:none;font-weight:700;">Reply</a>` : '';
+  return `<div class="tt-msg from-${isAdmin?'admin':'user'} ${humanCls}" data-msg-id="${esc(m.id || '')}">
     ${avatar}
     <div>
-      <div class="tt-bubble">${_msgTagHtml(m)}${body}</div>
-      <div class="tt-time">${senderName} · ${time}</div>
+      <div class="tt-bubble">${quote}${_msgTagHtml(m)}${body}</div>
+      <div class="tt-time">${senderName ? senderName + ' · ' : ''}${time}${replyBtn}</div>
     </div>
+  </div>`;
+}
+
+// WhatsApp-style reply on the client side: ↩ Reply under a message → "Replying
+// to" bar above the input; the message is sent with reply_to_id (the backend
+// also tags it with the quoted message's order).
+let _ttMsgById = {};
+let _ttReplyTo = null;           // { threadId, id }
+
+function ticketReplyTo(id) {
+  if (!_ttMsgById[id] || !_activeTicketId) return;
+  _ttReplyTo = { threadId: _activeTicketId, id };
+  _ttRenderReplyPreview();
+  document.getElementById('ttReplyInput')?.focus();
+}
+function ticketCancelReply() { _ttReplyTo = null; _ttRenderReplyPreview(); }
+
+function ticketJumpTo(id) {
+  const el = document.querySelector(`#ttMessages [data-msg-id="${CSS.escape(id)}"]`);
+  if (el) _flashMsg(el);
+  else toast('That message is further up — tap “Load earlier messages”', 'info');
+}
+
+function _ttRenderReplyPreview() {
+  const row = document.getElementById('ttReplyRow');
+  if (!row) return;
+  let box = document.getElementById('ttReplyPreview');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'ttReplyPreview';
+    box.style.cssText = 'display:none;padding:8px 14px 0;border-top:1px solid var(--border);flex-shrink:0;';
+    row.parentNode.insertBefore(box, row);
+  }
+  const m = _ttReplyTo && _ttReplyTo.threadId === _activeTicketId ? _ttMsgById[_ttReplyTo.id] : null;
+  if (!m) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const q = { id: m.id, sender: m.sender, is_bot: m.is_bot, order_id: m.order_id, body: String(m.body || '').slice(0, 160) };
+  box.style.display = 'block';
+  box.style.background = '#0c1322';
+  const body = esc(String(q.body || '').replace(/\*\*/g, '')).replace(/\n/g, ' ');
+  box.innerHTML = `<div style="display:flex;gap:10px;align-items:center;background:#111a2c;border-radius:10px;padding:8px 10px;">
+    <div style="flex:1;min-width:0;border-left:3px solid #3dd44a;padding-left:9px;">
+      <div style="font-size:10.5px;font-weight:800;color:#7fe08b;">Replying to ${esc(_quoteWho(q, 'client', null))}</div>
+      <div style="font-size:12px;color:#b9c6d8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${body}</div>
+    </div>
+    <button onclick="ticketCancelReply()" aria-label="Cancel reply" style="width:32px;height:32px;background:transparent;border:0;color:#93a3ba;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </button>
   </div>`;
 }
 
@@ -4264,14 +4422,18 @@ async function sendTicketReply() {
   input.style.height = '42px';
   const user    = _getTicketUser();
   const initial = (user.name || 'U').charAt(0).toUpperCase();
-  const fakeMsg = { sender:'user', is_bot:false, body, created_at: new Date().toISOString() };
+  const reply_to_id = (_ttReplyTo && _ttReplyTo.threadId === _activeTicketId) ? _ttReplyTo.id : null;
+  const quoted = reply_to_id ? _ttMsgById[reply_to_id] : null;
+  const fakeMsg = { sender:'user', is_bot:false, body, created_at: new Date().toISOString(),
+                    reply_to_id, reply_to: quoted ? { id: quoted.id, sender: quoted.sender, is_bot: quoted.is_bot, order_id: quoted.order_id, body: String(quoted.body || '').slice(0, 160) } : null };
   document.getElementById('ttMessages').insertAdjacentHTML('beforeend', _ttMsgHtml(fakeMsg, initial));
   const el = document.getElementById('ttMessages');
   el.scrollTop = el.scrollHeight;
+  _ttReplyTo = null; _ttRenderReplyPreview();
   try {
     await api(`/support/threads/${_activeTicketId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ body })
+      body: JSON.stringify({ body, reply_to_id })
     });
     await _loadTicketThread(_activeTicketId, { keepEarlier: true });
     await loadTickets();
@@ -4355,6 +4517,7 @@ async function submitNewTicket() {
 
 function closeTicketThread() {
   _activeTicketId = null;
+  _ttReplyTo = null; if (typeof _ttRenderReplyPreview === 'function') _ttRenderReplyPreview();
   const modal = document.getElementById('ticketThreadModal');
   modal.classList.remove('show');
   setTimeout(() => { modal.style.display = 'none'; }, 300);

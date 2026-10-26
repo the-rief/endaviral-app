@@ -223,39 +223,46 @@ function sbWaitChip(t) {
 
 function sbItem(t) {
   const tid = esc(t.id);
-  const [sc, se] = SB_STATUS[t.status] || ['#7a8fad', ''];
-  const origin = {
-    customer:  ['🧑 Customer', '#9aa4b2'],
-    agent:     ['👤 Agent-started', '#4da3ff'],
-    automatic: ['⚙️ System', '#ffb347'],
-  }[t.origin] || ['', ''];
+  const name = t.user_name || t.user_email || '—';
+  const initial = esc(String(name).trim().charAt(0).toUpperCase() || '?');
+  const h = t.waiting_hours || 0;
+  // wait colour: red over a day, amber over a few hours (inbox / follow-up only)
+  const waitColor = (_sb.tab === 'inbox' || _sb.tab === 'followup')
+    ? (h >= 24 ? '#ff7a7a' : h >= 4 ? '#ffb347' : '#93a3ba') : '#93a3ba';
+  const orders = (t.episode_orders || []);
+  const orderTxt = orders.slice(0, 2).map(id => '#' + String(id).slice(0, 8)).join(' · ') + (orders.length > 2 ? ` +${orders.length - 2}` : '');
   const last = t.last_message;
-  const who = t.last_sender === 'customer' ? 'Customer' : t.last_sender === 'system' ? '⚙️ Report' : t.last_sender === 'bot' ? '🤖 Auto' : (t.last_staff_name ? t.last_staff_name.split('@')[0] : 'Agent');
-  const preview = last ? `<span style="color:#6f8aa8;">${esc(who)}:</span> ${esc(last.body.slice(0, 70))}${last.body.length > 70 ? '…' : ''}` : 'No messages';
-  const leftColor = _sb.tab === 'followup' && t.waiting_hours >= 24 ? '#ffb347' : t.origin === 'automatic' ? '#ffb347' : 'transparent';
-  return `<div class="sb-item support-thread-item" data-thread-id="${tid}" onclick="openSupportThread('${tid}')" style="border-left-color:${leftColor};">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;">
-      <div style="font-size:12.5px;font-weight:700;color:var(--white);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(t.user_name || t.user_email || '—')}</div>
-      ${sbWaitChip(t)}
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;">
-      <span style="font-size:11px;color:var(--green);font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Current topic">${esc(t.topic || SB_TYPE[t.type] || t.type)}</span>
-      ${(t.episode_orders || []).slice(0, 2).map(id => `<span class="sb-tag" style="color:#7fd88a;background:rgba(61,212,74,.10);">📦 #${esc(String(id).slice(0, 8))}</span>`).join('')}${(t.episode_orders || []).length > 2 ? `<span class="sb-tag" style="color:var(--muted);">+${t.episode_orders.length - 2}</span>` : ''}
-      ${origin[0] ? `<span class="sb-tag" style="color:${origin[1]};background:rgba(255,255,255,.06);">${origin[0]}</span>` : ''}
-      ${t.reorder_task_id ? `<span class="sb-tag" style="color:#ff7043;background:rgba(255,112,67,.12);">🔁 Reorder</span>` : ''}
-      <span style="font-size:10px;font-weight:700;color:${sc};margin-left:auto;">${se} ${esc(SB_STATUS_LABEL[t.status] || t.status.toUpperCase())}</span>
-    </div>
-    <div style="font-size:11.5px;color:var(--muted);line-height:1.45;">${preview}</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
-      <span style="font-size:10px;color:#3a5570;" title="Since it was last marked done">${t.message_count || 0} new msgs · ${t.agent_msgs || 0} from agents${t.auto_msgs ? ' · ' + t.auto_msgs + ' auto' : ''}</span>
-      ${_sb.tab === 'followup' ? `<button class="btn-secondary" style="padding:3px 10px;font-size:10.5px;" onclick="event.stopPropagation();sbNudge('${tid}')">👋 Nudge</button>` : ''}
-    </div>
+  const who = !last ? '' : t.last_sender === 'customer' ? '' : t.last_sender === 'system' ? 'Report: ' : t.last_sender === 'bot' ? 'Auto: ' : 'You: ';
+  const preview = last ? esc(who + String(last.body || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').slice(0, 90)) : 'No messages';
+  const topic = t.topic || SB_TYPE[t.type] || '';
+  // badges only when they add something the tab doesn't already say
+  const extra = (t.reorder_task_id ? '<span style="color:#ff9a70;font-weight:700;">Reorder</span>' : '')
+    + (_sb.tab === 'done' || _sb.tab === 'automatic' ? '' : (t.origin === 'automatic' ? '<span style="color:#93a3ba;">from alert</span>' : ''));
+  return `<div class="sb-item support-thread-item" data-thread-id="${tid}" onclick="openSupportThread('${tid}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'){openSupportThread('${tid}')}" style="display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid #16213a;cursor:pointer;border-left:0;">
+    <span class="sb-av" style="width:34px;height:34px;border-radius:50%;background:#1b2740;color:#7fe08b;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initial}</span>
+    <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
+      <span style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;">
+        <b style="font-size:13px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(name)}</b>
+        <span style="font-size:11px;font-weight:700;color:${waitColor};white-space:nowrap;">${sbAge(h)}</span>
+      </span>
+      <span style="display:flex;gap:6px;align-items:center;font-size:11px;min-width:0;">
+        ${topic ? `<span style="color:#7fe08b;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;">${esc(topic)}</span>` : ''}
+        ${orderTxt ? `<span style="color:#93a3ba;white-space:nowrap;">${esc(orderTxt)}</span>` : ''}
+        ${extra}
+      </span>
+      <span style="font-size:12px;color:#b9c6d8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${preview}</span>
+      ${_sb.tab === 'followup' ? `<span><button class="btn-secondary" style="padding:3px 10px;font-size:10.5px;margin-top:2px;" onclick="event.stopPropagation();sbNudge('${tid}')">Nudge</button></span>` : ''}
+    </span>
   </div>`;
 }
 
 function sbMarkActive() {
   document.querySelectorAll('#supportThreadList .support-thread-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.threadId === activeSupportThreadId);
+    const on = el.dataset.threadId === activeSupportThreadId;
+    el.classList.toggle('active', on);
+    el.style.background = on ? '#13233a' : '';
+    const av = el.querySelector('.sb-av');
+    if (av) { av.style.background = on ? '#3dd44a' : '#1b2740'; av.style.color = on ? '#062b0c' : '#7fe08b'; }
   });
 }
 
