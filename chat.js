@@ -256,7 +256,7 @@
     if (newBtn) newBtn.style.display = 'block';
 
     if (!state.threads.length) {
-      listEl.innerHTML = `<div class="ev-tickets-empty">No tickets yet. Tap <strong>New Ticket</strong> below if you need help with an order.</div>`;
+      listEl.innerHTML = `<div class="ev-tickets-empty">No messages yet. Tap <strong>New message</strong> below if you need help with an order.</div>`;
       return;
     }
 
@@ -272,15 +272,14 @@
     const card = `
       <button class="ev-ticket-card" onclick="evGoToTicketsPage()">
         <div class="ev-ticket-card-top">
-          <span class="ev-ticket-subject">${_escape(t.subject || 'Support ticket')}</span>
+          <span class="ev-ticket-subject">Your support chat</span>
           <span class="ev-ticket-status ev-ticket-status-${statusClass}">${_statusLabel(t.status)}</span>
         </div>
         <div class="ev-ticket-preview">${_escape(preview)}${preview.length >= 60 ? '…' : ''}</div>
       </button>`;
 
-    const viewAll = state.threads.length > 1
-      ? `<button class="ev-tickets-viewall" onclick="evGoToTicketsPage()">View all tickets (${state.threads.length}) in My Tickets →</button>`
-      : `<button class="ev-tickets-viewall" onclick="evGoToTicketsPage()">Open in My Tickets →</button>`;
+    // One conversation per client — open it on the Support Chat page.
+    const viewAll = `<button class="ev-tickets-viewall" onclick="evGoToTicketsPage()">Open your support chat →</button>`;
 
     listEl.innerHTML = card + viewAll;
   }
@@ -294,7 +293,7 @@
   };
 
   function _statusLabel(s) {
-    return { open: '🔴 Open', pending: '🟡 Pending', resolved: '🟢 Resolved', closed: '⬛ Closed' }[s] || s;
+    return { open: '🟠 Waiting for us', pending: '💬 Replied', resolved: '✅ Sorted', closed: '✅ Sorted' }[s] || s;
   }
 
   function _stripMd(t) {
@@ -385,14 +384,14 @@
       // Ticket created. The widget's job stops here — it captured the
       // issue fast; the actual conversation happens on the My Tickets
       // page, not inside the widget. Show a quick confirmation, then hand off.
-      state.threads.unshift(data);
-      if (btn) btn.textContent = '✅ Ticket created!';
+      state.threads = [data];
+      if (btn) btn.textContent = '✅ Message sent!';
       if (desc) { desc.disabled = true; }
       setTimeout(() => { evGoToTicketsPage(); }, 900);
     } catch (_) {
       if (desc) desc.placeholder = '❌ Could not submit. Please try again.';
     } finally {
-      if (btn && btn.textContent !== '✅ Ticket created!') { btn.disabled = false; btn.textContent = 'Submit Ticket'; }
+      if (btn && btn.textContent !== '✅ Message sent!') { btn.disabled = false; btn.textContent = 'Send message'; }
     }
   };
 

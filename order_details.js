@@ -47,6 +47,24 @@
     (list || []).forEach(o => { const id = o && (o.id || o._id); if (id) _odById.set(String(id), o); });
   }
 
+  // ─── 🔁 Re-placed indicator (client) ─────────────────────────────────────
+  // replaced_by: free replacement(s) we placed for this failed order;
+  // replacement_for: on a replacement, the order it replaces (backend orders.py).
+  window.orderReplacedTag = function (o, big) {
+    const by = (o && o.replaced_by) || [];
+    const fs = big ? '12.5px' : '10.5px';
+    if (by.length) {
+      const r = by[by.length - 1];
+      const id = _safeId(r.order_id);
+      return `<div class="od-replaced" style="margin-top:4px;font-size:${fs};font-weight:700;color:#ff8a65;">🔁 Re-placed for free → <a href="javascript:void(0)" onclick="event.stopPropagation();openOrderDetail('${id}')" style="color:#ffab91;">#${_e(id.slice(0, 8))}</a></div>`;
+    }
+    if (o && o.replacement_for) {
+      const id = _safeId(o.replacement_for);
+      return `<div class="od-replaced" style="margin-top:4px;font-size:${fs};color:var(--muted);">🔁 Free replacement for <a href="javascript:void(0)" onclick="event.stopPropagation();openOrderDetail('${id}')" style="color:var(--muted);text-decoration:underline;">#${_e(id.slice(0, 8))}</a></div>`;
+    }
+    return '';
+  };
+
   // ─── Mobile card list (shared by Dashboard + My Orders) ──────────────────
   window.orderCardsHTML = function (list) {
     _remember(list);
@@ -62,6 +80,7 @@
             <span class="od-card-cost">${fmtKES(o.charge || o.cost || o.amount)}</span>
             ${statusPill(o.status)}
           </div>
+          ${orderReplacedTag(o)}
         </div>
         <span class="od-card-chev" aria-hidden="true">›</span>
       </button>`;
@@ -180,6 +199,8 @@
       </div>
       <div class="od-status-row">${statusPill(o.status)}<span class="od-amount">${fmtKES(charge)}</span></div>
       <p class="od-status-text">${STATUS_TEXT[st] || ''}</p>
+      ${(o.replaced_by || []).length ? `<p class="od-status-text" style="color:#ffab91;">We've already re-placed this order for you at no extra cost — follow the new order below.</p>` : ''}
+      ${orderReplacedTag(o, true)}
       ${_progress(o)}
       ${autoRefillHTML}
       <dl class="od-rows">${rows.map(([k, v]) => `<div class="od-row"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>

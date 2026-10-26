@@ -179,7 +179,7 @@ async function loadAdminOrders() {
           <td>${parseInt(o.quantity||0).toLocaleString()}</td>
           <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${startRemains}</td>
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:15px;">${fmtKES(o.charge||o.cost)}</td>
-          <td>${statusPill(o.status, o.queued)}</td>
+          <td>${statusPill(o.status, o.queued)}${reorderedTag(o)}</td>
           <td style="white-space:nowrap;">${mpesaCell}</td>
           <td style="font-size:12px;color:var(--muted);">${date}</td>
           <td style="white-space:nowrap;" onclick="event.stopPropagation();">
@@ -2706,7 +2706,7 @@ async function adminCleanupLoginEvents() {
 }
 
 /* "Last refresh" line under the Services Management title: when services
- * were last synced from the provider (automatic 00:00 / 12:00 EAT, or a
+ * were last synced from the provider (automatic every 6h at 00/06/12/18 EAT, or a
  * manual Sync & Apply), the next automatic run, and any failure. */
 function _syncWhen(iso) {
   if (!iso) return '—';
@@ -2944,8 +2944,9 @@ let _supportThreadUser = null;
 async function autoCloseStaleSupportThreads() {
   try {
     const res = await api('/support/admin/threads/auto-close-stale', { method: 'POST' });
-    if (res && res.closed > 0) {
-      toast(`Auto-closed ${res.closed} ticket${res.closed === 1 ? '' : 's'} older than 7 days`, 'info');
+    const n = res ? (res.done ?? res.closed ?? 0) : 0;
+    if (n > 0) {
+      toast(`Marked ${n} quiet conversation${n === 1 ? '' : 's'} done (no reply for 7+ days)`, 'info');
     }
   } catch (e) {
     // Non-fatal — don't block the thread list from loading if this fails
@@ -2953,14 +2954,27 @@ async function autoCloseStaleSupportThreads() {
   }
 }
 
-async function openSupportThread(threadId) {
+// WhatsApp-style paging: the API sends the latest 20 messages; "Load earlier
+// messages" fetches the 20 before the oldest one shown and keeps them while the
+// same conversation stays open (a reply re-renders without losing them).
+let _supEarlier = { threadId: null, msgs: [], hasMore: null };
+
+async function openSupportThread(threadId, opts) {
+  opts = opts || {};
+  if (!opts.keepEarlier || _supEarlier.threadId !== threadId) _supEarlier = { threadId, msgs: [], hasMore: null };
   activeSupportThreadId = threadId;
   const pane = document.getElementById('supportChatPane');
   if (!pane) return;
-  pane.innerHTML = '<div class="loading-spinner" style="flex:1;"><div class="spinner"></div><span>Loading thread…</span></div>';
+  const oldArea = document.getElementById('adminMsgArea');
+  const fromBottom = (opts.keepScroll && oldArea) ? oldArea.scrollHeight - oldArea.scrollTop : null;
+  if (!opts.keepScroll) pane.innerHTML = '<div class="loading-spinner" style="flex:1;"><div class="spinner"></div><span>Loading thread…</span></div>';
 
   try {
     const t = await api(`/support/admin/threads/${threadId}`);
+    // earlier pages already loaded + the latest page, without duplicates
+    const _seen = new Set();
+    t.messages = [..._supEarlier.msgs, ...(t.messages || [])].filter(m => !_seen.has(m.id) && _seen.add(m.id));
+    const hasMore = _supEarlier.hasMore === null ? !!t.has_more : _supEarlier.hasMore;
     const statusColor = { open:'#e53935', pending:'#ff7043', resolved:'#3dd44a', closed:'#7a8fad' };
     const typeLabel   = { wrong_order:'📦 Wrong Order', delay:'⏳ Delay' };
 
@@ -2992,24 +3006,55 @@ async function openSupportThread(threadId) {
           </div>
         </div>
         <div style="color:var(--muted);font-size:10px;margin-top:2px;">Qty: ${parseInt(o.quantity||0).toLocaleString()}</div>
+        ${reorderedTag(o)}
         ${link}${provId}
       </div>`;
     }).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px 0;">No recent orders</div>';
 
     // Build messages HTML
+    // One conversation per client: each message carries the order it is about
+    // (click to open that order) and its topic; a divider marks each new day.
+    const resolvedAt = t.resolved_at ? new Date(t.resolved_at) : null;
+    let _lastDay = '', _doneMarked = false;
     function msgBubble(m) {
+      let pre = '';
+      const mDate = m.created_at ? new Date(m.created_at) : null;
+      if (resolvedAt && !_doneMarked && mDate && mDate > resolvedAt) {
+        _doneMarked = true;
+        pre += `<div style="display:flex;align-items:center;gap:8px;font-size:10.5px;color:#3dd44a;margin:6px 0;"><span style="flex:1;height:1px;background:rgba(61,212,74,.25);"></span>✅ Marked done ${esc(resolvedAt.toLocaleString('en-KE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))} — new messages below<span style="flex:1;height:1px;background:rgba(61,212,74,.25);"></span></div>`;
+      }
+      const day = mDate ? mDate.toLocaleDateString('en-KE',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '';
+      if (day && day !== _lastDay) {
+        _lastDay = day;
+        pre += `<div style="text-align:center;font-size:10.5px;color:var(--muted);margin:4px 0;">${esc(day)}</div>`;
+      }
+      const onGreen = m.sender === 'admin' && !m.is_bot;          // staff reply = green bubble
+      const tag = (m.order_id || m.topic) ? `<div style="font-size:10px;font-weight:700;margin-bottom:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          ${m.order_id ? `<span onclick="event.stopPropagation();openOrderDetailModal('${esc(m.order_id)}')" title="Open this order" style="cursor:pointer;color:${onGreen ? '#fff' : '#7fd88a'};background:${onGreen ? 'rgba(0,0,0,.18)' : 'rgba(61,212,74,.12)'};border-radius:5px;padding:1px 6px;">📦 #${esc(String(m.order_id).slice(0,8))}${_supportOrdersCache[m.order_id] ? ' · ' + esc(String(_supportOrdersCache[m.order_id].service_name || '').slice(0, 28)) : ''}</span>` : ''}
+          ${m.topic ? `<span style="color:${onGreen ? 'rgba(255,255,255,.8)' : 'var(--muted)'};">${esc(m.topic)}</span>` : ''}</div>` : '';
+      return pre + _msgBubbleInner(m, tag);
+    }
+    function _msgBubbleInner(m, tag) {
       const isAdmin = m.sender === 'admin';
       const safeBody = (m.body||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      const formatted = safeBody.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+      const formatted = tag + supLinkifyOrderRefs(safeBody.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')).replace(/\n/g,'<br>');
       const time = m.created_at ? new Date(m.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'}) : '';
+      // WhatsApp layout from the agent's side: OUR messages on the right
+      // (staff = green, automatic = muted dark), the CLIENT on the left,
+      // automatic system reports as a small note in the middle.
+      if (m.sender === 'user' && (m.body || '').startsWith('🚨 Automatic')) {
+        return `<div style="align-self:center;max-width:80%;background:rgba(255,179,71,.08);border:1px solid rgba(255,179,71,.25);border-radius:10px;padding:8px 12px;font-size:11.5px;color:#ffcc80;line-height:1.5;">
+          ${formatted}<div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:right;">⚙️ System report · ${time}</div></div>`;
+      }
       if (isAdmin) {
-        return `<div class="ev-msg from-admin" style="max-width:85%;">
+        const who = m.is_bot ? '🤖 Automatic' : (m.sender_id && currentUser && m.sender_id === currentUser.id ? 'You' : 'Staff');
+        return `<div class="ev-msg from-user" style="max-width:80%;">
           <div class="ev-msg-avatar">${m.is_bot ? '🤖' : '🦠'}</div>
-          <div><div class="ev-msg-bubble">${formatted}</div><div class="ev-msg-time">${m.is_bot?'Bot':'Admin'} · ${time}</div></div>
+          <div><div class="ev-msg-bubble" ${m.is_bot ? 'style="background:#1d2a3d;border:1px solid rgba(255,255,255,.08);color:var(--white);"' : ''}>${formatted}</div><div class="ev-msg-time">${who} · ${time}</div></div>
         </div>`;
       }
       const initial = esc((t.user?.name || t.user?.email || 'U').charAt(0).toUpperCase());
-      return `<div class="ev-msg from-user" style="max-width:85%;">
+      return `<div class="ev-msg from-admin" style="max-width:80%;">
         <div class="ev-msg-avatar" style="background:linear-gradient(135deg,#243048,#1a2435);color:var(--green);font-weight:800;font-size:14px;">${initial}</div>
         <div><div class="ev-msg-bubble">${formatted}</div><div class="ev-msg-time">${time}</div></div>
       </div>`;
@@ -3043,6 +3088,7 @@ async function openSupportThread(threadId) {
               <div style="color:var(--muted);">Qty: ${parseInt(lo.quantity||0).toLocaleString()} · KES ${parseFloat(lo.charge||0).toFixed(0)}</div>
               ${loProvId}${loStart}${loLink}
               <span class="status-pill ${loStatus}" style="margin-top:8px;display:inline-block;">${loStatus}</span>
+              ${reorderedTag(lo)}
             </div>`;
     })() : '<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">No linked order</div>';
 
@@ -3056,18 +3102,16 @@ async function openSupportThread(threadId) {
           <div style="font-size:13px;font-weight:800;color:var(--white);">${userName}
             <span style="font-size:11px;color:var(--muted);font-weight:500;margin-left:8px;">${userEmail}</span>
           </div>
-          <div style="font-size:11px;color:var(--green);font-weight:600;margin-top:2px;">${tTypeLabel} · <span style="color:${tStatusColor}">${tStatus.toUpperCase()}</span>${tSourceBadge}</div>
+          <div style="font-size:11px;color:var(--green);font-weight:600;margin-top:2px;">💬 Support chat${t.board && t.board.topic ? ' · ' + esc(t.board.topic) : ''} · <span style="color:${tStatusColor}">${{open:'WAITING ON US', pending:'WAITING ON CLIENT', resolved:'DONE', closed:'DONE'}[t.status] || tStatus.toUpperCase()}</span></div>
+          ${(t.board && t.board.episode_orders && t.board.episode_orders.length) ? `<div style="font-size:10.5px;color:var(--muted);margin-top:3px;">Orders in this conversation now: ${t.board.episode_orders.map(id => `<a href="javascript:void(0)" onclick="openOrderDetailModal('${esc(id)}')" style="color:#7fd88a;">#${esc(String(id).slice(0,8))}</a>`).join(' · ')}</div>` : ''}
           <div style="font-size:11px;color:var(--muted);margin-top:2px;">Wallet: KES ${(t.user?.wallet_balance||0).toFixed(0)} · Member since ${t.user?.member_since ? new Date(t.user.member_since).toLocaleDateString('en-KE') : '—'}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;">
           ${t.reorder_task_id ? `<button class="action-btn" onclick="rqReorderTask('${esc(t.reorder_task_id)}')" title="This client is in the Reorder Queue — re-place their paid order free of charge, using the link they sent in this chat" style="border-color:#ff7043;color:#ff7043;font-weight:700;">🔁 Reorder for client</button>` : ''}
           ${userEmail ? `<button class="action-btn" onclick="ccrCreateOrderForThreadUser()" title="Place an order for ${userEmail} without leaving this ticket">🧾 Place Order</button>` : ''}
-          <select onchange="adminUpdateThreadStatus(this.value)" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;padding:6px 10px;border-radius:8px;outline:none;cursor:pointer;">
-            <option value="open"     ${t.status==='open'    ?'selected':''}>🔴 Open</option>
-            <option value="pending"  ${t.status==='pending' ?'selected':''}>🟡 Pending</option>
-            <option value="resolved" ${t.status==='resolved'?'selected':''}>🟢 Resolved</option>
-            <option value="closed"   ${t.status==='closed'  ?'selected':''}>⬛ Closed</option>
-          </select>
+          ${['resolved','closed'].includes(t.status)
+            ? `<button class="action-btn" onclick="adminUpdateThreadStatus('open')" title="Move it back to the Inbox">↩ Reopen</button>`
+            : `<button class="action-btn" onclick="adminUpdateThreadStatus('resolved')" title="Sorted for now — the conversation stays; the client's next message reopens it in the Inbox" style="border-color:#3dd44a;color:#3dd44a;font-weight:700;">✅ Mark done</button>`}
         </div>
       </div>
 
@@ -3077,10 +3121,18 @@ async function openSupportThread(threadId) {
         <!-- Messages column: flex col, constrained, scrollable messages area -->
         <div style="display:flex;flex-direction:column;min-height:0;overflow:hidden;border-right:1px solid var(--border);">
           <div id="adminMsgArea" style="flex:1;min-height:0;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;">
+            ${hasMore ? `<button id="supLoadEarlier" class="action-btn" onclick="supportLoadEarlier()" style="align-self:center;font-size:11px;">⬆ Load earlier messages</button>`
+                      : `<div style="align-self:center;font-size:10.5px;color:var(--muted);">Start of the conversation · ${t.message_count || (t.messages||[]).length} messages</div>`}
             ${(t.messages||[]).map(m=>msgBubble(m)).join('')}
           </div>
           <!-- Reply input — pinned to bottom -->
-          <div style="padding:12px 14px;border-top:1px solid rgba(61,212,74,.1);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--black);">
+          <div style="padding:6px 14px 0;flex-shrink:0;background:var(--black);border-top:1px solid rgba(61,212,74,.1);">
+            <select id="adminReplyOrder" title="Tag this reply with the order it is about" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:11px;padding:4px 8px;border-radius:6px;outline:none;max-width:100%;">
+              <option value="">Reply about: no specific order</option>
+              ${Object.values(_supportOrdersCache).map(o => `<option value="${esc(o.id)}" ${t.board && t.board.episode_orders && t.board.episode_orders[0] === o.id ? 'selected' : ''}>📦 #${esc(String(o.id).slice(0,8))} · ${esc(String(o.service_name||'').slice(0,40))} · ${esc(o.status||'')}</option>`).join('')}
+            </select>
+          </div>
+          <div style="padding:8px 14px 12px;display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--black);">
             <textarea id="adminReplyInput" placeholder="Type your reply…" style="flex:1;background:#1a2435;border:1px solid rgba(61,212,74,.18);border-radius:10px;padding:10px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;outline:none;resize:none;height:42px;max-height:100px;transition:border-color .2s;line-height:1.4;" oninput="this.style.height='42px';this.style.height=Math.min(this.scrollHeight,100)+'px';" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();adminSendReply();}"></textarea>
             <button onclick="adminSendReply()" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,#3dd44a,#28a035);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -3090,6 +3142,12 @@ async function openSupportThread(threadId) {
 
         <!-- User sidebar — independently scrollable -->
         <div style="overflow-y:auto;padding:14px;background:rgba(0,0,0,.2);min-height:0;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">FIND AN ORDER</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <input id="supOrderSearch" placeholder="Order ID, provider # or M-Pesa code" onkeydown="if(event.key==='Enter'){event.preventDefault();supportFindOrder();}" style="flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 9px;color:var(--white);font-family:inherit;font-size:11.5px;outline:none;">
+            <button class="action-btn" onclick="supportFindOrder()" title="Search" style="padding:6px 9px;">🔎</button>
+          </div>
+          <div id="supOrderResults" style="margin-bottom:14px;"></div>
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">LINKED ORDER</div>
           ${loHtml}
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">RECENT ORDERS</div>
@@ -3100,13 +3158,112 @@ async function openSupportThread(threadId) {
 
     // Scroll messages to bottom — use rAF + fallback timeout for reliability
     const msgArea = document.getElementById('adminMsgArea');
-    if (msgArea) {
+    if (msgArea && fromBottom !== null) {
+      msgArea.scrollTop = msgArea.scrollHeight - fromBottom;        // stay where you were after loading earlier
+    } else if (msgArea) {
       const scrollToBottom = () => { msgArea.scrollTop = msgArea.scrollHeight; };
       requestAnimationFrame(() => { scrollToBottom(); setTimeout(scrollToBottom, 120); });
     }
 
   } catch(e) {
     pane.innerHTML = `<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:13px;">${e.message||'Failed to load thread'}</div>`;
+  }
+}
+
+// ── Find the exact order a client is talking about ────────────────────────
+// Sidebar "Find an order" box + clickable order IDs / M-Pesa codes in the
+// client's messages. Backend: GET /support/admin/threads/{id}/orders/search?q=
+// (order ID or its first 8 chars "#a1b2c3d4", provider order #, M-Pesa code).
+const _SUP_REF_RE = /(\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b)|(#[0-9a-fA-F]{8}\b)|(\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{8}\b)|(\b(?=[A-Z0-9]*\d)[A-Z][A-Z0-9]{9}\b)/g;
+
+function supLinkifyOrderRefs(html) {
+  // `html` is already escaped; tokens are plain [0-9A-Za-z-#] so safe to wrap.
+  return String(html).replace(_SUP_REF_RE, (m) => {
+    const q = m.replace(/[^0-9A-Za-z-]/g, '');
+    const what = /^[A-Z]/.test(q) && q.length === 10 ? 'M-Pesa code' : 'order';
+    return `<a href="javascript:void(0)" onclick="event.stopPropagation();supportFindOrder('${q}')" title="Find this ${what}" style="color:inherit;text-decoration:underline dotted;font-weight:700;">${m}</a>`;
+  });
+}
+
+function _supOrderCard(o, opts) {
+  opts = opts || {};
+  const id = esc(o.id || '');
+  const st = esc(o.status || '');
+  return `<div onclick="openOrderDetailModal('${id}')" title="Open full order details" style="cursor:pointer;background:var(--card);border:1px solid ${opts.other ? 'rgba(255,179,71,.45)' : 'rgba(61,212,74,.35)'};border-radius:9px;padding:9px 10px;margin-bottom:6px;font-size:11.5px;">
+    <div style="display:flex;justify-content:space-between;gap:6px;align-items:flex-start;">
+      <b style="color:var(--white);">#${esc(String(o.id || '').slice(0, 8))}</b>
+      <span class="status-pill ${st}" style="font-size:9px;">${st}</span>
+    </div>
+    <div style="color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.service_name || '—')}</div>
+    <div style="color:var(--muted);margin-top:2px;">×${Number(o.quantity || 0).toLocaleString()} · KES ${Number(o.charge || 0).toFixed(0)}${o.created_at ? ' · ' + esc(new Date(o.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })) : ''}</div>
+    ${o.mpesa_receipt ? `<div style="color:var(--muted);margin-top:2px;">M-Pesa: <span style="font-family:monospace;color:var(--green);">${esc(o.mpesa_receipt)}</span></div>` : ''}
+    ${o.provider_order_id ? `<div style="color:var(--muted);margin-top:2px;">Provider #${esc(o.provider_order_id)}</div>` : ''}
+    ${o.matched_by ? `<div style="color:#7fd88a;margin-top:2px;font-size:10px;">matched by ${esc(o.matched_by)}</div>` : ''}
+    ${opts.other ? `<div style="color:#ffb347;margin-top:2px;font-size:10.5px;">⚠ Belongs to ${esc(o.user_email || 'another customer')}</div>` : ''}
+    ${typeof reorderedTag === 'function' ? reorderedTag(o) : ''}
+    ${opts.other ? '' : `<button class="action-btn" onclick="event.stopPropagation();supportTagReplyOrder('${id}')" style="margin-top:6px;padding:3px 8px;font-size:10.5px;">🏷 Tag reply with this order</button>`}
+  </div>`;
+}
+
+async function supportFindOrder(query) {
+  const input = document.getElementById('supOrderSearch');
+  const out = document.getElementById('supOrderResults');
+  if (!out || !activeSupportThreadId) return;
+  const q = String(query != null ? query : (input ? input.value : '')).trim();
+  if (input && query != null) input.value = q;
+  if (q.replace(/^#/, '').length < 4) { out.innerHTML = '<div style="font-size:11px;color:#ffb347;">Type at least 4 characters.</div>'; return; }
+  out.innerHTML = '<div style="font-size:11px;color:var(--muted);">Searching…</div>';
+  try {
+    const r = await api(`/support/admin/threads/${encodeURIComponent(activeSupportThreadId)}/orders/search?q=${encodeURIComponent(q)}`);
+    const mine = r.orders || [], others = r.other_customers || [];
+    [...mine, ...others].forEach(o => { if (o && o.id) _supportOrdersCache[o.id] = o; });
+    if (!mine.length && !others.length) {
+      out.innerHTML = `<div style="font-size:11px;color:#ff8a80;">No order found for “${esc(r.query || q)}”. Check the ID with the client.</div>`;
+      return;
+    }
+    out.innerHTML =
+      (mine.length ? `<div style="font-size:10.5px;color:var(--muted);margin-bottom:5px;">${mine.length} of this client's orders</div>` + mine.map(o => _supOrderCard(o)).join('') : '')
+      + (others.length ? `<div style="font-size:10.5px;color:#ffb347;margin:6px 0 5px;">${mine.length ? 'Also' : 'Not this client\'s —'} other customers' orders</div>` + others.map(o => _supOrderCard(o, { other: true })).join('') : '');
+    if (mine.length === 1 && !others.length) openOrderDetailModal(mine[0].id);     // the exact order → open it
+  } catch (e) {
+    out.innerHTML = `<div style="font-size:11px;color:#ff8a80;">⚠ ${esc(e.message || 'Search failed')}</div>`;
+  }
+}
+
+// Tag the next reply with this order (adds it to the "Reply about" picker).
+function supportTagReplyOrder(orderId) {
+  const sel = document.getElementById('adminReplyOrder');
+  const o = _supportOrdersCache[orderId];
+  if (!sel || !o) return;
+  if (![...sel.options].some(op => op.value === orderId)) {
+    sel.insertAdjacentHTML('beforeend', `<option value="${esc(orderId)}">📦 #${esc(String(orderId).slice(0, 8))} · ${esc(String(o.service_name || '').slice(0, 40))} · ${esc(o.status || '')}</option>`);
+  }
+  sel.value = orderId;
+  document.getElementById('adminReplyInput')?.focus();
+  toast(`Your reply will be tagged with order #${String(orderId).slice(0, 8)}`, 'success');
+}
+
+async function supportLoadEarlier() {
+  const id = activeSupportThreadId; if (!id) return;
+  const btn = document.getElementById('supLoadEarlier');
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+  const area = document.getElementById('adminMsgArea');
+  const oldest = _supEarlier.threadId === id && _supEarlier.msgs.length ? _supEarlier.msgs[0] : null;
+  try {
+    let before = oldest ? oldest.id : null;
+    if (!before) {                                   // first click: oldest of the latest page
+      const cur = await api(`/support/admin/threads/${id}`);
+      before = (cur.messages || [])[0]?.id;
+    }
+    if (!before) return;
+    const page = await api(`/support/admin/threads/${id}?before=${encodeURIComponent(before)}`);
+    if (_supEarlier.threadId !== id) _supEarlier = { threadId: id, msgs: [], hasMore: null };
+    _supEarlier.msgs = [...(page.messages || []), ..._supEarlier.msgs];
+    _supEarlier.hasMore = !!page.has_more;
+    await openSupportThread(id, { keepEarlier: true, keepScroll: !!area });
+  } catch (e) {
+    toast(e.message || 'Could not load earlier messages', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '⬆ Load earlier messages'; }
   }
 }
 
@@ -3130,6 +3287,43 @@ function _ensureOrderDetailModal() {
 function closeOrderDetailModal() {
   const modal = document.getElementById('orderDetailModal');
   if (modal) modal.style.display = 'none';
+}
+
+// ── 🔁 "Already reordered" indicator (staff) ──────────────────────────────
+// o.reordered: replacements placed for this order (Reorder Queue or popup);
+// o.reorder_of: on a replacement, the order it replaced. From the backend's
+// reorder_queue.reorder_links() (admin orders list + support order sidebar).
+function _reorderLive(o) { return (o.reordered || []).filter(r => !['failed', 'cancelled'].includes(r.status)); }
+
+function reorderedTag(o) {
+  const all = o.reordered || [];
+  if (all.length) {
+    const live = _reorderLive(o);
+    const last = all[all.length - 1];
+    const ok = live.length > 0;
+    const color = ok ? '#ff8a65' : '#ff5252';
+    const tip = all.map(r => `#${String(r.new_order_id).slice(0, 8)} · ${r.status || '?'} · ${r.via === 'queue' ? 'Reorder Queue' : 'order popup'}${r.at ? ' · ' + new Date(r.at).toLocaleString('en-KE') : ''}`).join('\n');
+    return `<div title="${esc('Already reordered:\n' + tip)}" style="margin-top:4px;font-size:10.5px;font-weight:700;color:${color};white-space:nowrap;">🔁 ${ok ? 'Reordered' : 'Reorder failed'}${all.length > 1 ? ' ×' + all.length : ''} → #${esc(String((live[live.length - 1] || last).new_order_id).slice(0, 8))}</div>`;
+  }
+  if (o.reorder_of) {
+    return `<div title="This is a free replacement for order #${esc(o.reorder_of)}" style="margin-top:4px;font-size:10.5px;color:var(--muted);white-space:nowrap;">🔁 reorder of #${esc(String(o.reorder_of).slice(0, 8))}</div>`;
+  }
+  return '';
+}
+
+function reorderedBanner(o) {
+  const all = o.reordered || [];
+  if (!all.length && !o.reorder_of) return '';
+  const jump = (id) => `<a href="javascript:void(0)" onclick="jumpToOrderInAllOrders('${esc(id)}')" style="color:#ffcc80;font-weight:700;">#${esc(String(id).slice(0, 8))}</a>`;
+  if (!all.length) {
+    return `<div style="margin:10px 0 4px;padding:9px 11px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.5;">
+      🔁 This is a free replacement for order ${jump(o.reorder_of)}.</div>`;
+  }
+  const ok = _reorderLive(o).length > 0;
+  return `<div style="margin:10px 0 4px;padding:9px 11px;border-radius:9px;background:${ok ? 'rgba(255,112,67,.10)' : 'rgba(255,82,82,.10)'};border:1px solid ${ok ? 'rgba(255,112,67,.45)' : 'rgba(255,82,82,.45)'};font-size:12px;color:#ffcc80;line-height:1.6;">
+    <b>🔁 Already reordered ${all.length > 1 ? all.length + '×' : ''}</b>${ok ? ' — don\'t redo it unless the replacement fails.' : ' — but the replacement failed too.'}
+    ${all.map(r => `<div style="color:var(--muted);">• ${jump(r.new_order_id)} · <b style="color:${['failed', 'cancelled'].includes(r.status) ? '#ff8a80' : 'var(--white)'};">${esc(r.status || '?')}</b> · ${r.via === 'queue' ? 'Reorder Queue' : 'order popup'}${r.at ? ' · ' + esc(new Date(r.at).toLocaleString('en-KE')) : ''}</div>`).join('')}
+  </div>`;
 }
 
 function openOrderDetailModal(orderId) {
@@ -3165,11 +3359,12 @@ function openOrderDetailModal(orderId) {
     <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0;">
       <div>
         <div style="font-weight:800;font-size:14px;color:var(--white);">${esc(o.service_name || 'Order details')}</div>
-        <div style="margin-top:6px;">${statusPill(o.status, o.queued)}</div>
+        <div style="margin-top:6px;">${statusPill(o.status, o.queued)}${reorderedTag(o)}</div>
       </div>
       <button onclick="closeOrderDetailModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
     </div>
     <div style="padding:6px 18px;overflow-y:auto;flex:1;min-height:0;">
+      ${reorderedBanner(o)}
       ${row('Order ID', `#${shortId} <button onclick="navigator.clipboard.writeText('${fullId}').then(()=>toast('Order ID copied!','success'))" title="Copy full Order ID" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 2px;">⎘</button>`)}
       ${o.provider_order_id ? row('Provider Order ID', `#${esc(o.provider_order_id)}`) : ''}
       ${o.mpesa_receipt ? row('M-Pesa Ref', `<span style="font-family:monospace;">${esc(o.mpesa_receipt)}</span> <button onclick="navigator.clipboard.writeText('${esc(o.mpesa_receipt)}').then(()=>toast('M-Pesa ref copied!','success'))" title="Copy M-Pesa reference" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 2px;">⎘</button>`) : ''}
@@ -3201,8 +3396,10 @@ function openOrderDetailModal(orderId) {
 
 // ─── Reorder ANY order from its popup ─────────────────────────────────────
 // Always available (any status, any number of times). Staff choose the same
-// link or a new one; the replacement is free (KES 0) on the same service and
-// goes straight to the provider. Backend: GET/POST /reorders/order/{id}/manual
+// link or a new one; the replacement is free (KES 0) on the same service — or,
+// when that service is gone, on a similar one (suggested, or picked from
+// "Choose another service…", see reorder_alternatives.js) — and goes straight
+// to the provider. Backend: GET/POST /reorders/order/{id}/manual
 // (app/services/reorder_queue.py → place_manual_reorder). Earlier reorders of
 // the order are listed so nobody re-places it twice by accident.
 let _odmRe = null;   // { orderId, info }
@@ -3263,9 +3460,9 @@ function _odmRenderReorder() {
       <div style="font-weight:800;font-size:13.5px;color:var(--white);">🔁 Reorder this order</div>
       <button onclick="odmCloseReorder()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;" aria-label="Close">×</button>
     </div>
-    <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.5;">Free replacement (KES 0) on <b style="color:var(--white);">${esc(i.service_name || 'the same service')}</b>, sent straight to the provider.</div>
-    ${!i.service_available ? `<div style="margin:0 0 12px;font-size:12px;color:#ff8a80;">⚠️ ${esc(i.service_reason || 'Service unavailable')} — use the Reorder Queue to pick a similar service.</div>` : ''}
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.5;">Free replacement (KES 0), sent straight to the provider.</div>
     ${prevHtml}${taskHtml}
+    ${_odmServiceBlock(i)}
     <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Link</div>
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--white);margin-bottom:6px;cursor:pointer;${hasOrig ? '' : 'opacity:.5;pointer-events:none;'}">
       <input type="radio" name="odmReLink" value="same" ${hasOrig ? 'checked' : ''} onchange="_odmLinkMode()" style="margin-top:2px;">
@@ -3281,16 +3478,122 @@ function _odmRenderReorder() {
         <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Quantity</div>
         <input id="odmReQty" type="number" min="1" max="${Number(i.max_quantity) || ''}" value="${Number(i.quantity) || ''}" style="${inp}">
       </div>
-      <div style="font-size:11px;color:var(--muted);padding-bottom:9px;white-space:nowrap;">max ${Number(i.max_quantity || 0).toLocaleString()}</div>
+      <div id="odmReQtyMax" style="font-size:11px;color:var(--muted);padding-bottom:9px;white-space:nowrap;">max ${Number(i.max_quantity || 0).toLocaleString()}</div>
     </div>
-    <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin-bottom:12px;cursor:pointer;">
-      <input id="odmReNotify" type="checkbox" checked> Message the customer that it was re-placed
-    </label>
+    <div id="odmReQtyHint" style="font-size:11px;color:var(--muted);margin:-4px 0 10px;line-height:1.5;"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">✉ The customer is messaged in their support chat that it was re-placed.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn-primary" id="odmReGo" onclick="odmSubmitReorder()" style="margin:0;width:auto;padding:10px 16px;font-size:13px;" ${i.service_available ? '' : 'disabled'}>🔁 Place reorder (free)</button>
+      <button class="btn-primary" id="odmReGo" onclick="odmSubmitReorder()" style="margin:0;width:auto;padding:10px 16px;font-size:13px;">🔁 Place reorder (free)</button>
       <button class="action-btn" onclick="odmCloseReorder()">Cancel</button>
     </div>
     <div id="odmReMsg" style="margin-top:10px;font-size:12.5px;"></div>`;
+  _odmSyncQty();
+}
+
+/* SERVICE choice in the order-popup reorder box. When the order's service is
+ * gone, the original choice is locked and staff pick a similar service —
+ * a suggestion, or any service of that kind via "Choose another service…"
+ * (shared picker: reorder_alternatives.js). Same link either way. */
+function _odmServiceBlock(i) {
+  const alts = i.alternatives || [];
+  const gone = !i.service_available;
+  const owed = Number(i.quantity) || 0;
+  const card = (val, checked, disabled, inner) => `
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--white);margin-bottom:6px;cursor:${disabled ? 'not-allowed' : 'pointer'};opacity:${disabled ? .5 : 1};">
+      <input type="radio" name="odmReSvc" value="${val}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="_odmSvcMode()" style="margin-top:2px;">
+      <span style="min-width:0;">${inner}</span>
+    </label>`;
+  return `
+    <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Service</div>
+    <div id="odmReSvcState" style="font-size:12px;margin-bottom:6px;">${gone
+      ? `<span style="color:#ff8a80;font-weight:700;">⚠️ ${esc(i.service_reason || 'Service unavailable')}</span> <span style="color:var(--muted);">— pick a similar service below.</span>`
+      : ''}</div>
+    ${card('orig', !gone, gone, `Same service<br><span style="color:var(--muted);font-size:11.5px;">${esc(i.service_name || '')}</span>`)}
+    ${card('alt', gone, false, `A similar service <span style="color:var(--muted);font-size:11.5px;">— same link${i.client_rate_kes ? `, client paid KES ${Number(i.client_rate_kes).toLocaleString(undefined, { maximumFractionDigits: 2 })}/1k` : ''}</span>
+      ${alts.length ? '' : '<br><span style="color:#ffb74d;font-size:11.5px;">No close match fits the amount paid — use “Choose another service…”</span>'}`)}
+    <div id="odmReAltWrap" style="display:${gone ? 'block' : 'none'};margin:4px 0 10px 4px;">
+      <div id="odmReAltList" style="max-height:240px;overflow:auto;">${alts.map((a, k) => rsvcCardHtml(a, { name: 'odmReAlt', owedQty: owed, checked: gone && k === 0 })).join('')}</div>
+      <button type="button" class="action-btn" onclick="_odmBrowseServices()">🔎 Too expensive? Choose another service…</button>
+    </div>`;
+}
+
+function _odmSelectedAlt() {
+  if (!_odmRe) return null;
+  if (document.querySelector('input[name="odmReSvc"]:checked')?.value !== 'alt') return null;
+  const sid = document.querySelector('input[name="odmReAlt"]:checked')?.value;
+  return (_odmRe.info.alternatives || []).find(a => String(a.service) === sid) || null;
+}
+
+function _odmSvcMode() {
+  const onAlt = document.querySelector('input[name="odmReSvc"]:checked')?.value === 'alt';
+  const wrap = document.getElementById('odmReAltWrap');
+  if (wrap) wrap.style.display = onAlt ? 'block' : 'none';
+  if (onAlt && !document.querySelector('input[name="odmReAlt"]:checked')) {
+    const f = document.querySelector('input[name="odmReAlt"]'); if (f) f.checked = true;
+  }
+  _odmSyncQty();
+}
+
+/* Quantity follows the service: same service → original/undelivered quantity;
+ * replacement → what the amount PAID buys there (price-matched, can lower only). */
+function _odmSyncQty() {
+  if (!_odmRe) return;
+  const i = _odmRe.info, a = _odmSelectedAlt();
+  const q = document.getElementById('odmReQty'), mx = document.getElementById('odmReQtyMax'), hint = document.getElementById('odmReQtyHint');
+  if (!q) return;
+  if (a) {
+    q.value = a.quantity; q.max = a.quantity;
+    if (mx) mx.textContent = `max ${Number(a.quantity).toLocaleString()} on this service`;
+    if (hint) hint.innerHTML = i.is_free
+      ? 'Zero-charge order — nothing to price-match, so the original quantity is kept.'
+      : `Price-matched: KES ${Number(i.paid_kes).toLocaleString(undefined, { maximumFractionDigits: 2 })} paid ÷ KES ${Number(a.rate_kes).toLocaleString()}/1k = <b style="color:var(--white);">${Number(a.quantity).toLocaleString()} units</b> (original: ${Number(i.quantity).toLocaleString()}).`;
+  } else {
+    q.value = i.quantity; q.max = i.max_quantity;
+    if (mx) mx.textContent = `max ${Number(i.max_quantity || 0).toLocaleString()}`;
+    if (hint) hint.textContent = '';
+  }
+}
+
+function _odmBrowseServices() {
+  if (!_odmRe) return;
+  const i = _odmRe.info;
+  rsvcOpenBrowser({
+    url: `/reorders/order/${encodeURIComponent(_odmRe.orderId)}/alternatives`,
+    owedQty: Number(i.quantity) || 0, clientRate: i.client_rate_kes, isFree: i.is_free, paid: i.paid_kes,
+    title: 'Choose a replacement service',
+    onPick: (a) => {
+      const list = document.getElementById('odmReAltList'); if (!list) return;
+      i.alternatives = i.alternatives || [];
+      let r = document.querySelector(`input[name="odmReAlt"][value="${CSS.escape(String(a.service))}"]`);
+      if (!r) {
+        i.alternatives.unshift(a);
+        list.insertAdjacentHTML('afterbegin', rsvcCardHtml(a, { name: 'odmReAlt', owedQty: Number(i.quantity) || 0, checked: false }));
+        r = document.querySelector(`input[name="odmReAlt"][value="${CSS.escape(String(a.service))}"]`);
+      }
+      r.checked = true;
+      const altR = document.querySelector('input[name="odmReSvc"][value="alt"]'); if (altR) altR.checked = true;
+      _odmSvcMode(); list.scrollTop = 0;
+    },
+  });
+}
+
+/* The provider said it no longer has the service the reorder was sent to:
+ * lock that choice and move to the alternatives (the link + quantity choices stay). */
+function _odmServiceGone(deadAltSid) {
+  const i = _odmRe && _odmRe.info; if (!i) return;
+  if (deadAltSid) {
+    document.querySelector(`input[name="odmReAlt"][value="${CSS.escape(deadAltSid)}"]`)?.closest('label')?.remove();
+    i.alternatives = (i.alternatives || []).filter(a => String(a.service) !== deadAltSid);
+  } else {
+    i.service_available = false;
+    const o = document.querySelector('input[name="odmReSvc"][value="orig"]');
+    if (o) { o.disabled = true; const l = o.closest('label'); if (l) { l.style.opacity = .5; l.style.cursor = 'not-allowed'; } }
+    const st = document.getElementById('odmReSvcState');
+    if (st) st.innerHTML = '<span style="color:#ff8a80;font-weight:700;">⚠️ The provider no longer has this service</span> <span style="color:var(--muted);">— pick a similar service below.</span>';
+  }
+  const altR = document.querySelector('input[name="odmReSvc"][value="alt"]'); if (altR) altR.checked = true;
+  _odmSvcMode();
+  if (!(i.alternatives || []).length) _odmBrowseServices();
 }
 
 function _odmLinkMode() {
@@ -3306,15 +3609,23 @@ async function odmSubmitReorder() {
   const isNew = document.querySelector('input[name="odmReLink"]:checked')?.value === 'new';
   const link = (document.getElementById('odmReNewLink')?.value || '').trim();
   const qty = parseInt(document.getElementById('odmReQty')?.value, 10);
-  const max = Number(_odmRe.info.max_quantity) || 0;
+  const onAlt = document.querySelector('input[name="odmReSvc"]:checked')?.value === 'alt';
+  const alt = _odmSelectedAlt();
+  const max = alt ? Number(alt.quantity) : (Number(_odmRe.info.max_quantity) || 0);
   const say = (t, ok) => { if (msg) msg.innerHTML = `<span style="color:${ok ? 'var(--green)' : '#ff8a80'};">${t}</span>`; };
   if (isNew && !/^https?:\/\/\S+\.\S+/i.test(link)) { say('Enter a valid link starting with https://'); return; }
+  if (onAlt && !alt) { say('Pick a replacement service (or “Choose another service…”)'); return; }
+  if (!onAlt && !_odmRe.info.service_available) { say('The original service is unavailable — pick a similar service'); return; }
   if (!qty || qty < 1 || (max && qty > max)) { say(`Quantity must be between 1 and ${max.toLocaleString()}`); return; }
-  const prevN = (_odmRe.info.previous || []).length;
+  // Count reorders from BOTH the popup and the Reorder Queue (o.reordered).
+  const cached = (typeof _adminOrdersCache !== 'undefined' && _adminOrdersCache[_odmRe.orderId]) || _supportOrdersCache[_odmRe.orderId] || {};
+  const prevN = Math.max((_odmRe.info.previous || []).length, (cached.reordered || []).length,
+                         _odmRe.info.queue_task && _odmRe.info.queue_task.status === 'reordered' ? 1 : 0);
   if (prevN && !confirm(`This order was already reordered ${prevN}×. Place another free reorder?`)) return;
 
-  const body = { quantity: qty, notify_customer: !!document.getElementById('odmReNotify')?.checked };
+  const body = { quantity: qty };
   if (isNew) body.link = link; else body.use_original_link = true;
+  if (alt) body.service_id = Number(alt.service);
   if (btn) { btn.disabled = true; btn.textContent = 'Sending to provider…'; }
   try {
     const r = await api(`/reorders/order/${encodeURIComponent(_odmRe.orderId)}/manual`, { method: 'POST', body: JSON.stringify(body) });
@@ -3323,14 +3634,24 @@ async function odmSubmitReorder() {
       <div style="font-weight:800;font-size:13.5px;color:var(--green);margin-bottom:6px;">✅ Reorder placed</div>
       <div style="font-size:12.5px;color:var(--white);line-height:1.6;">New order <b>#${esc(String(r.new_order_id || '').slice(0, 8))}</b>
         ${r.provider_order_id ? ` · provider #${esc(r.provider_order_id)}` : ''} · x${Number(r.quantity || qty).toLocaleString()}<br>
+        ${r.service_substituted ? `<span style="color:#ffcc80;">On a similar service: ${esc(String(r.service_name || '').replace('🔁 Reorder · ', ''))}</span><br>` : ''}
+        ${r.customer_notified
+          ? '<span style="color:var(--green);">✉ Customer messaged in their support chat</span><br>'
+          : '<span style="color:#ff8a80;font-weight:700;">⚠️ The reorder was placed but the customer could NOT be messaged — please message them from Support.</span><br>'}
         <span style="color:var(--muted);word-break:break-all;">${esc(r.link || '')}</span></div>
       <button class="action-btn" style="margin-top:10px;" onclick="odmCloseReorder()">Done</button>`;
-    toast('Reorder placed — sent to the provider', 'success');
+    toast(r.customer_notified ? 'Reorder placed — customer messaged' : 'Reorder placed, but the customer could not be messaged — message them from Support',
+          r.customer_notified ? 'success' : 'error');
     if (document.getElementById('ap-allorders')?.classList.contains('active') && typeof loadAdminOrders === 'function') loadAdminOrders();
     if (typeof rqLoad === 'function' && document.getElementById('reorderQueuePane')?.style.display !== 'none') rqLoad();
   } catch (e) {
-    say('⚠️ ' + esc(e.message || 'Reorder failed'));
     if (btn) { btn.disabled = false; btn.textContent = '🔁 Place reorder (free)'; }
+    if (rsvcIsServiceGoneError(e)) {
+      _odmServiceGone(alt ? String(alt.service) : null);
+      say('⚠️ The provider no longer has ' + (alt ? 'that replacement service' : 'this service') + ' — pick a similar one below and place the reorder again.');
+      return;
+    }
+    say('⚠️ ' + esc(e.message || 'Reorder failed'));
   }
 }
 
@@ -3516,13 +3837,14 @@ async function adminSendReply() {
   if (!body) return;
   input.value = '';
   input.style.height = '42px';
+  const order_id = document.getElementById('adminReplyOrder')?.value || null;
   try {
     await api(`/support/admin/threads/${activeSupportThreadId}/reply`, {
       method: 'POST',
-      body: JSON.stringify({ body })
+      body: JSON.stringify({ body, order_id })
     });
-    // Re-render the thread to show the new message
-    await openSupportThread(activeSupportThreadId);
+    // Re-render the thread to show the new message (earlier pages stay loaded)
+    await openSupportThread(activeSupportThreadId, { keepEarlier: true });
     toast('Reply sent ✓', 'success');
   } catch(e) {
     toast(e.message || 'Failed to send reply', 'error');
@@ -3536,8 +3858,9 @@ async function adminUpdateThreadStatus(status) {
       method: 'PATCH',
       body: JSON.stringify({ status })
     });
-    toast(`Status → ${status}`, 'success');
-    loadAdminSupport(); // refresh left panel counts
+    toast(status === 'resolved' ? 'Marked done — the client\'s next message reopens it' : 'Reopened', 'success');
+    await loadAdminSupport(); // refresh left panel counts
+    if (activeSupportThreadId) openSupportThread(activeSupportThreadId);
   } catch(e) {
     toast(e.message || 'Failed to update status', 'error');
   }
@@ -3581,8 +3904,8 @@ async function adminMessageCustomer(userId, userEmail) {
         pane.innerHTML = `
           <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;">
             <div style="font-size:36px;">💬</div>
-            <div style="font-size:14px;font-weight:700;color:var(--white);">No existing thread for<br><span style="color:var(--green);">${userEmail}</span></div>
-            <div style="font-size:13px;color:var(--muted);max-width:340px;">Send this customer a message to start a support conversation. They'll see it in their chat widget.</div>
+            <div style="font-size:14px;font-weight:700;color:var(--white);">No support chat yet with<br><span style="color:var(--green);">${userEmail}</span></div>
+            <div style="font-size:13px;color:var(--muted);max-width:340px;">Send a message to start their support chat. They'll see it in Support Chat; every later message goes into the same conversation.</div>
             <select id="adminInitiateType" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;outline:none;cursor:pointer;margin-top:4px;">
               <option value="wrong_order">📦 Wrong Order</option>
               <option value="delay">⏳ Delay / Late Delivery</option>
@@ -3658,29 +3981,32 @@ function filterTickets(status, btn) {
   renderTickets(filtered);
 }
 
+// One support conversation per client (backend: support_tickets.py →
+// client_thread). The page shows that one conversation; "New message" posts
+// into it. The list shape from GET /support/threads is kept (one item).
+const _CONV_STATUS = { open: '🟠 Waiting for our reply', pending: '💬 We replied', resolved: '✅ Sorted', closed: '✅ Sorted' };
+
 function renderTickets(tickets) {
   const el = document.getElementById('ticketsList');
   if (!tickets.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">🎫</div><p>No tickets found. Open one if you need help!</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon">💬</div><p>No messages yet. Tap <b>＋ New message</b> if you need help — our team replies right here.</p></div>';
     return;
   }
-  const typeIcon = { wrong_order: '📦', delay: '⏳' };
-  const statusLabel = { open:'🔴 Open', pending:'🟡 Replied', resolved:'🟢 Resolved', closed:'⬛ Closed' };
   el.innerHTML = tickets.map(t => {
-    const tid     = esc(t.id);
-    const tStatus = esc(t.status||'');
-    const stLabel = statusLabel[t.status] || tStatus;
+    const tid  = esc(t.id);
+    const last = t.last_message;
+    const when = t.updated_at || (last && last.created_at) || t.created_at;
     return `
     <div class="ticket-card" onclick="openTicketThread('${tid}')">
-      <div class="ticket-icon">${typeIcon[t.type] || '🎫'}</div>
+      <div class="ticket-icon">💬</div>
       <div class="ticket-body">
-        <div class="ticket-title">${_ticketTypeLabel(t)} <span style="color:var(--muted);font-weight:400;font-size:12px;">#${tid.slice(0,8)}</span></div>
-        <div class="ticket-preview">${_ticketPreview(_ticketBodyText(t.last_message || t.first_message))}</div>
-        <div class="ticket-meta">${new Date(t.created_at).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'})} · ${(t.messages||[]).length || t.message_count || 0} messages</div>
+        <div class="ticket-title">EndaViral Support</div>
+        <div class="ticket-preview">${_ticketPreview(_ticketBodyText(last || t.first_message))}</div>
+        <div class="ticket-meta">${when ? 'Last message ' + new Date(when).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'}) + ' · ' : ''}${t.message_count || (t.messages||[]).length || 0} messages</div>
       </div>
-      <span class="ticket-status ts-${tStatus}">${stLabel}</span>
-    </div>
-  `}).join('');
+      <span class="ticket-status ts-${esc(t.status||'')}">${_CONV_STATUS[t.status] || esc(t.status||'')}</span>
+    </div>`;
+  }).join('');
 }
 
 function _ticketBodyText(val) {
@@ -3724,9 +4050,18 @@ function _isTicketUnseen(t) {
   return msgCount > seenCount;
 }
 
+// "Something new from us you haven't opened": the latest message is ours (staff
+// or automatic) and the conversation has more messages than when last opened.
+// Status alone can't say this any more — one conversation can be OPEN (the
+// client is waiting on a human) while an automatic order update arrives.
+function _hasUnseenReply(t) {
+  const last = t.last_message;
+  return !!last && last.sender === 'admin' && _isTicketUnseen(t);
+}
+
 function _updateTicketsBadge() {
   const badge   = document.getElementById('ticketsBadge');
-  const pending = _allTickets.filter(t => t.status === 'pending' && _isTicketUnseen(t)).length;
+  const pending = _allTickets.filter(_hasUnseenReply).length;
   if (badge) {
     badge.style.display = pending ? 'inline-flex' : 'none';
     badge.textContent   = pending || '';
@@ -3752,7 +4087,7 @@ function _updateDashTicketBanner() {
   // the customer actually opens the thread (openTicketThread marks it
   // seen at that message count), it stops showing here even though the
   // ticket itself is still 'pending' server-side until they type a reply.
-  const pendingTickets = _allTickets.filter(t => t.status === 'pending' && _isTicketUnseen(t));
+  const pendingTickets = _allTickets.filter(_hasUnseenReply);
   if (!pendingTickets.length) {
     el.style.display = 'none';
     _dashBannerTicketId = null;
@@ -3768,15 +4103,15 @@ function _updateDashTicketBanner() {
     // agent's reply — an auto-message (order confirmation, payment-failure
     // greeting) is is_bot=true and gets its own, accurate wording instead.
     const isBotMsg = !!(lastMsg && lastMsg.is_bot);
-    if (titleEl) titleEl.textContent = isBotMsg ? 'New message from EndaViral' : 'Support replied to your ticket';
+    if (titleEl) titleEl.textContent = isBotMsg ? 'New message from EndaViral' : 'Support replied to you';
     if (desc) {
       const body = _ticketBodyText(lastMsg);
       desc.textContent = _ticketPreview(body).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>') || 'Tap to view the reply';
     }
   } else {
     _dashBannerTicketId = null; // ambiguous which one to open directly — the click handler falls back to the list
-    if (titleEl) titleEl.textContent = 'You have new ticket replies';
-    if (desc) desc.textContent = `${pendingTickets.length} tickets have new replies — tap to view`;
+    if (titleEl) titleEl.textContent = 'New messages from support';
+    if (desc) desc.textContent = 'Tap to view';
   }
   el.style.display = 'flex';
 }
@@ -3804,18 +4139,28 @@ async function openTicketThread(threadId) {
   await _loadTicketThread(threadId);
 }
 
-async function _loadTicketThread(threadId) {
+// Client side, same paging: latest 20 messages, "Load earlier messages" on top.
+let _ttEarlier = { threadId: null, msgs: [], hasMore: null };
+
+async function _loadTicketThread(threadId, opts) {
+  opts = opts || {};
+  if (!opts.keepEarlier || _ttEarlier.threadId !== threadId) _ttEarlier = { threadId, msgs: [], hasMore: null };
+  const oldEl = document.getElementById('ttMessages');
+  const fromBottom = opts.keepScroll && oldEl ? oldEl.scrollHeight - oldEl.scrollTop : null;
   try {
     const t = await api(`/support/threads/${threadId}`);
-    _markTicketSeen(threadId, (t.messages || []).length);
+    const _seen = new Set();
+    const latestIds = (t.messages || []).length;
+    t.messages = [..._ttEarlier.msgs, ...(t.messages || [])].filter(m => !_seen.has(m.id) && _seen.add(m.id));
+    const hasMore = _ttEarlier.hasMore === null ? !!t.has_more : _ttEarlier.hasMore;
+    _markTicketSeen(threadId, t.message_count || latestIds);
     if (typeof _updateTicketsBadge === 'function') _updateTicketsBadge();
     if (typeof _updateDashTicketBanner === 'function') _updateDashTicketBanner();
-    const typeLabel = _ticketTypeLabel(t);
-    document.getElementById('ttTitle').textContent = `${typeLabel} #${t.id.slice(0,8)}`;
+    document.getElementById('ttTitle').textContent = 'EndaViral Support';
     document.getElementById('ttMeta').textContent  =
-      `Opened ${new Date(t.created_at).toLocaleDateString('en-KE',
-        {day:'numeric',month:'short',year:'numeric'})} · ${(t.messages||[]).length} messages`;
-    const stLabel = { open:'🔴 Open', pending:'🟡 Replied', resolved:'🟢 Resolved', closed:'⬛ Closed' }[t.status] || esc(t.status);
+      `Your support chat since ${new Date(t.created_at).toLocaleDateString('en-KE',
+        {day:'numeric',month:'short',year:'numeric'})} · ${t.message_count || (t.messages||[]).length} messages`;
+    const stLabel = _CONV_STATUS[t.status] || esc(t.status);
     document.getElementById('ttStatusBadge').innerHTML =
       `<span class="ticket-status ts-${esc(t.status)}" style="font-size:12px;">${stLabel}</span>`;
     const user    = _getTicketUser();
@@ -3826,15 +4171,62 @@ async function _loadTicketThread(threadId) {
     if (!msgs.length) {
       el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">No messages yet.</div>';
     } else {
-      msgs.forEach(m => el.insertAdjacentHTML('beforeend', _ttMsgHtml(m, initial)));
+      if (hasMore) el.insertAdjacentHTML('beforeend', `<button id="ttLoadEarlier" onclick="ticketLoadEarlier()" style="align-self:center;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--white);border-radius:14px;padding:6px 14px;font-size:11.5px;font-family:inherit;cursor:pointer;">⬆ Load earlier messages</button>`);
+      _ttRenderMessages(el, msgs, initial);
     }
-    setTimeout(() => { el.scrollTop = el.scrollHeight; }, 60);
-    const isClosed = ['resolved','closed'].includes(t.status);
-    document.getElementById('ttClosedBanner').style.display = isClosed ? 'block' : 'none';
-    document.getElementById('ttReplyRow').style.display     = isClosed ? 'none'  : 'flex';
+    if (fromBottom !== null) el.scrollTop = el.scrollHeight - fromBottom;
+    else setTimeout(() => { el.scrollTop = el.scrollHeight; }, 60);
+    // Never closed: a conversation marked sorted reopens when they type.
+    const isDone = ['resolved','closed'].includes(t.status);
+    document.getElementById('ttClosedBanner').style.display = isDone ? 'block' : 'none';
+    document.getElementById('ttReplyRow').style.display     = 'flex';
   } catch(e) {
     document.getElementById('ttMessages').innerHTML =
       `<div style="padding:24px;color:var(--muted);">⚠️ ${e.message}</div>`;
+  }
+}
+
+// Messages with a day divider, and a small tag naming the order / topic a
+// message is about (one conversation holds every order).
+function _ttRenderMessages(el, msgs, initial) {
+  let day = '';
+  msgs.forEach(m => {
+    // Automatic diagnostic reports are for staff (they're stored as if the
+    // client sent them) — the client sees our automatic reply instead.
+    if (m.sender === 'user' && (m.body || '').startsWith('🚨 Automatic')) return;
+    const d = m.created_at ? new Date(m.created_at).toLocaleDateString('en-KE', { weekday:'short', day:'numeric', month:'short', year:'numeric' }) : '';
+    if (d && d !== day) {
+      day = d;
+      el.insertAdjacentHTML('beforeend', `<div style="text-align:center;font-size:10.5px;color:var(--muted);margin:6px 0 2px;">${esc(d)}</div>`);
+    }
+    el.insertAdjacentHTML('beforeend', _ttMsgHtml(m, initial));
+  });
+}
+
+function _msgTagHtml(m) {
+  const bits = [];
+  if (m.order_id) bits.push(`📦 Order #${esc(String(m.order_id).slice(0, 8))}`);
+  if (m.topic) bits.push(esc(m.topic));
+  const mine = m.sender === 'user';                 // the client's own (green) bubble
+  return bits.length ? `<div style="font-size:10px;font-weight:700;color:${mine ? 'rgba(255,255,255,.85)' : '#7fd88a'};margin-bottom:4px;">${bits.join(' · ')}</div>` : '';
+}
+
+async function ticketLoadEarlier() {
+  const id = _activeTicketId; if (!id) return;
+  const btn = document.getElementById('ttLoadEarlier');
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+  try {
+    let before = (_ttEarlier.threadId === id && _ttEarlier.msgs.length) ? _ttEarlier.msgs[0].id : null;
+    if (!before) before = ((await api(`/support/threads/${id}`)).messages || [])[0]?.id;
+    if (!before) return;
+    const page = await api(`/support/threads/${id}?before=${encodeURIComponent(before)}`);
+    if (_ttEarlier.threadId !== id) _ttEarlier = { threadId: id, msgs: [], hasMore: null };
+    _ttEarlier.msgs = [...(page.messages || []), ..._ttEarlier.msgs];
+    _ttEarlier.hasMore = !!page.has_more;
+    await _loadTicketThread(id, { keepEarlier: true, keepScroll: true });
+  } catch (e) {
+    toast(e.message || 'Could not load earlier messages', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '⬆ Load earlier messages'; }
   }
 }
 
@@ -3858,7 +4250,7 @@ function _ttMsgHtml(m, userInitial) {
   return `<div class="tt-msg from-${isAdmin?'admin':'user'} ${humanCls}">
     ${avatar}
     <div>
-      <div class="tt-bubble">${body}</div>
+      <div class="tt-bubble">${_msgTagHtml(m)}${body}</div>
       <div class="tt-time">${senderName} · ${time}</div>
     </div>
   </div>`;
@@ -3881,7 +4273,7 @@ async function sendTicketReply() {
       method: 'POST',
       body: JSON.stringify({ body })
     });
-    await _loadTicketThread(_activeTicketId);
+    await _loadTicketThread(_activeTicketId, { keepEarlier: true });
     await loadTickets();
   } catch(e) {
     toast(e.message || 'Failed to send message', 'error');
@@ -3900,6 +4292,24 @@ function openNewTicketModal() {
   if (cbDelay) cbDelay.checked = false;
   const phoneEl = document.getElementById('ntPhone');
   if (phoneEl) phoneEl.value = '';
+  _ntFillOrders();
+}
+
+// "Which order is this about?" — the client's recent orders, so the message is
+// tagged with it and support sees the order straight away.
+async function _ntFillOrders() {
+  const sel = document.getElementById('ntOrder');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Not about a specific order</option>';
+  try {
+    const d = await api('/orders?limit=20');
+    const orders = d.orders || d.data || d || [];
+    sel.insertAdjacentHTML('beforeend', orders.map(o => {
+      const when = o.created_at ? new Date(o.created_at).toLocaleDateString('en-KE', { day:'numeric', month:'short' }) : '';
+      const name = String(o.service_name || 'Order').slice(0, 48);
+      return `<option value="${esc(o.id)}">#${esc(String(o.id).slice(0, 8))} · ${esc(name)}${o.quantity ? ' ×' + Number(o.quantity).toLocaleString() : ''}${when ? ' · ' + esc(when) : ''}</option>`;
+    }).join(''));
+  } catch (_) { /* optional */ }
 }
 function closeNewTicketModal() {
   const m = document.getElementById('newTicketModal');
@@ -3926,19 +4336,20 @@ async function submitNewTicket() {
   // call if the customer opted in, or just reply as normal if not.
   const first_message = phone ? `${message}\n\n📞 **Call me:** ${phone}` : message;
   try {
+    const order_id = document.getElementById('ntOrder')?.value || null;
     const data = await api('/support/threads', {
       method: 'POST',
-      body: JSON.stringify({ issue_types, first_message })
+      body: JSON.stringify({ issue_types, first_message, order_id })
     });
     closeNewTicketModal();
-    toast('Ticket opened! Our team will respond shortly.', 'success');
+    toast('Message sent! Our team will reply in your support chat.', 'success');
     window._bgAllThreadsClosed = false; // new open thread exists — resume background watching for admin replies
     await loadTickets();
     openTicketThread(data.id);
   } catch(e) {
     toast(e.message || 'Failed to open ticket', 'error');
   } finally {
-    btn.textContent = 'Submit Ticket'; btn.disabled = false;
+    btn.textContent = 'Send message'; btn.disabled = false;
   }
 }
 
@@ -3957,7 +4368,7 @@ function closeTicketThread() {
 // just because the modal happens to be open.
 function _refreshOpenTicketThread(threadId) {
   if (_activeTicketId && _activeTicketId === threadId) {
-    _loadTicketThread(_activeTicketId);
+    _loadTicketThread(_activeTicketId, { keepEarlier: true });
   }
 }
 function _getTicketUser() {
@@ -3991,8 +4402,9 @@ async function _bgTicketWatchTick() {
     const data = await api('/support/threads');
     const threads = data.threads || data || [];
     // Quiet if there are no threads, OR every one we have is resolved/closed.
-    window._bgAllThreadsClosed = threads.length === 0 ||
-      threads.every(t => ['resolved','closed'].includes(t.status));
+    // Only "no conversation yet" is quiet — a conversation marked done still
+    // receives order updates and replies (it is never closed).
+    window._bgAllThreadsClosed = threads.length === 0;
 
     // Refresh the persistent indicators (nav badge + dashboard banner) off
     // each ticket's own `status` every time this runs — including the very
@@ -4009,7 +4421,6 @@ async function _bgTicketWatchTick() {
     if (typeof _updateDashTicketBanner === 'function') _updateDashTicketBanner();
 
     for (const t of threads) {
-      if (['resolved','closed'].includes(t.status)) continue;
       const threadId  = t.id;
       const msgCount  = t.message_count || (t.messages || []).length || 0;
       const prevCount = _bgTicketSeenCount[threadId];
@@ -4024,9 +4435,11 @@ async function _bgTicketWatchTick() {
         // Fetch full thread to inspect new messages
         try {
           const full = await api(`/support/threads/${threadId}`);
+          // The API returns only the latest page (20), so take the newest
+          // (msgCount - prevCount) of it instead of slicing by position.
           const msgs = full.messages || [];
-          const newMsgs = msgs.slice(prevCount);
-          _bgTicketSeenCount[threadId] = msgs.length;
+          const newMsgs = msgs.slice(-Math.max(1, Math.min(msgCount - prevCount, msgs.length)));
+          _bgTicketSeenCount[threadId] = full.message_count || msgCount;
 
           // Popup for any new admin-side message — human reply or
           // bot-authored auto-message (order confirmation, payment-failure

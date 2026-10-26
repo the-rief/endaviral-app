@@ -2160,7 +2160,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
-        My Tickets
+        Support Chat
         <span class="nav-badge" id="ticketsBadge" style="display:none">●</span>
       </div>
       <div class="nav-item" onclick="navTo('ccr-agent')" id="ccrNavItem" style="display:none">
@@ -2414,18 +2414,18 @@ tbody td{padding:13px 16px;font-size:14px;}
   <!-- Header row -->
   <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
     <div>
-      <div class="sec-title">MY TICKETS</div>
-      <div class="sec-sub">Track and manage your support requests</div>
+      <div class="sec-title">SUPPORT CHAT</div>
+      <div class="sec-sub">One conversation with our team — every order, update and question in one place</div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <button class="btn-primary" style="padding:9px 18px;font-size:13px;margin-top:0;"
-              onclick="openNewTicketModal()">+ New Ticket</button>
+              onclick="openNewTicketModal()">＋ New message</button>
       <button class="btn-secondary" onclick="loadTickets()">↻ Refresh</button>
     </div>
   </div>
 
   <!-- Filter tabs -->
-  <div class="filter-row" id="ticketsFilterRow">
+  <div class="filter-row" id="ticketsFilterRow" style="display:none;">
     <button class="cat-btn active" onclick="filterTickets('all',this)">All</button>
     <button class="cat-btn" onclick="filterTickets('open',this)">🔴 Open</button>
     <button class="cat-btn" onclick="filterTickets('pending',this)">🟡 Pending</button>
@@ -2445,13 +2445,21 @@ tbody td{padding:13px 16px;font-size:14px;}
      onclick="if(event.target===this)closeNewTicketModal()">
   <div class="modal" style="max-width:440px;">
     <button class="modal-close" onclick="closeNewTicketModal()">✕</button>
-    <div class="modal-title">OPEN NEW TICKET</div>
+    <div class="modal-title">MESSAGE SUPPORT</div>
     <div class="nt-howto">
       <button type="button" class="nt-howto-btn" onclick="ntToggleOrderHowto(this)">🛒 How do I place an order? <span>Show me ▾</span></button>
       <div class="nt-howto-body" id="ntOrderHowto" style="display:none;"></div>
     </div>
     <div class="modal-sub" style="margin-bottom:20px;">
-      Still need help? Select what applies, or just describe it below.
+      Still need help? Select what applies, or just describe it below. It goes into your one support chat.
+    </div>
+
+    <div class="modal-field">
+      <label>Which order is this about? (optional)</label>
+      <select id="ntOrder" style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);
+               border-radius:10px;padding:12px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;">
+        <option value="">Not about a specific order</option>
+      </select>
     </div>
 
     <div class="modal-field">
@@ -2489,7 +2497,7 @@ tbody td{padding:13px 16px;font-size:14px;}
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeNewTicketModal()">Cancel</button>
       <button class="btn-primary" id="ntSubmitBtn" onclick="submitNewTicket()"
-              style="margin-top:0;">Submit Ticket</button>
+              style="margin-top:0;">Send message</button>
     </div>
   </div>
 </div>
@@ -2525,7 +2533,7 @@ tbody td{padding:13px 16px;font-size:14px;}
          background:rgba(122,143,173,.07);border-top:1px solid rgba(122,143,173,.2);
          font-size:12px;font-weight:700;color:var(--muted);text-align:center;
          flex-shrink:0;">
-      🔒 This ticket is closed — open a new ticket if you need more help
+      ✅ Marked as sorted — just type below if you need anything else
     </div>
 
     <!-- Reply input -->
@@ -4931,7 +4939,7 @@ function renderOrders() {
         <td>${parseInt(o.quantity||o.qty||0).toLocaleString()}</td>
         <td class="hide-mobile" style="font-size:12px;color:var(--muted);white-space:nowrap;">${startRemains}</td>
         <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost||o.amount)}</td>
-        <td>${statusPill(o.status)}</td>
+        <td>${statusPill(o.status)}${typeof orderReplacedTag === 'function' ? orderReplacedTag(o) : ''}</td>
         <td style="white-space:nowrap;">${mpesaCell}</td>
         <td class="hide-mobile" style="font-size:12px;color:var(--muted);">${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
         <td style="white-space:nowrap;">${actions}</td>
@@ -5105,6 +5113,7 @@ function resetDeposit() {
 <script src="admin.js"></script>
 <script src="admin_shell.js"></script>
 <script src="ccr_support.js"></script>
+<script src="reorder_alternatives.js"></script>
 <script src="reorder_queue.js"></script>
 <script src="support_board.js"></script>
 <script src="admin_payments_health.js"></script>
@@ -5302,16 +5311,16 @@ body:has(.bw-overlay.show) #ev-chat-widget{
 
       <div id="ev-login-prompt">
         <span style="font-size:28px;">🔒</span>
-        <div>Please sign in to open a ticket and track replies from our team.</div>
+        <div>Please sign in to message our team and see their replies.</div>
         <button onclick="evScrollToLogin()">Sign In</button>
       </div>
 
       <div class="ev-tickets-wrap">
-        <div class="ev-tickets-label">🎫 Latest Ticket</div>
+        <div class="ev-tickets-label">💬 Your support chat</div>
         <div id="ev-tickets-list"></div>
       </div>
 
-      <button class="ev-new-ticket-cta" id="ev-new-ticket-btn" onclick="evOpenNewTicketForm()">＋ New Ticket</button>
+      <button class="ev-new-ticket-cta" id="ev-new-ticket-btn" onclick="evOpenNewTicketForm()">＋ New message</button>
     </div>
 
     <!-- New ticket view: checkboxes + free-text, straight to admin -->
@@ -5319,7 +5328,7 @@ body:has(.bw-overlay.show) #ev-chat-widget{
       <div class="ev-nt-form">
         <div class="ev-nt-hd">
           <button class="ev-nt-back" onclick="evGoHome()">←</button>
-          <div class="ev-nt-title">New Ticket</div>
+          <div class="ev-nt-title">New message</div>
         </div>
         <div class="ev-nt-quick">
           <div class="ev-nt-quick-label">⚡ Quick answers — no ticket needed</div>
@@ -5347,7 +5356,7 @@ body:has(.bw-overlay.show) #ev-chat-widget{
           <div class="ev-nt-hint">Optional — if you want a callback. We'll reply here either way.</div>
         </div>
 
-        <button class="ev-nt-submit" id="ev-nt-submit" onclick="evSubmitTicket()">Submit Ticket</button>
+        <button class="ev-nt-submit" id="ev-nt-submit" onclick="evSubmitTicket()">Send message</button>
       </div>
     </div>
 

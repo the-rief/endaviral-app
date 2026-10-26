@@ -255,6 +255,7 @@ async function startEventStream() {
         Store.invalidate('notifications');
         if (typeof _cnPollUnread === 'function') _cnPollUnread();
       } else if (evt.type === 'new_ticket_message' || evt.type === 'ticket_reply') {
+        window._bgAllThreadsClosed = false;   // a push means there IS something (e.g. the client's first message)
         if (typeof _bgTicketWatchTick === 'function') _bgTicketWatchTick();
         if (typeof sbOnTicketEvent === 'function') sbOnTicketEvent();   // staff Support Centre live refresh (no-op for customers)
         // Free-order approvals / rejections / restores arrive as ticket_reply

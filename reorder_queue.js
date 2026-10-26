@@ -415,7 +415,10 @@ async function rqMessage(id, kind) {
  * One dialog, three decisions (all pre-filled so the common case is one click):
  *   LINK     – re-use the original link (if it looks valid), pick a link the customer
  *              sent back in the support chat, or type a new one.
- *   SERVICE  – keep the original service, or — if it's unavailable — pick a similar one.
+ *   SERVICE  – keep the original service, or — if it's unavailable (or the provider says
+ *              it no longer has it) — pick a suggested similar one, or "Choose another
+ *              service…" to search every service of that kind, cheapest first
+ *              (reorder_alternatives.js).
  *   QUANTITY – auto-filled with what's still undelivered (still editable).
  * Data comes from GET /reorders/{id}/options. NB: the link check is format-level
  * only; it can't confirm a post is still live or public.                          */
@@ -470,26 +473,22 @@ async function rqReorder(id) {
        <div id="rqNewLinkHint" style="margin-top:4px;"></div>`);
 
   // ── SERVICE block ──
+  // Suggestions + "Choose another service…" come from reorder_alternatives.js.
   const paid = o.paid_kes, origRate = o.service.detail ? Number(o.service.detail.rate_kes) : null;
-  const delta = (a) => a.more_units ? `<span style="color:#3dd44a;">+${(a.quantity - defaultQty).toLocaleString()} vs original</span>`
-    : a.fewer_units ? `<span style="color:#ffb347;">${(a.quantity - defaultQty).toLocaleString()} vs original</span>` : 'same as original';
-  const altRows = alts.map((a, i) => _rqOptCard('rqAlt', String(a.service), i === 0 && svcUnavailable, false,
-    `<b style="color:var(--white);">${esc(a.name)}</b><br>
-     <span style="color:var(--white);font-weight:700;">→ ${Number(a.quantity).toLocaleString()} units</span>
-     <span style="color:var(--muted);">(${o.is_free ? 'free order — original quantity kept' : 'what the KES ' + Number(paid).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' paid buys'} · ${delta(a)}${a.capped ? ' · <span style="color:#ffb347;">capped at this service\'s max</span>' : ''})</span><br>
-     <span style="color:var(--muted);">KES ${Number(a.rate_kes).toLocaleString()}/1k · limits ${Number(a.min).toLocaleString()}–${Number(a.max).toLocaleString()}
-       ${a.refill ? ' · ♻ refill' : ''} · costs you ~KES ${Number(a.est_cost_kes).toLocaleString()}
-       ${a.cheaper ? ' · <span style="color:#3dd44a;">cheaper than original</span>' : a.pricier ? ' · <span style="color:#ffb347;">pricier than original</span>' : ''}
-       · ${Math.round(a.similarity * 100)}% match</span>`)).join('');
+  const altRows = alts.map((a, i) => rsvcCardHtml(a, { name: 'rqAlt', owedQty: defaultQty, checked: i === 0 && svcUnavailable })).join('');
   const svcHtml =
-    `<div style="font-size:12px;margin-bottom:8px;">${svcUnavailable
+    `<div id="rqSvcState" style="font-size:12px;margin-bottom:8px;">${svcUnavailable
         ? `<span style="color:#ff5252;font-weight:700;">⚠ Original service unavailable</span> <span style="color:var(--muted);">— ${esc(o.service.reason)}</span>`
         : `<span style="color:#3dd44a;font-weight:700;">✓ Original service available</span>`}</div>`
-    + _rqOptCard('rqSvc', 'orig', !svcUnavailable, false,
+    + _rqOptCard('rqSvc', 'orig', !svcUnavailable, svcUnavailable,
         `<b style="color:var(--white);">Keep original service</b><br><span style="color:var(--muted);">${esc(o.service.name)}</span>`)
-    + _rqOptCard('rqSvc', 'alt', svcUnavailable && alts.length > 0, !alts.length,
-        `<b style="color:var(--white);">Use a similar service</b> ${alts.length ? '' : '<span style="color:#ff5252;">(none found that fits this quantity)</span>'}`)
-    + `<div id="rqAltList" style="display:${svcUnavailable && alts.length ? 'block' : 'none'};max-height:230px;overflow:auto;margin-left:6px;">${altRows}</div>`;
+    + _rqOptCard('rqSvc', 'alt', svcUnavailable, false,
+        `<b style="color:var(--white);">Use a similar service</b> <span style="color:var(--muted);">— same link${o.client_rate_kes ? `, client paid KES ${Number(o.client_rate_kes).toLocaleString(undefined, { maximumFractionDigits: 2 })}/1k` : ''}</span>
+         ${alts.length ? '' : '<br><span style="color:#ffb347;">No close match fits the amount paid — use “Choose another service…”</span>'}`)
+    + `<div id="rqAltWrap" style="display:${svcUnavailable ? 'block' : 'none'};margin-left:6px;">
+         <div id="rqAltList" style="max-height:260px;overflow:auto;">${altRows}</div>
+         <button type="button" class="action-btn" id="rqAltBrowse" style="margin:2px 0 4px;">🔎 Too expensive? Choose another service…</button>
+       </div>`;
 
   const el = rqModal('Reorder for client',
     `<div style="font-size:12px;color:var(--muted);line-height:1.6;">Re-places the order straight to the provider at <b style="color:var(--white);">no charge</b> (the client already paid).</div>
@@ -520,7 +519,9 @@ async function rqReorder(id) {
       }
       try {
         const res = await api(`/reorders/${id}/reorder`, { method: 'POST', body: JSON.stringify(body) });
-        toast(`Reorder placed (#${res.new_order_id.slice(0, 8)})${res.service_substituted ? ' on a similar service' : ''}`, 'success');
+        toast(`Reorder placed (#${res.new_order_id.slice(0, 8)})${res.service_substituted ? ' on a similar service' : ''}`
+          + (res.customer_notified ? ' — client messaged' : ' — but the client could NOT be messaged, message them from Support'),
+          res.customer_notified ? 'success' : 'error');
         rqLoad();
         // Started from an Inbox chat: refresh it so the confirmation shows and the
         // conversation moves out of the Inbox.
@@ -529,19 +530,53 @@ async function rqReorder(id) {
           if (typeof activeSupportThreadId !== 'undefined' && activeSupportThreadId && typeof openSupportThread === 'function') openSupportThread(activeSupportThreadId);
         }
       } catch (e) {
-        // Provider refused it — most often a dead service. Open the alternatives so the next click can fix it.
-        if (alts.length && sel('rqSvc') === 'orig' && /provider|service/i.test(e.message || '')) {
-          const alt = el.querySelector('input[name="rqSvc"][value="alt"]'); if (alt) { alt.checked = true; alt.dispatchEvent(new Event('change', { bubbles: true })); }
-          syncQty();
-          const first = el.querySelector('input[name="rqAlt"]'); if (first && !el.querySelector('input[name="rqAlt"]:checked')) first.checked = true;
-          e.message = (e.message || 'Provider error') + ' — try a similar service below.';
+        // The provider no longer has the service it was sent to: lock that choice and
+        // switch to the alternatives so the next click re-places it on a similar one.
+        if (rsvcIsServiceGoneError(e)) {
+          const onAlt = sel('rqSvc') === 'alt';
+          const deadSid = onAlt ? sel('rqAlt') : null;
+          if (onAlt && deadSid) {                       // a suggested replacement was dead too — drop it
+            const card = el.querySelector(`input[name="rqAlt"][value="${CSS.escape(deadSid)}"]`)?.closest('label');
+            if (card) card.remove();
+            const k = alts.findIndex(x => String(x.service) === deadSid); if (k >= 0) alts.splice(k, 1);
+          } else {
+            const origR = el.querySelector('input[name="rqSvc"][value="orig"]');
+            if (origR) { origR.disabled = true; const l = origR.closest('label'); if (l) { l.style.opacity = .55; l.style.cursor = 'not-allowed'; } }
+            const st = el.querySelector('#rqSvcState');
+            if (st) st.innerHTML = '<span style="color:#ff5252;font-weight:700;">⚠ The provider no longer has the original service</span> <span style="color:var(--muted);">— pick a similar one below.</span>';
+          }
+          useAlt();
+          if (!alts.length) openBrowser();
+          e.message = 'The provider no longer has that service — pick a similar one and place the reorder again.';
         }
         throw e;
       }
     });
 
   // ── interactions ──
-  const altList = el.querySelector('#rqAltList');
+  const altList = el.querySelector('#rqAltList'), altWrap = el.querySelector('#rqAltWrap');
+  // Switch the SERVICE choice to "similar service" and make sure one is ticked.
+  const useAlt = () => {
+    const r = el.querySelector('input[name="rqSvc"][value="alt"]'); if (r) r.checked = true;
+    altWrap.style.display = 'block';
+    if (!el.querySelector('input[name="rqAlt"]:checked')) { const f = el.querySelector('input[name="rqAlt"]'); if (f) f.checked = true; }
+    syncQty();
+  };
+  const openBrowser = () => rsvcOpenBrowser({
+    url: `/reorders/${encodeURIComponent(id)}/services`, owedQty: defaultQty, clientRate: o.client_rate_kes,
+    isFree: o.is_free, paid, title: 'Choose a replacement service',
+    onPick: (a) => {
+      let r = el.querySelector(`input[name="rqAlt"][value="${CSS.escape(String(a.service))}"]`);
+      if (!r) {
+        alts.unshift(a);
+        altList.insertAdjacentHTML('afterbegin', rsvcCardHtml(a, { name: 'rqAlt', owedQty: defaultQty, checked: false }));
+        r = el.querySelector(`input[name="rqAlt"][value="${CSS.escape(String(a.service))}"]`);
+      }
+      r.checked = true; useAlt();
+      altList.scrollTop = 0;
+    },
+  });
+  el.querySelector('#rqAltBrowse').addEventListener('click', openBrowser);
   const qtyEl = el.querySelector('#rqNewQty'), qtyHint = el.querySelector('#rqQtyHint'), qtyLbl = el.querySelector('#rqQtyLbl');
   // The quantity follows the service: original service → original/undelivered quantity;
   // replacement service → what the amount PAID buys at that service's price.
@@ -563,7 +598,7 @@ async function rqReorder(id) {
   };
   el.addEventListener('change', (ev) => {
     if (ev.target.name === 'rqSvc') {
-      altList.style.display = ev.target.value === 'alt' ? 'block' : 'none';
+      altWrap.style.display = ev.target.value === 'alt' ? 'block' : 'none';
       if (ev.target.value === 'alt' && !el.querySelector('input[name="rqAlt"]:checked')) {
         const f = el.querySelector('input[name="rqAlt"]'); if (f) f.checked = true;
       }
@@ -646,10 +681,13 @@ async function rqReorderAll() {
         remaining = r.remaining;
       }
       rqLoad();
-      const problems = [...failed.map(x => ['Failed', x]), ...skipped.map(x => ['Skipped', x])];
+      const unmessaged = placed.filter(x => x.customer_notified === false);
+      const problems = [...failed.map(x => ['Failed', x]), ...skipped.map(x => ['Skipped', x]),
+                        ...unmessaged.map(x => ['Placed but NOT messaged', { ...x, reason: 'message the client from Support' }])];
       rqModal('Bulk reorder finished',
         `<div style="font-size:13px;line-height:1.8;">
-           ✅ <b>${placed.length}</b> reordered and customers messaged<br>
+           ✅ <b>${placed.length - unmessaged.length}</b> reordered and customers messaged<br>
+           ${unmessaged.length ? `⚠️ <b>${unmessaged.length}</b> reordered but the message to the customer failed — message them from Support<br>` : ''}
            ${failed.length ? `❌ <b>${failed.length}</b> failed (still open — retry later)<br>` : ''}
            ${skipped.length ? `⏭ <b>${skipped.length}</b> skipped (no usable link)<br>` : ''}
          </div>
@@ -696,7 +734,9 @@ function rqReorderOverdue() {
         if ((!r.placed.length && !r.failed.length && !r.skipped.length) || !r.remaining) break;
       }
       rqLoad();
-      toast(`${placed.length} reordered${failed.length ? `, ${failed.length} failed` : ''}${skipped.length ? `, ${skipped.length} skipped` : ''}`, failed.length ? 'error' : 'success');
+      const unmessaged = placed.filter(x => x.customer_notified === false).length;
+      toast(`${placed.length} reordered${unmessaged ? ` (${unmessaged} NOT messaged — message them from Support)` : ' and messaged'}${failed.length ? `, ${failed.length} failed` : ''}${skipped.length ? `, ${skipped.length} skipped` : ''}`,
+            (failed.length || unmessaged) ? 'error' : 'success');
     });
 }
 

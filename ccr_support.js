@@ -465,8 +465,8 @@ function ccrqrDeleteCustom(index) {
 function ccrqrHookThreadOpen() {
   if (typeof window.openSupportThread !== 'function' || window.openSupportThread.__ccrqrWrapped) return false;
   const original = window.openSupportThread;
-  const wrapped = async function (threadId) {
-    const result = await original(threadId);
+  const wrapped = async function (threadId, opts) {
+    const result = await original(threadId, opts);
     ccrqrRenderBar(threadId);
     return result;
   };

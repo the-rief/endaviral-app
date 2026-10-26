@@ -10,6 +10,10 @@
  *                  replies, the thread jumps to Inbox on its own
  *   ✅ Done        resolved / closed
  *
+ * ONE CONVERSATION PER CLIENT: each row is a client's whole support chat (never closed).
+ * The tab comes from the messages since it was last marked done; "Mark done" moves it to
+ * Done and the client's next message brings it back to the Inbox. Rows show the current
+ * topic and the orders being discussed.
  * A reply moves a thread Inbox → Follow-up; a customer reply moves it back. The chat pane
  * itself is still admin.js's openSupportThread() (+ ccr_support.js quick replies).
  * Loaded AFTER admin.js and reorder_queue.js. Globals used: api, toast, esc, currentUser,
@@ -21,7 +25,7 @@ const SB_TABS = [
   { id: 'followup',  icon: '⏳', label: 'Follow-up', sub: 'We messaged them and they haven\'t answered yet. Overdue (24h+) ones are flagged — nudge them or close them out.' },
   { id: 'reorders',  icon: '🔁', label: 'Reorders',  sub: '' },
   { id: 'automatic', icon: '⚙️', label: 'Automatic', sub: 'System-raised alerts and automatic notices. Nobody is waiting on these — if the customer replies, the thread moves to Inbox by itself.' },
-  { id: 'done',      icon: '✅', label: 'Done',      sub: 'Resolved and closed conversations.' },
+  { id: 'done',      icon: '✅', label: 'Done',      sub: 'Conversations marked done. They are never closed — the client\'s next message brings them back to the Inbox.' },
 ];
 
 const _sb = {
@@ -31,7 +35,8 @@ const _sb = {
 try { const t = sessionStorage.getItem('sbTab'); if (SB_TABS.some(x => x.id === t)) _sb.tab = t; } catch (_) {}
 
 const SB_TYPE = { wrong_order: '📦 Wrong order', delay: '⏳ Delay', other: '💬 Other' };
-const SB_STATUS = { open: ['#e53935', '🔴'], pending: ['#ff7043', '🟡'], resolved: ['#3dd44a', '🟢'], closed: ['#7a8fad', '⬛'] };
+const SB_STATUS = { open: ['#e53935', '🔴'], pending: ['#ff7043', '🟡'], resolved: ['#3dd44a', '✅'], closed: ['#3dd44a', '✅'] };
+const SB_STATUS_LABEL = { open: 'WAITING ON US', pending: 'WAITING ON CLIENT', resolved: 'DONE', closed: 'DONE' };
 
 function sbAge(h) {
   if (h == null) return '';
@@ -156,9 +161,7 @@ function sbRenderToolbar() {
     html += sel('type', [['', 'All types'], ['wrong_order', '📦 Wrong order'], ['delay', '⏳ Delay'], ['other', '💬 Other']]);
   } else if (_sb.tab === 'automatic') {
     html += sel('closed', [['', 'Open only'], ['all', 'Include resolved']]);
-    html += `<button class="btn-secondary" onclick="sbResolveAllAutomatic()" title="Mark every open automatic alert shown here as resolved">✓ Resolve all shown</button>`;
-  } else if (_sb.tab === 'done') {
-    html += sel('closed', [['', 'Resolved + closed'], ['resolved', '🟢 Resolved'], ['closed', '⬛ Closed']]);
+    html += `<button class="btn-secondary" onclick="sbResolveAllAutomatic()" title="Mark every automatic-only conversation shown here as done">✓ Mark all shown done</button>`;
   }
   el.innerHTML = html;
 }
@@ -168,7 +171,7 @@ function sbThreads() {
   const all = _sb.data?.threads || [], f = _sb.f;
   const q = (document.getElementById('sbSearch')?.value || '').trim().toLowerCase();
   let rows = all.filter(t => t.bucket === _sb.tab);
-  if (q) rows = rows.filter(t => `${t.user_name} ${t.user_email} ${t.subject || ''} ${t.last_message?.body || ''}`.toLowerCase().includes(q));
+  if (q) rows = rows.filter(t => `${t.user_name} ${t.user_email} ${t.subject || ''} ${t.topic || ''} ${(t.episode_orders || []).join(' ')} ${t.last_message?.body || ''}`.toLowerCase().includes(q));
   if (f.type) rows = rows.filter(t => t.type === f.type);
   if (_sb.tab === 'inbox' && f.origin) rows = rows.filter(t => t.origin === f.origin);
   if (_sb.tab === 'followup') {
@@ -177,7 +180,6 @@ function sbThreads() {
     else if (f.agent) rows = rows.filter(t => t.last_staff_id === f.agent);
   }
   if (_sb.tab === 'automatic' && f.closed !== 'all') rows = rows.filter(t => ['open', 'pending'].includes(t.status));
-  if (_sb.tab === 'done' && f.closed) rows = rows.filter(t => t.status === f.closed);
   // inbox/followup: longest wait first (that's the urgent end); automatic/done: newest first
   const longestWaitFirst = _sb.tab === 'inbox' || _sb.tab === 'followup';
   rows.sort((a, b) => longestWaitFirst ? (b.waiting_hours - a.waiting_hours) : (new Date(b.last_activity_at) - new Date(a.last_activity_at)));
@@ -188,7 +190,7 @@ const SB_EMPTY = {
   inbox: ['🎉', 'Inbox zero', 'No customer is waiting on a reply.'],
   followup: ['👌', 'Nothing to chase', 'Everyone we messaged has either replied or been resolved.'],
   automatic: ['⚙️', 'No automatic alerts', 'System-raised tickets and auto notices will appear here.'],
-  done: ['🗂', 'Nothing here yet', 'Resolved and closed conversations show up here.'],
+  done: ['🗂', 'Nothing here yet', 'Conversations marked done show up here.'],
 };
 
 let _sbSearchTimer = null;
@@ -237,14 +239,15 @@ function sbItem(t) {
       ${sbWaitChip(t)}
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;">
-      <span style="font-size:11px;color:var(--green);font-weight:600;">${esc(SB_TYPE[t.type] || t.type)}</span>
+      <span style="font-size:11px;color:var(--green);font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Current topic">${esc(t.topic || SB_TYPE[t.type] || t.type)}</span>
+      ${(t.episode_orders || []).slice(0, 2).map(id => `<span class="sb-tag" style="color:#7fd88a;background:rgba(61,212,74,.10);">📦 #${esc(String(id).slice(0, 8))}</span>`).join('')}${(t.episode_orders || []).length > 2 ? `<span class="sb-tag" style="color:var(--muted);">+${t.episode_orders.length - 2}</span>` : ''}
       ${origin[0] ? `<span class="sb-tag" style="color:${origin[1]};background:rgba(255,255,255,.06);">${origin[0]}</span>` : ''}
       ${t.reorder_task_id ? `<span class="sb-tag" style="color:#ff7043;background:rgba(255,112,67,.12);">🔁 Reorder</span>` : ''}
-      <span style="font-size:10px;font-weight:700;color:${sc};margin-left:auto;">${se} ${esc(t.status.toUpperCase())}</span>
+      <span style="font-size:10px;font-weight:700;color:${sc};margin-left:auto;">${se} ${esc(SB_STATUS_LABEL[t.status] || t.status.toUpperCase())}</span>
     </div>
     <div style="font-size:11.5px;color:var(--muted);line-height:1.45;">${preview}</div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
-      <span style="font-size:10px;color:#3a5570;">${t.message_count || 0} msgs · ${t.agent_msgs || 0} from agents${t.auto_msgs ? ' · ' + t.auto_msgs + ' auto' : ''}</span>
+      <span style="font-size:10px;color:#3a5570;" title="Since it was last marked done">${t.message_count || 0} new msgs · ${t.agent_msgs || 0} from agents${t.auto_msgs ? ' · ' + t.auto_msgs + ' auto' : ''}</span>
       ${_sb.tab === 'followup' ? `<button class="btn-secondary" style="padding:3px 10px;font-size:10.5px;" onclick="event.stopPropagation();sbNudge('${tid}')">👋 Nudge</button>` : ''}
     </div>
   </div>`;
@@ -323,13 +326,13 @@ function sbNudge(threadId) {
 async function sbResolveAllAutomatic() {
   const rows = sbThreads().filter(t => ['open', 'pending'].includes(t.status)).slice(0, 100);
   if (!rows.length) { toast('Nothing to resolve', 'info'); return; }
-  if (!confirm(`Mark ${rows.length} automatic alert(s) as resolved?\nA customer reply would still reopen the conversation in Inbox.`)) return;
+  if (!confirm(`Mark ${rows.length} automatic-only conversation(s) done?\nThe client's next message would bring the conversation back to the Inbox.`)) return;
   let ok = 0, bad = 0;
   for (const t of rows) {
     try { await api(`/support/admin/threads/${t.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'resolved' }) }); ok++; }
     catch (_) { bad++; }
   }
-  toast(`Resolved ${ok}${bad ? `, ${bad} failed` : ''}`, bad ? 'error' : 'success');
+  toast(`Marked ${ok} done${bad ? `, ${bad} failed` : ''}`, bad ? 'error' : 'success');
   sbLoad(true);
 }
 
