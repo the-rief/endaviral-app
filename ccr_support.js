@@ -19,12 +19,15 @@
  * Facts baked into the copy below are pulled straight from the live
  * product (so replies never contradict what the customer already saw):
  *   - Landing page FAQ (#faq) + Order Modal "BEFORE YOU PAY" notice —
- *     once payment is confirmed an order CANNOT be refunded or cancelled;
- *     a wrong link submitted by the customer is NOT refundable either.
- *     What we DO promise: a stalled/delayed/partially-delivered order
- *     gets completed or re-queued at no extra cost, and admins can issue
- *     a discretionary wallet CREDIT (not a "refund") via the Users tab
- *     when the mistake was on our/provider's side.
+ *     once payment is confirmed an order CANNOT be cancelled. A paid order
+ *     that FAILS, can't start, or is only PARTLY delivered is refunded
+ *     automatically ONLY in the nightly run (just after midnight EAT; a
+ *     scheduled wake-up makes sure it runs every night) to the customer's EndaViral Wallet for the
+ *     undelivered part, and the customer is messaged (services/credit_wallet.py).
+ *     Wallet credit can't be withdrawn to M-Pesa. A wrong link or a private
+ *     account submitted by the customer is NOT refundable. Admins can still
+ *     give a goodwill wallet credit (Admin → Wallet Credit) for our mistakes
+ *     on orders that were otherwise delivered.
  *   - Order Modal "BEFORE YOU PAY" — profile/post must be set to Public;
  *     link/username must not change while an order is running.
  *   - Chat widget instant answers (chat.js) — delivery start times:
@@ -90,8 +93,8 @@ const CCR_QR_DEFAULTS = [
   // ── Delay ────────────────────────────────────────────────────────────
   { id: 'd_delay_normal',  category: 'Delay',       label: 'Please wait, it is normal',
     text: 'Sorry for the wait, {name}. Some orders take longer to start, up to 24 hours for slower services. Your order is still in line and will start. You do not need to do anything for now.' },
-  { id: 'd_delay_provider',category: 'Delay',       label: 'Delay is on our supplier',
-    text: 'Your order is slow because of a delay from our supplier, not because of anything you did. It will continue on its own. If it is still stuck after a few hours, message me here and I will push it.' },
+  { id: 'd_delay_provider',category: 'Delay',       label: 'Delay is on our side',
+    text: 'Your order is moving slower than usual because of a delay on our side, not because of anything you did. It will continue on its own. If it is still stuck after a few hours, message me here and I will push it.' },
   { id: 'd_delay_escalate',category: 'Delay',       label: 'I have escalated it',
     text: 'Your order has taken longer than normal, so I have passed it to our team to look into. I will message you here as soon as I have an update.' },
 
@@ -122,10 +125,14 @@ const CCR_QR_DEFAULTS = [
     text: 'I can see your payment attempt. Give me a minute to confirm it and I will tell you here.' },
 
   // ── Refund Policy / Compensation ────────────────────────────────────
-  { id: 'd_no_refund_policy',category: 'Refund Policy', label: 'No refund policy',
-    text: 'Let me explain how it works. After you pay, the order starts right away, so we cannot cancel it or refund it. That is why we ask you to check the link, quantity and service before paying. But if your order is stuck, slow or only half delivered, we will finish it for you for free.' },
-  { id: 'd_goodwill_credit', category: 'Refund Policy', label: 'Offer wallet credit',
-    text: 'Because this was our mistake, I can put the money back in your EndaViral wallet so you can use it. Is that okay with you?' },
+  { id: 'd_no_refund_policy',category: 'Refund Policy', label: 'How refunds work',
+    text: 'Let me explain how it works, {name}. After you pay, the order starts right away, so we cannot cancel it. That is why we ask you to check the link, quantity and service before paying. If an order fails or is only partly delivered, the money for the part you did not get goes back to your EndaViral Wallet automatically overnight, and we send you a message when it is there. You can use it on any order. Wallet money cannot be sent back to M-Pesa.' },
+  { id: 'd_wallet_refund_where', category: 'Refund Policy', label: 'Where is my refund?',
+    text: 'Your refund goes to your EndaViral Wallet, not to M-Pesa. You can see your balance at the top of the page and on your dashboard. When you place your next order, choose "Pay with Wallet" at checkout. If the order costs more than your balance, choose "Wallet + M-Pesa" and pay the rest by M-Pesa.' },
+  { id: 'd_wallet_refund_tonight', category: 'Refund Policy', label: 'Refund comes overnight',
+    text: 'Sorry about this, {name}. Your order did not go through fully, so the money for the part that was not delivered will be added to your EndaViral Wallet overnight. We will message you here when it is done, and you can use it on any order.' },
+  { id: 'd_goodwill_credit', category: 'Refund Policy', label: 'Offer goodwill credit (our mistake)',
+    text: 'Because this was our mistake, I can add credit to your EndaViral Wallet so you can use it on your next order. Is that okay with you?' },
   { id: 'd_credit_done',   category: 'Refund Policy', label: 'Wallet credit done',
     text: 'Done. I have added the money to your wallet. You can see it under Wallet.' },
 
@@ -176,8 +183,8 @@ const CCR_QR_DEFAULTS = [
     text: 'Account yako iko private, kwa hivyo hatuwezi kuwasilisha order. Tafadhali ibadilishe iwe Public kwenye settings za app, kisha uniambie hapa. Nitaanzisha order tena.' },
   { id: 'sw_payment_failed', category: 'Kiswahili', label: 'Malipo hayakufaulu',
     text: 'Naona malipo yako hayakukamilika, {name}. Hii inaweza kutokea kama ujumbe wa M-Pesa ulichelewa au PIN ilikosewa. Tafadhali rudi kwenye New Order ujaribu tena. Hakikisha simu ina network na una pesa za kutosha kwenye M-Pesa.' },
-  { id: 'sw_no_refund',    category: 'Kiswahili', label: 'Hakuna refund baada ya kulipa',
-    text: 'Samahani {name}, baada ya malipo kuthibitishwa order huanza mara moja, kwa hivyo hatuwezi kuirudisha wala kuirejeshea pesa. Ndio maana tunashauri uangalie link na idadi kabla ya kulipa. Lakini order ikikwama au ikifika nusu, tutaikamilisha bila malipo ya ziada.' },
+  { id: 'sw_no_refund',    category: 'Kiswahili', label: 'Jinsi refund inavyofanya kazi',
+    text: 'Samahani {name}, baada ya malipo kuthibitishwa order huanza mara moja, kwa hivyo hatuwezi kuisimamisha. Ndio maana tunashauri uangalie link na idadi kabla ya kulipa. Lakini order ikishindikana au ikifika nusu, pesa ya sehemu ambayo haikufika inarudishwa kwenye EndaViral Wallet yako moja kwa moja usiku, na unaweza kuitumia kwa order yoyote. Pesa ya wallet haiwezi kutolewa kwenda M-Pesa.' },
   { id: 'sw_closing',      category: 'Kiswahili', label: 'Asante, kwaheri',
     text: 'Asante {name}. Ukiwa na shida nyingine, tuandikie hapa wakati wowote.' },
 ];

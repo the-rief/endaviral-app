@@ -57,15 +57,16 @@ and algorithms, which may affect engagement visibility, retention, or account pe
     },
     {
       heading: '5. Refund Policy',
-      body: `All sales are final once an order has been submitted successfully. Because all services
-provided by EndaViral are digital, intangible, and non-returnable, completed orders cannot be reversed,
-processed orders cannot be cancelled, and delivered services are non-refundable. Refunds will only be
-considered if the order failed completely, the order was proven undeliverable, or a duplicate payment
-was confirmed. No refunds will be issued for completed orders, partially completed orders, delayed
-orders, dropped engagement after delivery, customer mistakes, incorrect usernames or links, private or
-restricted accounts, or dissatisfaction with results. Approved refunds, where applicable, will be issued
-as EndaViral account credit only. No refunds will be returned to M-Pesa, bank accounts, cards, crypto
-wallets, or external payment methods. Once a deposit has been completed, it cannot be reversed.`,
+      body: `Because all services provided by EndaViral are digital, intangible, and non-returnable, an order
+cannot be cancelled once it has been submitted successfully, and delivered services are non-refundable.
+If a paid order fails, is cancelled, cannot be started, or is only partially
+delivered, EndaViral automatically refunds the amount paid for the undelivered part to the customer's
+EndaViral Wallet as account credit, and notifies the customer. A confirmed duplicate payment is refunded
+the same way. No refunds will be issued for the delivered part of an order, delays where the order is
+still delivering, dropped engagement after delivery, customer mistakes, incorrect usernames or links,
+private or restricted accounts, or dissatisfaction with results. Wallet credit can be used to pay for any
+order on EndaViral and cannot be withdrawn or returned to M-Pesa, bank accounts, cards, crypto wallets,
+or external payment methods.`,
     },
     {
       heading: '6. Refill Policy',

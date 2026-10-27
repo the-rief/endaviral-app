@@ -753,12 +753,26 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
    - promo strip: the 3 old full-width banners collapsed into
      one swipeable row of small cards (grid on desktop)
 ════════════════════════════════════════════════════════════ */
-.dash-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.dash-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
 .dash-stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 10px;text-align:center;}
 .dash-stat .ds-val{font-family:'Montserrat',sans-serif;font-size:19px;font-weight:800;line-height:1.15;}
 .dash-stat.ds-orders .ds-val{color:var(--blue);}
 .dash-stat.ds-active .ds-val{color:var(--orange);}
 .dash-stat.ds-spent .ds-val{color:var(--green);}
+/* EndaViral Wallet balance tile (order_wallet.js) — always shown, tap opens Wallet */
+.dash-stat.ds-wallet{background:rgba(61,212,74,.09);border-color:rgba(61,212,74,.4);cursor:pointer;font-family:inherit;color:inherit;width:100%;}
+.dash-stat.ds-wallet:hover{border-color:var(--green);}
+.dash-stat.ds-wallet .ds-val{color:var(--green);}
+/* Wallet balance pill in the top bar — visible on every page */
+.tb-wallet{display:flex;align-items:center;gap:5px;background:rgba(61,212,74,.12);border:1px solid rgba(61,212,74,.4);color:var(--green);font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:800;padding:6px 11px;border-radius:20px;white-space:nowrap;cursor:pointer;}
+.tb-wallet:hover{border-color:var(--green);}
+@media(max-width:520px){
+  /* 4 tiles on a phone: tighter so "KES 1,250" still fits on one line */
+  .dash-stats-row{gap:6px !important;}
+  .dash-stat{padding:9px 3px !important;}
+  .dash-stat .ds-val{font-size:13.5px !important;white-space:nowrap;}
+  .tb-wallet{font-size:11.5px;padding:6px 9px;}
+}
 .dash-stat .ds-lbl{font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 .promo-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:20px;}
@@ -2043,7 +2057,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">How long does delivery take?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">Most orders start within minutes and complete within 1–24 hours depending on quantity and service type.</div></div>
       <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Is EndaViral safe to use?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">EndaViral is designed for promotional and marketing purposes. Outcomes can vary based on platform algorithms. We recommend using services responsibly.</div></div>
       <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Do you guarantee results?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">We guarantee delivery of the service purchased as described. We do not guarantee specific outcomes such as viral growth or monetization.</div></div>
-      <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Can I get a refund?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">All orders are final once placed and payment is confirmed — refunds and cancellations are not available, so please double-check your link, quantity, and service before ordering. If an order stalls or delivers partially, our team will complete or re-queue it for you.</div></div>
+      <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Can I get a refund?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">Once you pay, your order starts right away, so it can't be cancelled. Please double-check your link, quantity and service before ordering. If an order fails or is only partly delivered, the money for the part you didn't get goes back to your EndaViral Wallet automatically overnight, and you can use it on any order. Wallet credit can't be withdrawn to M-Pesa, and orders sent to a wrong link or a private account aren't refunded.</div></div>
     </div>
   </section>
 
@@ -2234,6 +2248,8 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="topbar-title" id="pageTitle">DASHBOARD</div>
       </div>
       <div class="topbar-right">
+        <!-- EndaViral Wallet balance, every page (order_wallet.js walletRefreshCard) -->
+        <button type="button" class="tb-wallet" id="tbWallet" onclick="navTo('wallet')" style="display:none;" title="Your wallet balance — use it to pay for orders">💳 <span id="tbWalletAmt">KES 0</span></button>
         <button class="btn-back-dash" id="backToDashBtn" onclick="navTo('dashboard')" style="display:none;" title="Back to Dashboard">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>
           <span>Home</span>
@@ -2283,6 +2299,8 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="dash-stat ds-orders"><div class="ds-val" id="dash-orders">0</div><div class="ds-lbl">Orders</div></div>
           <div class="dash-stat ds-active"><div class="ds-val" id="dash-active">0</div><div class="ds-lbl">Active</div></div>
           <div class="dash-stat ds-spent"><div class="ds-val" id="dash-spent">KES 0</div><div class="ds-lbl">Spent</div></div>
+          <!-- EndaViral Wallet balance for reorders (order_wallet.js walletRefreshCard) -->
+          <button type="button" class="dash-stat ds-wallet" onclick="navTo('wallet')" title="Wallet credit — use it at checkout with “Pay with Wallet”"><div class="ds-val" id="dash-wallet">KES 0</div><div class="ds-lbl">Wallet</div></button>
         </div>
 
         <!-- ── Promo strip: swipe on mobile, 3-up grid on desktop. Replaces the 3 old full-width banners. ── -->
@@ -2677,7 +2695,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div>
             <div class="sec-title" style="margin-bottom:18px;">PAY PER ORDER WITH M-PESA</div>
             <div style="background:rgba(61,212,74,.08);border:1px solid rgba(61,212,74,.25);border-radius:12px;padding:16px 18px;font-size:13px;line-height:1.6;color:var(--muted);">
-              Wallet top-ups are switched off. Every order is paid with its own M-Pesa prompt when you place it, and each payment carries its M-Pesa reference number on your receipt. Your wallet only receives refunds from orders that didn't go through — spend them at checkout with “Pay with Wallet”.
+              Wallet top-ups are switched off. Every order is paid with its own M-Pesa prompt when you place it, and each payment carries its M-Pesa reference number on your receipt. Your wallet only receives refunds from orders that failed or were only partly delivered. You can spend them on any order at checkout with “Pay with Wallet”.
               <div style="margin-top:12px;"><button class="btn-primary" onclick="navTo('services')">PLACE AN ORDER</button></div>
             </div>
             <div id="depositForm" style="display:none !important;">
@@ -3509,7 +3527,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div style="margin-bottom:6px;">✅ Make sure your profile or post is <strong style="color:var(--white);">public</strong> — private accounts cannot receive orders.</div>
           <div style="margin-bottom:6px;">✅ <strong style="color:var(--white);">Double-check your link</strong> — if the link is wrong, the order goes to the wrong account and there is NO REFUND.</div>
           <div style="margin-bottom:6px;">✅ Do not delete the post or change your username while an order is running.</div>
-          <div style="margin-bottom:10px;">⚠️ Once payment is confirmed, the order <strong style="color:var(--white);">cannot be CANCELLED or REFUNDED.</strong></div>
+          <div style="margin-bottom:10px;">⚠️ Once payment is confirmed, the order starts and <strong style="color:var(--white);">cannot be CANCELLED.</strong> If it fails or is only partly delivered, the money for the missing part goes back to your EndaViral Wallet automatically overnight.</div>
           <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
             <div style="margin-bottom:6px;">⏳ <strong style="color:var(--white);">"Instant"</strong> means the order starts instantly — not that it finishes immediately.</div>
             <div>📉 We have Cheap and Expensive Services. The prices vary based on the service quality and delivery time.</div>
@@ -3781,8 +3799,8 @@ function getLinkGuidance(svc) {
 }
 
 // Main order form: warn when the pasted link is clearly the wrong kind
-// (a post link for followers, a profile link for likes…). Orders can't be
-// refunded once paid, so the first Pay tap stops and explains; a second tap
+// (a post link for followers, a profile link for likes…). An order delivered to
+// the wrong link isn't refunded, so the first Pay tap stops and explains; a second tap
 // goes ahead (the check never guesses, but the customer has the last word).
 let _linkWarnAck = '';
 function checkOrderLink() {
@@ -4172,6 +4190,7 @@ function navTo(page) {
   document.getElementById('pageTitle').textContent = pageTitles[page] || page.toUpperCase();
   const backBtn = document.getElementById('backToDashBtn');
   if (backBtn) backBtn.style.display = (page === 'dashboard') ? 'none' : 'flex';
+  if (typeof walletRefreshCard === 'function') walletRefreshCard();   // top-bar wallet balance (cached 30s)
   closeSidebar();
   if (page === 'orders') loadOrders();
   if (page === 'services') loadServices();
@@ -4249,6 +4268,7 @@ async function loadDashboard() {
     if (typeof upsellRefreshCard === 'function') upsellRefreshCard();
     if (typeof walletRefreshCard === 'function') walletRefreshCard();
   } catch(_) {
+    if (typeof walletRefreshCard === 'function') walletRefreshCard();
     document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders yet. Place your first order!</p></div>';
   }
 }

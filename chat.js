@@ -87,8 +87,9 @@
       question: 'What is your refund and cancellation policy?',
       answer:
         `💰 **Refund & cancellation policy:**\n\n` +
-        `Once an order is **placed and payment confirmed**, it goes straight to processing and **cannot be refunded or cancelled** — so please double-check your **link, quantity, and service** before confirming.\n\n` +
-        `That said, if an order **stalls, delays, or delivers partially**, our team will **complete it or re-queue it** at no extra cost. Open a ticket with your **Order ID** and we'll sort it out.`
+        `Once you pay, your order starts right away, so it **can't be cancelled**. Please double-check your **link, quantity and service** before you pay.\n\n` +
+        `If an order **fails or is only partly delivered**, the money for the part you didn't get goes back to your **EndaViral Wallet** automatically **overnight**, and we message you when it's there. You can use it on any order at checkout with **Pay with Wallet**. Wallet credit can't be withdrawn to M-Pesa.\n\n` +
+        `Orders sent to a wrong link or a private account can't be refunded, because they were delivered as ordered. If something looks stuck, message us with your **Order ID** and we'll check it.`
     },
     {
       label: 'Why counts drop 📉',

@@ -352,6 +352,7 @@ function doLogout() {
   _stopBgTicketWatch();
   stopEventStream();
   token = null; currentUser = null;
+  if (typeof walletRefreshCard === 'function') walletRefreshCard();   // hide top-bar wallet balance
   localStorage.removeItem('ev_token');
   localStorage.removeItem('ev_user');
   // Compute-hour work also introduced two caches (the Store module and the

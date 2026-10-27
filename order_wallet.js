@@ -19,6 +19,8 @@
   let _wc = null;          // last GET /wallet/credit
   let _wcAt = 0;
   let _wcLoading = null;
+  let _wcTok = null;       // token the cached balance belongs to
+  let _wcFull = false;     // cached response includes the history rows (Wallet page)
   let _cost = 0;           // current order total in the order modal
   let _choice = null;      // customer's explicit pick in this modal (null = auto)
 
@@ -63,13 +65,17 @@
     const s = document.createElement('style'); s.id = 'walletCss'; s.textContent = CSS; document.head.appendChild(s);
   }
 
-  async function walletFetch(force) {
-    if (typeof token === 'undefined' || !token) return null;
-    if (!force && _wc && Date.now() - _wcAt < 30000) return _wc;
+  // withHistory: only the Wallet page needs the history rows. The balance tile,
+  // top-bar pill and checkout ask for 1 row, keeping database work and data
+  // transfer small (Neon Free: 100 CU-hours and 5 GB transfer a month).
+  async function walletFetch(force, withHistory) {
+    if (typeof token === 'undefined' || !token) { _wc = null; _wcTok = null; return null; }
+    if (_wcTok !== token) { _wc = null; _wcAt = 0; _wcFull = false; _wcTok = token; }   // different login → don't show the last user's balance
+    if (!force && _wc && Date.now() - _wcAt < 30000 && (!withHistory || _wcFull)) return _wc;
     if (_wcLoading) return _wcLoading;
     const req = typeof _apiRequest === 'function' ? _apiRequest : api;   // bypass api()'s GET cache
-    _wcLoading = req('/wallet/credit?limit=30')
-      .then(d => { _wc = d; _wcAt = Date.now(); return d; })
+    _wcLoading = req('/wallet/credit?limit=' + (withHistory ? 30 : 1))
+      .then(d => { _wc = d; _wcAt = Date.now(); _wcFull = !!withHistory; return d; })
       .catch(() => _wc)
       .finally(() => { _wcLoading = null; });
     return _wcLoading;
@@ -161,25 +167,25 @@
     else walletFetch(true);
     window.walletRefreshCard();
   };
-  window.walletRefresh = function () { walletFetch(true).then(() => { window.walletRefreshCard(); if (document.getElementById('walletCreditCard')) window.walletRenderPage(true); }); };
+  window.walletRefresh = function () { walletFetch(true).then(() => { window.walletRefreshCard(); if (document.getElementById('sec-wallet')?.classList.contains('active')) window.walletRenderPage(false); }); };   // history only if the Wallet page is open
 
-  /* ── Dashboard card: "You have KES X to reorder with" ── */
+  /* ── Wallet balance, always visible: dashboard "Wallet" stat tile + top-bar pill.
+   *    Shown even at KES 0 so customers know where refunds land. Both open the Wallet page.
+   *    (The old big "You have KES X to reorder with" card is no longer rendered.) ── */
   window.walletRefreshCard = async function () {
-    const el = document.getElementById('dashWalletCard');
-    if (!el) return;
+    const tile = document.getElementById('dash-wallet');
+    const pill = document.getElementById('tbWallet');
+    const pillAmt = document.getElementById('tbWalletAmt');
+    const old = document.getElementById('dashWalletCard');
+    if (old) { old.style.display = 'none'; old.innerHTML = ''; }
+    const loggedIn = typeof token !== 'undefined' && !!token;
+    if (!loggedIn) { if (pill) pill.style.display = 'none'; if (tile) tile.textContent = _kes(0); return; }
     await walletFetch();
-    _css();
-    const bal = _bal();
-    if (!(bal > 0)) { el.style.display = 'none'; el.innerHTML = ''; return; }
-    el.style.display = '';
-    el.innerHTML = `<div class="wd-card">
-        <div class="wd-ic">💳</div>
-        <div style="flex:1;min-width:0;">
-          <div class="wd-t">${_kes(bal)} in your EndaViral Wallet</div>
-          <div class="wd-s">Refunded from an order that didn't go through. Reorder any service and choose “Pay with Wallet” at checkout.</div>
-        </div>
-        <button type="button" onclick="navTo('services')">Reorder now →</button>
-      </div>`;
+    if (!(typeof token !== 'undefined' && token)) { if (pill) pill.style.display = 'none'; return; }   // logged out meanwhile
+    const txt = _kes(_bal());
+    if (tile) tile.textContent = txt;
+    if (pillAmt) pillAmt.textContent = txt;
+    if (pill) pill.style.display = 'flex';
   };
 
   /* ── Wallet page: balance + history ── */
@@ -194,7 +200,7 @@
     const el = document.getElementById('walletCreditCard');
     if (!el) return;
     if (!useCache || !_wc) el.innerHTML = '<div class="wl-card"><div class="loading-spinner"><div class="spinner"></div><span>Loading wallet…</span></div></div>';
-    const d = await walletFetch(!useCache);
+    const d = await walletFetch(!useCache, true);
     if (!d) { el.innerHTML = ''; return; }
     const rows = (d.entries || []).map(x => {
       const [ic, label] = KIND[x.kind] || ['•', x.kind];

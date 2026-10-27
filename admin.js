@@ -860,10 +860,15 @@ async function loadAdminCommandCenter(force = false) {
     api(`/admin/stats/order-kinds?days=${_chc.trendsDays}`),         // 19
     api(`/upsell/admin/stats?days=${_chc.trendsDays}`),               // 20
     api(`/recommended/admin/stats?days=${_chc.trendsDays}`),          // 21
+    api('/admin/stats/operations'),                                   // 22 Operations section
+    api('/admin/wallet-credit/summary'),                              // 23 EndaViral Wallet credit
+    api('/admin/consultations/stats'),                                // 24 Hire EndaViral
+    api('/free-order/staff/stats'),                                   // 25 Free orders given
   ]);
   const [snap, stats, breakdown, revenue, trends, engagement,
          connectStats, connectRevenue, academyStats, academyRevenue,
-         affiliates, ccrAgents, platforms, titan, ownerPay, expenses, panelGrowth, taxReserve, outcomes, orderKinds, upsellStats, recStats] = results;
+         affiliates, ccrAgents, platforms, titan, ownerPay, expenses, panelGrowth, taxReserve, outcomes, orderKinds, upsellStats, recStats,
+         operations, walletCredit, consultations, freeOrders] = results;
   _chc.data.snapshot   = snap.status === 'fulfilled' ? snap.value : null;
   _chc.data.stats      = stats.status === 'fulfilled' ? stats.value : null;
   _chc.data.breakdown  = breakdown.status === 'fulfilled' ? breakdown.value : null;
@@ -886,11 +891,16 @@ async function loadAdminCommandCenter(force = false) {
   _chc.data.orderKinds      = orderKinds.status === 'fulfilled' ? orderKinds.value : null;
   _chc.data.upsell          = upsellStats.status === 'fulfilled' ? upsellStats.value : null;
   _chc.data.recommended     = recStats.status === 'fulfilled' ? recStats.value : null;
+  _chc.data.operations      = operations.status === 'fulfilled' ? operations.value : null;
+  _chc.data.walletCredit    = walletCredit.status === 'fulfilled' ? walletCredit.value : null;
+  _chc.data.consultations   = consultations.status === 'fulfilled' ? consultations.value : null;
+  _chc.data.freeOrders      = freeOrders.status === 'fulfilled' ? freeOrders.value : null;
   _chc.loadedAt = Date.now();
 
   _chcRenderAlerts();
   _chcRenderHealthScore();
   _chcRenderOverview();
+  _chcRenderOperations();
   _chcRenderRevenue();
   _chcRenderMoneyFlow();
   _chcRenderGrowth();
@@ -1071,6 +1081,7 @@ function _chcBuildSkeleton(root) {
 
     <div id="chcNav" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:16px;">
       <button class="chc-nav-btn active" data-sec="overview" onclick="chcShowSection('overview',this)">📊 Overview</button>
+      <button class="chc-nav-btn" data-sec="operations" onclick="chcShowSection('operations',this)">🛠️ Operations</button>
       <button class="chc-nav-btn" data-sec="revenue" onclick="chcShowSection('revenue',this)">💼 Revenue</button>
       <button class="chc-nav-btn" data-sec="moneyflow" onclick="chcShowSection('moneyflow',this)">💵 Money Flow</button>
       <button class="chc-nav-btn" data-sec="growth" onclick="chcShowSection('growth',this)">📈 Growth</button>
@@ -1080,6 +1091,7 @@ function _chcBuildSkeleton(root) {
     </div>
 
     <div id="chcSection-overview" class="chc-section active"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+    <div id="chcSection-operations" class="chc-section"></div>
     <div id="chcSection-revenue" class="chc-section"></div>
     <div id="chcSection-moneyflow" class="chc-section"></div>
     <div id="chcSection-growth" class="chc-section"></div>
@@ -1172,6 +1184,25 @@ function _chcRenderAlerts() {
     const affPending = affiliates.reduce((s, a) => s + (a.pending_kes || 0), 0);
     if (affPending > 0) alerts.push({ tone: 'blue', icon: '🤝', text: `${fmtKES(affPending)} in affiliate commissions pending payout.` });
   }
+
+  // Operations: payments, support, refunds (GET /admin/stats/operations + /admin/wallet-credit/summary)
+  const ops = _chc.data.operations;
+  if (ops) {
+    const pay = ops.payments || {};
+    if (pay.success_rate_pct !== null && pay.success_rate_pct !== undefined && pay.prompts >= 10) {
+      if (pay.success_rate_pct < 70) alerts.push({ tone: 'red', icon: '📱', text: `Only ${pay.success_rate_pct}% of M-Pesa prompts were paid in the last 7 days — ${fmtKES(pay.not_completed_kes || 0)} not completed.` });
+      else if (pay.success_rate_pct < 85) alerts.push({ tone: 'orange', icon: '📱', text: `${pay.success_rate_pct}% of M-Pesa prompts were paid in the last 7 days — ${fmtKES(pay.not_completed_kes || 0)} not completed.` });
+    }
+    if (pay.stuck_pending > 0) alerts.push({ tone: 'orange', icon: '⏳', text: `${pay.stuck_pending} M-Pesa payment${pay.stuck_pending === 1 ? '' : 's'} stuck pending over 10 minutes.` });
+    const sup = ops.support || {};
+    if (sup.waiting_over_2h > 0) alerts.push({ tone: 'orange', icon: '💬', text: `${sup.waiting_over_2h} customer${sup.waiting_over_2h === 1 ? ' has' : 's have'} waited over 2 hours for a support reply.` });
+    const rf = ops.refunds || {};
+    if (rf.refund_rate_8w_pct !== null && rf.refund_rate_8w_pct !== undefined && rf.refund_rate_8w_pct >= 10) {
+      alerts.push({ tone: rf.refund_rate_8w_pct >= 20 ? 'red' : 'orange', icon: '↩️', text: `${rf.refund_rate_8w_pct}% of money taken in the last 8 weeks was refunded to wallets (${fmtKES(rf.refunded_8w_kes || 0)}).` });
+    }
+  }
+  const wcs = _chc.data.walletCredit;
+  if (wcs && wcs.refunds_not_messaged > 0) alerts.push({ tone: 'orange', icon: '✉️', text: `${wcs.refunds_not_messaged} wallet refund${wcs.refunds_not_messaged === 1 ? '' : 's'} where the customer was NOT messaged.` });
 
   if (!alerts.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
 
@@ -1402,6 +1433,146 @@ function _chcRenderOverview() {
 }
 
 /* ── Section: Revenue (weekly/monthly + affiliate net) ─────────────────── */
+
+/* ── 🛠️ Operations: where money and customers leak ──────────────────────────
+ * Data: GET /admin/stats/operations (payments, refunds by week, problem
+ * services, real cost, quiet customers, support load), GET
+ * /admin/wallet-credit/summary and GET /free-order/staff/stats.
+ * ─────────────────────────────────────────────────────────────────────────── */
+function _chcOpsRow(label, value, color) {
+  return `<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+    <span style="color:var(--muted);">${label}</span><span style="font-weight:700;color:${color || 'var(--white)'};white-space:nowrap;">${value}</span></div>`;
+}
+function _chcOpsOpen(tab, label) {
+  return `<button onclick="_chcJump('${tab}')" style="background:none;border:1px solid var(--border);border-radius:8px;color:var(--green);font-size:11px;font-weight:700;padding:5px 10px;cursor:pointer;">${label || 'Open'} →</button>`;
+}
+
+function _chcRenderOperations() {
+  const el = document.getElementById('chcSection-operations');
+  if (!el) return;
+  const ops = _chc.data.operations;
+  if (!ops) {
+    el.innerHTML = _chcPanel({ title: 'Operations', icon: '🛠️', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load operations stats (is the latest backend deployed? It needs GET /admin/stats/operations).</div>` });
+    return;
+  }
+  const pay = ops.payments || {}, rf = ops.refunds || {}, rc = ops.real_cost || {}, qc = ops.quiet_customers || {}, sup = ops.support || {};
+  const wc = _chc.data.walletCredit || null, fo = _chc.data.freeOrders || null;
+  const pct = v => (v === null || v === undefined) ? '—' : `${v}%`;
+  const toneFor = (v, good, ok) => v === null || v === undefined ? 'neutral' : v >= good ? 'green' : v >= ok ? 'orange' : 'red';
+
+  const reorderRate = wc && wc.refunded_customers ? Math.round(wc.reordered_customers / wc.refunded_customers * 100) : null;
+  const kpis = [
+    _chcKpi({ icon: '📱', label: 'M-Pesa prompts paid (7d)', value: pct(pay.success_rate_pct), tone: toneFor(pay.success_rate_pct, 85, 70),
+      sub: `${(pay.prompts || 0).toLocaleString()} prompts · ${fmtKES(pay.not_completed_kes || 0)} not completed` }),
+    _chcKpi({ icon: '↩️', label: 'Refund rate (8 weeks)', value: pct(rf.refund_rate_8w_pct),
+      tone: rf.refund_rate_8w_pct === null || rf.refund_rate_8w_pct === undefined ? 'neutral' : rf.refund_rate_8w_pct < 5 ? 'green' : rf.refund_rate_8w_pct < 10 ? 'orange' : 'red',
+      sub: `${fmtKES(rf.refunded_8w_kes || 0)} refunded of ${fmtKES(rf.taken_8w_kes || 0)} taken` }),
+    _chcKpi({ icon: '💳', label: 'Wallet credit held', value: wc ? fmtKES(wc.outstanding_kes || 0) : '—', tone: 'blue',
+      sub: wc ? `${(wc.customers_with_credit || 0).toLocaleString()} customers · ${reorderRate === null ? '—' : reorderRate + '%'} of refunded clients reordered` : "couldn't load" }),
+    _chcKpi({ icon: '💰', label: 'Real margin (30d)', value: pct(rc.margin_pct), tone: toneFor(rc.margin_pct, 25, 10),
+      sub: `vs ${pct(rc.estimated_margin_pct)} estimated from markup` }),
+    _chcKpi({ icon: '😴', label: 'Customers gone quiet', value: (qc.quiet_customers || 0).toLocaleString(), tone: (qc.quiet_customers || 0) > (qc.active_paying_30d || 0) ? 'orange' : 'neutral',
+      sub: `no order in 30+ days · ${(qc.active_paying_30d || 0).toLocaleString()} ordered in last 30d` }),
+    _chcKpi({ icon: '💬', label: 'Support reply time', value: sup.median_reply_minutes === null || sup.median_reply_minutes === undefined ? '—' : (sup.median_reply_minutes >= 60 ? `${Math.round(sup.median_reply_minutes / 6) / 10}h` : `${Math.round(sup.median_reply_minutes)} min`),
+      tone: sup.median_reply_minutes === null || sup.median_reply_minutes === undefined ? 'neutral' : sup.median_reply_minutes <= 30 ? 'green' : sup.median_reply_minutes <= 120 ? 'orange' : 'red',
+      sub: `median, 14d · ${(sup.waiting_over_2h || 0)} waiting 2h+ now` }),
+  ].join('');
+
+  // Payments
+  const bs = pay.by_status || {};
+  const c = k => ((bs[k] || {}).count || 0).toLocaleString();
+  const k = k => fmtKES((bs[k] || {}).kes || 0);
+  const payBody = `
+    ${_chcOpsRow('✅ Paid', `${c('success')} · ${k('success')}`, 'var(--green)')}
+    ${_chcOpsRow('❌ Failed', `${c('failed')} · ${k('failed')}`, '#ff8a80')}
+    ${_chcOpsRow('🚫 Cancelled by customer', `${c('cancelled')} · ${k('cancelled')}`)}
+    ${_chcOpsRow('⌛ Timed out (no PIN)', `${c('timeout')} · ${k('timeout')}`)}
+    ${_chcOpsRow('⏳ Still pending', `${c('pending')}${pay.stuck_pending ? ` · <span style="color:var(--orange);">${pay.stuck_pending} stuck 10+ min</span>` : ''}`)}`;
+
+  // Refunds by week
+  const weekly = (rf.weekly || []).map(w => ({ ...w, label: _fmtShortDate(w.week_start) }));
+  const refundBody = `
+    ${_miniBarChart(weekly, { key: 'refunded_kes', labelKey: 'label', color: '#ff7043', h: 150 })}
+    <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--muted);margin-top:8px;">
+      ${weekly.slice(-4).map(w => `<span>${esc(w.label)}: <b style="color:var(--white);">${pct(w.refund_rate_pct)}</b> refunded</span>`).join('')}
+    </div>
+    ${wc ? `<div style="margin-top:12px;">
+      ${_chcOpsRow('Refunded all-time', `${(wc.refunds || 0).toLocaleString()} orders · ${fmtKES(wc.refunded_kes || 0)}`)}
+      ${_chcOpsRow('Spent back on new orders', fmtKES(wc.spent_kes || 0), 'var(--green)')}
+      ${_chcOpsRow('Refunded clients who reordered', `${(wc.reordered_customers || 0)} of ${(wc.refunded_customers || 0)}`)}
+      ${wc.refunds_not_messaged ? _chcOpsRow('Refunds where client was NOT messaged', wc.refunds_not_messaged, 'var(--orange)') : ''}
+    </div>` : ''}`;
+
+  // Problem services
+  const ps = ops.problem_services || [];
+  const psBody = ps.length ? `
+    <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:460px;">
+      <tr style="color:var(--muted);text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;">
+        <th style="padding:6px 4px;">Service</th><th style="padding:6px 4px;text-align:right;">Orders</th><th style="padding:6px 4px;text-align:right;">Failed / partial</th><th style="padding:6px 4px;text-align:right;">Problem rate</th><th style="padding:6px 4px;text-align:right;">Refunded</th></tr>
+      ${ps.map(r => `<tr style="border-top:1px solid rgba(255,255,255,.05);">
+        <td style="padding:7px 4px;color:var(--white);">${esc(r.service_name)}</td>
+        <td style="padding:7px 4px;text-align:right;">${r.orders}</td>
+        <td style="padding:7px 4px;text-align:right;">${r.failed_or_cancelled} / ${r.partial}</td>
+        <td style="padding:7px 4px;text-align:right;font-weight:700;color:${r.problem_rate_pct >= 20 ? '#ff8a80' : r.problem_rate_pct >= 10 ? 'var(--orange)' : 'var(--white)'};">${r.problem_rate_pct}%</td>
+        <td style="padding:7px 4px;text-align:right;font-weight:700;">${fmtKES(r.refunded_kes)}</td></tr>`).join('')}
+    </table></div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:8px;">Consider hiding or switching services near the top — each failure costs a refund and a support conversation.</div>`
+    : `<div style="font-size:12px;color:var(--muted);">No failed, cancelled or partial orders in the last 30 days. 🎉</div>`;
+
+  // Real cost
+  const rcBody = `
+    ${_chcOpsRow('Sales (delivered value)', fmtKES(rc.sales_kes || 0))}
+    ${_chcOpsRow('Provider cost (from each service’s cost price)', '−' + fmtKES(rc.cost_kes || 0), '#ff8a80')}
+    ${_chcOpsRow('Real gross profit', fmtKES(rc.profit_kes || 0), 'var(--green)')}
+    ${_chcOpsRow('Real margin vs markup estimate', `${pct(rc.margin_pct)} vs ${pct(rc.estimated_margin_pct)}`)}
+    ${rc.orders_cost_unknown ? `<div style="font-size:10.5px;color:var(--orange);margin-top:8px;">${rc.orders_cost_unknown} of ${rc.orders} orders have no cost price on their service, so they count as zero cost — re-sync services to fill it in.</div>` : ''}
+    <div style="font-size:10.5px;color:var(--muted);margin-top:8px;">The other Command Center profit figures use your current markup %; this one uses what each service actually costs from the provider today.</div>`;
+
+  // Quiet customers
+  const top = qc.top || [];
+  const qcBody = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">${(qc.quiet_customers || 0).toLocaleString()} paying customers haven't ordered in 30+ days — together they've spent <b style="color:var(--white);">${fmtKES(qc.quiet_lifetime_kes || 0)}</b>. Your biggest ones:</div>
+    ${top.length ? top.map(u => _chcOpsRow(`${esc(u.name)} <span style="color:var(--muted);font-size:11px;">${esc(u.phone || '')}</span>`,
+        `${fmtKES(u.spend_kes)} · ${u.orders} order${u.orders === 1 ? '' : 's'} · quiet ${u.days_quiet}d`)).join('')
+      : `<div style="font-size:12px;color:var(--muted);">Nobody yet.</div>`}
+    <div style="font-size:10.5px;color:var(--muted);margin-top:8px;">A Broadcast or a free-order offer to this list is the cheapest way to win sales back.</div>`;
+
+  // Support load
+  const sd = (sup.daily || []).map(d => ({ ...d, label: _fmtShortDate(d.date) }));
+  const supBody = `
+    ${_miniBarChart(sd, { key: 'new_conversations', labelKey: 'label', color: '#2196f3', h: 130 })}
+    <div style="margin-top:10px;">
+      ${_chcOpsRow('New conversations (14d)', (sup.new_conversations || 0).toLocaleString())}
+      ${_chcOpsRow('Customer messages (14d)', (sup.customer_messages || 0).toLocaleString())}
+      ${_chcOpsRow('Open conversations now', (sup.open_conversations || 0).toLocaleString())}
+      ${_chcOpsRow('Waiting 2h+ for a reply', (sup.waiting_over_2h || 0).toLocaleString(), sup.waiting_over_2h ? 'var(--orange)' : null)}
+    </div>`;
+
+  // Free orders
+  const foBody = fo ? `
+    ${_chcOpsRow('Free orders earned', (fo.earned || 0).toLocaleString())}
+    ${_chcOpsRow('Approved and sent', (fo.approved || 0).toLocaleString())}
+    ${_chcOpsRow('Waiting for approval', (fo.pending || 0).toLocaleString(), fo.pending ? 'var(--orange)' : null)}
+    ${_chcOpsRow('Value given away', fmtKES(fo.value_given_kes || 0))}
+    ${_chcOpsRow('Delivered in full', fo.completion_rate === null || fo.completion_rate === undefined ? '—' : fo.completion_rate + '%')}`
+    : `<div style="font-size:12px;color:var(--muted);">Couldn't load free-order stats.</div>`;
+
+  el.innerHTML = `
+    <div class="chc-kpi-grid" style="margin-bottom:18px;">${kpis}</div>
+    <div class="chc-two-col">
+      ${_chcPanel({ title: 'M-Pesa Payments — last 7 days', icon: '📱', sub: 'Every prompt sent, by how it ended', extra: _chcOpsOpen('payments-health', 'Payments Health'), body: payBody })}
+      ${_chcPanel({ title: 'Refunds to Wallets by Week', icon: '↩️', sub: 'Failed / partial / cancelled paid orders refunded as wallet credit', extra: _chcOpsOpen('wallet-credit', 'Wallet Credit'), body: refundBody })}
+    </div>
+    ${_chcPanel({ title: 'Services That Fail Most — last 30 days', icon: '🧯', sub: 'Paid orders that failed, were cancelled or only partly delivered, by service', extra: _chcOpsOpen('services-mgmt', 'Services'), body: psBody })}
+    <div class="chc-two-col">
+      ${_chcPanel({ title: 'Real Profit — last 30 days', icon: '💰', sub: 'Sales vs what the provider actually charges', body: rcBody })}
+      ${_chcPanel({ title: 'Customers Going Quiet', icon: '😴', sub: 'Paid before, nothing in 30+ days', extra: _chcOpsOpen('broadcasts', 'Broadcasts'), body: qcBody })}
+    </div>
+    <div class="chc-two-col">
+      ${_chcPanel({ title: 'Support Load — last 14 days', icon: '💬', sub: 'New conversations per day', extra: _chcOpsOpen('support', 'Support'), body: supBody })}
+      ${_chcPanel({ title: 'Free Orders Given', icon: '🎁', sub: 'Loyalty rewards — a real cost against profit', extra: _chcOpsOpen('free-orders', 'Free Orders'), body: foBody })}
+    </div>`;
+}
 
 function _chcRenderRevenue() {
   const el = document.getElementById('chcSection-revenue');
@@ -1930,6 +2101,10 @@ function _chcRenderMoneyFlow() {
           <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--muted);">CCR agent commission (pending)</span><span style="font-weight:700;color:var(--white);">${fmtKES(ccrLiability)}</span></div>
           <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--muted);">Connect creator payouts (pending)</span><span style="font-weight:700;color:var(--white);">${fmtKES(cnLiability)}</span></div>
           <div style="display:flex;justify-content:space-between;font-size:13.5px;padding-top:8px;border-top:1px solid var(--border);"><span style="font-weight:800;color:var(--white);">Total</span><span style="font-weight:900;color:var(--orange);">${fmtKES(totalLiabilities)}</span></div>
+          ${_chc.data.walletCredit ? `<div style="margin-top:6px;padding:10px 12px;border-radius:10px;background:rgba(61,212,74,.06);border:1px solid rgba(61,212,74,.25);">
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--white);font-weight:700;">💳 Customer wallet credit held</span><span style="font-weight:800;color:var(--green);white-space:nowrap;">${fmtKES(_chc.data.walletCredit.outstanding_kes || 0)}</span></div>
+            <div style="font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.5;">Refunds sitting in ${(_chc.data.walletCredit.customers_with_credit || 0).toLocaleString()} customers' wallets. It's in your account but belongs to customers' future orders — keep it there. Already left out of profit, so it isn't subtracted above.</div>
+          </div>` : ''}
         </div>` })}
     </div>
 
@@ -2614,13 +2789,20 @@ function _chcRenderUnits() {
   const ccrEarned = ccrAgents.reduce((s, a) => s + (a.total_earned_kes || 0), 0);
   const ccrPending = ccrAgents.reduce((s, a) => s + (a.pending_kes || 0), 0);
 
-  const haveAnyRevenue = _chc.data.stats || _chc.data.academyRevenue || _chc.data.connectRevenue;
+  const hire = _chc.data.consultations || null;
+  const hireRevenue = hire ? (Number(hire.revenue_kes) || 0) : 0;
+  const ev = (_chc.data.operations && _chc.data.operations.creator_events) || null;
+  const eventsRevenue = ev ? (Number(ev.revenue_kes) || 0) : 0;
+
+  const haveAnyRevenue = _chc.data.stats || _chc.data.academyRevenue || _chc.data.connectRevenue || hire || ev;
   let mixSection = '';
   if (haveAnyRevenue) {
     const mixItems = [
       { label: 'SMM Panel (profit)', value: smmRevenue, color: '#3dd44a' },
       { label: 'Creator Academy',    value: academyRevenue, color: 'var(--gold)' },
       { label: 'Connect Marketplace', value: connectRevenue, color: 'var(--cyan)' },
+      { label: 'Hire EndaViral',      value: hireRevenue, color: '#9b6bff' },
+      { label: 'Creator Events',      value: eventsRevenue, color: 'var(--orange)' },
     ];
     const total = mixItems.reduce((s, m) => s + m.value, 0) || 1;
     const mixRows = mixItems.map(m => {
@@ -2638,7 +2820,7 @@ function _chcRenderUnits() {
     }).join('');
 
     mixSection = _chcPanel({
-      title: 'Consolidated Revenue Mix (all-time)', icon: '📊', sub: 'SMM profit + Academy revenue + Connect platform revenue — totals only, no unit here shares a common monthly close date', body: `
+      title: 'Consolidated Revenue Mix (all-time)', icon: '📊', sub: 'SMM profit + Academy + Connect platform revenue + Hire EndaViral + Creator Events tickets — totals only, no unit here shares a common monthly close date', body: `
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;">
         <div style="font-size:30px;font-weight:900;color:var(--white);">${fmtKES(total)}</div>
         <div style="font-size:12px;color:var(--muted);">combined across all business lines</div>
@@ -2687,6 +2869,26 @@ function _chcRenderUnits() {
         { value: fmtKES(connectRevenue), label: 'revenue all-time' },
       ],
       trend: { label: 'Escrow funding, month-over-month', pct: cnMomPct },
+    }),
+    _chcUnitCard({
+      icon: '💼', name: 'Hire EndaViral', tone: 'purple', tab: 'consultations',
+      kpis: hire ? [
+        { value: (hire.paid_bookings || 0).toLocaleString(), label: 'paid bookings' },
+        { value: (hire.awaiting_contact || 0).toLocaleString(), label: 'awaiting contact' },
+        { value: (hire.completed || 0).toLocaleString(), label: 'completed' },
+        { value: fmtKES(hireRevenue), label: 'revenue all-time' },
+      ] : [{ value: '—', label: "couldn't load" }],
+      trend: { label: 'Month-over-month', pct: null },
+    }),
+    _chcUnitCard({
+      icon: '🎤', name: 'Creator Events', tone: 'gold', tab: 'creator-events',
+      kpis: ev ? [
+        { value: (ev.tickets_sold || 0).toLocaleString(), label: 'tickets sold' },
+        { value: (ev.checked_in || 0).toLocaleString(), label: 'checked in at the door' },
+        { value: fmtKES(ev.revenue_30d_kes || 0), label: 'revenue last 30d' },
+        { value: fmtKES(eventsRevenue), label: 'revenue all-time' },
+      ] : [{ value: '—', label: "couldn't load (is the latest backend deployed?)" }],
+      trend: { label: 'Ticket revenue, month-over-month', pct: ev ? ev.revenue_mom_pct : null },
     }),
   ];
 
