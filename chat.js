@@ -477,6 +477,8 @@
   let _dashPopupHandle = null;
 
   function evShowDashboardPopup(senderName, preview, onViewClick) {
+    // A broadcast's big pop-up (broadcasts.js) is already on screen for this message.
+    if (window._evBigPopupUntil && Date.now() < window._evBigPopupUntil) return;
     if (!_isDashboardActive()) return;
     if (_isChatOpen() || _isTicketsActive()) return;
 

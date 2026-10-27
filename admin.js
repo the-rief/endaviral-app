@@ -35,7 +35,9 @@ function adminTab(tab, el) {
   if (tab === 'payments-health') { if (typeof loadPaymentsHealth === 'function') loadPaymentsHealth(); }
   if (tab === 'link-queue') { if (typeof loadAdminLinkQueue === 'function') loadAdminLinkQueue(); }
   if (tab === 'free-orders') { if (typeof loadAdminFreeOrders === 'function') loadAdminFreeOrders(); }
+  if (tab === 'wallet-credit') { if (typeof loadAdminWalletCredit === 'function') loadAdminWalletCredit(); }
   if (tab === 'consultations') { if (typeof loadAdminConsultations === 'function') loadAdminConsultations(); }
+  if (tab === 'broadcasts') { if (typeof loadAdminBroadcasts === 'function') loadAdminBroadcasts(); }
 }
 
 async function loadAdminUsers() {
@@ -3487,6 +3489,7 @@ function openOrderDetailModal(orderId) {
       <div id="odmAutoRefill" data-order="${fullId}" data-refill="${o.service_refill ? '1' : ''}"></div>
       <div id="odmRefillHistory" data-order="${fullId}"></div>
       <div id="odmPanelErrors" data-order="${fullId}"></div>
+      <div id="odmWallet" data-order="${fullId}"></div>
     </div>
     <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;">
       ${rawLink ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="action-btn" style="text-decoration:none;">🔗 Open Link</a>` : ''}
@@ -3499,6 +3502,7 @@ function openOrderDetailModal(orderId) {
   modal.style.display = 'flex';
   _loadOrderPanelErrors(o.id);
   _loadOrderRefillHistory(o.id, false);
+  if (typeof awcLoadOrderBox === 'function') awcLoadOrderBox(o.id);   // EndaViral Wallet refund / payment (admin_wallet_credit.js)
 }
 
 // ─── Reorder ANY order from its popup ─────────────────────────────────────

@@ -1,4 +1,11 @@
 /* ═══════════════ SUPPORT → REORDER QUEUE ═══════════════
+ * NOW: every midnight, PAID failed / partial / cancelled / stuck orders are
+ * refunded into the customer's EndaViral Wallet and the customer is messaged
+ * to reorder themselves (admin_wallet_credit.js, backend services/credit_wallet.py).
+ * Those show under "💳 Refunded". Only orders that can't be refunded (nothing
+ * was paid for them) still land in "Needs contact". Any open task can be
+ * refunded by hand with 💳.
+ * ── older notes ──
  * Every midnight the backend flags each FAILED / PARTIAL / CANCELLED order that
  * has a provider order id or a successful M-Pesa payment (services/reorder_queue.py).
  * Next morning an admin or CCR agent works this list:
@@ -16,7 +23,7 @@
  * ════════════════════════════════════════════════════════════════ */
 
 let _rqTasks = [];             // everything loaded for the current sub-tab (search is applied server-side)
-let _rqSub = 'needs';          // needs | followup | reordered | dismissed
+let _rqSub = 'needs';          // needs | followup | refunded | reordered | dismissed
 let _rqFollow = 'all';         // follow-up chips: all | replied | waiting | overdue
 let _rqSum = {};
 let _rqF = { reason: '', pay: '', link: false };     // list filters
@@ -31,8 +38,9 @@ const RQ_REASON = {
 };
 // A client moves Needs contact → Follow-up the moment they are messaged.
 const RQ_SUBS = [
-  { id: 'needs',     status: 'pending',   icon: '📨', label: 'Needs contact', sub: 'Nobody has messaged these clients yet. Ask for a fresh link — or re-place on the original link in one press.' },
+  { id: 'needs',     status: 'pending',   icon: '📨', label: 'Needs contact', sub: 'Paid orders are now refunded to the customer\'s wallet automatically at midnight — what is left here could not be (usually nothing was paid for it, e.g. a failed free replacement). Ask for a fresh link, re-place on the original link, or 💳 refund a paid one to the wallet.' },
   { id: 'followup',  status: 'contacted', icon: '⏳', label: 'Follow-up',     sub: 'Clients we messaged and are waiting on. When a client replies, they leave this list and appear in 📥 Inbox — open the chat there and press “🔁 Reorder for client”. If you answer them without reordering, they come back here. Quiet ones can be nudged, or re-placed on the original link once they have been silent long enough.' },
+  { id: 'refunded',  status: 'refunded',  icon: '💳', label: 'Refunded to wallet', sub: 'Paid orders whose money was put into the customer\'s EndaViral Wallet (automatically at midnight, or by staff). The customer was messaged and reorders any service themselves — nothing to do here. Full details: Admin → Wallet Credit.' },
   { id: 'reordered', status: 'reordered', icon: '✅', label: 'Reordered',     sub: 'Replacement orders already placed.' },
   { id: 'dismissed', status: 'dismissed', icon: '✕',  label: 'Dismissed',     sub: 'Marked as nothing to redo.' },
 ];
@@ -53,7 +61,7 @@ async function rqRefreshBadge() {
 function rqRenderSubtabs() {
   const el = document.getElementById('rqSubTabs'); if (!el) return;
   // Follow-up counts only clients we're waiting on; ones who replied last are in the Inbox.
-  const n = { needs: _rqSum.pending, followup: _rqSum.followup ?? _rqSum.contacted, reordered: _rqSum.reordered, dismissed: _rqSum.dismissed };
+  const n = { needs: _rqSum.pending, followup: _rqSum.followup ?? _rqSum.contacted, refunded: _rqSum.refunded, reordered: _rqSum.reordered, dismissed: _rqSum.dismissed };
   el.innerHTML = RQ_SUBS.map(t => {
     const c = n[t.id] || 0;
     let badge = c ? `<span class="sb-badge ${t.id === 'needs' ? 'red' : t.id === 'followup' ? 'amber' : ''}">${c}</span>` : '';
@@ -116,7 +124,7 @@ async function rqLoad() {
       <div class="sec-hd">
         <div>
           <div class="sec-title">REORDER QUEUE</div>
-          <div class="sec-sub">Failed, partial & cancelled orders that were paid via M-Pesa or reached the provider — flagged every midnight. Message a client and they move to Follow-up.</div>
+          <div class="sec-sub">Paid failed, partial & cancelled orders are refunded to the customer's EndaViral Wallet every midnight and the customer reorders themselves (💳 Refunded). Only what couldn't be refunded is left for staff here.</div>
         </div>
       </div>
       <div class="sb-tabs" id="rqSubTabs"></div>
@@ -174,7 +182,9 @@ function rqRenderList() {
   const n = (fn) => all.filter(fn).length;
   const owed = all.reduce((a, t) => a + (t.owed_kes || 0), 0);
   const stat = (v, l) => `<div class="rq-stat"><b>${v}</b><span>${l}</span></div>`;
-  let stats = stat(all.length, 'Orders') + stat(_rqKes(owed), 'Paid, still owed');
+  let stats = stat(all.length, 'Orders') + (_rqSub === 'refunded'
+    ? stat(_rqKes(all.reduce((a, t) => a + ((t.wallet_refund || {}).amount || 0), 0), 2), '💳 Refunded to wallets')
+    : stat(_rqKes(owed), 'Paid, still owed'));
   if (_rqSub === 'followup') stats += stat(n(t => t.customer_replied), '💬 Replied') + stat(n(t => t.stale), '⚠ Overdue (24h+)');
   else stats += stat(n(t => t.is_free), '🎁 Free orders') + stat(n(t => (t.link_check || {}).level !== 'ok'), '⚠ Link issues');
 
@@ -235,6 +245,7 @@ function rqRow(t) {
   else if (contacted && t.stale) { status = badge('⚠ NO REPLY', '#ff5252'); sub2 = _rqAge(t.waiting_hours) + ' silent'; }
   else if (contacted) { status = badge('⏳ WAITING', '#ffb347'); sub2 = _rqAge(t.waiting_hours) + ' so far'; }
   else if (t.status === 'reordered') { status = badge('REORDERED', '#3dd44a'); sub2 = t.reordered_at ? esc(new Date(t.reordered_at).toLocaleDateString()) : ''; }
+  else if (t.status === 'refunded') { status = badge('💳 REFUNDED', '#3dd44a'); sub2 = t.wallet_refund ? _rqKes(t.wallet_refund.amount, 2) + (t.wallet_refund.notified ? ' · messaged' : ' · NOT messaged') : ''; }
   else { status = badge('DISMISSED', '#9aa4b2'); }
 
   let primary = '';
@@ -244,6 +255,7 @@ function rqRow(t) {
   const ib = (title, js, ico) => `<button class="btn-secondary rq-ib" title="${title}" onclick="${js}">${ico}</button>`;
   let actions = primary;
   if (pending || (contacted && !t.customer_replied)) actions += ib('Reorder for client (choose link / service)', `rqReorder('${t.id}')`, '🔁');
+  if (open && !t.is_free) actions += ib('Refund to the customer\'s wallet — they get a message and reorder themselves', `rqRefundWallet('${t.id}')`, '💳');
   if (t.thread_id) actions += ib('Open chat', `rqOpenChat('${t.thread_id}')`, '💬');
   if (open) actions += ib('Dismiss — nothing to redo', `rqDismiss('${t.id}')`, '✕');
 
@@ -291,6 +303,7 @@ function rqDetail(t) {
     ${kv('Contacted', contact)}
     ${t.link ? `<div style="grid-column:1/-1;">Link: <a href="${esc(t.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--green);word-break:break-all;">${esc(t.link)}</a></div>` : ''}
     ${reply ? `<div style="grid-column:1/-1;border:1px solid rgba(61,212,74,.35);background:rgba(61,212,74,.07);border-radius:8px;padding:6px 10px;">💬 <b>Customer replied</b> ${reply}</div>` : ''}
+    ${t.wallet_refund ? `<div style="grid-column:1/-1;">💳 <b>${_rqKes(t.wallet_refund.amount, 2)}</b> refunded to the customer's wallet ${t.wallet_refund.at ? esc(new Date(t.wallet_refund.at).toLocaleString()) : ''}${t.wallet_refund.notified ? ' — customer messaged' : ' — <b style="color:#ff5252;">customer NOT messaged</b>'}</div>` : ''}
     ${t.new_order_id ? `<div style="grid-column:1/-1;">🔁 New order #${esc(t.new_order_id.slice(0, 8))} (${Number(t.new_quantity || 0).toLocaleString()}) on ${esc(t.new_link || '')}</div>` : ''}
     ${t.note ? `<div style="grid-column:1/-1;">📝 ${esc(t.note)}</div>` : ''}
   </div>`;
@@ -617,6 +630,23 @@ async function rqReorder(id) {
   });
 }
 
+function rqRefundWallet(id) {
+  const t = _rqTasks.find(x => x.id === id) || {};
+  rqModal('💳 Refund to the customer\'s wallet',
+    `<div style="font-size:12.5px;color:var(--muted);line-height:1.7;">
+       <b style="color:var(--white);">${_rqKes(t.owed_kes, 2)}</b> (what they paid for the undelivered part) goes into
+       <b style="color:var(--white);">${esc((t.user || {}).name || 'the customer')}</b>'s EndaViral Wallet, and they get a message that the order
+       didn't go through and that they can reorder any service with it — no link needed from them.<br><br>
+       Wallet credit can't be withdrawn. Once refunded, this order can't also be re-placed for free.
+     </div>`,
+    '💳 Refund now',
+    async () => {
+      const r = await api(`/reorders/${id}/refund-to-wallet`, { method: 'POST' });
+      toast(`Refunded ${_rqKes(r.amount, 2)} to wallet${r.customer_notified ? ' — customer messaged' : ' — message FAILED, contact them'}`, r.customer_notified ? 'success' : 'error');
+      rqLoad();
+    });
+}
+
 function rqDismiss(id) {
   rqModal('Dismiss — nothing to redo',
     `<label style="font-size:11px;font-weight:700;color:var(--muted);">NOTE (optional)</label>
@@ -743,7 +773,7 @@ function rqReorderOverdue() {
 async function rqFlagNow() {
   try {
     const r = await api('/reorders/flag-now', { method: 'POST' });
-    toast(`Flagged ${r.new} new order(s); ${r.open_total} open`, 'success');
+    toast(`Refunded ${r.refunded || 0} paid order(s) to wallets; queued ${r.new} for staff; ${r.open_total} open`, 'success');
     rqLoad();
   } catch (e) { toast(e.message, 'error'); }
 }

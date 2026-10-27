@@ -2262,6 +2262,9 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div style="color:var(--green);font-weight:800;flex-shrink:0;">→</div>
         </div>
 
+        <!-- EndaViral Wallet: "you have KES X to reorder with" (order_wallet.js) -->
+        <div id="dashWalletCard" style="display:none;"></div>
+
         <!-- ── Quick-start guide: always visible — copy switches from "place your first order" to "place your next order" once the user has placed one; see renderDashOrders() ── -->
         <!-- Compact one-row layout: text left, button right (was a tall stacked card) -->
         <div id="howToGuide" style="background:rgba(61,212,74,.05);border:1px solid rgba(61,212,74,.15);border-radius:12px;padding:10px 12px;margin-bottom:14px;">
@@ -2664,15 +2667,17 @@ tbody td{padding:13px 16px;font-size:14px;}
 
       <!-- WALLET -->
       <div class="page-section" id="sec-wallet">
+        <!-- EndaViral Wallet order credit: balance + history (order_wallet.js) -->
+        <div id="walletCreditCard"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;" class="wallet-top-grid">
-          <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-label">Current Balance</div><div class="stat-val" id="wallet-balance">KES 0</div><div class="stat-sub">Earnings balance · orders are paid per order with M-Pesa</div></div>
+          <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-label">Earnings Balance</div><div class="stat-val" id="wallet-balance">KES 0</div><div class="stat-sub">Referral / creator / agent earnings — separate from your order credit above</div></div>
           <div class="stat-card blue"><div class="stat-icon">📈</div><div class="stat-label">Total Deposited</div><div class="stat-val" id="wallet-deposited">KES 0</div><div class="stat-sub">All time via M-Pesa</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;" class="wallet-main-grid">
           <div>
             <div class="sec-title" style="margin-bottom:18px;">PAY PER ORDER WITH M-PESA</div>
             <div style="background:rgba(61,212,74,.08);border:1px solid rgba(61,212,74,.25);border-radius:12px;padding:16px 18px;font-size:13px;line-height:1.6;color:var(--muted);">
-              Wallet top-ups are switched off. Every order is paid directly with its own M-Pesa prompt when you place it, and each payment carries its M-Pesa reference number on your receipt.
+              Wallet top-ups are switched off. Every order is paid with its own M-Pesa prompt when you place it, and each payment carries its M-Pesa reference number on your receipt. Your wallet only receives refunds from orders that didn't go through — spend them at checkout with “Pay with Wallet”.
               <div style="margin-top:12px;"><button class="btn-primary" onclick="navTo('services')">PLACE AN ORDER</button></div>
             </div>
             <div id="depositForm" style="display:none !important;">
@@ -2810,12 +2815,14 @@ tbody td{padding:13px 16px;font-size:14px;}
               <button type="button" class="admin-tab" onclick="adminTab('create-order',this)"><span class="at-ic" aria-hidden="true">➕</span><span class="at-lbl">Create Order</span></button>
               <button type="button" class="admin-tab" onclick="adminTab('link-queue',this)" id="lqTabBtn"><span class="at-ic" aria-hidden="true">⏳</span><span class="at-lbl">Queued Orders</span></button>
               <button type="button" class="admin-tab" onclick="adminTab('free-orders',this)"><span class="at-ic" aria-hidden="true">🎁</span><span class="at-lbl">Free Orders</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('wallet-credit',this)"><span class="at-ic" aria-hidden="true">💳</span><span class="at-lbl">Wallet Credit</span></button>
             </div>
             <div class="an-group">
               <div class="an-title">Customers</div>
               <button type="button" class="admin-tab" onclick="adminTab('support',this)"><span class="at-ic" aria-hidden="true">💬</span><span class="at-lbl">Support</span></button>
               <button type="button" class="admin-tab active" onclick="adminTab('users',this)"><span class="at-ic" aria-hidden="true">👥</span><span class="at-lbl">Users</span></button>
               <button type="button" class="admin-tab" onclick="adminTab('consultations',this)"><span class="at-ic" aria-hidden="true">💼</span><span class="at-lbl">Consultations</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('broadcasts',this)"><span class="at-ic" aria-hidden="true">📣</span><span class="at-lbl">Broadcasts</span></button>
             </div>
             <div class="an-group">
               <div class="an-title">Catalogue</div>
@@ -3190,10 +3197,19 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-payments-health">
           <div id="paymentsHealthRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
         </div><!-- /ap-payments-health -->
+        <!-- Message every user at once, delivered into their support chat (broadcasts.js) -->
+        <div class="admin-panel" id="ap-broadcasts">
+          <div id="broadcastsRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+        </div><!-- /ap-broadcasts -->
         <!-- Paid orders waiting for an earlier order on the same link (admin_link_queue.js) -->
         <div class="admin-panel" id="ap-link-queue">
           <div id="linkQueueRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
         </div><!-- /ap-link-queue -->
+
+        <!-- EndaViral Wallet: refunds of failed paid orders, wallet-paid reorders, balances (admin_wallet_credit.js) -->
+        <div class="admin-panel" id="ap-wallet-credit">
+          <div id="walletCreditRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+        </div><!-- /ap-wallet-credit -->
 
         <div class="admin-panel" id="ap-free-orders">
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
@@ -3472,6 +3488,8 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="modal-field"><label>Enter Quantity</label><input type="number" id="omQty" placeholder="1000" oninput="calcOrderCost()"/></div>
       <div id="omAddon"></div>
       <div class="cost-preview"><span class="cost-lbl">Total Cost</span><span class="cost-val" id="omCost">KES 0</span></div>
+      <!-- EndaViral Wallet payment choice (order_wallet.js) — only shown when the customer has credit -->
+      <div id="omWalletPay"></div>
       <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="omPhone" placeholder="07XX XXX XXX"/></div></div>
       <details class="order-tips" style="margin-bottom:10px;">
         <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--green);letter-spacing:.5px;list-style:none;display:flex;align-items:center;gap:6px;user-select:none;">
@@ -3514,6 +3532,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span style="color:var(--muted);">Service</span><span id="omPayService" style="max-width:180px;text-align:right;font-size:12px;word-break:break-word;"></span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span style="color:var(--muted);">Quantity</span><span id="omPayQty"></span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;"><span style="color:var(--muted);">Amount</span><strong id="omPayAmount" style="color:var(--green);"></strong></div>
+        <div id="omPayWalletNote" style="display:none;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border);font-size:13px;"><span style="color:var(--muted);">From your wallet</span><strong id="omPayWalletAmt" style="color:var(--green);"></strong></div>
       </div>
       <div class="loading-spinner" style="margin-bottom:16px;"><div class="spinner"></div><span>Checking payment…</span></div>
       <button class="btn-secondary" onclick="cancelOrderFlow()" style="width:100%;">✕ Cancel</button>
@@ -4228,6 +4247,7 @@ async function loadDashboard() {
     if (typeof _acUpdateBadges === 'function') _acUpdateBadges();
     if (typeof freeOrderRefreshCard === 'function') freeOrderRefreshCard();
     if (typeof upsellRefreshCard === 'function') upsellRefreshCard();
+    if (typeof walletRefreshCard === 'function') walletRefreshCard();
   } catch(_) {
     document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders yet. Place your first order!</p></div>';
   }
@@ -4607,6 +4627,7 @@ function openOrderModal(svc) {
   document.getElementById('omQty').max = svc.max || svc.max_quantity || 1000000;
   // Fetch provider capacity (uses cache if warm), then re-evaluate cost limit
   fetchProviderMaxKes().then(() => calcOrderCost());
+  if (typeof walletOnOpenOrder === 'function') walletOnOpenOrder();   // EndaViral Wallet credit (order_wallet.js)
   calcOrderCost();
   showOrderStep(1);
   document.getElementById('orderModal').classList.add('show');
@@ -4653,6 +4674,7 @@ function calcOrderCost() {
     costEl.textContent = fmtKES(costKes);
   }
   _checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 20);
+  if (typeof walletOnCost === 'function') walletOnCost(costKes);   // wallet / wallet + M-Pesa options
 }
 
 
@@ -4703,7 +4725,6 @@ async function placeOrder() {
     return;
   }
   if (!qty || qty < 1) { toast('Invalid quantity', 'error'); return; }
-  if (!phone) { toast('Please enter your M-Pesa phone number', 'error'); return; }
   // Provider capacity hard-gate (safety net if button was somehow not disabled)
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
   const _upPrice = typeof upsellPriceFor === 'function' ? upsellPriceFor(currentSvc, qty) : null;
@@ -4713,11 +4734,15 @@ async function placeOrder() {
   const _addonWhat = _addonReq && typeof addonSummary === 'function' ? addonSummary() : '';
   const costKes = (_upPrice ? _upPrice.final : orderFinalKes(qty, rate)) + (_addonReq && typeof addonKes === 'function' ? addonKes() : 0);
   if (!_checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 20)) return;
+  // EndaViral Wallet: wallet only (no M-Pesa prompt), wallet + M-Pesa, or M-Pesa only.
+  const _wp = typeof walletPayInfo === 'function' ? walletPayInfo(costKes) : { method: 'mpesa', wallet: 0, mpesa: costKes };
+  if (!phone && _wp.mpesa > 0) { toast('Please enter your M-Pesa phone number', 'error'); return; }
   const btn = document.getElementById('placeOrderBtn');
-  btn.textContent = 'Sending STK Push…';
+  btn.textContent = _wp.mpesa > 0 ? 'Sending STK Push…' : 'Paying with wallet…';
   btn.classList.add('loading');
   try {
-    const payload = { service_id: currentSvc.service || currentSvc.id || currentSvc._id, link, quantity: qty, phone };
+    const payload = { service_id: currentSvc.service || currentSvc.id || currentSvc._id, link, quantity: qty, pay_method: _wp.method };
+    if (phone) payload.phone = phone;
     const _upTag = typeof upsellTagFor === 'function' ? upsellTagFor(currentSvc) : null;  // came from a suggestion? (10% off + admin stats)
     if (_upTag) payload.upsell = _upTag;
     if (_addonReq) payload.addon = _addonReq;
@@ -4729,6 +4754,21 @@ async function placeOrder() {
     if (_recTag) _recCtx = null;
     pendingOrderId = resp.id;
     pendingCheckoutId = resp.checkout_request_id;
+    if (typeof walletAfterOrder === 'function' && resp.wallet_amount) walletAfterOrder(resp);
+    if (resp.paid_with_wallet) {
+      // The wallet paid it all — no M-Pesa prompt, the order was started straight away.
+      const ok = resp.submit_outcome !== 'failed';
+      showOrderResult(ok, resp.message || (ok ? 'Paid with your wallet — your order has started.' : 'We could not start this order.'), ok ? null : 'ORDER NOT STARTED');
+      Store.invalidate('orders');
+      Store.invalidate('dashboardOrders');
+      loadDashboard();
+      return;
+    }
+    const _wNote = document.getElementById('omPayWalletNote');
+    if (_wNote) {
+      _wNote.style.display = resp.wallet_amount ? 'flex' : 'none';
+      document.getElementById('omPayWalletAmt').textContent = resp.wallet_amount ? fmtKES(resp.wallet_amount) : '';
+    }
     document.getElementById('omPayPhone').textContent = phone;
     document.getElementById('omPayService').textContent = (currentSvc.name || '') + (window._omAddonWhat ? ` + ${window._omAddonWhat}` : '');
     document.getElementById('omPayQty').textContent = qty.toLocaleString();
@@ -4767,6 +4807,7 @@ async function placeOrder() {
   } finally {
     btn.textContent = '📱 PAY & ORDER';
     btn.classList.remove('loading');
+    if (typeof walletPayBtnLabel === 'function') walletPayBtnLabel();
   }
 }
 
@@ -4799,12 +4840,16 @@ function startPaymentPoll() {
         Store.invalidate('orders');
         Store.invalidate('dashboardOrders'); // new order exists now — don't serve the pre-order cached dashboard list either
         loadDashboard();
+        if (typeof walletRefresh === 'function') walletRefresh();
       } else if (status.status === 'failed' || status.status === 'cancelled') {
         stopPaymentPoll();
-        const failMsg = status.status === 'cancelled'
+        const _usedWallet = document.getElementById('omPayWalletNote')?.style.display === 'flex';
+        const failMsg = (status.status === 'cancelled'
           ? 'Payment was cancelled — you dismissed the M-Pesa prompt. No charge was made.'
-          : 'Payment failed (wrong PIN, insufficient funds, or timeout). No charge was made — feel free to try again.';
+          : 'Payment failed (wrong PIN, insufficient funds, or timeout). No charge was made — feel free to try again.')
+          + (_usedWallet ? ' The wallet credit for this order has been returned to your wallet.' : '');
         showOrderResult(false, failMsg);
+        if (typeof walletRefresh === 'function') walletRefresh();
         // No _autoRaisePaymentTicket() here anymore — the backend now
         // raises this ticket itself the instant ANY of its three
         // resolution paths (this poll, the Nexus webhook, or the
@@ -4836,9 +4881,9 @@ function stopPaymentPoll() {
 
 function cancelOrderFlow() { stopPaymentPoll(); closeOrderModal(); toast('Order cancelled.', 'info'); }
 
-function showOrderResult(success, msg) {
+function showOrderResult(success, msg, title) {
   document.getElementById('omResultIcon').textContent = success ? '✅' : '❌';
-  document.getElementById('omResultTitle').textContent = success ? 'ORDER PLACED!' : 'PAYMENT FAILED';
+  document.getElementById('omResultTitle').textContent = title || (success ? 'ORDER PLACED!' : 'PAYMENT FAILED');
   document.getElementById('omResultDesc').textContent = msg;
   // After payment: a follow-up that needs a DIFFERENT link (same-link ones
   // were the tick box on the order form).
@@ -4971,6 +5016,7 @@ async function requestOrderRefill(orderId) {
 }
 
 async function loadWalletPage() {
+  if (typeof walletRenderPage === 'function') walletRenderPage();   // order credit (order_wallet.js)
   // Pre-fetch provider capacity so the deposit button gate is ready immediately
   fetchProviderMaxKes().then(() => {
     const v = parseInt(document.getElementById('depAmount').value) || 0;
@@ -5126,6 +5172,7 @@ function resetDeposit() {
 <script src="support_board.js"></script>
 <script src="admin_payments_health.js"></script>
 <script src="admin_link_queue.js"></script>
+<script src="admin_wallet_credit.js"></script>
 <script src="admin_affiliate_payouts.js"></script>
 <script src="admin_ccr.js"></script>
 <script src="ccr_agent.js"></script>
@@ -5134,6 +5181,9 @@ function resetDeposit() {
 <script src="account.js"></script>
 <!-- Must load before auth.js: auth.js boots the app, which renders Recent Orders using orderCardsHTML(). -->
 <script src="order_details.js"></script>
+<script src="order_wallet.js"></script>
+<!-- Broadcasts: admin composer + the pop-up users get. Must load before auth.js (initApp() calls bcInit()). -->
+<script src="broadcasts.js"></script>
 <script src="auth.js"></script>
 <script src="admin_creator_events.js"></script>
 <script src="admin_consultation.js"></script>

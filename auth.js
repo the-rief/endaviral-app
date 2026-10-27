@@ -245,6 +245,8 @@ async function startEventStream() {
         // and skipped the unread-count catch-up on the next line)
         if (typeof sbOnTicketEvent === 'function') sbOnTicketEvent();   // live-refresh the Support Centre tabs
         if (typeof _cnPollUnread === 'function') _cnPollUnread();
+        // Broadcasts sent while the stream was down → pop-up now.
+        if (typeof bcLoad === 'function') bcLoad();
       }
       _evtHasConnectedBefore = true;
     };
@@ -269,6 +271,12 @@ async function startEventStream() {
         if (typeof _refreshOpenTicketThread === 'function' && evt.thread_id) {
           _refreshOpenTicketThread(evt.thread_id);
         }
+      } else if (evt.type === 'broadcast' || evt.type === 'broadcast_removed') {
+        // Admin → everyone message: big pop-up + chat refresh (broadcasts.js).
+        if (typeof bcOnEvent === 'function') bcOnEvent(evt);
+      } else if (evt.type === 'wallet_credit') {
+        // A failed paid order was refunded to the EndaViral Wallet (order_wallet.js).
+        if (typeof walletOnPush === 'function') walletOnPush(evt);
       } else if (evt.type === 'payment_status') {
         if (typeof PaymentEvents !== 'undefined' && PaymentEvents._dispatch) {
           PaymentEvents._dispatch(evt);
@@ -354,6 +362,7 @@ function doLogout() {
   if (typeof Store !== 'undefined') Store.reset();
   if (typeof _apiGetCache !== 'undefined') _apiGetCache.clear();
   if (typeof _acClearCachedState === 'function') _acClearCachedState(); // Academy's saved progress (academy.js)
+  if (typeof bcReset === 'function') bcReset(); // broadcast pop-up (broadcasts.js)
   document.getElementById('appWrap').classList.remove('show');
   document.getElementById('appWrap').style.display = 'none';
   document.getElementById('authWrap').style.display = '';
@@ -408,6 +417,8 @@ function initApp() {
   if (typeof _bgTicketWatchTick === 'function') _bgTicketWatchTick();
   if (typeof _cnPollUnread === 'function') _cnPollUnread();
   startEventStream();
+  // Pop-up for any admin broadcast sent while this user was away (broadcasts.js).
+  if (typeof bcInit === 'function') bcInit();
   if (typeof _updateAffiliateBadge === 'function') _updateAffiliateBadge();
   // Boot chat widget now that token is available — loads existing support threads
   if (typeof evBootWidget === 'function') evBootWidget();
