@@ -3868,7 +3868,7 @@ async function fetchProviderMaxKes() {
     return _providerMaxKes;
   }
   try {
-    const data = await api('/payments/provider-max-kes');
+    const data = await api('/payments/order-limit');
     _providerMaxKes   = data.max_kes || 0;
     _providerMaxKesTs = now;
   } catch(_) {
@@ -4989,7 +4989,7 @@ function renderOrders() {
       // makes sense after delivery, when a drop might need topping up — but
       // only for services MoreThanPanel itself supports refill on
       // (o.service_refill, from Service.refill via the /orders response).
-      const canRefill = o.provider_order_id && ['completed','partial'].includes(status) && o.service_refill;
+      const canRefill = (o.started || o.provider_order_id) && ['completed','partial'].includes(status) && o.service_refill;
       // M-Pesa confirmation code of the payment that paid for this order.
       // Only present when the client actually paid via M-Pesa (free/bonus
       // orders and unpaid/failed ones have none). Codes are alphanumeric,

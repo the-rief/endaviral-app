@@ -166,7 +166,7 @@
         : _e(link);
     const mpesa = String(o.mpesa_receipt || '').replace(/[^A-Za-z0-9]/g, '');
     const charge = parseFloat(o.charge || o.cost || o.amount || 0);
-    const canRefill = o.provider_order_id && ['completed', 'partial'].includes(st) && o.service_refill;
+    const canRefill = (o.started || o.provider_order_id) && ['completed', 'partial'].includes(st) && o.service_refill;
 
     const rows = [
       // Short ID on screen (same as the list); Copy gives the full ID.

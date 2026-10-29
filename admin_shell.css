@@ -383,3 +383,161 @@
 }
 /* Support is an agent's main job — show it first */
 #sec-admin.adm-compact .admin-tab[onclick*="'support'"] { order: -1; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SUPPORT CHAT ON PHONES (CCR agents reply from their phones)
+   admin_shell.js sets body.sup-chat-full while a conversation is open
+   at ≤768px, and #supportChatPane.sup-orders-open for the orders sheet.
+   admin.js marks the chat parts with .sup-* classes.
+   ═══════════════════════════════════════════════════════════════════ */
+.sup-m-only, .sup-side-backdrop { display: none; }
+
+@media (max-width: 768px) {
+  /* ── Conversation list ──────────────────────────────────────────── */
+  #ap-support .sec-sub { display: none; }
+  #ap-support #sbSearch { flex: 1 1 0; min-width: 0 !important; font-size: 16px; padding: 10px 12px; }
+  #ap-support .sec-hd > div:last-child { flex-wrap: nowrap !important; }
+  #ap-support .sb-sel { font-size: 16px; padding: 8px 10px; }
+  #ap-support .sb-hint { font-size: 11.5px; }
+  #ap-support .sb-tab { padding: 11px 12px; font-size: 13px; }
+  #supportThreadList .sb-item { padding: 14px 12px !important; gap: 12px !important; }
+  #supportThreadList .sb-av { width: 42px !important; height: 42px !important; font-size: 15px !important; }
+  #supportThreadList .sb-item b { font-size: 14.5px !important; }
+  #supportThreadList .sb-item .btn-secondary { padding: 8px 16px !important; font-size: 12.5px !important; }
+  #supportThreadList .sb-item:active { background: rgba(61,212,74,.10); }
+  #supportThreadsView .adm-sb-back { display: none !important; }
+
+  /* ── Open chat: full screen, WhatsApp-style ─────────────────────── */
+  body.sup-chat-full { overflow: hidden; }
+  body.sup-chat-full #supportInboxWrap.sb-chat-open #supportChatPane {
+    position: fixed !important; inset: 0 !important; z-index: 950;
+    width: 100% !important; height: 100vh !important; height: 100dvh !important;
+    min-height: 0 !important; max-height: none !important;
+    display: flex !important; flex-direction: column !important; overflow: hidden !important;
+    background: #0a101d !important; border-radius: 0 !important;
+    padding-top: env(safe-area-inset-top);
+  }
+  /* toasts drop in at the top instead of covering the reply box */
+  body.sup-chat-full #toastWrap { bottom: auto !important; top: calc(12px + env(safe-area-inset-top)); }
+  body.sup-chat-full #idleBadge { bottom: auto !important; top: calc(70px + env(safe-area-inset-top)); }
+
+  /* header */
+  body.sup-chat-full #supportChatPane .sup-head {
+    padding: 6px 10px 8px 4px !important; gap: 6px !important; flex-wrap: wrap !important;
+    background: #0c1322; flex-shrink: 0;
+  }
+  body.sup-chat-full #supportChatPane .sup-head-id { width: 100%; gap: 8px !important; flex-wrap: nowrap; }
+  body.sup-chat-full #supportChatPane .sup-m-only { display: inline-flex; }
+  body.sup-chat-full #supportChatPane .sup-back {
+    width: 40px; height: 40px; flex-shrink: 0; align-items: center; justify-content: center;
+    background: none; border: 0; border-radius: 50%; color: #e8eef7; cursor: pointer; padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body.sup-chat-full #supportChatPane .sup-back:active { background: rgba(255,255,255,.08); }
+  body.sup-chat-full #supportChatPane .sup-av { width: 36px !important; height: 36px !important; font-size: 14px !important; }
+  body.sup-chat-full #supportChatPane .sup-who { flex: 1 1 auto; min-width: 0; gap: 2px !important; }
+  body.sup-chat-full #supportChatPane .sup-who > div:first-child { flex-wrap: nowrap !important; }
+  body.sup-chat-full #supportChatPane .sup-name {
+    font-size: 15.5px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  }
+  body.sup-chat-full #supportChatPane .sup-email,
+  body.sup-chat-full #supportChatPane .sup-since { display: none !important; }
+  body.sup-chat-full #supportChatPane .sup-chips { flex-wrap: nowrap !important; gap: 5px !important; font-size: 10.5px !important; min-width: 0; overflow: hidden; }
+  body.sup-chat-full #supportChatPane .sup-chips > span { flex-shrink: 0; white-space: nowrap; }
+  body.sup-chat-full #supportChatPane .sup-chips > .sup-topic { display: none; }
+  body.sup-chat-full #supportChatPane .sup-orders-btn {
+    flex-shrink: 0; align-items: center; gap: 5px; height: 38px; padding: 0 11px;
+    background: #111a2c; border: 1px solid #1e2a40; border-radius: 10px; color: #7fe08b;
+    font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
+  }
+  body.sup-chat-full #supportChatPane .sup-head-actions {
+    width: 100%; flex-wrap: nowrap !important; gap: 6px !important; overflow-x: auto;
+    scrollbar-width: none; padding-left: 6px; flex-shrink: 1 !important;
+  }
+  body.sup-chat-full #supportChatPane .sup-head-actions::-webkit-scrollbar { display: none; }
+  body.sup-chat-full #supportChatPane .sup-head-actions > button {
+    flex: 1 0 auto; height: 38px !important; padding: 0 12px !important; font-size: 13px !important; white-space: nowrap;
+  }
+
+  /* messages */
+  body.sup-chat-full #supportChatPane .sup-body {
+    display: flex !important; flex: 1 1 auto !important; min-height: 0 !important; overflow: hidden !important;
+  }
+  body.sup-chat-full #supportChatPane .sup-main {
+    height: auto !important; min-height: 0 !important; flex: 1 1 auto !important; border-right: none !important;
+  }
+  body.sup-chat-full #supportChatPane #adminMsgArea {
+    padding: 12px 10px !important; gap: 10px !important;
+    overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  }
+  body.sup-chat-full #supportChatPane .sup-msg { max-width: 86% !important; }
+  body.sup-chat-full #supportChatPane .sup-msg-sys { max-width: 94% !important; }
+  body.sup-chat-full #supportChatPane .sup-msg .ev-msg-bubble { font-size: 14.5px !important; line-height: 1.5 !important; }
+  body.sup-chat-full #supportChatPane .sup-msg-meta { font-size: 11px !important; }
+  body.sup-chat-full #supportChatPane .sup-reply-link { display: inline-block; padding: 6px 8px; margin: -6px -4px -6px 0; }
+
+  /* reply box: text + send on one full-width row, order + ⚡ underneath */
+  body.sup-chat-full #supportChatPane .sup-composer {
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom)) !important; gap: 6px !important;
+  }
+  body.sup-chat-full #supportChatPane .sup-composer-row { flex-wrap: wrap !important; gap: 6px !important; }
+  body.sup-chat-full #supportChatPane #adminReplyInput {
+    order: 1; flex: 1 1 calc(100% - 56px) !important; font-size: 16px !important; /* 16px: no iOS zoom */
+    min-height: 46px; padding: 12px 14px !important; border-radius: 22px !important;
+  }
+  body.sup-chat-full #supportChatPane .sup-send { order: 2; width: 46px !important; height: 46px !important; border-radius: 50% !important; }
+  body.sup-chat-full #supportChatPane .sup-order-pick {
+    order: 3; flex: 1 1 auto; max-width: none !important; height: 38px !important; border-radius: 10px !important;
+  }
+  body.sup-chat-full #supportChatPane #adminReplyOrder { max-width: none !important; flex: 1; font-size: 14px !important; height: 100%; }
+  body.sup-chat-full #supportChatPane .sup-quick { order: 4; width: 52px !important; height: 38px !important; border-radius: 10px !important; }
+  body.sup-chat-full #supportChatPane #supQuickReplies {
+    left: 6px !important; right: 6px !important; max-height: 55vh; overflow-y: auto;
+  }
+  body.sup-chat-full #supportChatPane #supQuickReplies input,
+  body.sup-chat-full #supportChatPane #supQuickReplies select { font-size: 16px !important; padding: 7px 9px !important; }
+  body.sup-chat-full #supportChatPane #ccrQuickReplyBar > div:first-child { flex-wrap: wrap; gap: 8px !important; }
+  body.sup-chat-full #supportChatPane #ccrQuickReplyBar > div:first-child > span:first-child { flex-basis: 100%; }
+  body.sup-chat-full #supportChatPane #ccrqrCategoryFilter { flex: 1 1 0; min-width: 0; }
+  body.sup-chat-full #supportChatPane #ccrqrSearchInput { flex: 1 1 0 !important; min-width: 0 !important; }
+  body.sup-chat-full #supportChatPane #ccrQuickReplyBar button { padding: 8px 10px !important; font-size: 12.5px !important; }
+  body.sup-chat-full #supportChatPane #ccrqrChipRow { max-height: 38vh !important; gap: 8px !important; }
+  body.sup-chat-full #supportChatPane #ccrqrChipRow > * { padding: 9px 12px !important; font-size: 13px !important; }
+
+  /* orders: a bottom sheet over the chat */
+  body.sup-chat-full #supportChatPane .sup-side-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 2; background: rgba(0,0,0,.55);
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  body.sup-chat-full #supportChatPane .sup-side {
+    position: fixed !important; left: 0; right: 0; bottom: 0; z-index: 3;
+    width: 100% !important; max-height: 82vh; max-height: 82dvh;
+    border-left: none !important; border-top: 1px solid #22314f !important; border-radius: 18px 18px 0 0;
+    box-shadow: 0 -16px 40px rgba(0,0,0,.5); overflow: hidden !important;
+    padding-bottom: env(safe-area-inset-bottom);
+    transform: translateY(105%); transition: transform .25s cubic-bezier(.2,.8,.2,1); visibility: hidden;
+  }
+  body.sup-chat-full #supportChatPane.sup-orders-open .sup-side { transform: none; visibility: visible; }
+  body.sup-chat-full #supportChatPane.sup-orders-open .sup-side-backdrop { opacity: 1; pointer-events: auto; }
+  body.sup-chat-full #supportChatPane .sup-side > div:last-child { overflow-y: auto !important; min-height: 0; overscroll-behavior: contain; }
+  body.sup-chat-full #supportChatPane .sup-side-head {
+    display: flex; position: relative; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 16px 12px 8px 16px; border-bottom: 1px solid #1e2a40; flex-shrink: 0;
+  }
+  body.sup-chat-full #supportChatPane .sup-side-head b {
+    font-size: 14px; color: #fff; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  body.sup-chat-full #supportChatPane .sup-side-head button {
+    width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; border: 1px solid #1e2a40;
+    background: #111a2c; color: #e8eef7; font-size: 15px; cursor: pointer;
+  }
+  body.sup-chat-full #supportChatPane .sup-side-grip {
+    position: absolute; top: 6px; left: 50%; width: 40px; height: 4px; margin-left: -20px;
+    border-radius: 2px; background: #2a3a58;
+  }
+  body.sup-chat-full #supportChatPane #supOrderSearch { font-size: 16px !important; }
+}
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  body.sup-chat-full #supportChatPane .sup-side,
+  body.sup-chat-full #supportChatPane .sup-side-backdrop { transition: none; }
+}

@@ -122,10 +122,27 @@
   }
 
   /* ── Support centre: master/detail on phones ────────────────────── */
+  // ≤768px (CCR agents mostly reply from their phones): opening a
+  // conversation takes the whole screen like WhatsApp (body.sup-chat-full),
+  // the orders panel is a bottom sheet (#supportChatPane.sup-orders-open),
+  // and the phone's own Back button closes the sheet, then the chat.
+  let _listScrollY = 0;
+  const chatPane = () => document.getElementById('supportChatPane');
   function setChatOpen(open) {
     document.getElementById('supportInboxWrap')?.classList.toggle('sb-chat-open', open);
     document.getElementById('supportThreadsView')?.classList.toggle('sb-chat-open-wrap', open);
+    const full = open && PHONE_MQ.matches;
+    if (full && !document.body.classList.contains('sup-chat-full')) _listScrollY = window.scrollY;
+    const wasFull = document.body.classList.contains('sup-chat-full');
+    document.body.classList.toggle('sup-chat-full', full);
+    if (!open) setOrdersOpen(false);
+    if (wasFull && !full) requestAnimationFrame(() => window.scrollTo(0, _listScrollY));
   }
+  function setOrdersOpen(open) {
+    chatPane()?.classList.toggle('sup-orders-open', !!open);
+  }
+  const pushState = (key) => { try { history.pushState({ [key]: 1 }, ''); } catch (_) {} };
+
   window.adminSupportBack = function (silent) {
     setChatOpen(false);
     if (!silent && PHONE_MQ.matches) {
@@ -133,23 +150,71 @@
       list?.scrollIntoView({ block: 'start' });
     }
   };
+  // Leave the full-screen chat: back to Reorders if it was opened from there,
+  // otherwise back to the conversation list.
+  function closeChat() {
+    if (typeof _sb !== 'undefined' && _sb.chatOnly && typeof sbBackFromChat === 'function') sbBackFromChat();
+    setChatOpen(false);
+    if (typeof sbMarkActive === 'function') sbMarkActive();
+  }
+  // ← in the chat header. Goes through history so Back and ← behave the same.
+  window.supMobileBack = function () {
+    if (history.state && (history.state.supChat || history.state.supOrders)) { history.back(); return; }
+    closeChat();
+  };
+  window.supToggleOrders = function (force) {
+    const open = force === undefined ? !chatPane()?.classList.contains('sup-orders-open') : !!force;
+    if (open) {
+      setOrdersOpen(true);
+      if (PHONE_MQ.matches) pushState('supOrders');
+    } else if (history.state && history.state.supOrders) {
+      history.back();                       // popstate closes it
+    } else {
+      setOrdersOpen(false);
+    }
+  };
+  window.addEventListener('popstate', () => {
+    const pane = chatPane();
+    if (pane?.classList.contains('sup-orders-open')) { setOrdersOpen(false); return; }
+    if (document.body.classList.contains('sup-chat-full')) closeChat();
+  });
+  PHONE_MQ.addEventListener?.('change', () => {
+    const open = document.getElementById('supportInboxWrap')?.classList.contains('sb-chat-open');
+    setChatOpen(!!open);
+  });
+
   const _origOpenThread = window.openSupportThread;
   if (typeof _origOpenThread === 'function') {
-    window.openSupportThread = function () {
+    window.openSupportThread = function (id, opts) {
+      const alreadyFull = document.body.classList.contains('sup-chat-full');
       setChatOpen(true);
       if (PHONE_MQ.matches) {
-        const wrap = document.getElementById('supportThreadsView');
-        if (wrap && wrap.getBoundingClientRect().top < 0) wrap.scrollIntoView({ block: 'start' });
+        // One history entry per open chat (re-renders after a reply don't add more).
+        if (!alreadyFull && !(history.state && history.state.supChat)) pushState('supChat');
+        if (!(opts && opts.keepScroll)) setOrdersOpen(false);
       }
       return _origOpenThread.apply(this, arguments);
     };
   }
   // Switching support sub-tabs (Inbox / Follow-up / …) returns to the list.
+  // Tagging an order from the sheet closes the sheet so the reply box is in view.
   const _wrapLater = () => {
     const orig = window.sbSetTab;
     if (typeof orig === 'function' && !orig._admWrapped) {
       window.sbSetTab = function () { setChatOpen(false); return orig.apply(this, arguments); };
       window.sbSetTab._admWrapped = true;
+    }
+    const tag = window.supportTagReplyOrder;
+    if (typeof tag === 'function' && !tag._admWrapped) {
+      window.supportTagReplyOrder = function () {
+        const r = tag.apply(this, arguments);
+        if (PHONE_MQ.matches && chatPane()?.classList.contains('sup-orders-open')) {
+          supToggleOrders(false);
+          setTimeout(() => document.getElementById('adminReplyInput')?.focus(), 250);
+        }
+        return r;
+      };
+      window.supportTagReplyOrder._admWrapped = true;
     }
   };
 

@@ -3240,9 +3240,9 @@ async function openSupportThread(threadId, opts) {
       const quote = m.reply_to_id ? supQuoteHtml(m.reply_to, 'staff', t.user, onGreen) : '';
       const formatted = quote + tag + supLinkifyOrderRefs(safeBody.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')).replace(/\n/g,'<br>');
       const time = m.created_at ? new Date(m.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'}) : '';
-      const replyBtn = m.id ? ` · <a href="javascript:void(0)" onclick="supportReplyTo('${esc(m.id)}')" title="Reply to this message" style="color:#7fe08b;text-decoration:none;font-weight:700;">Reply</a>` : '';
+      const replyBtn = m.id ? ` · <a class="sup-reply-link" href="javascript:void(0)" onclick="supportReplyTo('${esc(m.id)}')" title="Reply to this message" style="color:#7fe08b;text-decoration:none;font-weight:700;">Reply</a>` : '';
       if (m.sender === 'user' && (m.body || '').startsWith('🚨 Automatic')) {
-        return `<div data-msg-id="${esc(m.id || '')}" style="align-self:center;max-width:78%;background:rgba(255,179,71,.07);border:1px solid rgba(255,179,71,.25);border-radius:10px;padding:8px 12px;font-size:11.5px;color:#ffd08a;line-height:1.5;">
+        return `<div class="sup-msg sup-msg-sys" data-msg-id="${esc(m.id || '')}" style="align-self:center;max-width:78%;background:rgba(255,179,71,.07);border:1px solid rgba(255,179,71,.25);border-radius:10px;padding:8px 12px;font-size:11.5px;color:#ffd08a;line-height:1.5;">
           <div class="ev-msg-bubble" style="all:unset;display:block;">${formatted}</div><div style="font-size:10px;color:#93a3ba;margin-top:4px;text-align:right;">System report · ${time}</div></div>`;
       }
       const bubble = isAdmin
@@ -3251,9 +3251,9 @@ async function openSupportThread(threadId, opts) {
             : 'background:#187a2b;color:#ffffff;border-radius:14px 14px 4px 14px;')
         : 'background:#172238;color:#e8eef7;border-radius:14px 14px 14px 4px;';
       const who = isAdmin ? (m.is_bot ? 'Automatic' : (m.sender_id && currentUser && m.sender_id === currentUser.id ? 'You' : 'Staff')) : '';
-      return `<div data-msg-id="${esc(m.id || '')}" style="align-self:${isAdmin ? 'flex-end' : 'flex-start'};max-width:68%;display:flex;flex-direction:column;align-items:${isAdmin ? 'flex-end' : 'flex-start'};gap:4px;">
+      return `<div class="sup-msg" data-msg-id="${esc(m.id || '')}" style="align-self:${isAdmin ? 'flex-end' : 'flex-start'};max-width:68%;display:flex;flex-direction:column;align-items:${isAdmin ? 'flex-end' : 'flex-start'};gap:4px;">
         <div class="ev-msg-bubble" style="${bubble}padding:10px 12px;font-size:13px;line-height:1.5;word-break:break-word;">${formatted}</div>
-        <div style="font-size:10.5px;color:#93a3ba;">${who ? esc(who) + ' · ' : ''}${time}${replyBtn}</div>
+        <div class="sup-msg-meta" style="font-size:10.5px;color:#93a3ba;">${who ? esc(who) + ' · ' : ''}${time}${replyBtn}</div>
       </div>`;
     }
 
@@ -3271,20 +3271,29 @@ async function openSupportThread(threadId, opts) {
 
     pane.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;min-height:0;height:100%;background:#0c1322;font-family:Montserrat,system-ui,sans-serif;';
 
+    const orderCount = inChat.length + others.length;
     pane.innerHTML = `
-      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #1e2a40;flex-shrink:0;">
-        <div style="display:flex;gap:12px;align-items:center;min-width:0;">
-          <span style="width:40px;height:40px;border-radius:50%;background:#3dd44a;color:#062b0c;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initial}</span>
-          <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
-            <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;"><b style="font-size:15px;color:#fff;">${userName}</b><span style="font-size:12px;color:#93a3ba;">${userEmail}</span></div>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11.5px;">
+      <div class="sup-head" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #1e2a40;flex-shrink:0;">
+        <div class="sup-head-id" style="display:flex;gap:12px;align-items:center;min-width:0;">
+          <button type="button" class="sup-m-only sup-back" onclick="supMobileBack()" aria-label="Back to conversations">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+          </button>
+          <span class="sup-av" style="width:40px;height:40px;border-radius:50%;background:#3dd44a;color:#062b0c;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initial}</span>
+          <div class="sup-who" style="display:flex;flex-direction:column;gap:3px;min-width:0;">
+            <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;min-width:0;"><b class="sup-name" style="font-size:15px;color:#fff;">${userName}</b><span class="sup-email" style="font-size:12px;color:#93a3ba;">${userEmail}</span></div>
+            <div class="sup-chips" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11.5px;">
               <span style="background:${pill[2]};color:${pill[1]};border-radius:999px;padding:2px 9px;font-weight:700;">${pill[0]}</span>
-              ${t.board && t.board.topic ? `<span style="color:#b9c6d8;">${esc(t.board.topic)}</span>` : ''}
-              <span style="color:#93a3ba;">Wallet KES ${(t.user?.wallet_balance||0).toFixed(0)} · Client since ${t.user?.member_since ? new Date(t.user.member_since).toLocaleDateString('en-KE',{month:'short',year:'numeric'}) : '—'}</span>
+              ${t.board && t.board.topic ? `<span class="sup-topic" style="color:#b9c6d8;">${esc(t.board.topic)}</span>` : ''}
+              ${t.user?.credit_balance == null ? '' : `<span title="EndaViral Wallet — order credit from refunds. The customer pays with it at checkout (Pay with Wallet / Wallet + M-Pesa). Can't be withdrawn." style="background:${t.user.credit_balance > 0 ? 'rgba(61,212,74,.15)' : 'rgba(255,255,255,.06)'};color:${t.user.credit_balance > 0 ? '#3dd44a' : '#93a3ba'};border:1px solid ${t.user.credit_balance > 0 ? 'rgba(61,212,74,.4)' : '#1e2a40'};border-radius:999px;padding:2px 9px;font-weight:700;">💳 Wallet ${fmtKES(t.user.credit_balance)}</span>`}
+              <span class="sup-since" style="color:#93a3ba;">${(t.user?.wallet_balance || 0) > 0 ? `Earnings ${fmtKES(t.user.wallet_balance)} · ` : ''}Client since ${t.user?.member_since ? new Date(t.user.member_since).toLocaleDateString('en-KE',{month:'short',year:'numeric'}) : '—'}</span>
             </div>
           </div>
+          <button type="button" class="sup-m-only sup-orders-btn" onclick="supToggleOrders()" aria-label="Orders">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"></path><path d="M3 7v10l9 4 9-4V7"></path></svg>
+            <span>${orderCount}</span>
+          </button>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="sup-head-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
           ${t.reorder_task_id ? `<button onclick="rqReorderTask('${esc(t.reorder_task_id)}')" title="This client is in the Reorder Queue — re-place their paid order free of charge" style="${btn2}border-color:rgba(255,112,67,.6);color:#ff9a70;">Reorder for client</button>` : ''}
           ${userEmail ? `<button onclick="ccrCreateOrderForThreadUser()" title="Place an order for ${userEmail} without leaving this chat" style="${btn2}">Place order</button>` : ''}
           ${['resolved','closed'].includes(t.status)
@@ -3293,19 +3302,19 @@ async function openSupportThread(threadId, opts) {
         </div>
       </div>
 
-      <div style="flex:1;min-height:0;display:flex;overflow:hidden;">
-        <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
+      <div class="sup-body" style="flex:1;min-height:0;display:flex;overflow:hidden;">
+        <div class="sup-main" style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
           <div id="adminMsgArea" style="flex:1;min-height:0;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;background:#0a101d;">
             ${hasMore ? `<button id="supLoadEarlier" onclick="supportLoadEarlier()" style="align-self:center;padding:6px 14px;background:#111a2c;border:1px solid #1e2a40;border-radius:999px;color:#b9c6d8;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;">Load earlier messages</button>`
                       : `<div style="align-self:center;font-size:10.5px;color:#93a3ba;">Start of the conversation · ${t.message_count || (t.messages||[]).length} messages</div>`}
             ${(t.messages||[]).map(m=>msgBubble(m)).join('')}
           </div>
 
-          <div style="border-top:1px solid #1e2a40;padding:10px 14px 12px;display:flex;flex-direction:column;gap:8px;background:#0c1322;flex-shrink:0;position:relative;">
+          <div class="sup-composer" style="border-top:1px solid #1e2a40;padding:10px 14px 12px;display:flex;flex-direction:column;gap:8px;background:#0c1322;flex-shrink:0;position:relative;">
             <div id="supQuickReplies" style="display:none;position:absolute;left:14px;right:14px;bottom:100%;margin-bottom:6px;background:#0f1729;border:1px solid #2a3a58;border-radius:12px;padding:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);z-index:5;"></div>
             <div id="supReplyPreview" style="display:none;"></div>
-            <div style="display:flex;gap:8px;align-items:flex-end;">
-              <label title="Which order this reply is about" style="position:relative;display:flex;align-items:center;gap:6px;height:44px;padding:0 10px;background:#111a2c;border:1px solid #1e2a40;border-radius:12px;color:#7fe08b;flex-shrink:0;max-width:140px;">
+            <div class="sup-composer-row" style="display:flex;gap:8px;align-items:flex-end;">
+              <label class="sup-order-pick" title="Which order this reply is about" style="position:relative;display:flex;align-items:center;gap:6px;height:44px;padding:0 10px;background:#111a2c;border:1px solid #1e2a40;border-radius:12px;color:#7fe08b;flex-shrink:0;max-width:140px;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="flex-shrink:0;"><path d="M3 7l9-4 9 4-9 4-9-4z"></path><path d="M3 7v10l9 4 9-4V7"></path></svg>
                 <select id="adminReplyOrder" aria-label="Reply about order" style="appearance:none;-webkit-appearance:none;background:transparent;border:0;color:#7fe08b;font-family:inherit;font-size:12px;font-weight:700;outline:none;cursor:pointer;min-width:0;max-width:100px;text-overflow:ellipsis;">
                   <option value="">No order</option>
@@ -3313,17 +3322,23 @@ async function openSupportThread(threadId, opts) {
                 </select>
               </label>
               <textarea id="adminReplyInput" rows="1" placeholder="Type your reply…" style="flex:1;min-width:0;background:#111a2c;border:1px solid #2a3a58;border-radius:12px;padding:11px 14px;color:#e8eef7;font-family:inherit;font-size:13px;outline:none;resize:none;height:44px;max-height:120px;line-height:1.4;box-sizing:border-box;" oninput="this.style.height='44px';this.style.height=Math.min(this.scrollHeight,120)+'px';" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();adminSendReply();}"></textarea>
-              <button id="supQuickBtn" onclick="supportToggleQuickReplies()" title="Quick replies" aria-label="Quick replies" style="width:44px;height:44px;flex-shrink:0;background:#111a2c;border:1px solid #1e2a40;border-radius:12px;color:#ffcf6e;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <button id="supQuickBtn" class="sup-quick" onmousedown="event.preventDefault()" onclick="supportToggleQuickReplies()" title="Quick replies" aria-label="Quick replies" style="width:44px;height:44px;flex-shrink:0;background:#111a2c;border:1px solid #1e2a40;border-radius:12px;color:#ffcf6e;cursor:pointer;display:flex;align-items:center;justify-content:center;">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"></path></svg>
               </button>
-              <button onclick="adminSendReply()" aria-label="Send" style="width:44px;height:44px;flex-shrink:0;background:#3dd44a;border:0;border-radius:12px;color:#062b0c;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <button class="sup-send" onmousedown="event.preventDefault()" onclick="adminSendReply()" aria-label="Send" style="width:44px;height:44px;flex-shrink:0;background:#3dd44a;border:0;border-radius:12px;color:#062b0c;cursor:pointer;display:flex;align-items:center;justify-content:center;">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M4 12l16-8-6 16-3-6-7-2z"></path></svg>
               </button>
             </div>
           </div>
         </div>
 
-        <div style="width:280px;flex-shrink:0;border-left:1px solid #1e2a40;display:flex;flex-direction:column;min-height:0;background:#0c1322;">
+        <div class="sup-side-backdrop" onclick="supToggleOrders(false)"></div>
+        <div class="sup-side" role="region" aria-label="Orders" style="width:280px;flex-shrink:0;border-left:1px solid #1e2a40;display:flex;flex-direction:column;min-height:0;background:#0c1322;">
+          <div class="sup-m-only sup-side-head">
+            <span class="sup-side-grip" aria-hidden="true"></span>
+            <b>Orders · ${userName}</b>
+            <button type="button" onclick="supToggleOrders(false)" aria-label="Close orders">✕</button>
+          </div>
           <div style="padding:14px;border-bottom:1px solid #1e2a40;display:flex;flex-direction:column;gap:8px;">
             <span style="font-size:10.5px;font-weight:800;letter-spacing:1.4px;color:#93a3ba;">FIND AN ORDER</span>
             <label style="display:flex;align-items:center;gap:8px;background:#111a2c;border:1px solid #1e2a40;border-radius:10px;padding:0 10px;height:40px;box-sizing:border-box;">
@@ -3604,6 +3619,11 @@ function closeOrderDetailModal() {
 // o.reordered: replacements placed for this order (Reorder Queue or popup);
 // o.reorder_of: on a replacement, the order it replaced. From the backend's
 // reorder_queue.reorder_links() (admin orders list + support order sidebar).
+// via / o.reorder_of_via: 'queue' | 'popup' = free replacement placed by staff,
+// 'wallet' = the original was refunded to the customer's wallet (e.g. by the
+// midnight job) and the customer reordered, paying with that credit.
+const _REORDER_VIA = { queue: 'Reorder Queue', popup: 'order popup', wallet: 'customer reordered with wallet refund' };
+function _reorderVia(v) { return _REORDER_VIA[v] || 'order popup'; }
 function _reorderLive(o) { return (o.reordered || []).filter(r => !['failed', 'cancelled'].includes(r.status)); }
 
 function reorderedTag(o) {
@@ -3613,10 +3633,13 @@ function reorderedTag(o) {
     const last = all[all.length - 1];
     const ok = live.length > 0;
     const color = ok ? '#ff8a65' : '#ff5252';
-    const tip = all.map(r => `#${String(r.new_order_id).slice(0, 8)} · ${r.status || '?'} · ${r.via === 'queue' ? 'Reorder Queue' : 'order popup'}${r.at ? ' · ' + new Date(r.at).toLocaleString('en-KE') : ''}`).join('\n');
+    const tip = all.map(r => `#${String(r.new_order_id).slice(0, 8)} · ${r.status || '?'} · ${_reorderVia(r.via)}${r.at ? ' · ' + new Date(r.at).toLocaleString('en-KE') : ''}`).join('\n');
     return `<div title="${esc('Already reordered:\n' + tip)}" style="margin-top:4px;font-size:10.5px;font-weight:700;color:${color};white-space:nowrap;">🔁 ${ok ? 'Reordered' : 'Reorder failed'}${all.length > 1 ? ' ×' + all.length : ''} → #${esc(String((live[live.length - 1] || last).new_order_id).slice(0, 8))}</div>`;
   }
   if (o.reorder_of) {
+    if (o.reorder_of_via === 'wallet') {
+      return `<div title="${esc('This order is a REORDER of #' + o.reorder_of + '.\nThat order was refunded to the customer\'s EndaViral Wallet and they paid for this one with the credit.')}" style="margin-top:4px;"><span style="font-size:10.5px;font-weight:700;color:#4fc3f7;background:rgba(79,195,247,.12);border:1px solid rgba(79,195,247,.35);border-radius:6px;padding:1px 6px;white-space:nowrap;">🔁 Reorder of #${esc(String(o.reorder_of).slice(0, 8))} · 💳 wallet</span></div>`;
+    }
     return `<div title="This is a free replacement for order #${esc(o.reorder_of)}" style="margin-top:4px;font-size:10.5px;color:var(--muted);white-space:nowrap;">🔁 reorder of #${esc(String(o.reorder_of).slice(0, 8))}</div>`;
   }
   return '';
@@ -3628,12 +3651,14 @@ function reorderedBanner(o) {
   const jump = (id) => `<a href="javascript:void(0)" onclick="jumpToOrderInAllOrders('${esc(id)}')" style="color:#ffcc80;font-weight:700;">#${esc(String(id).slice(0, 8))}</a>`;
   if (!all.length) {
     return `<div style="margin:10px 0 4px;padding:9px 11px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.5;">
-      🔁 This is a free replacement for order ${jump(o.reorder_of)}.</div>`;
+      🔁 ${o.reorder_of_via === 'wallet'
+        ? `This is a <b style="color:#4fc3f7;">reorder</b> of order ${jump(o.reorder_of)} — that order was refunded to the customer's EndaViral Wallet and they paid for this one with the credit.`
+        : `This is a free replacement for order ${jump(o.reorder_of)}.`}</div>`;
   }
   const ok = _reorderLive(o).length > 0;
   return `<div style="margin:10px 0 4px;padding:9px 11px;border-radius:9px;background:${ok ? 'rgba(255,112,67,.10)' : 'rgba(255,82,82,.10)'};border:1px solid ${ok ? 'rgba(255,112,67,.45)' : 'rgba(255,82,82,.45)'};font-size:12px;color:#ffcc80;line-height:1.6;">
     <b>🔁 Already reordered ${all.length > 1 ? all.length + '×' : ''}</b>${ok ? ' — don\'t redo it unless the replacement fails.' : ' — but the replacement failed too.'}
-    ${all.map(r => `<div style="color:var(--muted);">• ${jump(r.new_order_id)} · <b style="color:${['failed', 'cancelled'].includes(r.status) ? '#ff8a80' : 'var(--white)'};">${esc(r.status || '?')}</b> · ${r.via === 'queue' ? 'Reorder Queue' : 'order popup'}${r.at ? ' · ' + esc(new Date(r.at).toLocaleString('en-KE')) : ''}</div>`).join('')}
+    ${all.map(r => `<div style="color:var(--muted);">• ${jump(r.new_order_id)} · <b style="color:${['failed', 'cancelled'].includes(r.status) ? '#ff8a80' : 'var(--white)'};">${esc(r.status || '?')}</b> · ${_reorderVia(r.via)}${r.at ? ' · ' + esc(new Date(r.at).toLocaleString('en-KE')) : ''}</div>`).join('')}
   </div>`;
 }
 
@@ -4148,8 +4173,10 @@ async function adminSendReply() {
   if (!input || !activeSupportThreadId) return;
   const body = input.value.trim();
   if (!body) return;
+  // Keep typing without the phone keyboard closing after every send.
+  const hadFocus = document.activeElement === input;
   input.value = '';
-  input.style.height = '42px';
+  input.style.height = '44px';
   const order_id = document.getElementById('adminReplyOrder')?.value || null;
   const reply_to_id = (_supReplyTo && _supReplyTo.threadId === activeSupportThreadId) ? _supReplyTo.id : null;
   try {
@@ -4158,8 +4185,10 @@ async function adminSendReply() {
       body: JSON.stringify({ body, order_id, reply_to_id })
     });
     _supReplyTo = null;
-    // Re-render the thread to show the new message (earlier pages stay loaded)
-    await openSupportThread(activeSupportThreadId, { keepEarlier: true });
+    // Re-render the thread to show the new message (earlier pages stay loaded,
+    // no loading flash — we're at the bottom, so the new message is in view)
+    await openSupportThread(activeSupportThreadId, { keepEarlier: true, keepScroll: true });
+    if (hadFocus) document.getElementById('adminReplyInput')?.focus({ preventScroll: true });
     toast('Reply sent ✓', 'success');
   } catch(e) {
     toast(e.message || 'Failed to send reply', 'error');
@@ -4970,7 +4999,8 @@ async function lookupCustomer() {
                   border:1px solid rgba(61,212,74,.2);font-size:13px;">
         ✅ <strong style="color:var(--white);">${esc(user.name || user.email)}</strong>
         <span style="color:var(--muted);"> · ID: ${esc((user.id||'').slice(0,8))}</span>
-        <span style="color:var(--green);"> · ${fmtKES(user.wallet_balance)} bal</span>
+        <span style="color:var(--green);" title="EndaViral Wallet order credit — pick “Pay with Wallet” to use it"> · 💳 Wallet ${fmtKES(user.credit_balance || 0)}</span>
+        ${(user.wallet_balance || 0) > 0 ? `<span style="color:var(--muted);"> · earnings ${fmtKES(user.wallet_balance)}</span>` : ''}
       </div>`;
     document.getElementById('acoStep2').style.display = 'block';
     renderAcoServices();

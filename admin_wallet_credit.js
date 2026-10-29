@@ -32,6 +32,7 @@ const AWC_REASON = {
   partial:   ['PARTIAL', '#ffb347'],
   cancelled: ['CANCELLED', '#9aa4b2'],
   stuck:     ['STUCK', '#2196f3'],
+  stopped:   ['STOPPED 24h+', '#4fc3f7'],
 };
 const AWC_KIND = { refund: ['↩️ Refund', '#3dd44a'], spend: ['🛒 Order', '#ff8a65'], release: ['↩️ Returned', '#3dd44a'], adjust: ['🛠️ Adjust', '#2196f3'] };
 
@@ -119,7 +120,8 @@ function _awcRender(s) {
       refunded <b style="color:#3dd44a;">${Number(lr.refunded || 0)}</b> order(s) (${fmtKES(lr.refunded_kes || 0)})
       · queued for staff <b style="color:var(--white);">${Number(lr.new || 0)}</b>
       ${lr.refund_errors ? `· <b style="color:#ff5252;">${lr.refund_errors} error(s)</b> (those went to the queue)` : ''}
-      · stuck-pending after ${Number(st.stuck_pending_hours || 6)}h · min M-Pesa part KES ${Number(st.min_mpesa_kes || 10)}
+      ${lr.stuck_stopped && lr.stuck_stopped.stopped ? `· stopped <b style="color:#4fc3f7;">${Number(lr.stuck_stopped.stopped)}</b> order(s) stuck ${Number(lr.stuck_stopped.hours || 24)}h+ (${fmtKES(lr.stuck_stopped.stopped_kes || 0)})` : ''}
+      · stuck-pending after ${Number(st.stuck_pending_hours || 6)}h · pending/processing stopped after ${Number(st.stuck_stop_hours || 24)}h · min M-Pesa part KES ${Number(st.min_mpesa_kes || 10)}
     </div>`;
   }
 
@@ -171,7 +173,7 @@ function _awcRefunds(items, total) {
           <div style="font-size:10.5px;color:var(--muted);margin-top:4px;">${r.source === 'staff' ? '👤 by ' + esc(String(r.by || 'staff').split('@')[0]) : r.source === 'instant' ? '⚡ instantly' : '🌙 midnight'}</div></td>
         <td style="white-space:nowrap;"><b style="color:#3dd44a;font-size:14px;">${fmtKES(r.amount)}</b><div style="font-size:10.5px;color:var(--muted);">${esc(_awcDate(r.created_at))}</div>
           <div style="margin-top:4px;">${r.notified ? _awcTag('✉ MESSAGED', '#3dd44a') : _awcTag('✕ NOT MESSAGED', '#ff5252')}</div></td>
-        <td>${r.reordered ? `${_awcTag('✅ REORDERED', '#3dd44a')}<div style="font-size:11px;margin-top:4px;">${_awcOrderLink(r.reordered.order_id)}</div>` : _awcTag('⏳ NOT YET', '#ffb347')}</td>
+        <td>${(r.reorder_order_id || r.reordered) ? `${_awcTag('✅ REORDERED', '#3dd44a')}<div style="font-size:11px;margin-top:4px;">${_awcOrderLink(r.reorder_order_id || r.reordered.order_id)}</div>` : _awcTag('⏳ NOT YET', '#ffb347')}</td>
         <td style="white-space:nowrap;">
           ${r.thread_id ? `<button class="action-btn" onclick="awcOpenChat('${esc(r.thread_id)}')" title="Open the customer's chat (the refund message is there)">💬 Chat</button>` : (uid ? `<button class="action-btn" onclick="adminMessageCustomer('${uid}','${email}')">💬 Message</button>` : '')}
           <button class="action-btn" onclick="awcOpenUser('${uid}')" title="Wallet history">📒</button>
