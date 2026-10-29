@@ -230,7 +230,7 @@ async function ccrPayCommission(commissionId) {
   } catch (e) { toast(e.message, 'error'); }
 }
 
-// ─── Payout requests (agent-initiated, weekly) ─────────────────────────────
+// ─── Payout requests (agent-initiated, any time) ─────────────────────────────
 
 async function loadCCRPayoutRequests() {
   const el = document.getElementById('ccrPayoutRequestsTable');

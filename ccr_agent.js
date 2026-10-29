@@ -96,8 +96,7 @@ function renderCCRAgentPage() {
   } else if (a.pending_kes <= 0) {
     payoutAction = `<div class="empty-state" style="padding:20px;"><div class="icon">💤</div><p>Nothing pending yet — check back after the next commission run.</p></div>`;
   } else if (!d.can_request_payout) {
-    const nextDate = d.next_eligible_payout_at ? new Date(d.next_eligible_payout_at).toLocaleDateString() : '—';
-    payoutAction = `<div class="empty-state" style="padding:20px;"><div class="icon">⏳</div><p>You can request a payout once every 7 days.<br>Next eligible: <strong>${esc(nextDate)}</strong></p></div>`;
+    payoutAction = `<div class="empty-state" style="padding:20px;"><div class="icon">⏳</div><p>Your payout request is awaiting admin review.<br>You can request again as soon as it's processed.</p></div>`;
   } else {
     payoutAction = `
       <div style="display:flex;flex-direction:column;gap:10px;max-width:360px;">
