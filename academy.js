@@ -182,7 +182,7 @@ const ACADEMY_MODULES = [
         { type: 'p', text: 'Every payment on EndaViral goes through an M-Pesa STK push — you\'ll get a prompt on your phone, enter your PIN, and the order starts automatically once it confirms.' },
         { type: 'ul', items: [
           'There\'s a 20 KES minimum across deposits and orders — useful to know if you\'re testing a service for the first time.',
-          'If an order fails or is only partly delivered, the money for the missing part goes back to your EndaViral Wallet automatically overnight. Orders sent to a wrong link aren\'t refunded, so always re-check that link.',
+          'If an order fails or is only partly delivered, we refund the missing part to your Wallet. Orders sent to a wrong link aren\'t refunded, so always re-check that link.',
           'If something looks stuck for more than a few hours, don\'t re-order — open a ticket instead so support can trace the original order.',
         ]},
       ]},

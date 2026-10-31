@@ -78,7 +78,7 @@
           <div class="od-card-meta">#${_e(id.slice(0, 8))} · ${_fmtDate(o.created_at)}${qty != null ? ` · ${qty.toLocaleString()} qty` : ''}</div>
           <div class="od-card-foot">
             <span class="od-card-cost">${fmtKES(o.charge || o.cost || o.amount)}</span>
-            ${statusPill(o.status)}
+            ${typeof orderStatusPill === 'function' ? orderStatusPill(o) : statusPill(o.status)}
           </div>
           ${orderReplacedTag(o)}
         </div>
@@ -197,8 +197,8 @@
         </div>
         <button type="button" class="od-close" onclick="closeOrderDetail()" aria-label="Close">✕</button>
       </div>
-      <div class="od-status-row">${statusPill(o.status)}<span class="od-amount">${fmtKES(charge)}</span></div>
-      <p class="od-status-text">${STATUS_TEXT[st] || ''}</p>
+      <div class="od-status-row">${typeof orderStatusPill === 'function' ? orderStatusPill(o) : statusPill(o.status)}<span class="od-amount">${fmtKES(charge)}</span></div>
+      <p class="od-status-text">${o.wallet_refund ? `Refunded ${fmtKES(o.wallet_refund.amount)} to your Wallet.` : (STATUS_TEXT[st] || '')}</p>
       ${(o.replaced_by || []).length ? `<p class="od-status-text" style="color:#ffab91;">We've already re-placed this order for you at no extra cost — follow the new order below.</p>` : ''}
       ${orderReplacedTag(o, true)}
       ${_progress(o)}

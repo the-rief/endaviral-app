@@ -138,15 +138,15 @@
     const w = _split(cost, 'wallet'), wm = _split(cost, 'wallet_mpesa');
     const opt = (id, title, sub, ok) => `<button type="button" class="wp-opt ${cur === id ? 'on' : ''}" ${ok ? '' : 'disabled'} onclick="walletPick('${id}')">
         <span class="wp-dot"></span><span><div class="wp-t">${title}</div><div class="wp-s">${sub}</div></span></button>`;
-    let html = `<div class="wp-box"><div class="wp-head">💳 ENDAVIRAL WALLET <b>${_kes(bal)} available</b></div>`;
+    let html = `<div class="wp-box"><div class="wp-head">💳 YOUR WALLET <b>${_kes(bal)}</b></div>`;
     html += opt('wallet', '💳 Pay with Wallet',
-      w.ok ? `Your wallet covers the full ${_kes(cost)} — no M-Pesa prompt.` : `Not enough for this order (${_e(w.why)}). Lower the quantity or use Wallet + M-Pesa.`, w.ok);
+      w.ok ? `Pays the full ${_kes(cost)}.` : `Not enough (${_e(w.why)}).`, w.ok);
     if (bal < cost) {
       html += opt('wallet_mpesa', '💳 + 📱 Wallet + M-Pesa',
-        wm.ok ? `${_kes(wm.wallet)} from your wallet + ${_kes(wm.mpesa)} by M-Pesa.` : `Wallet balance is too small to combine here — pay with M-Pesa.`, wm.ok);
+        wm.ok ? `${_kes(wm.wallet)} from Wallet + ${_kes(wm.mpesa)} M-Pesa.` : `Not available for this amount.`, wm.ok);
     }
-    html += opt('mpesa', '📱 M-Pesa only', `Pay the full ${_kes(cost)} by M-Pesa and keep your wallet credit for later.`, true);
-    html += `<div class="wp-note">Wallet credit is a refund for an order that didn't go through. Use it on any service — it can't be withdrawn to M-Pesa.</div></div>`;
+    html += opt('mpesa', '📱 M-Pesa only', `Pay ${_kes(cost)} by M-Pesa.`, true);
+    html += `</div>`;
     box.innerHTML = html;
     const p = _split(cost, cur);
     if (phoneRow) phoneRow.style.display = (p.method !== 'mpesa' && p.mpesa === 0) ? 'none' : '';
@@ -191,7 +191,7 @@
   /* ── Wallet page: balance + history ── */
   const KIND = {
     refund:  ['↩️', 'Refund'],
-    spend:   ['🛒', 'Order paid'],
+    spend:   ['🛒', 'Paid for order'],
     release: ['↩️', 'Returned'],
     adjust:  ['🛠️', 'Adjustment'],
   };
@@ -206,18 +206,18 @@
       const [ic, label] = KIND[x.kind] || ['•', x.kind];
       const inflow = Number(x.amount) > 0;
       return `<div class="wl-row"><div class="wl-ic">${ic}</div>
-        <div class="wl-n">${_e(x.note || label)}<div class="wl-d">${x.created_at ? new Date(x.created_at).toLocaleString() : ''} · balance ${_kes(x.balance_after)}</div></div>
+        <div class="wl-n">${_e(label)}${x.order_id ? ` · #${_e(String(x.order_id).slice(0, 8))}` : ''}<div class="wl-d">${x.created_at ? new Date(x.created_at).toLocaleString() : ''}</div></div>
         <div class="wl-a ${inflow ? 'in' : 'out'}">${inflow ? '+' : '−'}${_kes(Math.abs(x.amount))}</div></div>`;
     }).join('');
     el.innerHTML = `<div class="wl-card">
       <div class="wl-top">
         <div style="flex:1;min-width:200px;">
-          <div class="wl-lbl">💳 EndaViral Wallet · order credit</div>
+          <div class="wl-lbl">💳 Your Wallet</div>
           <div class="wl-bal">${_kes(d.balance)}</div>
         </div>
-        ${Number(d.balance) > 0 ? `<button class="btn-primary" style="width:auto;padding:10px 18px;margin:0;" onclick="navTo('services')">REORDER NOW</button>` : ''}
+        ${Number(d.balance) > 0 ? `<button class="btn-primary" style="width:auto;padding:10px 18px;margin:0;" onclick="navTo('services')">USE IT NOW</button>` : ''}
       </div>
-      <div class="wl-txt">When a paid order fails, is only partly delivered or is cancelled, what you paid for the undelivered part comes back here automatically — and we message you. Use it to order <b style="color:var(--white);">any</b> service: at checkout pick <b style="color:var(--white);">Pay with Wallet</b>, or <b style="color:var(--white);">Wallet + M-Pesa</b> for a bigger order. Wallet credit can't be withdrawn to M-Pesa.</div>
+      <div class="wl-txt">Refunds come here. Use your Wallet to pay for any order. It can't be withdrawn.</div>
       ${rows ? `<div class="wl-hist"><div class="wl-lbl" style="margin-bottom:4px;">History</div>${rows}</div>` : ''}
     </div>`;
   };
@@ -226,7 +226,7 @@
   window.walletOnPush = function (evt) {
     if (_wc && evt && typeof evt.balance === 'number') { _wc.balance = evt.balance; _wcAt = 0; }
     window.walletRefresh();
-    if (evt && typeof evt.balance === 'number') toast(`💳 Refund received — your wallet now has ${_kes(evt.balance)}`, 'success');
+    if (evt && typeof evt.balance === 'number') toast(`💳 Refund added to your Wallet · ${_kes(evt.balance)}`, 'success');
   };
 
   /* ── My Orders: "refunded to wallet" / "paid from wallet" tags ── */
@@ -236,8 +236,8 @@
     const wrapped = function (o, big) {
       let html = orig.apply(this, arguments);
       const fs = big ? '12.5px' : '10.5px';
-      if (o && o.wallet_refund) html += `<div class="od-wallet" style="font-size:${fs};" title="Use it for any new order">💳 ${_kes(o.wallet_refund.amount)} refunded to your wallet</div>`;
-      else if (o && Number(o.wallet_paid) > 0) html += `<div class="od-wallet" style="font-size:${fs};color:var(--muted);font-weight:600;">💳 ${_kes(o.wallet_paid)} paid from wallet</div>`;
+      if (o && o.wallet_refund) html += `<div class="od-wallet" style="font-size:${fs};" title="Use it to pay for any order">↩️ ${_kes(o.wallet_refund.amount)} refunded to Wallet</div>`;
+      else if (o && Number(o.wallet_paid) > 0) html += `<div class="od-wallet" style="font-size:${fs};color:var(--muted);font-weight:600;">💳 ${_kes(o.wallet_paid)} paid from Wallet</div>`;
       return html;
     };
     wrapped._wallet = true;

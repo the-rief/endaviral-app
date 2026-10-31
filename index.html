@@ -941,6 +941,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 .status-pill.completed{background:rgba(61,212,74,.1);color:var(--green);border:1px solid rgba(61,212,74,.2);}
 .status-pill.failed{background:rgba(229,57,53,.1);color:#ff8a80;border:1px solid rgba(229,57,53,.2);}
 .status-pill.partial{background:rgba(255,193,7,.1);color:#ffc107;border:1px solid rgba(255,193,7,.2);}
+.status-pill.refunded{background:rgba(156,39,176,.12);color:#ce93d8;border:1px solid rgba(156,39,176,.3);}
 .status-pill::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;}
 
 /* ══════════════════════════════════════════════
@@ -1086,6 +1087,10 @@ tbody td{padding:13px 16px;font-size:14px;}
 .search-inp::placeholder{color:var(--muted);}
 .sort-badge{background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:600;padding:8px 12px;border-radius:8px;white-space:nowrap;display:flex;align-items:center;gap:5px;flex-shrink:0;}
 .sort-badge .sort-arrow{color:var(--green);}
+/* Feature filters (Refill / Slow delivery): narrow the list, keep platform + type */
+.svc-chips{display:flex;gap:6px;flex-shrink:0;}
+.svc-chip{background:var(--card);border:1px solid var(--border);color:var(--muted);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;padding:8px 11px;border-radius:8px;white-space:nowrap;cursor:pointer;transition:border-color .2s,color .2s;}
+.svc-chip.on{border-color:var(--green);color:var(--green);background:rgba(34,197,94,.08);}
 
 /* Service cards */
 .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:14px;}
@@ -1133,6 +1138,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 .svc-feature-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
 .svc-feature-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap;}
 .svc-feature-badge.refill{background:rgba(33,150,243,.12);color:#2196f3;border:1px solid rgba(33,150,243,.25);}
+.svc-feature-badge.slow{background:rgba(250,204,21,.10);color:#eab308;border:1px solid rgba(250,204,21,.25);}
 .svc-feature-badge.cancel{background:rgba(158,158,158,.12);color:var(--muted);border:1px solid rgba(158,158,158,.2);}
 
 .svc-name{font-size:13.5px;font-weight:600;line-height:1.4;flex:1;}
@@ -2057,7 +2063,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">How long does delivery take?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">Most orders start within minutes and complete within 1–24 hours depending on quantity and service type.</div></div>
       <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Is EndaViral safe to use?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">EndaViral is designed for promotional and marketing purposes. Outcomes can vary based on platform algorithms. We recommend using services responsibly.</div></div>
       <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Do you guarantee results?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">We guarantee delivery of the service purchased as described. We do not guarantee specific outcomes such as viral growth or monetization.</div></div>
-      <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Can I get a refund?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">Once you pay, your order starts right away, so it can't be cancelled. Please double-check your link, quantity and service before ordering. If an order fails or is only partly delivered, the money for the part you didn't get goes back to your EndaViral Wallet automatically overnight, and you can use it on any order. Wallet credit can't be withdrawn to M-Pesa, and orders sent to a wrong link or a private account aren't refunded.</div></div>
+      <div class="lp-faq-item" onclick="toggleFaq(this)"><div class="lp-faq-header"><div class="lp-faq-q">Can I get a refund?</div><div class="lp-faq-icon">+</div></div><div class="lp-faq-answer">Once you pay, your order starts right away, so it can't be cancelled. Please double-check your link, quantity and service before ordering. If an order fails or is only partly delivered, we refund the part you didn't get to your Wallet. You can use your Wallet to pay for any order, but it can't be withdrawn. Orders sent to a wrong link or a private account aren't refunded.</div></div>
     </div>
   </section>
 
@@ -2300,7 +2306,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="dash-stat ds-active"><div class="ds-val" id="dash-active">0</div><div class="ds-lbl">Active</div></div>
           <div class="dash-stat ds-spent"><div class="ds-val" id="dash-spent">KES 0</div><div class="ds-lbl">Spent</div></div>
           <!-- EndaViral Wallet balance for reorders (order_wallet.js walletRefreshCard) -->
-          <button type="button" class="dash-stat ds-wallet" onclick="navTo('wallet')" title="Wallet credit — use it at checkout with “Pay with Wallet”"><div class="ds-val" id="dash-wallet">KES 0</div><div class="ds-lbl">Wallet</div></button>
+          <button type="button" class="dash-stat ds-wallet" onclick="navTo('wallet')" title="Refunds go to your Wallet — use it to pay for any order"><div class="ds-val" id="dash-wallet">KES 0</div><div class="ds-lbl">Wallet</div></button>
         </div>
 
         <!-- ── Promo strip: swipe on mobile, 3-up grid on desktop. Replaces the 3 old full-width banners. ── -->
@@ -2392,6 +2398,10 @@ tbody td{padding:13px 16px;font-size:14px;}
         <!-- Toolbar: search + sort label -->
         <div class="catalog-toolbar">
           <input class="search-inp" id="svcSearch" placeholder="🔍  Search within platform…" oninput="applyFilters()"/>
+          <div class="svc-chips">
+            <button type="button" class="svc-chip" id="chipRefill" onclick="toggleSvcChip('refill')">♻️ Refill</button>
+            <button type="button" class="svc-chip" id="chipSlow" onclick="toggleSvcChip('slow')" style="display:none;">🐢 Slow delivery</button>
+          </div>
           <div class="sort-badge"><span class="sort-arrow">↑</span> Cheapest first</div>
         </div>
 
@@ -2688,7 +2698,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <!-- EndaViral Wallet order credit: balance + history (order_wallet.js) -->
         <div id="walletCreditCard"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;" class="wallet-top-grid">
-          <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-label">Earnings Balance</div><div class="stat-val" id="wallet-balance">KES 0</div><div class="stat-sub">Referral / creator / agent earnings — separate from your order credit above</div></div>
+          <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-label">Earnings Balance</div><div class="stat-val" id="wallet-balance">KES 0</div><div class="stat-sub">Referral / creator / agent earnings — separate from your Wallet above</div></div>
           <div class="stat-card blue"><div class="stat-icon">📈</div><div class="stat-label">Total Deposited</div><div class="stat-val" id="wallet-deposited">KES 0</div><div class="stat-sub">All time via M-Pesa</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;" class="wallet-main-grid">
@@ -3503,7 +3513,13 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div id="omServiceInfo" style="margin-bottom:16px;"></div>
       <div id="omUpsellNote" style="display:none;"></div>
       <div class="modal-field"><label>Paste Your Link</label><input type="url" id="omLink" placeholder="https://instagram.com/yourprofile"/><div id="omLinkHint" style="font-size:11.5px;color:var(--muted,#8a97a8);margin-top:5px;line-height:1.4;"></div></div>
-      <div class="modal-field"><label>Enter Quantity</label><input type="number" id="omQty" placeholder="1000" oninput="calcOrderCost()"/></div>
+      <div class="modal-field"><label>Enter Quantity</label><input type="number" id="omQty" placeholder="1000" oninput="calcOrderCost()" onchange="omFitSlowQty()"/></div>
+      <!-- Slow delivery: only for services that support it (svc.dripfeed) -->
+      <div class="modal-field" id="omSpeed" style="display:none;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;">
+          <input type="checkbox" id="omSlow" onchange="omSetSpeed(this.checked)" style="width:auto;margin:0;"/> 🐢 Slow delivery
+        </label>
+      </div>
       <div id="omAddon"></div>
       <div class="cost-preview"><span class="cost-lbl">Total Cost</span><span class="cost-val" id="omCost">KES 0</span></div>
       <!-- EndaViral Wallet payment choice (order_wallet.js) — only shown when the customer has credit -->
@@ -3527,7 +3543,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div style="margin-bottom:6px;">✅ Make sure your profile or post is <strong style="color:var(--white);">public</strong> — private accounts cannot receive orders.</div>
           <div style="margin-bottom:6px;">✅ <strong style="color:var(--white);">Double-check your link</strong> — if the link is wrong, the order goes to the wrong account and there is NO REFUND.</div>
           <div style="margin-bottom:6px;">✅ Do not delete the post or change your username while an order is running.</div>
-          <div style="margin-bottom:10px;">⚠️ Once payment is confirmed, the order starts and <strong style="color:var(--white);">cannot be CANCELLED.</strong> If it fails or is only partly delivered, the money for the missing part goes back to your EndaViral Wallet automatically overnight.</div>
+          <div style="margin-bottom:10px;">⚠️ Once payment is confirmed, the order starts and <strong style="color:var(--white);">cannot be CANCELLED.</strong> If it fails or is only partly delivered, we refund the missing part to your Wallet.</div>
           <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
             <div style="margin-bottom:6px;">⏳ <strong style="color:var(--white);">"Instant"</strong> means the order starts instantly — not that it finishes immediately.</div>
             <div>📉 We have Cheap and Expensive Services. The prices vary based on the service quality and delivery time.</div>
@@ -4046,6 +4062,16 @@ function statusPill(s, queued) {
   return `<span class="status-pill ${cls}">${s||'pending'}</span>`;
 }
 
+// Customer views: an order whose money went back to the Wallet shows
+// "refunded" (failed / cancelled) or "part refunded" (partial).
+// o.wallet_refund comes with every /orders row.
+function orderStatusPill(o) {
+  const st = (o && o.status || '').toLowerCase();
+  if (o && o.wallet_refund && (st === 'failed' || st === 'cancelled')) return '<span class="status-pill refunded">refunded</span>';
+  if (o && o.wallet_refund && st === 'partial') return '<span class="status-pill refunded">part refunded</span>';
+  return statusPill(o && o.status);
+}
+
 function getPlatformKey(svc) {
   // 1. Trust the backend-remapped category first (exact match, case-insensitive).
   //    This ensures services like "YouTube Live Stream …" whose category has been
@@ -4299,7 +4325,7 @@ function renderDashOrders(orders) {
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.service_name||o.serviceName||o.service||'—'}</td>
           <td class="hide-mobile">${(o.quantity||o.qty||'—').toLocaleString?.()|| o.quantity||'—'}</td>
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost||o.amount)}</td>
-          <td>${statusPill(o.status)}</td>
+          <td>${orderStatusPill(o)}</td>
         </tr>`).join('')}
       </tbody>
     </table>
@@ -4455,11 +4481,28 @@ function selectSubcat(key) {
   applyFilters();
 }
 
+// Feature filters — stay on while the customer changes platform / type.
+const svcChips = { refill: false, slow: false };
+function toggleSvcChip(k) {
+  svcChips[k] = !svcChips[k];
+  document.getElementById(k === 'refill' ? 'chipRefill' : 'chipSlow')?.classList.toggle('on', svcChips[k]);
+  applyFilters();
+}
+
 function applyFilters() {
   const q = (document.getElementById('svcSearch')?.value || '').toLowerCase();
   let list = allServices;
+  // "Slow delivery" chip only appears once the catalogue has such services.
+  const slowChip = document.getElementById('chipSlow');
+  if (slowChip) {
+    const anySlow = allServices.some(s => s.dripfeed);
+    slowChip.style.display = anySlow ? '' : 'none';
+    if (!anySlow && svcChips.slow) { svcChips.slow = false; slowChip.classList.remove('on'); }
+  }
   if (activePlatform !== 'all') list = list.filter(s => s._platKey === activePlatform);
   if (activeSubcat !== 'all') list = list.filter(s => s._subcatKey === activeSubcat);
+  if (svcChips.refill) list = list.filter(s => s.refill);
+  if (svcChips.slow) list = list.filter(s => s.dripfeed);
   if (q) list = list.filter(s => (s.name||'').toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q));
   list = [...list].sort((a, b) => {
     const ra = parseFloat(a.rate || a.price_per_1000 || a.price || 0);
@@ -4578,8 +4621,9 @@ function renderServices(list, recs = []) {
     else if (rate === cheapestRate) rankBadge = '<span class="svc-rank-badge cheapest">💚 Best Price</span>';
     else if (idx < 3) rankBadge = '<span class="svc-rank-badge popular">🔥 Popular</span>';
     const subcatLabel = subcatDef ? `<div class="svc-subcat">${_subcatLabelFor(s._subcatKey, s._platKey)}</div>` : '';
-    const featureBadges = (s.refill || s.cancel) ? `<div class="svc-feature-badges">
+    const featureBadges = (s.refill || s.cancel || s.dripfeed) ? `<div class="svc-feature-badges">
         ${s.refill ? '<span class="svc-feature-badge refill">♻️ Refill</span>' : ''}
+        ${s.dripfeed ? '<span class="svc-feature-badge slow">🐢 Slow delivery</span>' : ''}
         ${s.cancel ? '<span class="svc-feature-badge cancel">✕ Cancellable</span>' : ''}
       </div>` : '';
     const svcJson = JSON.stringify(s).replace(/"/g, '&quot;');
@@ -4626,6 +4670,7 @@ function openOrderModal(svc) {
   const _upNote = document.getElementById('omUpsellNote');  // set again by upsellStart() if this came from a suggestion
   if (_upNote) { _upNote.style.display = 'none'; _upNote.innerHTML = ''; }
   if (typeof addonReset === 'function') addonReset();   // checkout add-on (upsell.js)
+  omSetupSpeed(svc);                                     // delivery speed (slow delivery services only)
 
   // Starting quantity must satisfy BOTH the service's own minimum AND the
   // KES 20 payment floor. Rather than defaulting to the service min and
@@ -4668,6 +4713,54 @@ function closeOrderModal() {
   pendingCheckoutId = null;
 }
 
+// ── Slow delivery ────────────────────────────────────────────────────────────
+// Only services with svc.dripfeed: one checkbox. The order is delivered in
+// equal batches over SLOW_DAYS days. MIRRORS the backend exactly
+// (app/services/drip_feed.py build_plan, SLOW_DELIVERY_DAYS) — keep in step.
+// The backend re-plans from slow_delivery itself; it never trusts numbers from here.
+const SLOW_DAYS = 3;
+const SLOW_BATCHES_PER_DAY = 4;
+let _omSlowDays = 0;
+
+function slowPlan(qty, minQty, days) {
+  qty = Math.floor(qty); minQty = Math.max(1, Math.floor(minQty || 1));
+  const cap = Math.min(days * SLOW_BATCHES_PER_DAY, Math.floor(qty / minQty));
+  if (cap < 2) return { error: `Slow delivery needs at least ${(2 * minQty).toLocaleString()} for this service` };
+  let runs = cap;
+  for (let r = cap; r >= 2; r--) { if (qty % r === 0) { runs = r; break; } }
+  const perRun = Math.floor(qty / runs);
+  return { runs, perRun, total: perRun * runs, interval: Math.max(1, Math.round(days * 1440 / runs)) };
+}
+
+function omSetupSpeed(svc) {
+  _omSlowDays = 0;
+  const box = document.getElementById('omSpeed');
+  if (!box) return;
+  document.getElementById('omSlow').checked = false;
+  box.style.display = (svc && svc.dripfeed) ? '' : 'none';
+}
+
+function omSetSpeed(on) { _omSlowDays = on ? SLOW_DAYS : 0; omFitSlowQty(); }
+
+// Slow delivery needs equal batches: put the (slightly rounded-down) quantity
+// straight into the quantity box so the box, the price and the order agree.
+function omFitSlowQty() {
+  const el = document.getElementById('omQty');
+  const typed = parseInt(el.value) || 0;
+  const eff = omEffectiveQty(typed);
+  if (eff.plan && !eff.plan.error && eff.qty !== typed) el.value = eff.qty;
+  calcOrderCost();
+}
+
+// The quantity that will actually be ordered (slow delivery may round it down
+// to equal batches) and the plan, or an error when slow delivery can't work.
+function omEffectiveQty(qty) {
+  if (!_omSlowDays || !currentSvc || !currentSvc.dripfeed || qty <= 0) return { qty, plan: null };
+  const plan = slowPlan(qty, currentSvc.min || currentSvc.min_quantity || 1, _omSlowDays);
+  if (plan.error) return { qty, plan };
+  return { qty: plan.total, plan };
+}
+
 // What the customer actually pays: rounded UP to the next KES 5, min KES 20.
 // Mirrors the backend rule in app/services/pricing.py — keep the two in step.
 function orderFinalKes(qty, rate) {
@@ -4677,7 +4770,8 @@ function orderFinalKes(qty, rate) {
 
 function calcOrderCost() {
   if (!currentSvc) return;
-  const qty = parseInt(document.getElementById('omQty').value) || 0;
+  const _typedQty = parseInt(document.getElementById('omQty').value) || 0;
+  const qty = omEffectiveQty(_typedQty).qty;       // slow delivery may round down to equal batches
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
   let costKes = qty > 0 ? orderFinalKes(qty, rate) : 0;
   // Came from a "next step" suggestion → 10% off (upsell.js; backend re-checks).
@@ -4734,7 +4828,7 @@ async function _autoRaisePaymentTicket({ phone, link, qty, orderId, checkoutId, 
 
 async function placeOrder() {
   const link = document.getElementById('omLink').value.trim();
-  const qty = parseInt(document.getElementById('omQty').value);
+  let qty = parseInt(document.getElementById('omQty').value);
   const phone = document.getElementById('omPhone').value.trim();
   if (!link) { toast('Please enter a link', 'error'); return; }
   const _linkProblem = checkOrderLink();
@@ -4745,12 +4839,17 @@ async function placeOrder() {
     return;
   }
   if (!qty || qty < 1) { toast('Invalid quantity', 'error'); return; }
+  // Slow delivery: the order is for the equal-batch total shown on the form.
+  const _slow = omEffectiveQty(qty);
+  if (_slow.plan && _slow.plan.error) { toast(_slow.plan.error, 'error'); return; }
+  qty = _slow.qty;
   // Provider capacity hard-gate (safety net if button was somehow not disabled)
   const rate = parseFloat(currentSvc.rate || currentSvc.price_per_1000 || currentSvc.price || 0);
   const _upPrice = typeof upsellPriceFor === 'function' ? upsellPriceFor(currentSvc, qty) : null;
   let _addonReq = null;
   try { _addonReq = typeof addonPayload === 'function' ? addonPayload() : null; }
   catch (err) { toast(err.message, 'error'); return; }
+  if (_addonReq && _slow.plan) { toast('Slow delivery can\'t be combined with an add-on.', 'error'); return; }
   const _addonWhat = _addonReq && typeof addonSummary === 'function' ? addonSummary() : '';
   const costKes = (_upPrice ? _upPrice.final : orderFinalKes(qty, rate)) + (_addonReq && typeof addonKes === 'function' ? addonKes() : 0);
   if (!_checkProviderLimit(costKes, 'placeOrderBtn', 'omProviderWarn', 20)) return;
@@ -4763,6 +4862,7 @@ async function placeOrder() {
   try {
     const payload = { service_id: currentSvc.service || currentSvc.id || currentSvc._id, link, quantity: qty, pay_method: _wp.method };
     if (phone) payload.phone = phone;
+    if (_slow.plan) payload.slow_delivery = true;          // backend re-plans the batches itself
     const _upTag = typeof upsellTagFor === 'function' ? upsellTagFor(currentSvc) : null;  // came from a suggestion? (10% off + admin stats)
     if (_upTag) payload.upsell = _upTag;
     if (_addonReq) payload.addon = _addonReq;
@@ -4791,7 +4891,7 @@ async function placeOrder() {
     }
     document.getElementById('omPayPhone').textContent = phone;
     document.getElementById('omPayService').textContent = (currentSvc.name || '') + (window._omAddonWhat ? ` + ${window._omAddonWhat}` : '');
-    document.getElementById('omPayQty').textContent = qty.toLocaleString();
+    document.getElementById('omPayQty').textContent = (resp.quantity || qty).toLocaleString();
     document.getElementById('omPayAmount').textContent = fmtKES(resp.stk_amount || resp.charge);
     // The backend decides the upsell discount; say so if it differs from the preview.
     if (resp.upsell_discount_pct) {
@@ -4867,7 +4967,7 @@ function startPaymentPoll() {
         const failMsg = (status.status === 'cancelled'
           ? 'Payment was cancelled — you dismissed the M-Pesa prompt. No charge was made.'
           : 'Payment failed (wrong PIN, insufficient funds, or timeout). No charge was made — feel free to try again.')
-          + (_usedWallet ? ' The wallet credit for this order has been returned to your wallet.' : '');
+          + (_usedWallet ? ' The Wallet amount has been returned to your Wallet.' : '');
         showOrderResult(false, failMsg);
         if (typeof walletRefresh === 'function') walletRefresh();
         // No _autoRaisePaymentTicket() here anymore — the backend now
@@ -5012,7 +5112,7 @@ function renderOrders() {
         <td>${parseInt(o.quantity||o.qty||0).toLocaleString()}</td>
         <td class="hide-mobile" style="font-size:12px;color:var(--muted);white-space:nowrap;">${startRemains}</td>
         <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost||o.amount)}</td>
-        <td>${statusPill(o.status)}${typeof orderReplacedTag === 'function' ? orderReplacedTag(o) : ''}</td>
+        <td>${orderStatusPill(o)}${typeof orderReplacedTag === 'function' ? orderReplacedTag(o) : ''}</td>
         <td style="white-space:nowrap;">${mpesaCell}</td>
         <td class="hide-mobile" style="font-size:12px;color:var(--muted);">${o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
         <td style="white-space:nowrap;">${actions}</td>
