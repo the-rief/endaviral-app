@@ -28,7 +28,7 @@ function adminTab(tab, el) {
   if (tab === 'support') openAdminSupportTab();
   if (tab === 'create-order') initAdminCreateOrder();
   if (tab === 'affiliate-payouts') affAdminSubTab('payouts');
-  if (tab === 'academy') acAdminSubTab('overview');
+  if (tab === 'academy') { acAdminSubTab('overview'); if (typeof _acCmPrefetchCount === 'function') _acCmPrefetchCount(); }
   if (tab === 'connect') cnAdminSubTab('overview');
   if (tab === 'ccr-agents') ccrAdminInit();
   if (tab === 'creator-events') { if (typeof adminEventsInit === 'function') adminEventsInit(); }

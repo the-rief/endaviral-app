@@ -2113,7 +2113,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="lp-footer-col">
         <h5>🎓 Learn</h5>
         <a href="#academy" class="badge-new">Creator Academy</a>
-        <a href="#academy">Free Courses</a>
+        <a href="/learn">Free Courses</a>
         <a href="#academy">Premium Courses</a>
         <a href="/blog">Free Guides &amp; Blog</a>
         <a href="/how-to-grow-on-tiktok-in-kenya">Grow on TikTok Kenya</a>
@@ -3140,11 +3140,17 @@ tbody td{padding:13px 16px;font-size:14px;}
             <button id="acSubTab-funnel"      onclick="acAdminSubTab('funnel')"      style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Funnel</button>
             <button id="acSubTab-revenue"     onclick="acAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
             <button id="acSubTab-leaderboard" onclick="acAdminSubTab('leaderboard')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Leaderboard</button>
+            <button id="acSubTab-comments"    onclick="acAdminSubTab('comments')"    style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Comments</button>
+            <button id="acSubTab-insights"    onclick="acAdminSubTab('insights')"    style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Lesson Insights</button>
+            <button id="acSubTab-feedback"    onclick="acAdminSubTab('feedback')"    style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Module Feedback</button>
           </div>
           <div id="acAdminPane-overview"><div id="adminAcademyOverview"></div></div>
           <div id="acAdminPane-funnel" style="display:none;"><div id="adminAcademyFunnel"></div></div>
           <div id="acAdminPane-revenue" style="display:none;"><div id="adminAcademyRevenue"></div></div>
           <div id="acAdminPane-leaderboard" style="display:none;"><div id="adminAcademyLeaderboard"></div></div>
+          <div id="acAdminPane-comments" style="display:none;"><div id="adminAcademyComments"></div></div>
+          <div id="acAdminPane-insights" style="display:none;"><div id="adminAcademyInsights"></div></div>
+          <div id="acAdminPane-feedback" style="display:none;"><div id="adminAcademyFeedback"></div></div>
         </div>
 
         <div class="admin-panel" id="ap-connect">
@@ -5791,6 +5797,20 @@ async function _maybeHideAffBanner() {
     <div style="display:flex;gap:10px;margin-top:26px;">
       <button class="btn-secondary" style="flex:1;" onclick="closeAcademyLesson()">Close</button>
       <button class="btn-primary" style="flex:2;" id="acLessonCompleteBtn" onclick="acMarkCurrentComplete()">Mark Complete +<span id="acLessonXp">25</span> points</button>
+    </div>
+  </div>
+</div>
+<!-- ── Creator Academy: post-module feedback (stars + comment) ── -->
+<div class="modal-overlay" id="academyFeedbackModal">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" onclick="closeAcademyFeedback()">✕</button>
+    <div class="modal-title" style="margin-bottom:4px;" id="acFeedbackTitle">🏅 Module complete!</div>
+    <div class="modal-sub" style="margin-bottom:18px;" id="acFeedbackSub">How was it? Your feedback helps us improve the Academy.</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:18px;" id="acFeedbackStars"></div>
+    <textarea id="acFeedbackComment" maxlength="1000" rows="4" placeholder="Tell us what you liked, or what we could do better…" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-size:13.5px;font-family:'Montserrat',sans-serif;resize:vertical;"></textarea>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button class="btn-secondary" style="flex:1;" onclick="closeAcademyFeedback()">Skip</button>
+      <button class="btn-primary" style="flex:2;" id="acFeedbackSubmitBtn" onclick="submitAcademyFeedback()">Send Feedback</button>
     </div>
   </div>
 </div>

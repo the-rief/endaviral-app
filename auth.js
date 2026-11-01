@@ -12,6 +12,35 @@
   }
 })();
 
+// ── Academy deep link (/?go=academy[&m=<module>][&l=<lesson>]) ───────────────
+// Used by the public /learn pages. Remembered until after login/registration,
+// then initApp() opens the Academy (and the module/lesson) automatically.
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('go') !== 'academy') return;
+  const clean = s => (s || '').replace(/[^a-z0-9_]/gi, '').slice(0, 40);
+  sessionStorage.setItem('ev_go_academy', JSON.stringify({ m: clean(params.get('m')), l: clean(params.get('l')) }));
+  params.delete('go'); params.delete('m'); params.delete('l');
+  const qs = params.toString();
+  window.history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
+})();
+
+function _evConsumeAcademyDeepLink() {
+  let target = null;
+  try { target = JSON.parse(sessionStorage.getItem('ev_go_academy') || 'null'); } catch (_) {}
+  if (!target) return;
+  sessionStorage.removeItem('ev_go_academy');
+  setTimeout(async () => {
+    if (typeof navTo === 'function') navTo('academy');
+    if (!target.m || typeof ACADEMY_MODULES === 'undefined') return;
+    const mod = ACADEMY_MODULES.find(x => x.id === target.m);
+    if (!mod) return;
+    try { if (typeof initAcademyPage === 'function') await initAcademyPage(); } catch (_) {}
+    if (typeof _acGoToLesson === 'function' && target.l && mod.lessons.some(x => x.id === target.l)) _acGoToLesson(mod.id, target.l);
+    else if (typeof _acOpenModule === 'function') _acOpenModule(mod.id);
+  }, 300);
+}
+
 // ── JWT helpers ───────────────────────────────────────────────────────────────
 function isTokenExpired(t) {
   try {
@@ -423,6 +452,7 @@ function initApp() {
   if (typeof _updateAffiliateBadge === 'function') _updateAffiliateBadge();
   // Boot chat widget now that token is available — loads existing support threads
   if (typeof evBootWidget === 'function') evBootWidget();
+  _evConsumeAcademyDeepLink();
 }
 
 

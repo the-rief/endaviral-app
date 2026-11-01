@@ -74,7 +74,7 @@ let _acAdminCurrentSubTab = 'overview';
 function acAdminSubTab(tab) {
   _acAdminCurrentSubTab = tab;
 
-  ['overview', 'funnel', 'revenue', 'leaderboard', 'feedback'].forEach(t => {
+  ['overview', 'funnel', 'revenue', 'leaderboard', 'comments', 'insights', 'feedback'].forEach(t => {
     const el = document.getElementById('acSubTab-' + t);
     if (!el) return;
     el.style.borderBottomColor = t === tab ? 'var(--green)' : 'transparent';
@@ -82,7 +82,7 @@ function acAdminSubTab(tab) {
     el.style.fontWeight        = t === tab ? '800' : '700';
   });
 
-  ['overview', 'funnel', 'revenue', 'leaderboard', 'feedback'].forEach(t => {
+  ['overview', 'funnel', 'revenue', 'leaderboard', 'comments', 'insights', 'feedback'].forEach(t => {
     const p = document.getElementById('acAdminPane-' + t);
     if (p) p.style.display = t === tab ? '' : 'none';
   });
@@ -96,7 +96,9 @@ function acAdminSubTab(tab) {
     funnel:      { title: '🔻 ACADEMY FUNNEL',       sub: 'Where learners drop off, lesson by lesson',     fn: adminLoadAcademyFunnel },
     revenue:     { title: '💰 ACADEMY REVENUE',      sub: 'Premium module sales + loyalty points economy', fn: adminLoadAcademyRevenue },
     leaderboard: { title: '🏆 ACADEMY LEADERBOARD',  sub: 'Top learners ranked by XP',                     fn: adminLoadAcademyLeaderboard },
-    feedback:    { title: '💬 ACADEMY FEEDBACK',     sub: 'Comments learners left after finishing a module', fn: () => adminLoadAcademyFeedback(true) },
+    comments:    { title: '💬 LESSON COMMENTS',      sub: 'Questions & comments left on individual lessons — reply, hide or follow up', fn: () => adminLoadAcademyComments(true) },
+    insights:    { title: '🔥 LESSON INSIGHTS',      sub: 'Which lessons land, which flop, and which free previews sell', fn: adminLoadAcademyInsights },
+    feedback:    { title: '⭐ MODULE FEEDBACK',      sub: 'Ratings learners left after finishing a whole module', fn: () => adminLoadAcademyFeedback(true) },
   }[tab];
 
   if (titleEl) titleEl.textContent = meta.title;
@@ -514,4 +516,184 @@ async function adminLoadAcademyFeedback(reset) {
 
   el.innerHTML = filterBarHtml + cardsHtml + loadMoreHtml;
   container.appendChild(el);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB: LESSON COMMENTS  (GET /academy/admin/comments …, academy_community.py)
+// ══════════════════════════════════════════════════════════════════════════════
+let _acCmStatus = 'unreplied';
+let _acCmModule = '';
+let _acCmQuery = '';
+let _acCmItems = [];
+let _acCmOffset = 0;
+let _acCmTotal = 0;
+const _AC_CM_PAGE = 40;
+
+function _acLessonTitle(moduleId, lessonId) {
+  const mods = typeof ACADEMY_MODULES !== 'undefined' ? ACADEMY_MODULES : [];
+  const m = mods.find(x => x.id === moduleId);
+  const l = m && m.lessons.find(x => x.id === lessonId);
+  const idx = m ? m.lessons.findIndex(x => x.id === lessonId) : -1;
+  return l ? `${idx + 1}. ${l.title}` : lessonId;
+}
+
+function _acCmContact(u) {
+  const bits = [];
+  if (u.phone) {
+    const wa = String(u.phone).replace(/\D/g, '').replace(/^0/, '254');
+    bits.push(`<a href="tel:${esc(u.phone)}" style="color:#7fb8ff;text-decoration:none;">📞 ${esc(u.phone)}</a>`);
+    bits.push(`<a href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener" style="color:var(--green);text-decoration:none;">WhatsApp</a>`);
+  }
+  if (u.email) bits.push(`<a href="mailto:${esc(u.email)}" style="color:#7fb8ff;text-decoration:none;">✉ ${esc(u.email)}</a>`);
+  return bits.join(' · ');
+}
+
+function _acCmCard(c) {
+  const u = c.learner || {};
+  return `<div id="acAdmCm-${esc(c.id)}" style="background:var(--card);border:1px solid ${c.admin_reply ? 'var(--border)' : 'rgba(255,154,60,.45)'};border-radius:12px;padding:14px 16px;margin-bottom:10px;${c.hidden ? 'opacity:.6;' : ''}">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+      <div style="min-width:0;">
+        <strong style="color:var(--white);font-size:13px;">${esc(u.name || u.public_name || 'Learner')}</strong>
+        ${c.premium ? '<span style="font-size:10px;font-weight:800;background:rgba(255,215,0,.15);color:#ffd700;padding:2px 6px;border-radius:6px;margin-left:6px;">PREMIUM</span>' : ''}
+        ${c.hidden ? '<span style="font-size:10px;font-weight:800;background:rgba(255,69,69,.15);color:#ff6b6b;padding:2px 6px;border-radius:6px;margin-left:6px;">HIDDEN</span>' : ''}
+        <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${esc(c.module_icon || '')} ${esc(c.module_title)} → <span style="color:var(--white);">${esc(_acLessonTitle(c.module_id, c.lesson_id))}</span></div>
+        <div style="font-size:11.5px;margin-top:3px;">${_acCmContact(u)}</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);white-space:nowrap;">${c.created_at ? new Date(c.created_at).toLocaleString() : ''}</div>
+    </div>
+    <div style="color:var(--white);font-size:13.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;margin:8px 0;">${esc(c.comment)}</div>
+    ${c.admin_reply ? `<div style="padding:9px 11px;border-radius:9px;background:rgba(61,212,74,.08);border-left:3px solid var(--green);font-size:13px;color:var(--white);white-space:pre-wrap;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:var(--green);margin-bottom:3px;">Your reply · ${c.admin_replied_at ? new Date(c.admin_replied_at).toLocaleString() : ''} · ${c.reply_seen ? '👀 seen by learner' : 'not seen yet'}</div>${esc(c.admin_reply)}</div>` : ''}
+    <textarea id="acAdmReply-${esc(c.id)}" rows="2" maxlength="1500" placeholder="${c.admin_reply ? 'Edit your reply…' : 'Write a reply — the learner sees it under their comment and gets a notice in the Academy'}" style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:9px 10px;color:var(--white);font-size:12.5px;font-family:'Montserrat',sans-serif;resize:vertical;"></textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+      <button class="btn-primary" style="font-size:12px;padding:7px 14px;" onclick="_acCmReply('${esc(c.id)}')">${c.admin_reply ? 'Update reply' : 'Reply'}</button>
+      <button class="btn-secondary" style="font-size:12px;padding:7px 14px;" onclick="_acCmHide('${esc(c.id)}', ${c.hidden ? 'false' : 'true'})">${c.hidden ? 'Unhide' : 'Hide'}</button>
+      <button class="btn-secondary" style="font-size:12px;padding:7px 14px;color:#ff6b6b;" onclick="_acCmDelete('${esc(c.id)}')">Delete</button>
+    </div>
+  </div>`;
+}
+
+async function adminLoadAcademyComments(reset) {
+  const container = document.getElementById('adminAcademyComments');
+  if (!container) return;
+  if (reset) {
+    _acCmOffset = 0; _acCmItems = [];
+    container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading comments…</span></div>`;
+  }
+  const params = new URLSearchParams({ status: _acCmStatus, limit: _AC_CM_PAGE, offset: _acCmOffset });
+  if (_acCmModule) params.set('module_id', _acCmModule);
+  if (_acCmQuery) params.set('q', _acCmQuery);
+  const warnings = [];
+  const data = await _acSafeFetch(`/academy/admin/comments?${params}`, 'Lesson comments', warnings);
+  if (warnings.length) { container.innerHTML = ''; container.appendChild(_acWarnBanner(warnings, 'adminLoadAcademyComments')); return; }
+  if (!data) return;
+
+  _acCmTotal = data.total || 0;
+  _acCmItems = _acCmItems.concat(data.items || []);
+  _acCmOffset += (data.items || []).length;
+  _acCmUpdateTabCount((data.counts || {}).unreplied || 0);
+
+  const mods = typeof ACADEMY_MODULES !== 'undefined' ? ACADEMY_MODULES : [];
+  const sel = 'background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:12px;font-family:\'Montserrat\',sans-serif;';
+  const statusBtn = (k, label) => `<button onclick="_acCmStatus='${k}';adminLoadAcademyComments(true)" style="${sel}cursor:pointer;${_acCmStatus === k ? 'border-color:var(--green);color:var(--green);font-weight:800;' : ''}">${label}</button>`;
+  const bar = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+      ${statusBtn('unreplied', `⏳ Needs reply (${(data.counts || {}).unreplied || 0})`)}
+      ${statusBtn('replied', '✔ Replied')}
+      ${statusBtn('hidden', '🙈 Hidden')}
+      ${statusBtn('all', `All (${(data.counts || {}).all || 0})`)}
+      <select onchange="_acCmModule=this.value;adminLoadAcademyComments(true)" style="${sel}">
+        <option value="">All modules</option>
+        ${mods.map(m => `<option value="${esc(m.id)}" ${m.id === _acCmModule ? 'selected' : ''}>${esc(m.icon || '')} ${esc(m.title)}</option>`).join('')}
+      </select>
+      <input type="search" placeholder="Search text…" value="${esc(_acCmQuery)}" onkeydown="if(event.key==='Enter'){_acCmQuery=this.value.trim();adminLoadAcademyComments(true)}" style="${sel}min-width:150px;">
+    </div>`;
+
+  container.innerHTML = bar + (_acCmItems.length
+    ? _acCmItems.map(_acCmCard).join('') + (_acCmOffset < _acCmTotal ? `<button class="btn-secondary" style="width:100%;margin-top:6px;" onclick="adminLoadAcademyComments(false)">Load more (${_acCmTotal - _acCmOffset} more)</button>` : '')
+    : `<div class="empty-state"><div class="icon">💬</div><p>${_acCmStatus === 'unreplied' ? 'All caught up — no comments waiting for a reply.' : 'No comments here yet.'}</p></div>`);
+}
+
+function _acCmUpdateTabCount(n) {
+  const b = document.getElementById('acSubTab-comments');
+  if (!b) return;
+  b.innerHTML = 'Comments' + (n ? ` <span style="background:#ff9a3c;color:#000;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:900;margin-left:3px;">${n}</span>` : '');
+}
+
+async function _acCmReply(id) {
+  const ta = document.getElementById('acAdmReply-' + id);
+  const reply = ta ? ta.value.trim() : '';
+  if (!reply) { toast('Write a reply first', 'error'); return; }
+  try {
+    await api(`/academy/admin/comments/${encodeURIComponent(id)}/reply`, { method: 'POST', body: JSON.stringify({ reply }) });
+    toast('Reply sent ✓', 'success');
+    adminLoadAcademyComments(true);
+  } catch (e) { toast(e.message || 'Could not send reply', 'error'); }
+}
+
+async function _acCmHide(id, hidden) {
+  try {
+    await api(`/academy/admin/comments/${encodeURIComponent(id)}/hide`, { method: 'POST', body: JSON.stringify({ hidden }) });
+    adminLoadAcademyComments(true);
+  } catch (e) { toast(e.message || 'Could not update', 'error'); }
+}
+
+async function _acCmDelete(id) {
+  const el = document.getElementById('acAdmCm-' + id);
+  if (el && !el.dataset.confirm) {
+    el.dataset.confirm = '1';
+    toast('Tap Delete again to permanently remove this comment', 'info');
+    setTimeout(() => { if (el) delete el.dataset.confirm; }, 4000);
+    return;
+  }
+  try {
+    await api(`/academy/admin/comments/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    adminLoadAcademyComments(true);
+  } catch (e) { toast(e.message || 'Could not delete', 'error'); }
+}
+
+// Pre-load the "needs reply" count onto the tab button when the Academy admin
+// panel first opens, so new comments are visible without clicking in.
+async function _acCmPrefetchCount() {
+  try {
+    const d = await api('/academy/admin/comments?status=unreplied&limit=1');
+    _acCmUpdateTabCount((d.counts || {}).unreplied || 0);
+  } catch (_) {}
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB: LESSON INSIGHTS  (GET /academy/admin/lesson-insights)
+// ══════════════════════════════════════════════════════════════════════════════
+async function adminLoadAcademyInsights() {
+  const container = document.getElementById('adminAcademyInsights');
+  if (!container) return;
+  container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading insights…</span></div>`;
+  const warnings = [];
+  const data = await _acSafeFetch('/academy/admin/lesson-insights', 'Lesson insights', warnings);
+  if (warnings.length) { container.innerHTML = ''; container.appendChild(_acWarnBanner(warnings, 'adminLoadAcademyInsights')); return; }
+  if (!data) return;
+
+  const mods = typeof ACADEMY_MODULES !== 'undefined' ? ACADEMY_MODULES : [];
+  const title = (m, l) => { const mod = mods.find(x => x.id === m); return `${mod ? mod.icon + ' ' : ''}${_acLessonTitle(m, l)}`; };
+  const lessons = data.lessons || [];
+  const scored = lessons.filter(r => r.up + r.down >= 1).map(r => ({ ...r, score: (r.up + 1) / (r.up + r.down + 2) }));
+  const best = [...scored].sort((a, b) => b.score - a.score || b.up - a.up).slice(0, 8);
+  const worst = [...scored].filter(r => r.down > 0).sort((a, b) => a.score - b.score || b.down - a.down).slice(0, 8);
+  const talked = [...lessons].filter(r => r.comments > 0).sort((a, b) => b.comments - a.comments).slice(0, 8);
+
+  const row = (r, right) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--border);font-size:12.5px;"><span style="color:var(--white);min-width:0;">${esc(title(r.module_id, r.lesson_id))}</span><span style="white-space:nowrap;color:var(--muted);font-weight:700;">${right}</span></div>`;
+  const card = (hd, body) => `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;"><div style="font-size:11px;font-weight:800;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">${hd}</div>${body || '<div style="font-size:12px;color:var(--muted);">No data yet — votes appear as learners react to lessons.</div>'}</div>`;
+
+  const previews = (data.previews || []).map(p => {
+    const conv = p.views ? Math.round(p.bought_after_preview / p.views * 1000) / 10 : 0;
+    return `<tr><td style="padding:8px 10px;color:var(--white);">${esc(p.icon)} ${esc(p.module_title)}</td><td style="padding:8px 10px;text-align:right;">${p.views}</td><td style="padding:8px 10px;text-align:right;">${p.bought_after_preview}</td><td style="padding:8px 10px;text-align:right;color:${conv >= 5 ? 'var(--green)' : 'var(--muted)'};">${conv}%</td></tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:14px;">
+      ${card('🔥 Most useful lessons', best.map(r => row(r, `🔥 ${r.up} · 😐 ${r.down}`)).join(''))}
+      ${card('😐 Lessons to improve', worst.map(r => row(r, `😐 ${r.down} · 🔥 ${r.up}`)).join(''))}
+      ${card('💬 Most discussed', talked.map(r => row(r, `${r.comments} comments`)).join(''))}
+    </div>
+    ${card('🎁 Free preview → purchase', `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12.5px;color:var(--muted);"><thead><tr><th style="text-align:left;padding:8px 10px;">Premium course</th><th style="text-align:right;padding:8px 10px;">Read free lesson</th><th style="text-align:right;padding:8px 10px;">Then bought</th><th style="text-align:right;padding:8px 10px;">Conversion</th></tr></thead><tbody>${previews}</tbody></table></div>`)}
+  `;
 }
