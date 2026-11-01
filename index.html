@@ -1148,6 +1148,8 @@ tbody td{padding:13px 16px;font-size:14px;}
 .svc-card.rec-card:hover{border-color:#facc15;}
 .rec-kicker{font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#facc15;}
 .rec-why{font-size:12px;color:var(--muted);}
+.tier-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px;flex-shrink:0;}
+.tier-dot.basic{background:#facc15;}.tier-dot.medium{background:#22c55e;}.tier-dot.elite{background:#3b82f6;}
 .svc-feature-badge.rec-tier.medium{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.3);}
 .svc-feature-badge.rec-tier.elite{background:rgba(59,130,246,.12);color:#3b82f6;border:1px solid rgba(59,130,246,.3);}
 .rec-btn{border:none;border-radius:10px;padding:9px 16px;cursor:pointer;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;
@@ -4355,7 +4357,7 @@ function renderDashOrders(orders) {
       <tbody>${orders.map(o => `
         <tr class="od-tr" tabindex="0" title="View order details" onclick="openOrderDetail('${_oid(o)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openOrderDetail('${_oid(o)}')}">
           <td style="color:var(--muted);font-size:12px;white-space:nowrap;">#${_oid(o).slice(0,8)||'—'}</td>
-          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.service_name||o.serviceName||o.service||'—'}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${tierDotHTML(o.service_tier)}${o.service_name||o.serviceName||o.service||'—'}</td>
           <td class="hide-mobile">${(o.quantity||o.qty||'—').toLocaleString?.()|| o.quantity||'—'}</td>
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(o.charge||o.cost||o.amount)}</td>
           <td>${orderStatusPill(o)}</td>
@@ -4561,6 +4563,17 @@ function svcTierOf(name) {
   if (has('medium', '\u{1F7E2}')) return 'medium';
   return null;
 }
+/** Tier for a catalog service: the backend's `tier` field (read from the
+ * supplier's name before the 🟡/🟢/🔵 dot was stripped), else the name. */
+function svcTierFor(s) {
+  if (s && s.tier !== undefined) return s.tier || null;
+  return svcTierOf(s && (s.name || s.service_name));
+}
+/** Coloured dot matching the "What do the service tiers mean?" legend. */
+const _TIER_LABEL = { basic: 'Basic', medium: 'Medium', elite: 'Elite' };
+function tierDotHTML(tier) {
+  return _TIER_LABEL[tier] ? `<span class="tier-dot ${tier}" title="${_TIER_LABEL[tier]} tier" aria-label="${_TIER_LABEL[tier]} tier"></span>` : '';
+}
 const _REC_TIER_RANK = { medium: 0, elite: 1, null: 2, basic: 3 };
 
 function recommendedPicks(list) {
@@ -4569,7 +4582,7 @@ function recommendedPicks(list) {
   for (const s of list) {
     if (!s.refill || s._subcatKey === 'other') continue;
     const type = s._subcatKey;
-    const rank = _REC_TIER_RANK[svcTierOf(s.name)];
+    const rank = _REC_TIER_RANK[svcTierFor(s)];
     const rate = parseFloat(s.rate || s.price_per_1000 || s.price || 0);
     const cur = best[type];
     if (!cur || rank < cur.rank || (rank === cur.rank && rate < cur.rate)) best[type] = { s, rank, rate };
@@ -4613,13 +4626,13 @@ function recTagFor(svc) {
 function _recCardHTML(s) {
   const name = s.name || s.service_name || '';
   const rate = parseFloat(s.rate || s.price_per_1000 || s.price || 0);
-  const tier = svcTierOf(name);
+  const tier = svcTierFor(s);
   const tierHTML = tier && tier !== 'basic'
     ? `<span class="svc-feature-badge rec-tier ${tier}">${tier === 'elite' ? '🔵 Elite' : '🟢 Medium'}</span>` : '';
   const svcJson = JSON.stringify(s).replace(/"/g, '&quot;');
   return `<div class="svc-card rec-card" data-svc="${svcJson}" onclick="recOpen(event,'card')">
     <div class="rec-kicker">⭐ ENDAVIRAL RECOMMENDS${SUBCATS[s._subcatKey] ? ' · ' + _subcatLabelFor(s._subcatKey, s._platKey).replace(/^\S+\s/, '').toUpperCase() : ''}</div>
-    <div class="svc-name">${name}</div>
+    <div class="svc-name">${tierDotHTML(tier)}${name}</div>
     <div class="svc-feature-badges"><span class="svc-feature-badge refill">♻️ Refill</span>${tierHTML}</div>
     <div class="rec-why">Refills free if your numbers drop.</div>
     <div class="svc-meta">
@@ -4663,7 +4676,7 @@ function renderServices(list, recs = []) {
     const _isRec = recIds.has(String(s.service));
     return `<div class="svc-card" ${_isRec ? `data-svc="${svcJson}" onclick="recOpen(event,'list')"` : `onclick="openOrderModal(${svcJson})"`}>
       <div class="svc-card-top">${platformTag(s)}${rankBadge}</div>
-      <div class="svc-name">${name}</div>
+      <div class="svc-name">${tierDotHTML(svcTierFor(s))}${name}</div>
       ${subcatLabel}
       ${featureBadges}
       <div class="svc-meta">
@@ -5140,7 +5153,7 @@ function renderOrders() {
           <span style="color:var(--muted);">#${shortId}</span>
           <button onclick="event.stopPropagation();navigator.clipboard.writeText('${fullId}').then(()=>toast('Order ID copied!','success'))" title="Copy Order ID" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:2px 4px;margin-left:2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button>
         </td>
-        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${o.service_name||o.serviceName||o.service||'—'}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${tierDotHTML(o.service_tier)}${o.service_name||o.serviceName||o.service||'—'}</td>
         <td class="hide-mobile" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--muted);">${o.link||'—'}</td>
         <td>${parseInt(o.quantity||o.qty||0).toLocaleString()}</td>
         <td class="hide-mobile" style="font-size:12px;color:var(--muted);white-space:nowrap;">${startRemains}</td>

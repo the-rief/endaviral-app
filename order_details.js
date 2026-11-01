@@ -25,6 +25,11 @@
   let _odOpenId = null;
   let _odPushedHistory = false;
 
+  // Tier dot (index.html tierDotHTML) — customers' orders carry service_tier
+  // because their cleaned service name no longer has the 🟡/🟢/🔵 emoji.
+  function _dot(o) {
+    return (o && typeof tierDotHTML === 'function') ? tierDotHTML(o.service_tier) : '';
+  }
   function _e(v) {
     return String(v == null ? '' : v)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -74,7 +79,7 @@
       const qty = _num(o.quantity || o.qty);
       return `<button type="button" class="od-card" onclick="openOrderDetail('${id}')" aria-label="View order details">
         <div class="od-card-main">
-          <div class="od-card-name">${_e(name)}</div>
+          <div class="od-card-name">${_dot(o)}${_e(name)}</div>
           <div class="od-card-meta">#${_e(id.slice(0, 8))} · ${_fmtDate(o.created_at)}${qty != null ? ` · ${qty.toLocaleString()} qty` : ''}</div>
           <div class="od-card-foot">
             <span class="od-card-cost">${fmtKES(o.charge || o.cost || o.amount)}</span>
@@ -193,7 +198,7 @@
       <div class="od-head">
         <div class="od-head-text">
           <div class="od-eyebrow">ORDER DETAILS${refreshing ? ' <span class="od-live">· checking live status…</span>' : ''}</div>
-          <div class="od-title" id="odTitle">${_e(name)}</div>
+          <div class="od-title" id="odTitle">${_dot(o)}${_e(name)}</div>
         </div>
         <button type="button" class="od-close" onclick="closeOrderDetail()" aria-label="Close">✕</button>
       </div>
