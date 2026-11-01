@@ -1,7 +1,7 @@
 /* ════════════════════ HIRE ENDAVIRAL: TIERED BOOKING ════════════════════
  * Four packages, one modal:
- *   Quick Fix KES 500 → Growth Plan KES 1,000 → Money Plan KES 1,500
- *   → Account Management & Growth KES 5,000/month
+ *   Smart Growth Call KES 300 → Creator Plan KES 1,000 → Business Plan KES 2,500
+ *   → We Run It KES 5,000/month SERVICE FEE (growth services paid separately)
  *
  * Step 1 — pick a package (skipped when a CTA passes a tier key)
  * Step 2 — account handle + goal (so the team reviews BEFORE the call),
@@ -19,67 +19,78 @@
  * HTML this expects: #consultBookModal and the ids referenced below.
  * ════════════════════════════════════════════════════════════════════════ */
 
+// Copy rules (customers found the old cards wordy and couldn't see why to
+// pay even KES 500): one "for you if…" line so people self-select in a
+// second, one plain promise, max 3–4 short bullets, one line on why the
+// price is worth it. Deliverables are unchanged — only the wording is.
 const CONSULT_TIERS = [
-  // outcome = the promise · bullets = what they get + why it matters
-  // value = the "cheap for what it is" line · cta = button text
   {
-    key: 'quick_fix', name: 'Quick Fix', price: 500, per: '',
-    outcome: 'Stop guessing. Find the 3 things killing your reach.',
+    key: 'smart_growth', name: 'Smart Growth Call', price: 300, per: '',
+    who: 'You want every shilling you spend on growth to count',
+    outcome: 'Learn how to use EndaViral services for the best, longest-lasting growth.',
     bullets: [
-      '20-min call: a strategist goes through 1 account with you',
-      'Your top 3 fixes in writing on WhatsApp, yours to keep',
-      'Talk within 3 days, not weeks',
+      '30-min call with an EndaViral growth expert',
+      'Which services fit your goal — and how to pick the right package',
+      'When and how to order so your post keeps growing on its own',
+      'A simple plan for your budget, sent to your WhatsApp',
     ],
-    value: 'One fix you would never spot alone can beat months of posting blind.',
-    cta: 'Get my 3 fixes',
-    eta: 'within 3 days',
-  },
-  {
-    key: 'growth_plan', name: 'Growth Plan', price: 1000, per: '', popular: true,
-    outcome: 'Never wonder what to post again. Your next 30 days, planned.',
-    bullets: [
-      '45-min call. We study your account <b>before</b> we ring',
-      'Bio, highlights &amp; pinned posts rewritten to turn visitors into followers',
-      '30-day content + boost plan: what to post, when, and what to boost',
-      '7 days of WhatsApp follow-up. Stuck? Just message us',
-    ],
-    value: 'About KES 33 a day for a full month of direction.',
-    cta: 'Get my 30-day plan',
+    value: 'The right service at the right time grows your page further — and keeps it growing.',
+    cta: 'Book for KES 300',
     eta: 'within 48 hours',
   },
   {
-    key: 'money_plan', name: 'Money Plan', price: 1500, per: '',
-    outcome: 'Your followers are worth money. Start charging for them.',
+    key: 'creator_plan', name: 'Creator Plan', price: 1000, per: '', popular: true,
+    who: 'You\'re a creator who wants to grow and land brand deals',
+    outcome: 'A clear 30-day plan to grow — and know what to charge brands.',
     bullets: [
-      'Everything in Growth Plan, plus:',
-      '60-min call · up to 2 accounts',
-      'Your own rate card so you know what to charge brands, <b>or</b> a DM-to-sale script that turns chats into M-Pesa payments',
-      '14 days of follow-up + a check-in call to keep you on track',
+      '45-min call — we study your page first',
+      'Bio & profile rewritten so visitors follow',
+      '30-day plan: what to post, when, and what to boost',
+      'Your rate card: what to charge brands',
+      '7 days of WhatsApp help',
     ],
-    value: 'Only KES 500 more than Growth. One brand deal or a few sales covers it.',
-    cta: 'Start earning from my page',
+    value: 'About KES 33 a day — and one brand deal pays it back.',
+    cta: 'Get my creator plan',
+    eta: 'within 48 hours',
+  },
+  {
+    key: 'business_plan', name: 'Business Plan', price: 2500, per: '',
+    who: 'You run a business and want more customers from social media',
+    outcome: 'Turn your page into a place that brings in customers.',
+    bullets: [
+      '60-min call, up to 2 accounts',
+      'Your page set up so visitors become customers',
+      '30-day content & boost plan for your business',
+      'A chat script that turns DMs into M-Pesa sales',
+      '14 days of WhatsApp help + a check-in call',
+    ],
+    value: 'A few extra sales pay for it.',
+    cta: 'Get my business plan',
     eta: 'within 24 hours',
   },
   {
-    key: 'management', name: 'Account Management', price: 5000, per: '/month', monthly: true,
-    outcome: 'Stop doing it all yourself. We run your page, you run your business.',
+    key: 'management', name: 'We Run It', price: 5000, per: '/month', monthly: true,
+    who: 'You\'re too busy to manage your page',
+    outcome: 'We run your page. You run your business.',
     bullets: [
-      '12 posts a month, edited &amp; captioned. Your page never goes quiet',
-      'Monthly content calendar, planned ahead for you',
-      'KES 1,000 of boosts included every month at no extra cost',
-      'Monthly results report on WhatsApp so you see exactly what you got',
+      '12 posts a month, edited & captioned for you',
+      'Monthly content calendar, planned for you',
+      'We pick and order the right EndaViral services for your page',
+      'Monthly results report on WhatsApp',
+      'No contract — stop any month',
     ],
-    value: 'Boosts included, so each done-for-you post works out to about KES 333. Month to month, no contract.',
-    cta: 'Hand it over this month',
+    note: 'KES 5,000 is our monthly service fee. EndaViral growth services (followers, views, boosts) are paid separately at normal prices — you approve each one.',
+    value: 'Like having a social media manager, without a full salary.',
+    cta: 'Start this month',
     eta: 'within 24 hours',
   },
 ];
 
 const CONSULT_GOALS = [
-  ['sales', 'Get more customers'],
-  ['brand_deals', 'Land brand deals'],
-  ['grow_audience', 'Grow my audience'],
-  ['engagement', 'More likes & comments'],
+  ['sales', '🛒 More customers'],
+  ['brand_deals', '🤝 Brand deals'],
+  ['grow_audience', '📈 More followers'],
+  ['engagement', '❤️ More likes & comments'],
 ];
 
 let _consultPollTimer = null;
@@ -127,11 +138,13 @@ function _tierCardsHTML(onclickFn) {
       ${t.popular ? '<span class="hv-tier-badge">Most popular</span>' : ''}
       <div class="hv-tier-head">
         <span class="hv-tier-name">${t.name}</span>
-        <span class="hv-tier-price">${_kes(t.price)}<small>${t.per}</small></span>
+        <span class="hv-tier-price">${_kes(t.price)}<small>${t.per}${t.monthly ? ' service fee' : ''}</small></span>
       </div>
+      <div class="hv-tier-who">For you if: ${t.who}</div>
       <div class="hv-tier-outcome">${t.outcome}</div>
       <ul class="hv-tier-list">${t.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
-      ${t.value ? `<div class="hv-tier-value">💡 ${t.value}</div>` : ''}
+      ${t.note ? `<div class="hv-tier-note">ℹ️ ${t.note}</div>` : ''}
+      ${t.value ? `<div class="hv-tier-value">${t.value}</div>` : ''}
       <span class="hv-tier-go">${t.cta || (t.monthly ? 'Start this month' : 'Choose ' + t.name)} →</span>
     </button>
   `).join('');
@@ -190,12 +203,12 @@ function _renderConsultSummary() {
     <div class="hv-sum-outcome">${t.outcome}</div>`;
   document.getElementById('consultPriceBox').innerHTML = `
     ${t.monthly && _consultCredit ? `
-      <div class="hv-price-row"><span>Account Management, month 1</span><span>${_kes(t.price)}</span></div>
+      <div class="hv-price-row"><span>We Run It service fee, month 1</span><span>${_kes(t.price)}</span></div>
       <div class="hv-price-row hv-credit"><span>Your consult fee, credited</span><span>− ${_kes(_consultCredit)}</span></div>` : ''}
     <div class="hv-price-row hv-total"><span>${t.monthly ? 'Pay today' : 'Total'}</span><span>${_kes(due)}</span></div>
     <div class="hv-price-note">${t.monthly
-      ? 'Month to month, no contract. We onboard you within 24 hours.'
-      : 'Going monthly later? This fee comes off your first month of Account Management.'}</div>`;
+      ? 'This is our service fee only. Growth services we order for your page are paid separately — we ask you first. No contract.'
+      : 'Upgrade to We Run It within 30 days and we take this fee off.'}</div>`;
   document.getElementById('consultPayBtn').textContent = `Pay ${_kes(due)} with M-Pesa`;
 }
 
@@ -210,8 +223,8 @@ async function consultConfirmBooking() {
   const notes = document.getElementById('consultNotes').value.trim();
   const statusEl = document.getElementById('consultBookStatus');
 
-  if (!social_handle) { toast('Add the account you want us to look at', 'error'); return; }
-  if (!_consultGoal) { toast('Pick your main goal', 'error'); return; }
+  if (!social_handle) { toast('Add your page name or link so we can check it', 'error'); return; }
+  if (!_consultGoal) { toast('Tap what you want most', 'error'); return; }
   if (!name) { toast('Enter your name', 'error'); return; }
   if (!/^0[71]\d{8}$|^254[71]\d{8}$/.test(phone)) {
     toast('Enter a valid M-Pesa phone number', 'error');
@@ -224,7 +237,7 @@ async function consultConfirmBooking() {
       method: 'POST',
       body: JSON.stringify({ name, phone, email, business_name, notes, social_handle, goal: _consultGoal, tier: t.key }),
     });
-    statusEl.textContent = `Check your phone and enter your M-Pesa PIN (${_kes(res.amount_kes)})…`;
+    statusEl.textContent = `📲 Check your phone and enter your M-Pesa PIN to pay ${_kes(res.amount_kes)}.`;
     _pollConsultPayment(res.checkout_request_id, { phone, social_handle });
   } catch (e) {
     statusEl.textContent = '';
@@ -238,9 +251,9 @@ function _showConsultDone({ phone, social_handle }) {
     <div class="hv-done-tick">✓</div>
     <div class="hv-done-title">You're booked: ${t.name}</div>
     <div class="hv-done-steps">
-      <div><b>1</b><span>We're reviewing <strong>${String(social_handle).replace(/[<>&"]/g, '')}</strong> now, before we talk.</span></div>
-      <div><b>2</b><span>We'll call <strong>${String(phone).replace(/[<>&"]/g, '')}</strong> ${t.eta} to ${t.monthly ? 'onboard you' : 'set your call time'}.</span></div>
-      <div><b>3</b><span>${t.monthly ? 'Your first posts go out in week one.' : 'You get your plan in writing on WhatsApp after the call.'}</span></div>
+      <div><b>1</b><span>We're checking <strong>${String(social_handle).replace(/[<>&"]/g, '')}</strong> now.</span></div>
+      <div><b>2</b><span>We'll call <strong>${String(phone).replace(/[<>&"]/g, '')}</strong> ${t.eta} to ${t.monthly ? 'get started' : 'pick a time that suits you'}.</span></div>
+      <div><b>3</b><span>${t.monthly ? 'Your first posts go out in week one.' : 'After the call, your fixes come to your WhatsApp.'}</span></div>
     </div>`;
   _consultStep(3);
 }
@@ -259,7 +272,7 @@ function _pollConsultPayment(checkoutId, ctx) {
     attempts++;
     if (attempts > 30) { // ~90s at 3s interval
       clearInterval(_consultPollTimer);
-      statusEl.textContent = 'Still waiting. If your M-Pesa PIN went through, we\'ll be in touch shortly regardless.';
+      statusEl.textContent = 'Still waiting for M-Pesa. If you entered your PIN, you\'re booked — we\'ll call you. Please don\'t pay again.';
       return;
     }
     try {

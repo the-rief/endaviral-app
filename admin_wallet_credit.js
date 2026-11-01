@@ -34,7 +34,7 @@ const AWC_REASON = {
   stuck:     ['STUCK', '#2196f3'],
   stopped:   ['STOPPED 24h+', '#4fc3f7'],
 };
-const AWC_KIND = { refund: ['↩️ Refund', '#3dd44a'], spend: ['🛒 Order', '#ff8a65'], release: ['↩️ Returned', '#3dd44a'], adjust: ['🛠️ Adjust', '#2196f3'] };
+const AWC_KIND = { refund: ['↩️ Refund', '#3dd44a'], spend: ['🛒 Order', '#ff8a65'], release: ['↩️ Returned', '#3dd44a'], adjust: ['🛠️ Adjust', '#2196f3'], deposit: ['🏦 Bank transfer', '#ffb020'] };
 
 const _awcCard = 'background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;';
 const _awcLbl = 'font-size:10.5px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;';
@@ -93,6 +93,7 @@ function _awcRender(s) {
       <div><div class="sec-title">WALLET CREDIT</div>
       <div class="sec-sub">Paid orders that fail are refunded to the customer's EndaViral Wallet every midnight, and the customer is messaged to reorder — no manual reorders needed. Credit can be spent on any order but never withdrawn.</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;">
+        ${_awcIsAdmin() ? `<button class="btn-primary" style="width:auto;margin:0;white-space:nowrap;" onclick="awcBankDeposit()">🏦 Bank transfer received</button>` : ''}
         ${_awcIsAdmin() ? `<button class="btn-secondary" style="width:auto;white-space:nowrap;" onclick="awcAdjust()">± Adjust credit</button>` : ''}
         <button class="btn-secondary" style="width:auto;white-space:nowrap;" onclick="window._awcSum=null;loadAdminWalletCredit()">↻ Refresh</button>
       </div>
@@ -269,7 +270,8 @@ async function awcOpenUser(userId) {
       `<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">${esc(d.user.email || '')}${d.user.phone ? ' · 📞 ' + esc(d.user.phone) : ''}</div>
        ${rows ? `<div class="tbl-wrap" style="overflow-x:auto;"><table><thead><tr><th>Date</th><th>Type</th><th>Detail</th><th>Amount</th><th>Balance</th></tr></thead><tbody>${rows}</tbody></table></div>`
               : '<div class="empty-state"><p>No wallet activity.</p></div>'}`,
-      `${_awcIsAdmin() ? `<button class="btn-secondary" style="width:auto;" onclick="awcAdjust('${esc(userId)}','${esc(name)}')">± Adjust credit</button>` : ''}
+      `${_awcIsAdmin() ? `<button class="btn-secondary" style="width:auto;" data-uid="${esc(userId)}" data-name="${esc(name)}" onclick="awcBankDeposit({id:this.dataset.uid,name:this.dataset.name})">🏦 Bank transfer</button>` : ''}
+       ${_awcIsAdmin() ? `<button class="btn-secondary" style="width:auto;" data-uid="${esc(userId)}" data-name="${esc(name)}" onclick="awcAdjust(this.dataset.uid,this.dataset.name)">± Adjust credit</button>` : ''}
        <button class="btn-primary" style="width:auto;margin:0;" onclick="awcCloseModal()">Close</button>`);
   } catch (e) {
     _awcModal('Wallet history', `<div style="color:#ff5252;">${esc(e.message || e)}</div>`);
@@ -357,4 +359,127 @@ async function awcRefundOrder(orderId, amount) {
     window._awcSum = null;
     if (typeof rqLoad === 'function' && document.getElementById('rqList')) rqLoad();
   } catch (e) { toast(e.message || 'Refund failed', 'error'); }
+}
+
+
+/* ── Bank transfer received → credit the customer's wallet ─────────────────
+ * For customers without M-Pesa (e.g. abroad) who paid by bank transfer.
+ * Flow: find ANY customer (even KES 0 credit) → amount actually received →
+ * bank reference → confirm. The server refuses a bank reference that was
+ * already credited, so the same transfer can never be credited twice.
+ * The credit is order credit: spendable on orders, never withdrawable.
+ * awcBankDeposit({id, name, email}) can be called from anywhere (support
+ * chat header, Users tab) to skip the search step. */
+let _awcDepUser = null;
+let _awcDepAfter = null;   // optional callback after a successful credit (e.g. refresh the support chat)
+let _awcDepSearchT = null;
+
+function awcBankDeposit(user, afterFn) {
+  if (!_awcIsAdmin()) { toast('Only admins can credit bank transfers', 'error'); return; }
+  _awcDepUser = user && user.id ? user : null;
+  _awcDepAfter = typeof afterFn === 'function' ? afterFn : null;
+  const field = 'width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--white);font-size:15px;font-family:inherit;margin:6px 0 12px;box-sizing:border-box;';
+  const lbl = 'font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.3px;';
+  _awcModal('🏦 Bank transfer received',
+    `<div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Only do this <b style="color:var(--white);">after you see the money in the bank account</b>. The customer can then pay for orders with it. It can't be withdrawn.</div>
+     <label style="${lbl}">1. CUSTOMER</label>
+     <div id="awcDepWho"></div>
+     <label style="${lbl}">2. AMOUNT RECEIVED IN THE BANK (KES)</label>
+     <input id="awcDepAmt" type="number" inputmode="decimal" min="1" step="0.01" placeholder="e.g. 2500" style="${field}" oninput="_awcDepPreview()"/>
+     <label style="${lbl}">3. BANK TRANSACTION REFERENCE</label>
+     <input id="awcDepRef" maxlength="60" placeholder="From the bank statement / Lemfi receipt" style="${field}" oninput="_awcDepPreview()"/>
+     <label style="${lbl}">NOTE (optional, staff only)</label>
+     <input id="awcDepNote" maxlength="200" placeholder="e.g. Sent via Lemfi from Canada, CAD 25" style="${field}"/>
+     <div id="awcDepPreview" style="font-size:13px;line-height:1.5;"></div>
+     <div id="awcDepMsg" style="margin-top:8px;font-size:12.5px;"></div>`,
+    `<button class="btn-secondary" style="width:auto;" onclick="awcCloseModal()">Cancel</button>
+     <button class="btn-primary" style="width:auto;margin:0;" id="awcDepGo" onclick="awcBankDepositGo()">Credit wallet</button>`);
+  _awcDepRenderWho();
+}
+
+function _awcDepRenderWho() {
+  const el = document.getElementById('awcDepWho');
+  if (!el) return;
+  if (_awcDepUser) {
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;background:var(--navy);border:1px solid rgba(61,212,74,.4);border-radius:10px;padding:10px 12px;margin:6px 0 12px;">
+        <div style="flex:1;min-width:0;"><div style="font-weight:800;color:var(--white);">${esc(_awcDepUser.name || _awcDepUser.email || 'Customer')}</div>
+        <div style="font-size:11.5px;color:var(--muted);">${esc(_awcDepUser.email || '')}${_awcDepUser.phone ? ' · ' + esc(_awcDepUser.phone) : ''}${_awcDepUser.credit_balance != null ? ' · wallet ' + fmtKES(_awcDepUser.credit_balance) : ''}</div></div>
+        <button class="btn-secondary" style="width:auto;padding:6px 10px;font-size:12px;" onclick="_awcDepUser=null;_awcDepRenderWho();_awcDepPreview()">Change</button>
+      </div>`;
+  } else {
+    el.innerHTML = `<input id="awcDepSearch" placeholder="Search email, phone or name" autocomplete="off"
+        style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--white);font-size:15px;font-family:inherit;margin:6px 0 6px;box-sizing:border-box;"
+        oninput="_awcDepSearch(this.value)"/>
+      <div id="awcDepResults" style="margin-bottom:12px;"></div>`;
+    setTimeout(() => document.getElementById('awcDepSearch')?.focus(), 50);
+  }
+}
+
+function _awcDepSearch(q) {
+  clearTimeout(_awcDepSearchT);
+  const box = document.getElementById('awcDepResults');
+  if (!box) return;
+  if ((q || '').trim().length < 3) { box.innerHTML = '<div style="font-size:11.5px;color:var(--muted);">Type at least 3 letters or numbers.</div>'; return; }
+  _awcDepSearchT = setTimeout(async () => {
+    box.innerHTML = '<div style="font-size:12px;color:var(--muted);">Searching…</div>';
+    try {
+      const users = await api('/admin/wallet-credit/find-user?q=' + encodeURIComponent(q.trim()));
+      window._awcDepFound = users || [];
+      box.innerHTML = users.length ? users.map((u, i) => `
+        <button type="button" onclick="_awcDepPick(${i})" style="display:block;width:100%;text-align:left;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:9px 12px;margin-bottom:6px;color:var(--white);cursor:pointer;font-family:inherit;">
+          <b>${esc(u.name || u.email || 'Customer')}</b>
+          <div style="font-size:11.5px;color:var(--muted);">${esc(u.email || '')}${u.phone ? ' · ' + esc(u.phone) : ''} · wallet ${fmtKES(u.credit_balance || 0)}</div>
+        </button>`).join('') : '<div style="font-size:12px;color:var(--muted);">No customer found. Check the email or phone.</div>';
+    } catch (e) {
+      box.innerHTML = `<div style="font-size:12px;color:#ff5252;">${esc(e.message || e)}</div>`;
+    }
+  }, 300);
+}
+
+function _awcDepPick(i) {
+  const u = (window._awcDepFound || [])[i];
+  if (!u) return;
+  _awcDepUser = u;
+  _awcDepRenderWho();
+  _awcDepPreview();
+  document.getElementById('awcDepAmt')?.focus();
+}
+
+function _awcDepPreview() {
+  const el = document.getElementById('awcDepPreview');
+  if (!el) return;
+  const amt = parseFloat(document.getElementById('awcDepAmt')?.value);
+  const ref = (document.getElementById('awcDepRef')?.value || '').trim();
+  if (!_awcDepUser || !amt || amt <= 0) { el.innerHTML = ''; return; }
+  const after = Number(_awcDepUser.credit_balance || 0) + amt;
+  el.innerHTML = `<div style="background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.35);border-radius:10px;padding:10px 12px;">
+      You are adding <b style="color:#ffb020;">${fmtKES(amt)}</b> to <b>${esc(_awcDepUser.name || _awcDepUser.email || 'this customer')}</b>'s wallet${ref ? ` (ref <b>${esc(ref.toUpperCase())}</b>)` : ''}.
+      ${_awcDepUser.credit_balance != null ? `<br>New wallet balance: <b>${fmtKES(after)}</b>` : ''}</div>`;
+}
+
+async function awcBankDepositGo() {
+  const msg = document.getElementById('awcDepMsg');
+  const amount = parseFloat(document.getElementById('awcDepAmt')?.value);
+  const bank_reference = (document.getElementById('awcDepRef')?.value || '').trim();
+  const note = (document.getElementById('awcDepNote')?.value || '').trim() || null;
+  const err = (t) => { msg.innerHTML = `<span style="color:#ff5252;">${esc(t)}</span>`; };
+  if (!_awcDepUser) return err('Pick the customer first.');
+  if (!amount || amount <= 0) return err('Enter the amount you received.');
+  if (amount > 500000) return err('Amount must be at most KES 500,000.');
+  if (bank_reference.replace(/[^a-z0-9]/gi, '').length < 4) return err('Enter the bank transaction reference.');
+  if (!confirm(`Add ${fmtKES(amount)} to ${_awcDepUser.name || _awcDepUser.email}'s wallet?\n\nOnly continue if this money is already in the bank.`)) return;
+  const btn = document.getElementById('awcDepGo'); btn.disabled = true; btn.textContent = 'Crediting…';
+  try {
+    const r = await api('/admin/wallet-credit/bank-deposit', {
+      method: 'POST', body: JSON.stringify({ user_id: _awcDepUser.id, amount, bank_reference, note }),
+    });
+    toast(`✓ ${fmtKES(r.credited_kes)} added — ${r.customer.name || 'customer'}'s wallet is now ${fmtKES(r.balance)}`, 'success');
+    awcCloseModal();
+    window._awcSum = null;
+    if (document.getElementById('walletCreditRoot')?.offsetParent) loadAdminWalletCredit();
+    if (_awcDepAfter) { const cb = _awcDepAfter; _awcDepAfter = null; cb(r); }
+  } catch (e) {
+    err(e.message || String(e));
+    btn.disabled = false; btn.textContent = 'Credit wallet';
+  }
 }

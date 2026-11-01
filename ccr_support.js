@@ -69,6 +69,14 @@ const CCR_QR_DEFAULTS = [
     text: 'It depends on what you are buying. For followers, use your profile link. For likes, views or comments, use the link of the exact post or video. If you are not sure, tell me what you want to buy and I will tell you which link to use.' },
   { id: 'd_how_pay',       category: 'How to use',  label: 'How to pay',
     text: 'You pay with M-Pesa when you place the order. You do not need to add money to a wallet first. Type your M-Pesa number, click "Pay & Order", and a prompt will come to your phone. Enter your PIN to finish. Your order starts after the payment goes through.' },
+  // ── Bank transfer (customers without M-Pesa, e.g. abroad) ─────────────
+  { id: 'd_bank_details',  category: 'Bank transfer', label: 'Bank details',
+    text: 'Hi {name}, for bank transfer here are the details:\nBank: I & M BANK\nSWIFT CODE: IMBLKENA\nBANK CODE: 57\nBRANCH CODE: 012\nACCOUNT NUMBER: 01204862726152\nNAME: FIERSCAPE VENTURES' },
+  { id: 'd_bank_proof',    category: 'Bank transfer', label: 'Send proof after paying',
+    text: 'Thank you {name}. Once you have paid, please send the transaction reference or a screenshot of the receipt here. As soon as we see the money, we will add it to your EndaViral Wallet and you can place your order and pay with "Wallet".' },
+  { id: 'd_bank_credited', category: 'Bank transfer', label: 'Payment received — wallet credited',
+    text: 'Good news {name}, we have received your bank transfer and added it to your EndaViral Wallet. Go to "New Order", choose your service, and pick "Pay with Wallet" at checkout. No M-Pesa needed.' },
+
   { id: 'd_how_track',     category: 'How to use',  label: 'How to track my order',
     text: 'To see your order, click "My Orders" on the left menu. You will see the status of each order there (Pending, In progress, Completed). If it says In progress, it is already being delivered.' },
   { id: 'd_walk_through',  category: 'How to use',  label: 'I will guide you step by step',
@@ -185,6 +193,8 @@ const CCR_QR_DEFAULTS = [
     text: 'Naona malipo yako hayakukamilika, {name}. Hii inaweza kutokea kama ujumbe wa M-Pesa ulichelewa au PIN ilikosewa. Tafadhali rudi kwenye New Order ujaribu tena. Hakikisha simu ina network na una pesa za kutosha kwenye M-Pesa.' },
   { id: 'sw_no_refund',    category: 'Kiswahili', label: 'Jinsi refund inavyofanya kazi',
     text: 'Samahani {name}, baada ya malipo kuthibitishwa order huanza mara moja, kwa hivyo hatuwezi kuisimamisha. Ndio maana tunashauri uangalie link na idadi kabla ya kulipa. Lakini order ikishindikana au ikifika nusu, pesa ya sehemu ambayo haikufika inarudishwa kwenye EndaViral Wallet yako moja kwa moja usiku, na unaweza kuitumia kwa order yoyote. Pesa ya wallet haiwezi kutolewa kwenda M-Pesa.' },
+  { id: 'sw_bank_details', category: 'Kiswahili', label: 'Maelezo ya benki',
+    text: 'Habari {name}, kwa malipo ya benki haya ndiyo maelezo:\nBank: I & M BANK\nSWIFT CODE: IMBLKENA\nBANK CODE: 57\nBRANCH CODE: 012\nACCOUNT NUMBER: 01204862726152\nNAME: FIERSCAPE VENTURES\nUkishalipa, tuma reference au picha ya risiti hapa tukuwekee pesa kwenye EndaViral Wallet yako.' },
   { id: 'sw_closing',      category: 'Kiswahili', label: 'Asante, kwaheri',
     text: 'Asante {name}. Ukiwa na shida nyingine, tuandikie hapa wakati wowote.' },
 ];

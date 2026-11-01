@@ -48,7 +48,7 @@ async function loadAdminUsers() {
     const users = data.users || data.data || data || [];
     if (!users.length) { el.innerHTML = '<div class="empty-state"><div class="icon">👥</div><p>No users found.</p></div>'; return; }
     el.innerHTML = `<table>
-      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Balance</th><th>Orders</th><th>Joined</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th title="Withdrawable earnings from the Marketplace / CCR — NOT the order wallet. Order wallet (refunds + bank transfers) is in Admin → Wallet Credit.">Earnings 💼</th><th>Orders</th><th>Joined</th><th>Actions</th></tr></thead>
       <tbody>${users.map(u => {
         const uid  = esc(u.id||u._id);
         const name = esc(u.name||u.username||'—');
@@ -65,7 +65,7 @@ async function loadAdminUsers() {
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(u.balance||u.wallet_balance)}</td>
           <td>${parseInt(u.total_orders||u.orders_count||0)}</td>
           <td style="font-size:12px;color:var(--muted);">${joined}</td>
-          <td><div style="display:flex;gap:6px;"><button class="action-btn" onclick="adminCreditUser('${uid}','${name}')">+ Credit</button><button class="action-btn danger" onclick="adminBanUser('${uid}')">Ban</button></div></td>
+          <td><div style="display:flex;gap:6px;"><button class="action-btn" data-uid="${uid}" data-name="${name}" data-email="${email}" onclick="awcBankDeposit({id:this.dataset.uid,name:this.dataset.name,email:this.dataset.email})" title="Customer paid by bank transfer — add it to their order wallet">🏦 + Bank payment</button><button class="action-btn danger" onclick="adminBanUser('${uid}')">Ban</button></div></td>
         </tr>`;
       }).join('')}
       </tbody>
@@ -3108,6 +3108,10 @@ async function testProvider(slug, btn) {
   }
 }
 
+// NOTE: no longer wired to any button. It credited User.wallet_balance —
+// the WITHDRAWABLE earnings balance (creators / CCR agents) — which can't
+// pay for orders and could be cashed out. Customer top-ups go through the
+// order wallet instead: awcBankDeposit() in admin_wallet_credit.js.
 async function adminCreditUser(userId, userName) {
   const amount = prompt(`Credit wallet for ${userName}. Enter amount (KES):`);
   if (!amount || isNaN(amount)) return;
@@ -3238,7 +3242,8 @@ async function openSupportThread(threadId, opts) {
       _supMsgById[m.id] = m;
       const onGreen = isAdmin && !m.is_bot;
       const quote = m.reply_to_id ? supQuoteHtml(m.reply_to, 'staff', t.user, onGreen) : '';
-      const formatted = quote + tag + supLinkifyOrderRefs(safeBody.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')).replace(/\n/g,'<br>');
+      const shot = (m.attachment && typeof evShotHtml === 'function') ? evShotHtml(m.attachment) : '';
+      const formatted = quote + tag + shot + ((shot && (m.body || '') === '📷 Screenshot') ? '' : supLinkifyOrderRefs(safeBody.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')).replace(/\n/g,'<br>'));
       const time = m.created_at ? new Date(m.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'}) : '';
       const replyBtn = m.id ? ` · <a class="sup-reply-link" href="javascript:void(0)" onclick="supportReplyTo('${esc(m.id)}')" title="Reply to this message" style="color:#7fe08b;text-decoration:none;font-weight:700;">Reply</a>` : '';
       if (m.sender === 'user' && (m.body || '').startsWith('🚨 Automatic')) {
@@ -3285,6 +3290,7 @@ async function openSupportThread(threadId, opts) {
               <span style="background:${pill[2]};color:${pill[1]};border-radius:999px;padding:2px 9px;font-weight:700;">${pill[0]}</span>
               ${t.board && t.board.topic ? `<span class="sup-topic" style="color:#b9c6d8;">${esc(t.board.topic)}</span>` : ''}
               ${t.user?.credit_balance == null ? '' : `<span title="EndaViral Wallet — order credit from refunds. The customer pays with it at checkout (Pay with Wallet / Wallet + M-Pesa). Can't be withdrawn." style="background:${t.user.credit_balance > 0 ? 'rgba(61,212,74,.15)' : 'rgba(255,255,255,.06)'};color:${t.user.credit_balance > 0 ? '#3dd44a' : '#93a3ba'};border:1px solid ${t.user.credit_balance > 0 ? 'rgba(61,212,74,.4)' : '#1e2a40'};border-radius:999px;padding:2px 9px;font-weight:700;">💳 Wallet ${fmtKES(t.user.credit_balance)}</span>`}
+              ${(currentUser?.role === 'admin' && t.user?.id && typeof awcBankDeposit === 'function') ? `<button type="button" title="Customer paid by bank transfer? Add it to their wallet so they can order" data-uid="${esc(t.user.id)}" data-name="${esc(t.user.name || t.user.email || '')}" data-email="${esc(t.user.email || '')}" data-bal="${Number(t.user.credit_balance || 0)}" onclick="awcBankDeposit({id:this.dataset.uid,name:this.dataset.name,email:this.dataset.email,credit_balance:Number(this.dataset.bal)}, ()=>openSupportThread('${esc(threadId)}'))" style="background:rgba(255,176,32,.12);color:#ffb020;border:1px solid rgba(255,176,32,.45);border-radius:999px;padding:2px 10px;font-weight:800;font-size:11.5px;cursor:pointer;font-family:inherit;">🏦 + Bank payment</button>` : ''}
               <span class="sup-since" style="color:#93a3ba;">${(t.user?.wallet_balance || 0) > 0 ? `Earnings ${fmtKES(t.user.wallet_balance)} · ` : ''}Client since ${t.user?.member_since ? new Date(t.user.member_since).toLocaleDateString('en-KE',{month:'short',year:'numeric'}) : '—'}</span>
             </div>
           </div>
@@ -4586,7 +4592,10 @@ function _ttMsgHtml(m, userInitial) {
   const time = m.created_at
     ? new Date(m.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})
     : '';
-  const body = (m.body||'')
+  const shot = (m.attachment && typeof evShotHtml === 'function') ? evShotHtml(m.attachment)
+    : (m._localShot ? `<div class="ev-shot" data-loaded="1"><img src="${m._localShot}" alt="Screenshot"></div>` : '');
+  const bodyText = (shot && (m.body || '') === '📷 Screenshot') ? '' : (m.body || '');
+  const body = bodyText
     .replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
     .replace(/\n/g,'<br>');
@@ -4596,7 +4605,7 @@ function _ttMsgHtml(m, userInitial) {
   return `<div class="tt-msg from-${isAdmin?'admin':'user'} ${humanCls}" data-msg-id="${esc(m.id || '')}">
     ${avatar}
     <div>
-      <div class="tt-bubble">${quote}${_msgTagHtml(m)}${body}</div>
+      <div class="tt-bubble">${quote}${_msgTagHtml(m)}${shot}${body}</div>
       <div class="tt-time">${senderName ? senderName + ' · ' : ''}${time}${replyBtn}</div>
     </div>
   </div>`;
@@ -4652,14 +4661,15 @@ function _ttRenderReplyPreview() {
 async function sendTicketReply() {
   const input = document.getElementById('ttReplyInput');
   const body  = input.value.trim();
-  if (!body || !_activeTicketId) return;
+  const image_data = (typeof ttTakeShot === 'function') ? ttTakeShot() : null;
+  if ((!body && !image_data) || !_activeTicketId) return;
   input.value = '';
   input.style.height = '42px';
   const user    = _getTicketUser();
   const initial = (user.name || 'U').charAt(0).toUpperCase();
   const reply_to_id = (_ttReplyTo && _ttReplyTo.threadId === _activeTicketId) ? _ttReplyTo.id : null;
   const quoted = reply_to_id ? _ttMsgById[reply_to_id] : null;
-  const fakeMsg = { sender:'user', is_bot:false, body, created_at: new Date().toISOString(),
+  const fakeMsg = { sender:'user', is_bot:false, body: body || (image_data ? '📷 Screenshot' : ''), _localShot: image_data, created_at: new Date().toISOString(),
                     reply_to_id, reply_to: quoted ? { id: quoted.id, sender: quoted.sender, is_bot: quoted.is_bot, order_id: quoted.order_id, body: String(quoted.body || '').slice(0, 160) } : null };
   document.getElementById('ttMessages').insertAdjacentHTML('beforeend', _ttMsgHtml(fakeMsg, initial));
   const el = document.getElementById('ttMessages');
@@ -4668,7 +4678,7 @@ async function sendTicketReply() {
   try {
     await api(`/support/threads/${_activeTicketId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ body, reply_to_id })
+      body: JSON.stringify({ body, reply_to_id, image_data })
     });
     await _loadTicketThread(_activeTicketId, { keepEarlier: true });
     await loadTickets();

@@ -194,6 +194,7 @@
     spend:   ['🛒', 'Paid for order'],
     release: ['↩️', 'Returned'],
     adjust:  ['🛠️', 'Adjustment'],
+    deposit: ['🏦', 'Bank transfer added'],
   };
   window.walletRenderPage = async function (useCache) {
     _css();
@@ -217,7 +218,7 @@
         </div>
         ${Number(d.balance) > 0 ? `<button class="btn-primary" style="width:auto;padding:10px 18px;margin:0;" onclick="navTo('services')">USE IT NOW</button>` : ''}
       </div>
-      <div class="wl-txt">Refunds come here. Use your Wallet to pay for any order. It can't be withdrawn.</div>
+      <div class="wl-txt">Refunds and bank transfer payments come here. Use your Wallet to pay for any order. It can't be withdrawn.</div>
       ${rows ? `<div class="wl-hist"><div class="wl-lbl" style="margin-bottom:4px;">History</div>${rows}</div>` : ''}
     </div>`;
   };

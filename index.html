@@ -377,7 +377,9 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 .hv-tier-price{font-size:16px;font-weight:900;color:var(--green);white-space:nowrap;}
 .hv-tier-monthly .hv-tier-price{color:var(--gold);}
 .hv-tier-price small{font-size:11px;font-weight:600;color:var(--muted);}
-.hv-tier-outcome{font-size:12.5px;color:#c7d3e8;margin-bottom:10px;line-height:1.4;}
+.hv-tier-note{font-size:12px;line-height:1.45;color:#fbefd6;background:rgba(255,176,32,.1);border:1px dashed rgba(255,176,32,.4);border-radius:8px;padding:8px 10px;margin:0 0 10px;}
+.hv-tier-who{align-self:flex-start;font-size:11.5px;font-weight:700;color:#ffd58a;background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.28);border-radius:20px;padding:3px 10px;margin:4px 0 8px;line-height:1.35;}
+.hv-tier-outcome{font-size:14px;font-weight:700;color:var(--white);margin-bottom:10px;line-height:1.35;}
 .hv-tier-list{list-style:none;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:5px;flex:1;}
 .hv-tier-list li{font-size:12px;color:var(--muted);padding-left:16px;position:relative;line-height:1.4;}
 .hv-tier-list li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:800;}
@@ -386,8 +388,9 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 .hv-tier-monthly .hv-tier-value{background:rgba(255,176,32,.08);border-left-color:var(--gold);color:#fbefd6;}
 .hv-tier-list li b{color:var(--white);font-weight:700;}
 .hv-fomo{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.45;color:#ffd58a;background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.25);border-radius:10px;padding:9px 11px;margin-bottom:16px;}
-.hv-tier-go{font-size:12.5px;font-weight:800;color:var(--green);}
-.hv-tier-monthly .hv-tier-go{color:var(--gold);}
+.hv-tier-go{display:block;text-align:center;font-size:13.5px;font-weight:800;color:#04170a;background:var(--green);border-radius:10px;padding:11px 10px;}
+.hv-tier-monthly .hv-tier-go{color:#1d1300;background:var(--gold);}
+@media(max-width:600px){.hv-tier-list li{font-size:13px;}.hv-tier-value{font-size:12.5px;}}
 .hv-trust{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:16px;font-size:11.5px;color:var(--muted);}
 .hv-back{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:0;margin-bottom:12px;}
 .hv-back:hover{color:var(--white);}
@@ -414,7 +417,7 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
 .lp-tiers-wrap{max-width:1140px;margin:64px auto 0;}
 .lp-tiers-title{text-align:center;color:#fff;font-size:clamp(18px,2.2vw,24px);font-weight:900;letter-spacing:-.4px;margin-bottom:28px;}
 .lp-tiers-title span{color:#ffd166;margin:0 6px;}
-.lp-tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;}
+.lp-tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;}
 .lp-tiers .hv-tier{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.08);padding:22px 18px;}
 .lp-tiers .hv-tier-pop{border-color:rgba(61,212,74,.6);background:rgba(61,212,74,.05);}
 .lp-tiers .hv-tier-monthly{background:linear-gradient(160deg,rgba(255,176,32,.1),rgba(255,255,255,.02) 60%);border-color:rgba(255,176,32,.35);}
@@ -726,6 +729,22 @@ nav{flex:1;padding:8px 10px;overflow-y:auto;}
 .topbar{padding:16px 28px;border-bottom:1px solid var(--border);background:rgba(13,17,23,.8);backdrop-filter:blur(8px);position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0;}
 .topbar-title{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .topbar-right{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+/* ── Top header, phones (all pages) ──────────────────────────────────────
+   Page name gets the room: smaller title, icon-only Home button, compact
+   wallet chip, tighter gaps, and a 44px tap target for the menu button. */
+@media(max-width:600px){
+  .topbar{gap:8px;}
+  .topbar > div:first-child{gap:8px !important;}
+  .topbar-title{font-size:17px;letter-spacing:-.2px;}
+  .topbar-right{gap:6px;}
+  .hamburger{min-width:40px;min-height:40px;align-items:center;justify-content:center;margin-left:-6px;}
+  .btn-back-dash{padding:8px;border-radius:50%;}
+  .btn-back-dash span{display:none;}
+  .tb-wallet{font-size:11.5px;padding:6px 9px;}
+}
+@media(max-width:360px){
+  .topbar-title{font-size:15.5px;}
+}
 .badge-mpesa{display:flex;align-items:center;gap:6px;background:rgba(0,166,81,.1);border:1px solid rgba(0,166,81,.25);color:var(--mpesa);font-size:11px;font-weight:600;padding:5px 10px;border-radius:20px;white-space:nowrap;}
 .badge-mpesa::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--mpesa);animation:pulse 2s infinite;}
 .btn-back-dash{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--white);font-size:12px;font-weight:700;padding:7px 12px 7px 9px;border-radius:20px;white-space:nowrap;cursor:pointer;font-family:'Montserrat',sans-serif;transition:border-color .15s,background .15s;}
@@ -1826,19 +1845,18 @@ tbody td{padding:13px 16px;font-size:14px;}
     <div class="lp-hire-wrap">
       <div class="lp-hire-copy lp-reveal">
         <div class="lp-hire-eyebrow"><span class="dot"></span>Hire EndaViral</div>
-        <h2>You've got the followers. <em>Now make them pay.</em></h2>
-        <p>We grow thousands of Kenyan accounts, so we see what actually works here. A strategist reviews your account, finds what's stopping your audience from buying, booking or hiring you, and gives you the fix.</p>
-        <p>Start with a single call, or hand us the whole account for KES 5,000 a month.</p>
+        <h2>Posting a lot but getting no sales? <em>We'll show you why.</em></h2>
+        <p>An EndaViral expert checks your page, talks to you, and sends the fixes to your WhatsApp. From KES 300.</p>
 
         <ol class="lp-hire-steps">
-          <li><span class="hs-num">01</span><span class="hs-text"><b>Pick your package</b><span>From KES 500, paid via M-Pesa right from this page.</span></span></li>
-          <li><span class="hs-num">02</span><span class="hs-text"><b>We review your account first</b><span>Then we call you. No generic advice.</span></span></li>
-          <li><span class="hs-num">03</span><span class="hs-text"><b>Walk away with the fix in writing</b><span>Sent to your WhatsApp. Go monthly later and the fee comes off month one.</span></span></li>
+          <li><span class="hs-num">01</span><span class="hs-text"><b>Pick a package & pay</b><span>With M-Pesa, from KES 300.</span></span></li>
+          <li><span class="hs-num">02</span><span class="hs-text"><b>We check your page</b><span>Before we talk — so the advice is about you.</span></span></li>
+          <li><span class="hs-num">03</span><span class="hs-text"><b>Get your fixes on WhatsApp</b><span>Clear steps you can do the same day.</span></span></li>
         </ol>
 
         <div class="lp-hire-cta-row">
-          <a href="#hire-tiers" class="lp-hire-btn">See packages: from KES 500 →</a>
-          <span class="lp-hire-more">Real strategist on the line — not a bot.</span>
+          <a href="#hire-tiers" class="lp-hire-btn">See prices →</a>
+          <span class="lp-hire-more">A real person, not a bot.</span>
         </div>
       </div>
 
@@ -1846,12 +1864,12 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="lp-hire-phone-glow"></div>
         <div class="lp-hire-device">
           <div class="lp-hire-screen">
-            <div class="lp-hire-fee-tag">From KES 500</div>
+            <div class="lp-hire-fee-tag">From KES 300</div>
             <div class="lp-hire-callbar">Incoming call</div>
             <div class="lp-hire-avatar-ring"><div class="lp-hire-avatar">EV</div></div>
             <div class="lp-hire-callername">EndaViral Growth Team</div>
-            <div class="lp-hire-callersub">Consultation · Google Meet</div>
-            <div class="lp-hire-ringing">Ringing the number you give us…</div>
+            <div class="lp-hire-callersub">Your page expert</div>
+            <div class="lp-hire-ringing">Calling you about your page…</div>
             <div class="lp-hire-actions">
               <div style="text-align:center;">
                 <button class="lp-hire-act-btn lp-hire-decline" aria-label="Not now" onclick="event.preventDefault();">✕</button>
@@ -1869,9 +1887,9 @@ tbody td{padding:13px 16px;font-size:14px;}
 
     <!-- Tier ladder — cards rendered from CONSULT_TIERS (consultation.js) -->
     <div class="lp-tiers-wrap lp-reveal" id="hire-tiers">
-      <div class="lp-tiers-title">Fix it <span>→</span> Plan it <span>→</span> Monetise it <span>→</span> We run it</div>
+      <div class="lp-tiers-title">Grow smart <span>→</span> Creators <span>→</span> Businesses <span>→</span> We run it</div>
       <div class="lp-tiers" id="lpTierGrid"></div>
-      <div class="lp-tiers-foot">Every consult fee comes off your first month if you move to Account Management within 30 days.</div>
+      <div class="lp-tiers-foot">Move to "We Run It" within 30 days and we take your first fee off.</div>
     </div>
   </section>
 
@@ -2251,7 +2269,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <button class="hamburger" id="hamburger" onclick="toggleSidebar()">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
-        <div class="topbar-title" id="pageTitle">DASHBOARD</div>
+        <div class="topbar-title" id="pageTitle">Dashboard</div>
       </div>
       <div class="topbar-right">
         <!-- EndaViral Wallet balance, every page (order_wallet.js walletRefreshCard) -->
@@ -2351,7 +2369,7 @@ tbody td{padding:13px 16px;font-size:14px;}
             <div class="promo-icon">💼</div>
             <div class="promo-body">
               <div class="promo-title">Hire EndaViral</div>
-              <div class="promo-desc">Fix it, plan it, monetise it, or let us run it. From KES 500</div>
+              <div class="promo-desc">Talk to a growth expert about your page. From KES 300</div>
             </div>
             <div class="promo-arrow">Open →</div>
           </div>
@@ -2542,13 +2560,14 @@ tbody td{padding:13px 16px;font-size:14px;}
     <div style="padding:10px 16px;border-bottom:1px solid #1e2a40;
                 display:flex;align-items:center;gap:12px;flex-shrink:0;background:#0c1322;">
       <div style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;">
-        <img src="EndaViral_logo_transparent.png" alt="EndaViral Support" style="height:46px;width:auto;flex-shrink:0;">
+        <img class="tt-head-logo" src="EndaViral_logo_transparent.png" alt="EndaViral Support" style="height:46px;width:auto;flex-shrink:0;">
         <div style="min-width:0;">
           <div id="ttTitle" style="font-size:14px;font-weight:800;color:var(--white);">Support</div>
           <div id="ttMeta"  style="font-size:11px;color:#93a3ba;margin-top:2px;"></div>
+          <!-- status sits under the title so it never squeezes the text on phones -->
+          <div id="ttStatusBadge" style="margin-top:5px;"></div>
         </div>
       </div>
-      <div id="ttStatusBadge"></div>
       <button onclick="closeTicketThread()" style="background:none;border:none;
               color:var(--muted);cursor:pointer;font-size:18px;line-height:1;
               padding:4px;border-radius:6px;" onmouseover="this.style.color='var(--white)'"
@@ -2569,11 +2588,14 @@ tbody td{padding:13px 16px;font-size:14px;}
       ✅ Marked as sorted — just type below if you need anything else
     </div>
 
+    <!-- Screenshot waiting to be sent (support_screenshots.js) -->
+    <div id="ttShotPreview"></div>
     <!-- Reply input -->
     <div id="ttReplyRow" style="padding:10px 12px 14px;border-top:1px solid #1e2a40;background:#0c1322;
           display:flex;gap:8px;align-items:center;flex-shrink:0;">
+      <button type="button" class="tt-attach-btn" onclick="ttPickShot()" aria-label="Send a screenshot" title="Send a screenshot">📎</button>
       <textarea id="ttReplyInput" rows="1"
-        placeholder="Message"
+        placeholder="Message or 📎 screenshot"
         style="flex:1;background:#111a2c;border:1px solid #2a3a58;
                border-radius:22px;padding:11px 16px;color:var(--white);
                font-family:'Montserrat',sans-serif;font-size:13px;outline:none;
@@ -3270,10 +3292,13 @@ tbody td{padding:13px 16px;font-size:14px;}
               </select>
               <select id="consultTierFilter" onchange="loadAdminConsultations()" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;">
                 <option value="">All packages</option>
-                <option value="quick_fix">Quick Fix · KES 500</option>
-                <option value="growth_plan">Growth Plan · KES 1,000</option>
-                <option value="money_plan">Money Plan · KES 1,500</option>
-                <option value="management">Account Mgmt · KES 5,000/mo</option>
+                <option value="smart_growth">Smart Growth Call · KES 300</option>
+                <option value="creator_plan">Creator Plan · KES 1,000</option>
+                <option value="business_plan">Business Plan · KES 2,500</option>
+                <option value="management">We Run It · KES 5,000/mo fee</option>
+                <option value="quick_fix">Old: Quick Fix · KES 500</option>
+                <option value="growth_plan">Old: Growth Plan · KES 1,000</option>
+                <option value="money_plan">Old: Money Plan · KES 1,500</option>
               </select>
               <button class="btn-secondary" onclick="loadAdminConsultations()">↻ Refresh</button>
             </div>
@@ -4191,7 +4216,9 @@ function togglePass(inputId, btn) {
   btn.style.color = show ? '#3dd44a' : '';
 }
 
-const pageTitles = { dashboard:'DASHBOARD', services:'NEW ORDER', orders:'MY ORDERS', tickets:'MY TICKETS', wallet:'WALLET', admin:'ADMIN PANEL', account:'MY ACCOUNT', affiliate:'REFER & EARN', academy:'CREATOR ACADEMY', connect:'ENDAVIRAL MARKETPLACE', 'ccr-agent':'MY EARNINGS', 'creator-events':'CREATOR EVENTS' };
+// Short, plain page names: the header has ~150px left beside the wallet and
+// Home buttons on a phone, so long names used to get cut off ("ENDAVIRAL …").
+const pageTitles = { dashboard:'Dashboard', services:'New Order', orders:'My Orders', tickets:'Support', wallet:'Wallet', admin:'Admin', account:'My Account', affiliate:'Refer & Earn', academy:'Academy', connect:'Marketplace', 'ccr-agent':'My Earnings', 'creator-events':'Events' };
 
 function navTo(page) {
   // Re-applied on every navigation (see ccr_agent.js) since we don't own
@@ -4219,7 +4246,7 @@ function navTo(page) {
   document.querySelectorAll('.nav-item').forEach(n => {
     if (n.getAttribute('onclick') === `navTo('${page}')`) n.classList.add('active');
   });
-  document.getElementById('pageTitle').textContent = pageTitles[page] || page.toUpperCase();
+  document.getElementById('pageTitle').textContent = pageTitles[page] || (page.charAt(0).toUpperCase() + page.slice(1).replace(/-/g, ' '));
   const backBtn = document.getElementById('backToDashBtn');
   if (backBtn) backBtn.style.display = (page === 'dashboard') ? 'none' : 'flex';
   if (typeof walletRefreshCard === 'function') walletRefreshCard();   // top-bar wallet balance (cached 30s)
@@ -5291,6 +5318,7 @@ function resetDeposit() {
 
 <script src="tnc.js"></script>
 <script src="admin.js"></script>
+<script src="support_screenshots.js"></script>
 <script src="admin_shell.js"></script>
 <script src="ccr_support.js"></script>
 <script src="reorder_alternatives.js"></script>
@@ -5729,32 +5757,33 @@ async function _maybeHideAffBanner() {
     <!-- Step 1: pick a package -->
     <div id="consultStepTiers">
       <div class="modal-title" style="margin-bottom:4px;">💼 Hire EndaViral</div>
-      <div class="modal-sub" style="margin-bottom:10px;">People already visit your page. Most leave without following, buying or booking. We show you why, and fix it.</div>
-      <div class="hv-fomo">⏳ <span>Every week you post without a plan is a week of visitors you don't get back. Start from KES 500.</span></div>
+      <div class="modal-sub" style="margin-bottom:12px;">An expert checks your page and tells you what to fix. Pick what fits you:</div>
       <div class="hv-tiers" id="consultTierList"></div>
       <div class="hv-trust">
-        <span>👤 Real strategist, not a bot</span>
-        <span>🔍 We review your account before the call</span>
-        <span>📲 Paid securely via M-Pesa</span>
-        <span>💸 Go monthly later and your fee comes off month one</span>
+        <span>👤 A real person, not a bot</span>
+        <span>🔍 We check your page first</span>
+        <span>📲 Pay with M-Pesa</span>
       </div>
     </div>
 
     <!-- Step 2: account + contact details -->
     <div id="consultStepDetails" style="display:none;">
-      <button type="button" class="hv-back" onclick="consultBackToTiers()">← All packages</button>
+      <button type="button" class="hv-back" onclick="consultBackToTiers()">← Change package</button>
       <div class="hv-sum" id="consultTierSummary"></div>
-      <div class="field"><label>Which account should we look at?</label><input type="text" id="consultHandle" placeholder="@yourbusiness on Instagram / TikTok"/></div>
-      <div class="field"><label>Your main goal</label><div class="hv-chips" id="consultGoalChips"></div></div>
-      <div class="field"><label>Anything we should know? (optional)</label><textarea id="consultNotes" rows="2" placeholder="e.g. we sell cakes in Nairobi, followers grew but sales didn't"></textarea></div>
+      <div class="field"><label>Your page name or link</label><input type="text" id="consultHandle" placeholder="e.g. @janescakes on TikTok"/></div>
+      <div class="field"><label>What do you want most?</label><div class="hv-chips" id="consultGoalChips"></div></div>
+      <div class="field"><label>Tell us more (optional)</label><textarea id="consultNotes" rows="2" placeholder="e.g. I sell cakes in Nairobi. I get likes but few orders."></textarea></div>
       <div class="hv-two">
-        <div class="field"><label>Your Name</label><input type="text" id="consultName" placeholder="Jane Wanjiru"/></div>
-        <div class="field"><label>M-Pesa Number</label><input type="tel" id="consultPhone" placeholder="07XXXXXXXX"/></div>
+        <div class="field"><label>Your name</label><input type="text" id="consultName" placeholder="Jane Wanjiru"/></div>
+        <div class="field"><label>M-Pesa number (we'll call this)</label><input type="tel" inputmode="tel" id="consultPhone" placeholder="07XXXXXXXX"/></div>
       </div>
-      <div class="hv-two">
-        <div class="field"><label>Email (optional)</label><input type="email" id="consultEmail" placeholder="jane@business.co.ke"/></div>
-        <div class="field"><label>Business (optional)</label><input type="text" id="consultBusiness" placeholder="Your business"/></div>
-      </div>
+      <details style="margin:0 0 12px;">
+        <summary style="font-size:12.5px;color:var(--muted);cursor:pointer;">+ Add email / business name (optional)</summary>
+        <div class="hv-two" style="margin-top:10px;">
+          <div class="field"><label>Email</label><input type="email" id="consultEmail" placeholder="jane@business.co.ke"/></div>
+          <div class="field"><label>Business name</label><input type="text" id="consultBusiness" placeholder="Your business"/></div>
+        </div>
+      </details>
       <div class="hv-price" id="consultPriceBox"></div>
       <div style="font-size:13px;color:var(--muted);min-height:18px;margin:8px 0 4px;" id="consultBookStatus"></div>
       <button class="btn-primary" id="consultPayBtn" style="width:100%;" onclick="consultConfirmBooking()">Pay with M-Pesa</button>

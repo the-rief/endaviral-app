@@ -120,21 +120,15 @@
       label: 'Hire EndaViral 📞',
       question: 'Why should I hire EndaViral?',
       answer:
-        `📞 **Hire EndaViral — a real strategist for your socials**\n\n` +
-        `Ordering views and followers gives you a boost. A consultation tells you **what to post, who to target and how to turn followers into money** — so every shilling you spend on growth works harder.\n\n` +
-        `**Why it's worth KES 500:**\n` +
-        `• **A review of your actual pages** — we look at what's working, what's holding you back and what your audience responds to.\n` +
-        `• **A clear plan you can act on the same day** — content ideas, branding fixes, growth moves and monetisation options that fit *your* niche and budget.\n` +
-        `• **Advice for the Kenyan market** — M-Pesa selling, local audiences, posting habits and brand deals here, not generic tips.\n` +
-        `• **A real person, not a bot** — ask anything about your page, your business or your next campaign.\n\n` +
-        `**How it works:**\n` +
-        `**1.** Tap **Book your call** and pay **KES 500** via M-Pesa.\n` +
-        `**2.** Our team calls your number to set up a **30–45 minute Google Meet** session.\n` +
-        `**3.** You walk away with a plan for content, growth and monetisation.\n\n` +
-        `💼 **Too busy to do it yourself?** After the call we can agree to **run your growth for you, month to month**.\n\n` +
-        `Great for business owners, new creators who want to start right, and anyone whose page has stalled.`,
+        `📞 **Hire EndaViral — an expert for your page**\n\n` +
+        `Want more from your page? Pick what fits you:\n\n` +
+        `• **Smart Growth Call — KES 300:** 30 minutes on which EndaViral services fit your goal and how to time them so your posts keep growing.\n` +
+        `• **Creator Plan — KES 1,000:** a 30-day growth plan, a better bio, and what to charge brands.\n` +
+        `• **Business Plan — KES 2,500:** set up your page to bring customers, plus a script that turns DMs into M-Pesa sales.\n` +
+        `• **We Run It — KES 5,000/month service fee:** we post and manage your page. Growth services are paid separately.`,
       actions: [
-        { label: '📞 Book your call — KES 500', fn: 'evBookConsultFromChat()' },
+        { label: '🚀 Smart Growth Call — KES 300', fn: "evBookConsultFromChat('smart_growth')" },
+        { label: '📋 See all packages', fn: 'evBookConsultFromChat()' },
       ],
     },
   ];
@@ -200,9 +194,9 @@
     if (typeof window.acGoToCourse === 'function') window.acGoToCourse(moduleId);
   };
 
-  window.evBookConsultFromChat = function() {
+  window.evBookConsultFromChat = function(tier) {
     if (typeof window.evChatToggle === 'function' && state.open) window.evChatToggle();
-    if (typeof window.consultOpenBooking === 'function') window.consultOpenBooking();
+    if (typeof window.consultOpenBooking === 'function') window.consultOpenBooking(tier);
   };
 
   // Back arrow — return to the shortcuts/home view.

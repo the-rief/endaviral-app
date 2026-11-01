@@ -72,9 +72,9 @@
 const BW_PAGE_SIZE = 30;
 const BW_SEGMENTS = [
   { key: 'pending',  label: 'New',      statusParam: 'pending' },
-  { key: 'accepted', label: 'In talks', statusParam: 'accepted' },
+  { key: 'accepted', label: 'Chatting', statusParam: 'accepted' },
   { key: 'hired',    label: 'Hired',    statusParam: 'hired' },
-  { key: 'closed',   label: 'Closed',   statusParam: 'rejected,withdrawn,not_selected' },
+  { key: 'closed',   label: 'Not chosen', statusParam: 'rejected,withdrawn,not_selected' },
 ];
 
 let _bwCampaignId = null;
@@ -179,12 +179,12 @@ function _bwBuildShell() {
           <button class="bw-back" onclick="_bwClose()" aria-label="Back to campaign">←</button>
           <div class="bw-topbar-icon">📥</div>
           <div>
-            <div class="bw-eyebrow">Bids Workspace</div>
+            <div class="bw-eyebrow">Creators' prices</div>
             <div class="bw-title" id="bwCampaignTitle">Bids</div>
           </div>
         </div>
         <div class="bw-topbar-right">
-          <button class="btn-secondary" id="bwInviteBtn">✉️ <span class="bw-invite-label">Invite a Creator Directly</span></button>
+          <button class="btn-secondary" id="bwInviteBtn" aria-label="Invite a creator">✉️ <span class="bw-invite-label">Invite a creator</span></button>
         </div>
       </div>
       <div class="bw-body" id="bwBody" data-view="list">
@@ -198,8 +198,8 @@ function _bwBuildShell() {
         <div class="bw-detail" id="bwDetailPane">
           <div class="bw-detail-empty" id="bwDetailEmpty">
             <div class="bw-detail-empty-icon">💬</div>
-            <div class="bw-detail-empty-title">No bid selected</div>
-            <div class="bw-detail-empty-sub">Pick a bid from the list to see the conversation, negotiate a price, and fund the work.</div>
+            <div class="bw-detail-empty-title">Pick a creator</div>
+            <div class="bw-detail-empty-sub">Tap a creator on the left to chat, agree the price, and pay.</div>
           </div>
         </div>
       </div>
@@ -287,7 +287,7 @@ function _bwRenderRail() {
 
   rail.innerHTML = `
     <button class="bw-rail-close" onclick="_bwSetView('list')" aria-label="Close filters">✕ Close</button>
-    <div class="bw-rail-label">Segments</div>
+    <div class="bw-rail-label">Show</div>
     ${BW_SEGMENTS.map(s => `
       <button class="bw-rail-item ${_bwSegment === s.key ? 'active' : ''}" onclick="_bwSwitchSegment('${s.key}')">
         <span class="bw-rail-item-icon">${segIcon[s.key] || ''}</span>
@@ -330,6 +330,7 @@ function _bwSwitchSegment(key) {
   _bwRows = [];
   _bwSelected.clear();
   _bwRenderRail();
+  _bwRenderToolbar();
   _bwFetchPage(true);
   _bwSetView('list'); // no-op on desktop (data-view is mobile-only); closes the rail overlay on phones
 }
@@ -381,16 +382,23 @@ function _bwToggleShortlistOnly() {
 function _bwRenderToolbar() {
   const el = document.getElementById('bwToolbar');
   if (!el) return;
+  const counts = _bwCounts || {};
+  const closedN = (counts.rejected || 0) + (counts.withdrawn || 0) + (counts.not_selected || 0);
+  const nFor = (k) => k === 'closed' ? closedN : (counts[k] || 0);
+  // Phones: the segment list lives in a hidden side panel, which people
+  // never opened — show the segments as plain tabs right above the list.
   el.innerHTML = `
-    <button class="bw-filter-btn" onclick="_bwToggleRail()" aria-label="Filters">☰</button>
+    <div class="bw-segtabs">${BW_SEGMENTS.map(sg => `<button class="bw-segtab ${_bwSegment === sg.key ? 'active' : ''}" onclick="_bwSwitchSegment('${sg.key}')">${esc(sg.label)} <span>${nFor(sg.key)}</span></button>`).join('')}</div>`
+  + `
+    <button class="bw-filter-btn" onclick="_bwToggleRail()" aria-label="Filters">⚙︎</button>
     <div class="bw-search-wrap">
       <span class="bw-search-icon">🔍</span>
-      <input type="text" class="bw-search" placeholder="Search by creator name…" value="${esc(_bwQuery)}" oninput="_bwOnSearchInput(this.value)">
+      <input type="text" class="bw-search" placeholder="Search name…" value="${esc(_bwQuery)}" oninput="_bwOnSearchInput(this.value)">
     </div>
-    <select class="bw-sort" onchange="_bwSetSort(this.value)">
-      <option value="newest" ${_bwSort === 'newest' ? 'selected' : ''}>Newest first</option>
-      <option value="price_low" ${_bwSort === 'price_low' ? 'selected' : ''}>Lowest price</option>
-      <option value="price_high" ${_bwSort === 'price_high' ? 'selected' : ''}>Highest price</option>
+    <select class="bw-sort" onchange="_bwSetSort(this.value)" aria-label="Sort">
+      <option value="newest" ${_bwSort === 'newest' ? 'selected' : ''}>Newest</option>
+      <option value="price_low" ${_bwSort === 'price_low' ? 'selected' : ''}>Cheapest</option>
+      <option value="price_high" ${_bwSort === 'price_high' ? 'selected' : ''}>Highest</option>
     </select>
   `;
 }
@@ -461,8 +469,8 @@ function _bwRenderList() {
 
   if (!visible.length) {
     const emptyIcon = { pending: '📭', accepted: '🤝', hired: '✅', closed: '🗂️' }[_bwSegment] || '📭';
-    const base = _bwSegment === 'pending' ? 'No new bids yet — check back soon, or invite a creator directly.'
-      : _bwSegment === 'accepted' ? 'No active negotiations right now.'
+    const base = _bwSegment === 'pending' ? 'No new prices yet. Creators usually reply within a day — or invite one yourself.'
+      : _bwSegment === 'accepted' ? 'You are not chatting with anyone yet. Tap “Chat” on a creator in New.'
       : _bwSegment === 'hired' ? 'No one hired yet.'
       : 'Nothing here yet.';
     const filtered = (_bwShortlistOnly || _bwMaxPrice !== '');
@@ -476,7 +484,7 @@ function _bwRenderList() {
       <div class="bw-row ${_bwActiveAppId === a.id ? 'active' : ''}" onclick="_bwOpenRow('${a.id}')">
         ${canBulk ? `<input type="checkbox" class="bw-row-check" onclick="event.stopPropagation()" ${_bwSelected.has(a.id) ? 'checked' : ''} onchange="_bwToggleSelectRow('${a.id}', this.checked)">` : ''}
         ${a.creator_avatar_url
-          ? `<img class="bw-row-avatar" src="${esc(a.creator_avatar_url)}" alt="">`
+          ? `<img class="bw-row-avatar" src="${/^https?:\/\//i.test(a.creator_avatar_url) ? esc(a.creator_avatar_url) : ''}" alt="">`
           : `<div class="bw-row-avatar bw-row-avatar-fallback">${esc((a.creator_display_name || 'C')[0].toUpperCase())}</div>`}
         <div class="bw-row-main">
           <div class="bw-row-top">
@@ -487,14 +495,14 @@ function _bwRenderList() {
             </div>
             <div class="bw-row-amt">${fmtKES(a.fund_amount_kes)}</div>
           </div>
-          <div class="bw-row-sub"><span>⏱ ${a.delivery_days} day${a.delivery_days == 1 ? '' : 's'}</span>${followers ? `<span class="bw-row-dot">·</span><span>👥 ${followers.toLocaleString()}</span>` : ''}<span class="bw-row-dot">·</span>${_cnStatusPill(a.status)}</div>
+          <div class="bw-row-sub"><span>⏱ Ready in ${a.delivery_days} day${a.delivery_days == 1 ? '' : 's'}</span>${followers ? `<span class="bw-row-dot">·</span><span>👥 ${followers.toLocaleString()}</span>` : ''}<span class="bw-row-dot">·</span>${_cnStatusPill(a.status)}</div>
           ${a.proposal ? `<div class="bw-row-proposal">${esc(a.proposal)}</div>` : ''}
         </div>
         ${a.status === 'pending' ? `
         <div class="bw-row-actions">
-          <button class="cn-btn-sm cn-btn-accept" onclick="event.stopPropagation();_bwSingleAction('${a.id}','accept')">✓ Accept</button>
-          <button class="cn-btn-sm cn-btn-reject" onclick="event.stopPropagation();_bwSingleAction('${a.id}','reject')">✕ Reject</button>
-        </div>` : ''}
+          <button class="cn-btn-sm cn-btn-accept" onclick="event.stopPropagation();_bwSingleAction('${a.id}','accept')">💬 Chat & agree price</button>
+          <button class="cn-btn-sm cn-btn-reject" onclick="event.stopPropagation();_bwSingleAction('${a.id}','reject')">No thanks</button>
+        </div>` : (a.status === 'accepted' ? `<div class="bw-row-actions"><button class="cn-btn-sm cn-btn-accept" onclick="event.stopPropagation();_bwOpenRow('${a.id}')">Open chat →</button></div>` : '')}
       </div>
     `;
     }).join('') + (_bwLoading ? `<div class="bw-empty">Loading more…</div>` : (!_bwHasMore ? `<div class="bw-list-end"><span>— end of list —</span></div>` : ''));
@@ -521,8 +529,8 @@ function _bwUpdateBulkbar() {
   bar.innerHTML = `
     <span class="bw-bulk-icon">☑️</span>
     <span class="bw-bulk-count">${_bwSelected.size} selected</span>
-    <button class="cn-btn-sm cn-btn-accept" onclick="_bwBulkAction('accept')">✓ Accept</button>
-    <button class="cn-btn-sm cn-btn-reject" onclick="_bwBulkAction('reject')">✕ Reject</button>
+    <button class="cn-btn-sm cn-btn-accept" onclick="_bwBulkAction('accept')">💬 Chat with all</button>
+    <button class="cn-btn-sm cn-btn-reject" onclick="_bwBulkAction('reject')">No thanks</button>
     <button class="bw-bulk-clear" onclick="_bwClearSelection()">Clear</button>
   `;
 }
@@ -530,14 +538,22 @@ function _bwUpdateBulkbar() {
 async function _bwSingleAction(id, action) {
   try {
     await api(`/connect/campaigns/${_bwCampaignId}/applications/${id}/${action}`, { method: 'POST' });
-    toast(action === 'accept' ? 'Bid accepted — negotiate a price in chat, then fund when ready' : 'Bid rejected', action === 'accept' ? 'success' : 'info');
+    toast(action === 'accept' ? 'Chat opened — agree the price, then tap Pay' : 'Done — they\'ve been told', action === 'accept' ? 'success' : 'info');
     _bwSelected.delete(id);
     Store.invalidate(`bidsCounts:${_bwCampaignId}`);
     await _bwRefreshCounts();
     _bwRenderRail();
-    await _bwFetchPage(true);
+    if (action === 'accept') {
+      // Go straight into the chat with this creator — the next step.
+      _bwSegment = 'accepted'; _bwOffset = 0; _bwRows = [];
+      _bwRenderRail();
+      await _bwFetchPage(true);
+      if (_bwRows.find(r => r.id === id)) _bwOpenRow(id);
+    } else {
+      await _bwFetchPage(true);
+    }
   } catch (e) {
-    toast(e.message || `Could not ${action} bid`, 'error');
+    toast(e.message || 'Something went wrong — try again', 'error');
   }
 }
 
@@ -553,7 +569,7 @@ async function _bwBulkAction(action) {
       ok++;
     } catch (_) { fail++; }
   }
-  toast(`${ok} bid${ok === 1 ? '' : 's'} ${action === 'accept' ? 'accepted' : 'rejected'}${fail ? `, ${fail} failed` : ''}`, fail ? 'error' : 'success');
+  toast(`${ok} done${fail ? `, ${fail} failed` : ''}`, fail ? 'error' : 'success');
   _bwSelected.clear();
   Store.invalidate(`bidsCounts:${_bwCampaignId}`);
   await _bwRefreshCounts();
@@ -798,8 +814,31 @@ function _bwInjectStyles() {
         background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s ease;}
       .bw-body[data-view="rail"] .bw-rail-scrim{opacity:1;pointer-events:auto;}
 
-      .bw-row-actions{flex-wrap:wrap;}
+      /* Bid rows: actions go full-width UNDER the details instead of
+         squeezing the name/price into a 90px column (names used to
+         overlap the price and the proposal read one word per line). */
+      .bw-row{flex-wrap:wrap;padding:12px;}
+      .bw-row-main{flex:1 1 0;min-width:0;}
+      .bw-row-top{flex-wrap:wrap;row-gap:6px;}
+      .bw-row-name{flex:1 1 140px;flex-wrap:wrap;font-size:13.5px;}
+      .bw-row-amt{font-size:13px;}
+      .bw-row-sub{font-size:12px;}
+      .bw-row-proposal{font-size:13px;}
+      .bw-row-actions{flex:1 1 100%;width:100%;margin-top:10px;}
+      .bw-row-actions .cn-btn-sm{flex:1;padding:11px 10px;font-size:12.5px;}
+      .bw-list{padding:10px;}
+      .bw-list-toolbar{flex-wrap:wrap;padding:10px;}
+      .bw-search{font-size:16px;}
+      .bw-segtabs{display:grid !important;}
+      .bw-detail{padding:0;}
+      #cnBidsModalBody .cn-bidchat-scroll{padding:12px 12px 0;}
+      #cnBidsModalBody #cnMsgInputRow{padding:0 12px 12px !important;}
+      .bw-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:58vw;}
     }
+    .bw-segtabs{display:none;grid-template-columns:repeat(4,1fr);gap:5px;width:100%;margin-bottom:2px;}
+    .bw-segtab{background:var(--navy);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:8px 4px;font-size:11.5px;font-weight:800;font-family:inherit;cursor:pointer;line-height:1.2;}
+    .bw-segtab span{display:block;font-size:13px;color:var(--white);margin-top:2px;}
+    .bw-segtab.active{background:var(--cn-accent-soft);border-color:var(--cn-accent);color:var(--white);}
   `;
   document.head.appendChild(style);
 }
@@ -841,7 +880,7 @@ function _cnRenderBidChatActionCard() {
   if (app && app.status === 'accepted' && c.status === 'published') {
     html += `<div class="cn-deal-panel">`
       + _cnNegotiationBannerHtml({ fundAmount: app.fund_amount_kes, bidAmount: app.bid_amount_kes, agreedAmount: app.agreed_amount_kes });
-    html += `<div style="padding:10px 12px;"><button class="cn-pay-btn" style="margin-bottom:0;" onclick="_cnOpenPaySheet('${c.id}','${app.id}')">💳 Pay</button></div>`;
+    html += `<div style="padding:10px 12px;"><button class="cn-pay-btn" style="margin-bottom:6px;" onclick="_cnOpenPaySheet('${c.id}','${app.id}')">💳 Pay ${fmtKES(app.fund_amount_kes)} & hire</button><div style="font-size:11.5px;color:var(--muted);text-align:center;line-height:1.4;">EndaViral holds the money. The creator is only paid after you approve the video.</div></div>`;
     html += `</div>`;
   }
   el.innerHTML = html;
@@ -884,23 +923,24 @@ function _cnOpenPaySheet(campaignId, applicationId) {
   const body = document.getElementById('cnBidsModalBody');
   if (!body) return;
   const phone = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
-  const creatorLabel = esc(app.creator_display_name || 'the creator');
+  // One screen: what you pay, the M-Pesa number, one big Pay button. The
+  // old two-step sheet asked for the phone number twice. A different price
+  // still has to go through the creator (server only charges the agreed
+  // amount), so that's a separate, clearly-labelled link.
   body.innerHTML = `
     <div style="padding:16px 16px 0;">
-    <button class="cn-bidchat-back" style="margin-bottom:16px;display:flex;" onclick="_cnCancelPaySheet('${campaignId}','${applicationId}')" aria-label="Back to chat">←</button>
-    <div class="modal-title" style="margin-bottom:2px;">Confirm &amp; pay</div>
-    <div class="modal-sub" style="margin-bottom:14px;">${esc(app.creator_display_name || 'Creator')}</div>
-    <div class="cn-paysheet-field">
-      <label>Amount to fund (KES)</label>
-      <input type="number" min="1" step="1" id="cnPayAmount" class="cn-paysheet-amt-input"
-        value="${app.fund_amount_kes}" oninput="_cnPaySheetSyncButton('${applicationId}')">
-      <div class="cn-paysheet-amt-hint">Currently agreed: ${fmtKES(app.fund_amount_kes)}. Change this if you've agreed on a new price — ${creatorLabel} will need to accept it before you can fund at that amount.</div>
-    </div>
-    <div class="cn-paysheet-field">
-      <label>M-Pesa number to pay from</label>
-      <input type="text" id="cnPayPhone" class="cn-fund-phone" style="width:100%;" value="${esc(phone)}" placeholder="07XXXXXXXX">
-    </div>
-    <button class="btn-primary" id="cnPaySheetContinueBtn" style="width:100%;" onclick="_cnContinuePaySheet('${campaignId}','${applicationId}')">Continue</button>
+      <button class="cn-bidchat-back" style="margin-bottom:14px;display:flex;" onclick="_cnCancelPaySheet('${campaignId}','${applicationId}')" aria-label="Back to chat">←</button>
+      <div class="modal-title" style="margin-bottom:2px;">Pay & hire ${esc(app.creator_display_name || 'creator')}</div>
+      <div class="modal-sub" style="margin-bottom:14px;">You'll get an M-Pesa PIN prompt on your phone.</div>
+      ${_cnFundFormHtml(applicationId, Number(app.fund_amount_kes), phone)}
+      <details style="margin-top:14px;">
+        <summary style="font-size:12.5px;color:var(--muted);cursor:pointer;">Agreed a different price?</summary>
+        <div class="cn-paysheet-field" style="margin-top:10px;">
+          <input type="number" min="200" step="1" inputmode="numeric" id="cnPayAmount" class="cn-paysheet-amt-input" placeholder="New price (KES)">
+          <div class="cn-paysheet-amt-hint">We'll send this to ${esc(app.creator_display_name || 'the creator')} to agree first. You can pay once they agree.</div>
+          <button class="btn-secondary" id="cnPaySheetContinueBtn" style="width:100%;margin-top:8px;" onclick="_cnContinuePaySheet('${campaignId}','${applicationId}')">💬 Send new price</button>
+        </div>
+      </details>
     </div>
   `;
 }
@@ -930,16 +970,15 @@ function _cnCancelPaySheet(campaignId, applicationId) {
 }
 
 function _cnContinuePaySheet(campaignId, applicationId) {
-  const phoneInput = document.getElementById('cnPayPhone');
-  const phone = phoneInput ? phoneInput.value.trim() : '';
-  if (!phone) { toast('Enter your M-Pesa number', 'error'); return; }
   const app = (_cnActiveNegotiationApp && _cnActiveNegotiationApp.id === applicationId)
     ? _cnActiveNegotiationApp
     : _bwRows.find(a => a.id === applicationId);
   if (!app) return;
   const amountInput = document.getElementById('cnPayAmount');
   const amount_kes = parseFloat(amountInput ? amountInput.value : '');
-  if (!amount_kes || amount_kes <= 0) { toast('Enter a valid amount', 'error'); return; }
+  const amtErr = (typeof _cnAmountError === 'function') ? _cnAmountError(amount_kes, 'Price') : (!amount_kes ? 'Enter a price' : null);
+  if (amtErr) { toast(amtErr, 'error'); return; }
+  if (Math.abs(amount_kes - Number(app.fund_amount_kes)) <= 0.005) { toast('That is already the agreed price — just tap Pay above', 'info'); return; }
 
   // Unchanged from what's already agreed → straight to the funding
   // breakdown, same as before. Changed → this is a new price, so it goes
@@ -950,8 +989,6 @@ function _cnContinuePaySheet(campaignId, applicationId) {
     return;
   }
 
-  const body = document.getElementById('cnBidsModalBody');
-  if (body) body.innerHTML = `<div style="padding:16px 16px 0;">${_cnFundFormHtml(applicationId, app.fund_amount_kes, phone)}</div>`;
 }
 
 async function _cnProposePriceFromPaySheet(campaignId, applicationId, amount_kes) {
@@ -962,11 +999,11 @@ async function _cnProposePriceFromPaySheet(campaignId, applicationId, amount_kes
       method: 'POST',
       body: JSON.stringify({ amount_kes, application_id: applicationId }),
     });
-    toast('New price proposed — you can fund once they accept it', 'success');
+    toast('New price sent — you can pay once they agree', 'success');
     _cnOpenBidChat(campaignId, applicationId);
   } catch (e) {
     toast(e.message || 'Could not propose that price', 'error');
-    if (btn) { btn.disabled = false; btn.textContent = '💬 Propose This Price'; }
+    if (btn) { btn.disabled = false; btn.textContent = '💬 Send new price'; }
   }
 }
 
@@ -983,31 +1020,31 @@ function _cnFundFormHtml(applicationId, fundAmount, phone) {
   return `
     <div class="cn-fund-breakdown" style="background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:2px 0;">
-        <span>Campaign Budget</span><span>${fmtKES(fundAmount)}</span>
+        <span>Agreed price (for the creator)</span><span>${fmtKES(fundAmount)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:2px 0;">
-        <span>Marketplace Processing Fee</span><span>${fmtKES(fee)}</span>
+        <span>M-Pesa & safety fee</span><span>${fmtKES(fee)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:800;color:var(--white);padding:6px 0 4px;margin-top:4px;border-top:1px solid var(--border);">
-        <span>Total to Pay</span><span>${fmtKES(total)}</span>
+        <span>You pay</span><span>${fmtKES(total)}</span>
       </div>
       <div style="font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.5;">
-        The Marketplace Processing Fee covers payment processing, M-Pesa transaction costs, fraud protection, and secure creator payouts.<br>
-        ✓ Secure payment &nbsp; ✓ Creator paid after approval &nbsp; ✓ M-Pesa receipt provided
+        🔒 EndaViral keeps the money safe and only pays the creator after you approve the video. If something goes wrong, we help you get it back.
       </div>
     </div>
-    <div id="cnFundForm" class="cn-fund-row">
-      <input type="text" id="cnFundPhone" class="cn-fund-phone" value="${esc(phone || '')}" placeholder="07XXXXXXXX">
+    <label for="cnFundPhone" style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin:4px 0 6px;">Pay from this M-Pesa number</label>
+    <div id="cnFundForm" class="cn-fund-row" style="padding:0;background:none;border:none;">
+      <input type="tel" inputmode="tel" id="cnFundPhone" class="cn-fund-phone" value="${esc(phone || '')}" placeholder="07XXXXXXXX">
       <button class="cn-fund-btn" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}','${applicationId}')">📱 Pay ${fmtKES(total)}</button>
     </div>
     <div id="cnFundStatus" style="display:none;text-align:center;padding:16px 0 6px;">
       <div style="font-size:30px;margin-bottom:6px;" id="cnFundIcon">📱</div>
-      <div style="font-weight:800;color:var(--white);margin-bottom:4px;font-size:13px;" id="cnFundTitle">WAITING FOR PAYMENT</div>
-      <div style="font-size:11.5px;color:var(--muted);" id="cnFundDesc">Enter your M-Pesa PIN to pay ${fmtKES(total)}.</div>
+      <div style="font-weight:800;color:var(--white);margin-bottom:4px;font-size:14px;" id="cnFundTitle">Check your phone</div>
+      <div style="font-size:12.5px;color:var(--muted);" id="cnFundDesc">Enter your M-Pesa PIN to pay ${fmtKES(total)}. Keep this screen open.</div>
     </div>
     <div style="text-align:center;padding-top:10px;">
       <a href="javascript:void(0)" onclick="_cnOpenFundingIssueModal('${_cnCurrentCampaign.id}','${esc(phone || '')}')" style="font-size:11.5px;color:var(--muted);text-decoration:underline;">
-        Payment not reflecting? Contact support
+        Paid but it didn't go through? Tell us
       </a>
     </div>
   `;
@@ -1018,6 +1055,7 @@ async function _cnSubmitFund(campaignId, applicationId) {
   if (!phone) { toast('Enter your M-Pesa number', 'error'); return; }
 
   const btn = document.getElementById('cnFundBtn');
+  const btnLabel = btn.textContent;
   btn.disabled = true; btn.textContent = 'Sending…';
 
   let data;
@@ -1028,7 +1066,7 @@ async function _cnSubmitFund(campaignId, applicationId) {
     });
   } catch (e) {
     toast(e.message || 'Could not start payment', 'error');
-    btn.disabled = false; btn.textContent = '📱 Send STK Push';
+    btn.disabled = false; btn.textContent = btnLabel;
     return;
   }
 
@@ -1074,12 +1112,12 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
       if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
       if (icon) icon.textContent = '✅';
-      if (title) title.textContent = 'CAMPAIGN FUNDED';
+      if (title) title.textContent = 'Paid ✓ — creator can start';
       if (desc) {
         const feeNote = data.platform_processing_fee_kes
           ? ` (incl. ${fmtKES(data.platform_processing_fee_kes)} processing fee)`
           : '';
-        desc.textContent = `Paid ${fmtKES(data.total_charge_kes || data.amount_kes)}${feeNote}. The creator can now start work.`;
+        desc.textContent = `You paid ${fmtKES(data.total_charge_kes || data.amount_kes)}${feeNote}. EndaViral is holding it until you approve the video.`;
       }
       const statusEl = document.getElementById('cnFundStatus');
       if (statusEl && !document.getElementById('cnFundReceiptBtn')) {
@@ -1091,7 +1129,7 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
         btn.onclick = () => _cnDownloadReceipt(campaignId, checkoutRequestId);
         statusEl.appendChild(btn);
       }
-      toast('🎉 Campaign funded!', 'success');
+      toast('🎉 Paid! The creator has been told to start.', 'success');
       Store.invalidate('connectCampaigns');
       Store.invalidate('connectWork');
         setTimeout(() => {
@@ -1109,8 +1147,8 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
       if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
       if (icon) icon.textContent = '❌';
-      if (title) title.textContent = data.status === 'cancelled' ? 'PAYMENT CANCELLED' : 'PAYMENT FAILED';
-      if (desc) desc.textContent = 'You can try again.';
+      if (title) title.textContent = data.status === 'cancelled' ? 'Payment cancelled' : 'Payment didn\'t go through';
+      if (desc) desc.textContent = 'No money was taken. You can try again.';
       const retryForm = document.getElementById('cnFundForm');
       const statusEl = document.getElementById('cnFundStatus');
       setTimeout(() => {
@@ -1128,7 +1166,7 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
       // webhook or reconciler resolves this checkout, so we stay
       // subscribed to the push and let tick() run one more time,
       // silently, whenever that happens — no further polling required.
-      if (desc) desc.textContent = 'Still confirming — this will update automatically once M-Pesa confirms, or you can check back shortly.';
+      if (desc) desc.textContent = 'Still waiting for M-Pesa. If you already entered your PIN, it will update by itself — please don\'t pay again.';
     }
   }
 
@@ -1164,11 +1202,11 @@ function _cnOpenFundingIssueModal(campaignId, phone) {
   overlay.onclick = (e) => { if (e.target === overlay) _cnCloseFundingIssueModal(); };
   overlay.innerHTML = `
     <div style="background:var(--card,#161d2b);border:1px solid var(--border);border-radius:14px;max-width:420px;width:100%;padding:20px;">
-      <div style="font-weight:800;color:var(--white);font-size:15px;margin-bottom:4px;">🆘 Contact Support</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Paid but the campaign still shows unfunded? Tell us what happened and EndaViral support will confirm it manually.</div>
+      <div style="font-weight:800;color:var(--white);font-size:15px;margin-bottom:4px;">🆘 Paid but not showing?</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">Tell us and we'll check M-Pesa and fix it. Please don't pay again.</div>
       <label style="font-size:11.5px;color:var(--muted);display:block;margin-bottom:4px;">What happened?</label>
       <textarea id="cnFiMessage" rows="3" placeholder="e.g. Paid via M-Pesa at 2:15pm but the campaign still shows unfunded" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;color:var(--white);padding:8px 10px;font-size:12.5px;margin-bottom:10px;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
-      <label style="font-size:11.5px;color:var(--muted);display:block;margin-bottom:4px;">M-Pesa confirmation code (optional)</label>
+      <label style="font-size:11.5px;color:var(--muted);display:block;margin-bottom:4px;">M-Pesa code from the SMS (optional)</label>
       <input id="cnFiReceipt" type="text" placeholder="e.g. QGH7XXXXX" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;color:var(--white);padding:8px 10px;font-size:12.5px;margin-bottom:10px;box-sizing:border-box;">
       <label style="font-size:11.5px;color:var(--muted);display:block;margin-bottom:4px;">M-Pesa phone number (optional)</label>
       <input id="cnFiPhone" type="text" value="${esc(phone || '')}" placeholder="07XXXXXXXX" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;color:var(--white);padding:8px 10px;font-size:12.5px;margin-bottom:16px;box-sizing:border-box;">

@@ -59,6 +59,9 @@ function _renderConsultStats(stats) {
 }
 
 const _CONSULT_TIER_STYLE = {
+  smart_growth:['rgba(34,211,238,.14)', '#5fd8ee'],
+  creator_plan:['rgba(61,212,74,.14)', 'var(--green)'],
+  business_plan:['rgba(155,107,255,.16)', '#b99bff'],
   quick_fix:   ['rgba(122,143,173,.16)', '#a9b8d0'],
   growth_plan: ['rgba(61,212,74,.14)', 'var(--green)'],
   money_plan:  ['rgba(34,211,238,.14)', 'var(--cyan)'],
@@ -195,4 +198,4 @@ async function adminConsultSaveSchedule() {
   } catch (e) {
     toast(e.message, 'error');
   }
-}
+}
