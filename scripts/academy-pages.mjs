@@ -18,6 +18,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { ACADEMY_SEO } from './academy-seo.mjs';
 
 const COURSE_SLUG = {
   basics: 'endaviral-basics', ig: 'instagram', tiktok: 'tiktok', yt: 'youtube',
@@ -34,6 +35,27 @@ const SERVICE_PAGE = {
   youtube: '/buy-youtube-watch-hours-kenya', telegram: '/telegram-members-kenya',
   facebook: '/buy-facebook-page-likes-kenya',
 };
+// Each course's related service page, linked from every lesson's sidebar so
+// the service pages that get the fewest internal links pick some up.
+const COURSE_SERVICE = {
+  tiktok: ['/buy-tiktok-views-kenya', 'Buy TikTok views in Kenya'],
+  shorts: ['/buy-tiktok-views-kenya', 'Buy TikTok views in Kenya'],
+  ig: ['/buy-instagram-followers-kenya', 'Buy Instagram followers in Kenya'],
+  yt: ['/buy-youtube-watch-hours-kenya', 'Buy YouTube watch hours in Kenya'],
+  other: ['/buy-facebook-page-likes-kenya', 'Buy Facebook page likes in Kenya'],
+  business: ['/social-media-management-kenya', 'Social media management in Kenya'],
+  fundamentals: ['/social-media-consultant-kenya', 'Hire a social media consultant in Kenya'],
+  branding: ['/social-media-consultant-kenya', 'Hire a social media consultant in Kenya'],
+  rules: ['/social-media-management-kenya', 'Social media management in Kenya'],
+};
+// Search titles for course pages whose names don't read well in the default pattern.
+const COURSE_TITLE = {
+  tiktok: 'Free TikTok Growth Course for Kenya | EndaViral Academy',
+  ig: 'Free Instagram Growth Course for Kenya | EndaViral Academy',
+  yt: 'Free YouTube Growth Course for Kenya | EndaViral Academy',
+  basics: 'How EndaViral Works: Free Beginner Course | EndaViral',
+  rules: 'Social Media Rules and Bans: Free Course | EndaViral',
+};
 const PUBLISHED = '2026-11-01';
 
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -43,6 +65,17 @@ const slugify = s => plain(s).toLowerCase().replace(/&/g, ' and ').replace(/['�
   .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
   .split('-').reduce((acc, w) => (acc && (acc + '-' + w).length > 72 ? acc : (acc ? acc + '-' + w : w)), '');
 const clip = (s, n) => { s = plain(s).replace(/\s+/g, ' ').trim(); return s.length <= n ? s : s.slice(0, n - 1).replace(/\s+\S*$/, '') + '…'; };
+// A search snippet that ends on a whole sentence (no "…") when one fits.
+const clipSentences = (s, n) => {
+  s = plain(s).replace(/\s+/g, ' ').trim();
+  if (s.length <= n) return s;
+  let out = '';
+  for (const part of s.match(/[^.!?]+[.!?]+["'”’)]*\s*/g) || []) {
+    if ((out + part).trim().length > n) break;
+    out += part;
+  }
+  return out.trim().length >= 70 ? out.trim() : clip(s, n);
+};
 
 function findMatching(s, i) {
   const stack = [s[i]];
@@ -304,8 +337,9 @@ export function buildAcademyPages({ root, site, write }) {
     m.lessons.forEach((l, i) => {
       const url = lessonUrl(m, l);
       const hook = firstText(l);
-      const title = `${plain(l.title)} | ${m.title} — Free EndaViral Academy`;
-      const desc = clip(hook, 158);
+      const seo = ACADEMY_SEO[`${COURSE_SLUG[m.id]}/${slugify(l.title)}`] || {};
+      const title = seo.title || `${plain(l.title)} | EndaViral Academy`;
+      const desc = seo.desc || clipSentences(hook, 155);
       const prev = m.lessons[i - 1], next = m.lessons[i + 1];
       const nextCourse = !next ? free[(free.indexOf(m) + 1) % free.length] : null;
       const quizzes = l.body.filter(b => b.type === 'quiz');
@@ -333,6 +367,7 @@ ${renderBlocks(l.body, { modules })}
   <aside>
     <div class="card"><h4>${esc(m.icon)} ${esc(m.title)}</h4><div class="ls">${m.lessons.map((x, k) => `<a href="${lessonUrl(m, x)}"${x === l ? ' class="cur" aria-current="page"' : ''}><b>${k + 1}</b><span>${esc(plain(x.title))}</span></a>`).join('')}</div></div>
     <div class="card cta"><strong>🎓 ${totalLessons} free lessons</strong><p>Track progress, earn points you can spend on premium courses, and get a shareable certificate for every course you finish.</p><a class="l-btn" href="/?go=academy">Join the Academy free →</a></div>
+    ${COURSE_SERVICE[m.id] ? `<div class="card"><h4>Need a faster start?</h4><div class="ls"><a href="${COURSE_SERVICE[m.id][0]}"><b>🚀</b><span>${esc(COURSE_SERVICE[m.id][1])}</span></a></div></div>` : ''}
     <div class="card"><h4>More free courses</h4><div class="ls">${free.filter(x => x !== m).slice(0, 6).map(x => `<a href="${courseUrl(x)}"><b>${esc(x.icon)}</b><span>${esc(x.title)}</span></a>`).join('')}</div></div>
   </aside>
 </div>`;
@@ -356,7 +391,7 @@ ${renderBlocks(l.body, { modules })}
 
     /* Course page */
     const url = courseUrl(m);
-    const desc = clip(`Free ${m.lessons.length}-lesson course: ${m.blurb}. Written for Kenyan creators and businesses, updated November 2026.`, 158);
+    const desc = clipSentences(`Free ${m.lessons.length}-lesson course: ${m.blurb}. Written for Kenyan creators and businesses, updated November 2026.`, 155);
     const pm = premium.find(p => p.id === ({ basics: 'money', ig: 'ig_reels_pro', tiktok: 'tiktok_pro', yt: 'yt_seo', other: 'fb_monetize', safety: 'money', business: 'business_pro', shorts: 'shorts_pro', ai_content: 'ai_content_pro', capcut: 'capcut_pro', canva: 'canva_pro', branding: 'branding_pro', rules: 'ig_reels_pro', rescue: 'money', fundamentals: 'business_pro' })[m.id]);
     const body = `
 <header class="hero"><div class="hero-in" style="max-width:820px;">
@@ -372,7 +407,7 @@ ${renderBlocks(l.body, { modules })}
   ${pm ? `<div class="l-locked" style="margin-top:28px;"><div class="l-lb">💎 When you're ready to go deeper</div><p class="l-locked-t">${esc(pm.icon)} ${esc(pm.title)}</p><p>${esc(pm.blurb)} · ${pm.lessons.length} lessons</p><ul>${pm.lessons.map(x => `<li>🔒 ${esc(x.title)}</li>`).join('')}</ul><a class="l-btn gold" href="/?go=academy&amp;m=${pm.id}">Read lesson 1 free in the app →</a><p class="l-small">From KSh ${pm.priceKes || 50}, one-time M-Pesa payment.</p></div>` : ''}
 </div>`;
     write(`learn/${COURSE_SLUG[m.id]}.html`, page({
-      title: `${m.title} — Free Course for Kenyan Creators | EndaViral Academy`, desc, url,
+      title: COURSE_TITLE[m.id] || [`Free ${m.title} Course for Kenya | EndaViral Academy`, `Free ${m.title} Course for Kenya | EndaViral`, `${m.title}: Free Course | EndaViral`].find(t => t.length <= 60) || `${m.title} | EndaViral`, desc, url,
       keywords: `${m.title.toLowerCase()} course kenya, free ${m.title.toLowerCase()} lessons, endaviral academy`,
       ogType: 'website', body,
       schemas: [
@@ -402,13 +437,18 @@ ${renderBlocks(l.body, { modules })}
 <div class="grid">
 ${free.map(m => `<a class="cc" href="${courseUrl(m)}"><div class="ic">${esc(m.icon)}</div><h2>${esc(m.title)}</h2><p>${esc(m.blurb)}</p><span class="go">${m.lessons.length} free lessons →</span></a>`).join('\n')}
 </div>
+<div class="sec-h">Premium guides — downloadable PDF</div>
+<div class="grid">
+<a class="cc prem" href="/?go=academy&amp;m=guide_standard"><div class="ic">📘</div><h3>Social Media Growth Strategy — Standard Edition</h3><p>Brand positioning, audience segments, a weekly content system, hooks, engagement and analytics · 47 pages in plain English with worked examples and a 30-day plan</p><span class="go">Get the PDF → KSh 250</span></a>
+<a class="cc prem" href="/?go=academy&amp;m=guide_advanced"><div class="ic">📗</div><h3>Social Media Growth Strategy — Advanced Edition</h3><p>Content ecosystems, hook engineering, growth loops, predictive planning and retention mapping · 44 pages in plain English with worked examples and a 90-day plan</p><span class="go">Get the PDF → KSh 500</span></a>
+</div>
 <div class="sec-h">Premium deep-dives — in the app, from KSh 50</div>
 <div class="grid">
 ${premium.map(p => `<a class="cc prem" href="/?go=academy&amp;m=${p.id}"><div class="ic">${esc(p.icon)}</div><h3>${esc(p.title)}</h3><p>${esc(p.blurb)} · ${p.lessons.length} lessons</p><span class="go">Read lesson 1 free → KSh ${p.priceKes || 50}</span></a>`).join('\n')}
 </div>`;
   write('learn.html', page({
-    title: 'Free Social Media Courses for Kenyan Creators (2026) | EndaViral Academy',
-    desc: clip(`${totalLessons} free lessons on growing TikTok, Instagram, YouTube and Facebook in Kenya, fixing hacked or banned accounts, and getting paid. Researched and updated November 2026.`, 158),
+    title: 'Free Social Media Courses for Kenyan Creators | EndaViral',
+    desc: clipSentences(`${totalLessons} free lessons on growing TikTok, Instagram, YouTube and Facebook in Kenya, fixing hacked or banned accounts, and getting paid. Updated November 2026.`, 155),
     url: hubUrl, keywords: 'free social media course kenya, tiktok course kenya, instagram growth course kenya, creator academy kenya, digital marketing course kenya free',
     ogType: 'website', body: hubBody,
     schemas: [{ '@context': 'https://schema.org', '@type': 'ItemList', name: 'EndaViral Free Creator Academy',

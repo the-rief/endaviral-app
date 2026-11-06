@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════
  * ENDAVIRAL — ADMIN CREATOR ACADEMY ANALYTICS  v1.0
  *
- * Sub-tabs: Overview | Funnel | Revenue | Leaderboard | Feedback
+ * Sub-tabs: Overview | Funnel | Revenue | Guides (PDF) | Leaderboard | Feedback
  *
  * Depends on: api(), toast(), fmtKES(), esc()  — globals from index.html /
  * admin.js (same dependencies as admin_affiliate_payouts.js — this file is
@@ -74,7 +74,7 @@ let _acAdminCurrentSubTab = 'overview';
 function acAdminSubTab(tab) {
   _acAdminCurrentSubTab = tab;
 
-  ['overview', 'funnel', 'revenue', 'leaderboard', 'comments', 'insights', 'feedback'].forEach(t => {
+  ['overview', 'funnel', 'revenue', 'guides', 'leaderboard', 'comments', 'insights', 'feedback'].forEach(t => {
     const el = document.getElementById('acSubTab-' + t);
     if (!el) return;
     el.style.borderBottomColor = t === tab ? 'var(--green)' : 'transparent';
@@ -82,7 +82,7 @@ function acAdminSubTab(tab) {
     el.style.fontWeight        = t === tab ? '800' : '700';
   });
 
-  ['overview', 'funnel', 'revenue', 'leaderboard', 'comments', 'insights', 'feedback'].forEach(t => {
+  ['overview', 'funnel', 'revenue', 'guides', 'leaderboard', 'comments', 'insights', 'feedback'].forEach(t => {
     const p = document.getElementById('acAdminPane-' + t);
     if (p) p.style.display = t === tab ? '' : 'none';
   });
@@ -95,6 +95,7 @@ function acAdminSubTab(tab) {
     overview:    { title: '📊 ACADEMY OVERVIEW',    sub: 'Learners, levels, streaks & premium ownership', fn: adminLoadAcademyOverview },
     funnel:      { title: '🔻 ACADEMY FUNNEL',       sub: 'Where learners drop off, lesson by lesson',     fn: adminLoadAcademyFunnel },
     revenue:     { title: '💰 ACADEMY REVENUE',      sub: 'Premium module sales + loyalty points economy', fn: adminLoadAcademyRevenue },
+    guides:      { title: '📘 PREMIUM GUIDES (PDF)', sub: 'Growth Strategy guide sales, buyers, payments & downloads', fn: adminLoadAcademyGuides },
     leaderboard: { title: '🏆 ACADEMY LEADERBOARD',  sub: 'Top learners ranked by XP',                     fn: adminLoadAcademyLeaderboard },
     comments:    { title: '💬 LESSON COMMENTS',      sub: 'Questions & comments left on individual lessons — reply, hide or follow up', fn: () => adminLoadAcademyComments(true) },
     insights:    { title: '🔥 LESSON INSIGHTS',      sub: 'Which lessons land, which flop, and which free previews sell', fn: adminLoadAcademyInsights },
@@ -325,7 +326,7 @@ async function adminLoadAcademyRevenue() {
 
   const pe = data.points_economy || {};
   const cards = [
-    { icon: '💰', label: 'Total M-Pesa Revenue', value: fmtKES(data.total_revenue_kes || 0), sub: 'from premium module purchases', color: '#3dd44a' },
+    { icon: '💰', label: 'Total M-Pesa Revenue', value: fmtKES(data.total_revenue_kes || 0), sub: 'premium courses + PDF guides', color: '#3dd44a' },
     { icon: '⭐', label: 'Points Redeemed',       value: pe.total_points_redeemed || 0, sub: `≈ ${fmtKES(pe.redemption_value_kes || 0)} equivalent`, color: '#ffd700' },
     { icon: '🎁', label: 'Outstanding Points',    value: pe.outstanding_points_balance || 0, sub: 'held by users, not yet redeemed', color: '#9b6bff' },
     { icon: '🧾', label: 'Points Redemptions',    value: pe.redemptions_count || 0, sub: 'module unlocks paid with points', color: '#ff9a3c' },
@@ -354,7 +355,7 @@ async function adminLoadAcademyRevenue() {
             <thead><tr><th>Module</th><th>Purchases</th><th>M-Pesa Buyers</th><th>Revenue</th><th>Conversion</th></tr></thead>
             <tbody>${data.per_module.map(m => `
               <tr>
-                <td><strong>${esc(m.module_id)}</strong></td>
+                <td><strong>${esc(m.module_id)}</strong>${m.kind === 'guide' ? ' <span style="font-size:10px;font-weight:800;color:#ffb020;border:1px solid rgba(255,176,32,.4);border-radius:6px;padding:1px 6px;margin-left:4px;">PDF GUIDE</span>' : ''}</td>
                 <td>${m.purchases}</td>
                 <td>${m.mpesa_owners}</td>
                 <td style="color:var(--green);font-weight:700;">${fmtKES(m.revenue_kes)}</td>
@@ -371,6 +372,146 @@ async function adminLoadAcademyRevenue() {
     </div>
   `;
   container.appendChild(el);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB: PREMIUM GUIDES (PDF)  —  GET /academy/admin/guides/stats
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _acGuideStats = null;
+let _acGuideFilter = 'all';
+
+function _acAgo(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso), s = (Date.now() - d.getTime()) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  if (s < 86400 * 7) return Math.floor(s / 86400) + 'd ago';
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+const _AC_GUIDE_COLOR = { guide_standard: '#3dd44a', guide_advanced: '#ffb020' };
+const _AC_STATUS_STYLE = {
+  success:   'color:#3dd44a;background:rgba(61,212,74,.12);',
+  pending:   'color:#22d3ee;background:rgba(34,211,238,.12);',
+  failed:    'color:#ff6b6b;background:rgba(255,69,69,.12);',
+  cancelled: 'color:#a9b8cc;background:rgba(122,143,173,.15);',
+};
+
+async function adminLoadAcademyGuides() {
+  const container = document.getElementById('adminAcademyGuides');
+  if (!container) return;
+  container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading guide stats…</span></div>`;
+  const warnings = [];
+  const data = await _acSafeFetch('/academy/admin/guides/stats?days=30&recent=100', 'Guide stats', warnings);
+  container.innerHTML = '';
+  if (warnings.length) container.appendChild(_acWarnBanner(warnings, 'adminLoadAcademyGuides'));
+  if (!data) return;
+  _acGuideStats = data;
+  _acRenderGuideStats();
+}
+
+function _acGuideFilterSet(f) { _acGuideFilter = f; _acRenderGuideStats(); }
+
+function _acRenderGuideStats() {
+  const container = document.getElementById('adminAcademyGuides');
+  const data = _acGuideStats;
+  if (!container || !data) return;
+  const t = data.totals || {};
+  const card = (inner, extra = '') => `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:22px;${extra}">${inner}</div>`;
+  const head = txt => `<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">${txt}</div>`;
+
+  const cards = [
+    _acStatCard('💰', 'Guide Revenue', fmtKES(t.revenue_kes || 0), `${fmtKES(t.revenue_30d_kes || 0)} in the last 30 days`, '#3dd44a'),
+    _acStatCard('🧾', 'Guides Sold', t.sales || 0, `${t.sales_today || 0} today`, '#ffb020'),
+    _acStatCard('👥', 'Buyers', t.buyers || 0, `${t.buyers_both || 0} bought both editions`, '#9b6bff'),
+    _acStatCard('⬇️', 'Downloads', t.downloads || 0, 'total PDF downloads', '#22d3ee'),
+    _acStatCard('⏳', 'Pending Payments', t.pending || 0, 'waiting for M-Pesa confirmation', '#ff9a3c'),
+    _acStatCard('🎓', 'Academy Learners', t.learners || 0, 'base for conversion %', '#7a8fad'),
+  ].join('');
+
+  const perGuide = (data.guides || []).map(g => {
+    const color = _AC_GUIDE_COLOR[g.guide_id] || '#3dd44a';
+    const dlPct = g.buyers ? Math.round(g.buyers_downloaded / g.buyers * 100) : 0;
+    const row = (k, v) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;"><span style="color:var(--muted);">${k}</span><span style="color:var(--white);font-weight:700;text-align:right;">${v}</span></div>`;
+    return `<div style="flex:1 1 320px;background:var(--card);border:1px solid var(--border);border-top:3px solid ${color};border-radius:14px;padding:18px 20px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;">
+        <div><div style="font-size:10px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:${color};">${esc(g.edition)} Edition · KES ${g.price_kes}</div>
+        <div style="font-size:14px;font-weight:900;color:var(--white);margin-top:3px;">Social Media Growth Strategy</div></div>
+        <div style="text-align:right;"><div style="font-size:22px;font-weight:900;color:${color};">${fmtKES(g.revenue_kes)}</div><div style="font-size:10.5px;color:var(--muted);">${g.sales} sold · ${g.buyers} buyers</div></div>
+      </div>
+      ${row('Sales today / 7 days / 30 days', `${g.sales_today} / ${g.sales_7d} / ${g.sales_30d}`)}
+      ${row('Revenue last 7 / 30 days', `${fmtKES(g.revenue_7d_kes)} / ${fmtKES(g.revenue_30d_kes)}`)}
+      ${row('M-Pesa success rate', g.payment_success_pct == null ? '—' : g.payment_success_pct + '%')}
+      ${row('Attempts · pending · failed · cancelled', `${g.attempts} · ${g.pending} · ${g.failed} · ${g.cancelled}`)}
+      ${row('Learner → buyer conversion', g.conversion_pct == null ? '—' : g.conversion_pct + '%')}
+      ${row('Buyers who downloaded', `${g.buyers_downloaded} of ${g.buyers} (${dlPct}%)`)}
+      ${row('Total downloads', g.downloads)}
+      ${row('Last sale', _acAgo(g.last_sale_at))}
+      ${row('Last download', _acAgo(g.last_download_at))}
+    </div>`;
+  }).join('');
+
+  // 30-day trend: one stacked column per day (Standard + Advanced revenue).
+  const daily = data.daily || [];
+  const maxDay = Math.max(1, ...daily.map(d => (d.guide_standard?.revenue_kes || 0) + (d.guide_advanced?.revenue_kes || 0)));
+  const bars = daily.map(d => {
+    const s = d.guide_standard?.revenue_kes || 0, a = d.guide_advanced?.revenue_kes || 0;
+    const n = (d.guide_standard?.sales || 0) + (d.guide_advanced?.sales || 0);
+    const label = new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    return `<div title="${label}: ${n} sold · ${fmtKES(s + a)}" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-width:4px;">
+      <div style="height:${(a / maxDay) * 100}%;background:#ffb020;border-radius:3px 3px 0 0;"></div>
+      <div style="height:${(s / maxDay) * 100}%;background:#3dd44a;${a ? '' : 'border-radius:3px 3px 0 0;'}"></div>
+    </div>`;
+  }).join('');
+  const first = daily[0] ? new Date(daily[0].date + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '';
+  const trend = `${head('Daily guide revenue · last 30 days')}
+    <div style="display:flex;gap:3px;align-items:flex-end;height:120px;border-bottom:1px solid var(--border);padding-bottom:2px;">${bars}</div>
+    <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:6px;"><span>${first}</span>
+      <span><span style="color:#3dd44a;">■</span> Standard &nbsp; <span style="color:#ffb020;">■</span> Advanced · busiest day ${fmtKES(maxDay === 1 ? 0 : maxDay)}</span><span>Today</span></div>`;
+
+  const recent = (data.recent || []).filter(r => _acGuideFilter === 'all' || r.status === _acGuideFilter
+    || (_acGuideFilter === 'not_downloaded' && r.status === 'success' && !r.downloads));
+  const fbtn = (f, label) => `<button onclick="_acGuideFilterSet('${f}')" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:'Montserrat',sans-serif;border:1px solid ${_acGuideFilter === f ? 'var(--green)' : 'var(--border)'};background:${_acGuideFilter === f ? 'rgba(61,212,74,.12)' : 'transparent'};color:${_acGuideFilter === f ? 'var(--green)' : 'var(--muted)'};">${label}</button>`;
+  const table = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+      ${head('Recent purchases').replace('margin-bottom:14px;', 'margin:0;')}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">${fbtn('all', 'All')}${fbtn('success', 'Paid')}${fbtn('pending', 'Pending')}${fbtn('failed', 'Failed')}${fbtn('cancelled', 'Cancelled')}${fbtn('not_downloaded', 'Paid, not downloaded')}
+        <button onclick="_acGuideExportCsv()" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:'Montserrat',sans-serif;border:1px solid var(--border);background:var(--navy);color:var(--white);">⬇ CSV</button></div>
+    </div>
+    ${recent.length ? `<div class="tbl-wrap"><table>
+      <thead><tr><th>When</th><th>Customer</th><th>Guide</th><th>Amount</th><th>Status</th><th>M-Pesa ref</th><th>Downloads</th></tr></thead>
+      <tbody>${recent.map(r => `<tr>
+        <td style="white-space:nowrap;color:var(--muted);" title="${esc(r.at || '')}">${_acAgo(r.at)}</td>
+        <td><strong>${esc(r.user.name)}</strong><div style="font-size:11px;color:var(--muted);">${esc(r.user.email || r.user.phone || '')}${r.pay_phone ? ' · paid from ' + esc(r.pay_phone) : ''}</div></td>
+        <td><span style="color:${_AC_GUIDE_COLOR[r.guide_id] || 'var(--white)'};font-weight:800;">${esc(r.edition || r.guide_id)}</span></td>
+        <td style="font-weight:700;">${fmtKES(r.amount_kes)}</td>
+        <td><span style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;${_AC_STATUS_STYLE[r.status] || ''}">${esc(r.status)}</span></td>
+        <td style="font-family:monospace;font-size:11.5px;">${esc(r.mpesa_receipt || '—')}</td>
+        <td>${r.status === 'success' ? (r.downloads ? `${r.downloads}×` : '<span style="color:#ff9a3c;font-weight:700;">Not yet</span>') : '—'}</td>
+      </tr>`).join('')}</tbody></table></div>`
+      : `<div style="color:var(--muted);font-size:12px;">No purchases match this filter.</div>`}`;
+
+  container.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;">${cards}</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:22px;">${perGuide}</div>
+    ${card(trend)}
+    ${card(table)}
+    ${card(head('Insights') + (data.insights || []).map(i => `<div style="font-size:13px;color:var(--white);padding:6px 0;border-bottom:1px solid var(--border);">💡 ${esc(i)}</div>`).join(''))}
+  `;
+}
+
+function _acGuideExportCsv() {
+  const rows = (_acGuideStats && _acGuideStats.recent) || [];
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = [['date', 'customer', 'email', 'account_phone', 'paid_from', 'guide', 'amount_kes', 'status', 'mpesa_receipt', 'downloads']]
+    .concat(rows.map(r => [r.at, r.user.name, r.user.email, r.user.phone, r.pay_phone, r.edition, r.amount_kes, r.status, r.mpesa_receipt, r.downloads]))
+    .map(r => r.map(q).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = `endaviral-guide-purchases-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

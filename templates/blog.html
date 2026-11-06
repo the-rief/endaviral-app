@@ -329,10 +329,13 @@ body::after{content:'';position:fixed;inset:0;background-image:
       <!-- Services -->
       <div class="sidebar-card">
         <h4>Our Services</h4>
-        <a class="platform-badge" href="/buy-tiktok-followers-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#010101;">🎵</div><div><div class="pb-label">TikTok Growth</div><div class="pb-sub">Followers, Views, Likes</div></div></a>
+        <a class="platform-badge" href="/buy-tiktok-views-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#010101;">🎵</div><div><div class="pb-label">TikTok Views</div><div class="pb-sub">Boost a video's reach</div></div></a>
+        <a class="platform-badge" href="/buy-tiktok-followers-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#010101;">👥</div><div><div class="pb-label">TikTok Followers</div><div class="pb-sub">Followers and likes</div></div></a>
         <a class="platform-badge" href="/buy-instagram-followers-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#e1306c;">📸</div><div><div class="pb-label">Instagram Growth</div><div class="pb-sub">Followers, Likes, Views</div></div></a>
         <a class="platform-badge" href="/buy-youtube-watch-hours-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#ff0000;">▶️</div><div><div class="pb-label">YouTube Growth</div><div class="pb-sub">Views, Watch Hours, Subs</div></div></a>
         <a class="platform-badge" href="/telegram-members-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#0088cc;">✈️</div><div><div class="pb-label">Telegram Growth</div><div class="pb-sub">Members, Views</div></div></a>
+        <a class="platform-badge" href="/buy-facebook-page-likes-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#1877f2;">👍</div><div><div class="pb-label">Facebook Page Likes</div><div class="pb-sub">Page credibility</div></div></a>
+        <a class="platform-badge" href="/social-media-management-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#3dd44a;">🧑‍💼</div><div><div class="pb-label">Social Media Management</div><div class="pb-sub">We run it from KES 5,000/mo</div></div></a>
       </div>
     </aside>
   </div>
@@ -1179,14 +1182,14 @@ function articleCtas(article) {
         <div class="hire-box">
           <div class="hire-box-eyebrow">Hire EndaViral</div>
           <div class="hire-box-title">Rather have us do it for you?</div>
-          <p>A strategist reviews your account and tells you exactly what to fix. Or we run it for you every month.</p>
+          <p>A <a href="/social-media-consultant-kenya">social media consultant</a> reviews your account and tells you exactly what to fix. Or we <a href="/social-media-management-kenya">manage your social media</a> every month.</p>
           <ul class="hire-box-tiers">
             <li><b>Quick Fix</b><span>KES 500</span></li>
             <li><b>Growth Plan</b><span>KES 1,000</span></li>
             <li><b>Money Plan</b><span>KES 1,500</span></li>
             <li><b>We run it</b><span>KES 5,000/mo</span></li>
           </ul>
-          <a class="hire-box-btn" href="https://endaviral.co.ke/#hire-endaviral">See packages →</a>
+          <a class="hire-box-btn" href="/social-media-consultant-kenya">See packages →</a>
         </div>
       </div>`;
 }
@@ -1220,6 +1223,16 @@ function articleCtas(article) {
       desc: 'Free guides on TikTok growth, Instagram followers, YouTube monetisation and social media marketing in Kenya.',
       url: 'https://endaviral.co.ke/blog',
       keywords: 'tiktok growth kenya, social media tips kenya, endaviral blog'
+    });
+    document.getElementById('schema-article').textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": "EndaViral Blog",
+      "url": "https://endaviral.co.ke/blog",
+      "description": "Free guides on TikTok growth, Instagram followers, YouTube monetisation and social media marketing in Kenya.",
+      "publisher": { "@type": "Organization", "name": "EndaViral", "url": "https://endaviral.co.ke" },
+      "mainEntity": { "@type": "ItemList", "itemListElement": ARTICLES.map((a, i) => ({
+        "@type": "ListItem", "position": i + 1, "url": "https://endaviral.co.ke/" + a.slug, "name": a.title })) }
     });
     return;
   }

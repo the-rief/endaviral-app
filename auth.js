@@ -31,6 +31,7 @@ function _evConsumeAcademyDeepLink() {
   if (!target) return;
   sessionStorage.removeItem('ev_go_academy');
   setTimeout(async () => {
+    if (target.m && target.m.startsWith('guide_') && typeof acOpenGuide === 'function') { acOpenGuide(target.m); return; }
     if (typeof navTo === 'function') navTo('academy');
     if (!target.m || typeof ACADEMY_MODULES === 'undefined') return;
     const mod = ACADEMY_MODULES.find(x => x.id === target.m);

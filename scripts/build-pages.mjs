@@ -21,6 +21,7 @@
  *   templates/blog.html         → blog.html + <slug>.html for every ARTICLE
  * ════════════════════════════════════════════════════════════════════════ */
 
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -220,6 +221,9 @@ function render(templateHtml, pathname, extract) {
 
 const written = [];
 function write(file, html) {
+  // Templates may be checked out with Windows line endings; the published
+  // pages are always LF, so a rebuild on any machine gives the same files.
+  html = html.replace(/\r\n/g, '\n');
   const p = path.join(ROOT, file);
   fs.mkdirSync(path.dirname(p), { recursive: true });
   const before = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
@@ -254,9 +258,18 @@ const entry = (loc, lastmod, freq, prio) =>
   `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${prio}</priority>\n  </url>`;
 
 const homeLoc = `${SITE}/`;
+// index.html isn't generated, so date it from git: today if it has uncommitted
+// edits, otherwise the date of the last commit that touched it.
+function fileDate(file) {
+  try {
+    const run = args => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    if (run(['status', '--porcelain', '--', file])) return today;
+    return run(['log', '-1', '--format=%cs', '--', file]) || null;
+  } catch { return null; }
+}
 const urls = [
   '  <!-- ── Core ── -->',
-  entry(homeLoc, prevLastmod[homeLoc] || today, 'weekly', '1.0'),
+  entry(homeLoc, fileDate('index.html') || prevLastmod[homeLoc] || today, 'weekly', '1.0'),
   '  <!-- ── Service + Hire EndaViral pages ── -->',
   ...seoSlugs.map(s => entry(`${SITE}/${s}`, lastmodFor(`${SITE}/${s}`, `${s}.html`), 'weekly', '0.9')),
   '  <!-- ── Blog ── -->',

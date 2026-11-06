@@ -2138,6 +2138,7 @@ function _acRenderModCard(mod, state) {
 
 function _acRenderHome(sec, state) {
   _acInjectHomeStyles();
+  _acInjectGuideStyles();
   const total   = _acTotalLessons();
   const done    = _acCompletedCount(state);
   const pct     = total ? Math.round((done / total) * 100) : 0;
@@ -2200,6 +2201,11 @@ function _acRenderHome(sec, state) {
     </div>
   </div>` : ''}
 
+  <div id="ac-guides-section">
+    <div class="ac-group-hd" style="margin-top:0;"><span class="t">📘 Premium Guides · PDF</span><span class="n">from KSh ${Math.min(...ACADEMY_GUIDES.map(g => g.priceKes))}</span><span class="line"></span></div>
+    <div class="ac-guides" id="ac-guides">${_acGuidesInner()}</div>
+  </div>
+
   ${lockedMods.length > recoMods.length ? `
   <div class="ac-premium-teaser" onclick="_acScrollToPremium()">
     <div class="ac-premium-teaser-icon">💎</div>
@@ -2249,6 +2255,7 @@ function _acRenderHome(sec, state) {
     ${lockedMods.map(mod => _acRenderModCard(mod, state)).join('')}
   </div>` : ''}`;
   if (_acPendingReplies.length) _acPaintReplyBanner(sec);
+  _acFetchGuides(!_acGuidesLoaded).then(_acPaintGuides).catch(() => { /* keep the buy buttons */ });
 }
 
 // ─── Rendering: module (lesson list) ───────────────────────────────────────
@@ -3105,32 +3112,162 @@ async function submitAcademyFeedback() {
   }
 }
 // ─── Rendering: premium module purchase (M-Pesa STK, same pattern as wallet deposit) ─
+// ─── Premium guides: downloadable PDFs (Standard KSh 250, Advanced KSh 500) ─
+// Bought with the same M-Pesa modal as premium courses, but against
+// /academy/guides/*. The server owns the prices and the files; once paid,
+// a guide can be downloaded again any time from this page.
+const ACADEMY_GUIDES = [
+  { id: 'guide_standard', edition: 'Standard', priceKes: 250, pages: 47, sections: 14,
+    title: 'Social Media Growth Strategy — Standard Edition', cover: 'guide-standard-cover.jpg',
+    blurb: 'A simple, step-by-step plan: clear posts, the right audience, better hooks and your numbers. Worked examples and a 30-day plan.' },
+  { id: 'guide_advanced', edition: 'Advanced', priceKes: 500, pages: 44, sections: 15,
+    title: 'Social Media Growth Strategy — Advanced Edition', cover: 'guide-advanced-cover.jpg',
+    blurb: 'Build a growth system: give every post a job, read your numbers, test and grow on several apps. Plain English, 90-day plan.' },
+];
+let _acOwnedGuides = new Set();
+let _acGuidesLoaded = false;
+
+const _acIsGuide = id => typeof id === 'string' && id.startsWith('guide_');
+const _acGuide = id => ACADEMY_GUIDES.find(g => g.id === id);
+const _acItemBase = id => _acIsGuide(id) ? '/academy/guides/' : '/academy/modules/';
+function _acItemTitle(id) {
+  if (_acIsGuide(id)) { const g = _acGuide(id); return g ? g.title : 'Guide'; }
+  const m = ACADEMY_MODULES.find(x => x.id === id); return m ? m.title : 'your course';
+}
+
+async function _acFetchGuides(force = false) {
+  const data = await api('/academy/guides' + (force ? `?t=${Date.now()}` : ''));
+  const list = (data && data.guides) || [];
+  _acOwnedGuides = new Set(list.filter(g => g.owned).map(g => g.id));
+  list.forEach(sg => { const g = _acGuide(sg.id); if (g && sg.price_kes) g.priceKes = sg.price_kes; });
+  _acGuidesLoaded = true;
+}
+
+function _acInjectGuideStyles() {
+  if (document.getElementById('acGuideStyles')) return;
+  const st = document.createElement('style');
+  st.id = 'acGuideStyles';
+  st.textContent = `
+    .ac-guides{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:8px;}
+    .ac-guide{display:flex;gap:14px;background:linear-gradient(135deg,rgba(255,176,32,.10),rgba(61,212,74,.05));border:1px solid rgba(255,176,32,.35);border-radius:16px;padding:14px;}
+    .ac-guide.owned{border-color:rgba(61,212,74,.5);background:linear-gradient(135deg,rgba(61,212,74,.10),rgba(61,212,74,.03));}
+    .ac-guide img{width:84px;height:119px;object-fit:cover;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.45);flex-shrink:0;}
+    .ac-guide-b{flex:1;min-width:0;display:flex;flex-direction:column;}
+    .ac-guide-ed{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);}
+    .ac-guide.owned .ac-guide-ed{color:var(--green);}
+    .ac-guide-t{font-size:14px;font-weight:900;color:var(--white);line-height:1.3;margin:3px 0 4px;}
+    .ac-guide-w{font-size:11.5px;color:var(--muted);line-height:1.45;}
+    .ac-guide-m{font-size:11px;color:#a9b8cc;margin-top:6px;}
+    .ac-guide-btn{white-space:nowrap;margin-top:auto;align-self:flex-start;border:0;border-radius:10px;padding:9px 14px;font-weight:900;font-size:12.5px;cursor:pointer;background:var(--gold);color:#1a1204;}
+    .ac-guide.owned .ac-guide-btn{background:var(--green);color:#06140a;}
+    .ac-guide-btn[disabled]{opacity:.6;cursor:wait;}
+    .ac-guide-act{display:flex;align-items:center;gap:10px;margin-top:10px;}
+    .ac-guide-note{font-size:10.5px;color:var(--muted);}
+    @media(max-width:420px){.ac-guide img{width:70px;height:99px;}.ac-guide-t{font-size:13px;}}
+  `;
+  document.head.appendChild(st);
+}
+
+function _acGuidesInner() {
+  return ACADEMY_GUIDES.map(g => {
+    const owned = _acOwnedGuides.has(g.id);
+    return `
+    <div class="ac-guide${owned ? ' owned' : ''}">
+      <img src="${g.cover}" alt="${esc(g.title)} cover" loading="lazy">
+      <div class="ac-guide-b">
+        <div class="ac-guide-ed">${owned ? '✓ Yours · ' : ''}${g.edition} Edition · PDF</div>
+        <div class="ac-guide-t">Social Media Growth Strategy</div>
+        <div class="ac-guide-w">${esc(g.blurb)}</div>
+        <div class="ac-guide-m">${g.pages} pages · ${g.sections} sections · worksheets &amp; templates</div>
+        <div class="ac-guide-act">
+          ${owned
+            ? `<button class="ac-guide-btn" onclick="acDownloadGuide('${g.id}', this)">⬇ Download PDF</button><span class="ac-guide-note">Download again any time</span>`
+            : `<button class="ac-guide-btn" onclick="openAcademyPurchase('${g.id}')">Buy · KSh ${g.priceKes}</button><span class="ac-guide-note">M-Pesa · instant download</span>`}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _acPaintGuides() {
+  const el = document.getElementById('ac-guides');
+  if (el) el.innerHTML = _acGuidesInner();
+}
+
+function _acScrollToGuides() {
+  const el = document.getElementById('ac-guides-section');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Deep link (/?go=academy&m=guide_standard) and the landing page "Buy" buttons.
+async function acOpenGuide(guideId) {
+  if (typeof navTo === 'function') navTo('academy');
+  try { if (typeof initAcademyPage === 'function') await initAcademyPage(); } catch (_) {}
+  try { await _acFetchGuides(true); _acPaintGuides(); } catch (_) {}
+  setTimeout(_acScrollToGuides, 150);
+  if (_acGuide(guideId) && !_acOwnedGuides.has(guideId)) openAcademyPurchase(guideId);
+}
+
+async function acDownloadGuide(guideId, btn) {
+  const g = _acGuide(guideId);
+  if (!g) return;
+  const label = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Preparing…'; }
+  try {
+    // A plain link can't carry the sign-in token, so fetch the file and save it.
+    const r = await fetch(API + `/academy/guides/${encodeURIComponent(guideId)}/download`, {
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+    });
+    if (r.status === 401) { doLogout(); toast('Your session has expired. Please sign in again.', 'error'); return; }
+    if (r.status === 403) { openAcademyPurchase(guideId); return; }
+    if (!r.ok) {
+      let msg = ''; try { msg = (await r.json()).detail; } catch (_) {}
+      throw new Error(msg || 'Could not download the guide. Please try again.');
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `EndaViral-Social-Media-Growth-Strategy-${g.edition}-Edition.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    toast('Your guide is downloading. Check your Downloads folder.', 'success');
+  } catch (e) {
+    toast(e.message || 'Could not download the guide. Please try again.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = label || '⬇ Download PDF'; }
+  }
+}
+
 let _acPurchaseModuleId = null;
 let _acPurchasePollTimer = null;
 let _acPurchaseCheckoutId = null; // most recent checkoutRequestId this session is polling — used to release the PaymentEvents listener on close
 
 function openAcademyPurchase(moduleId) {
-  const mod = ACADEMY_MODULES.find(m => m.id === moduleId);
-  if (!mod) return;
+  const guide = _acGuide(moduleId);
+  const mod = guide ? null : ACADEMY_MODULES.find(m => m.id === moduleId);
+  if (!mod && !guide) return;
   _acStopPurchasePoll();
   _acPurchaseModuleId = moduleId;
 
   const state = _acState || _acEmptyState();
   const meta = state.moduleMeta && state.moduleMeta[moduleId];
-  const price = (meta && meta.price_kes) || mod.priceKes || ACADEMY_PREMIUM_PRICE_KES;
+  const price = guide ? guide.priceKes : ((meta && meta.price_kes) || mod.priceKes || ACADEMY_PREMIUM_PRICE_KES);
+  const subEl = document.querySelector('#acPurchaseForm .modal-sub');
+  if (subEl) subEl.textContent = guide ? 'One-time payment · download any time from the Academy' : 'One-time unlock · lifetime access';
 
   const titleEl = document.getElementById('acPurchaseModuleTitle');
   const priceEl = document.getElementById('acPurchasePrice');
   const phoneInput = document.getElementById('acPurchasePhone');
   const btn = document.getElementById('acPurchaseBtn');
-  if (titleEl) titleEl.textContent = mod.icon + ' ' + mod.title;
+  if (titleEl) titleEl.textContent = guide ? '📘 ' + guide.title : mod.icon + ' ' + mod.title;
   if (priceEl) priceEl.textContent = 'KSh ' + price;
   // Keep a number they already typed (e.g. coming back via "Try Again");
   // otherwise prefill from the account.
   if (phoneInput && !phoneInput.value) {
     phoneInput.value = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
   }
-  if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '📱 PAY & UNLOCK'; }
+  if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = guide ? '📱 PAY & GET PDF' : '📱 PAY & UNLOCK'; }
 
   _acPurchaseStep('form');
   document.getElementById('academyPurchaseModal').classList.add('show');
@@ -3167,14 +3304,14 @@ function closeAcademyPurchase() {
 // on its own (webhook / reconciler), so say that rather than "cancelled".
 function cancelAcademyPurchase() {
   closeAcademyPurchase();
-  toast('Stopped waiting. If you still enter your M-Pesa PIN, the course will unlock automatically.', 'info');
+  toast(`Stopped waiting. If you still enter your M-Pesa PIN, the ${_acIsGuide(_acPurchaseModuleId) ? 'guide' : 'course'} will unlock automatically.`, 'info');
 }
 
 // Result step. kind: 'success' | 'failed' | 'cancelled' | 'pending'
 function _acShowPurchaseResult(kind, moduleId, msg) {
-  const mod = ACADEMY_MODULES.find(m => m.id === moduleId);
+  const isGuide = _acIsGuide(moduleId);
   const icon  = { success: '✅', failed: '❌', cancelled: '🚫', pending: '⏳' }[kind];
-  const title = { success: 'COURSE UNLOCKED!', failed: 'PAYMENT FAILED', cancelled: 'PAYMENT CANCELLED', pending: 'STILL CONFIRMING' }[kind];
+  const title = { success: isGuide ? 'GUIDE UNLOCKED!' : 'COURSE UNLOCKED!', failed: 'PAYMENT FAILED', cancelled: 'PAYMENT CANCELLED', pending: 'STILL CONFIRMING' }[kind];
   document.getElementById('acResultIcon').textContent = icon;
   document.getElementById('acResultTitle').textContent = title;
   document.getElementById('acResultDesc').textContent = msg;
@@ -3183,7 +3320,13 @@ function _acShowPurchaseResult(kind, moduleId, msg) {
   const b2 = document.getElementById('acResultBtn2');
   b2.style.display = 'none';
 
-  if (kind === 'success') {
+  if (kind === 'success' && isGuide) {
+    b1.textContent = '⬇ Download PDF';
+    b1.onclick = () => acDownloadGuide(moduleId, b1);
+    b2.style.display = '';
+    b2.textContent = 'Close';
+    b2.onclick = () => closeAcademyPurchase();
+  } else if (kind === 'success') {
     b1.textContent = 'Start Learning →';
     b1.onclick = () => { closeAcademyPurchase(); _acOpenModule(moduleId); };
   } else if (kind === 'pending') {
@@ -3200,7 +3343,7 @@ function _acShowPurchaseResult(kind, moduleId, msg) {
     b2.onclick = () => {
       closeAcademyPurchase();
       if (typeof navTo === 'function') navTo('tickets');
-      toast(`Describe the issue with "${mod ? mod.title : 'your course'}" payment — admin will respond shortly.`, 'info');
+      toast(`Describe the issue with "${_acItemTitle(moduleId)}" payment — admin will respond shortly.`, 'info');
     };
   }
   _acPurchaseStep('result');
@@ -3209,7 +3352,8 @@ function _acShowPurchaseResult(kind, moduleId, msg) {
 async function submitAcademyPurchase() {
   const moduleId = _acPurchaseModuleId;
   if (!moduleId) return;
-  const mod = ACADEMY_MODULES.find(m => m.id === moduleId);
+  const isGuide = _acIsGuide(moduleId);
+  const payLabel = isGuide ? '📱 PAY & GET PDF' : '📱 PAY & UNLOCK';
   const phoneInput = document.getElementById('acPurchasePhone');
   const phone = phoneInput ? phoneInput.value.trim() : '';
   const digits = phone.replace(/\D/g, '');
@@ -3223,7 +3367,7 @@ async function submitAcademyPurchase() {
   // module_price_kes(module_id) itself (see app/routers/academy.py).
   let data;
   try {
-    data = await api(`/academy/modules/${encodeURIComponent(moduleId)}/purchase`, {
+    data = await api(`${_acItemBase(moduleId)}${encodeURIComponent(moduleId)}/purchase`, {
       method: 'POST',
       body: JSON.stringify({ phone }),
     });
@@ -3231,21 +3375,26 @@ async function submitAcademyPurchase() {
     const msg = e.message || '';
     const gateway = e.status === 502 || e.status === 503 || /502|bad gateway|unreachable|payment request failed/i.test(msg);
     toast(gateway ? 'M-Pesa is currently unreachable. Please try again in a few minutes.' : (msg || 'Could not start payment. Please try again.'), 'error');
-    if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '📱 PAY & UNLOCK'; }
+    if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = payLabel; }
     return;
   }
-  if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '📱 PAY & UNLOCK'; }
+  if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = payLabel; }
 
   if (data.already_purchased) {
-    _acFetchState(true).then(() => _acUpdateBadges()).catch(() => {});
-    _acShowPurchaseResult('success', moduleId, 'You already own this course — jump straight in.');
+    if (isGuide) {
+      _acFetchGuides(true).then(_acPaintGuides).catch(() => {});
+      _acShowPurchaseResult('success', moduleId, 'You already own this guide. Download it any time.');
+    } else {
+      _acFetchState(true).then(() => _acUpdateBadges()).catch(() => {});
+      _acShowPurchaseResult('success', moduleId, 'You already own this course — jump straight in.');
+    }
     return;
   }
 
   const priceText = (document.getElementById('acPurchasePrice') || {}).textContent || '';
   document.getElementById('acPayPhone').textContent = phone;
-  document.getElementById('acPayCourse').textContent = mod ? mod.title : '';
-  document.getElementById('acPayAmount').textContent = data.amount ? 'KSh ' + data.amount : priceText;
+  document.getElementById('acPayCourse').textContent = _acItemTitle(moduleId);
+  document.getElementById('acPayAmount').textContent = data.amount_kes ? 'KSh ' + data.amount_kes : priceText;
   _acPurchaseStep('wait');
 
   _acPollPurchaseStatus(moduleId, data.checkout_request_id);
@@ -3270,7 +3419,7 @@ function _acPollPurchaseStatus(moduleId, checkoutRequestId, again = false) {
     attempts++;
     let data = null;
     try {
-      data = await api(`/academy/modules/${encodeURIComponent(moduleId)}/purchase-status/${encodeURIComponent(checkoutRequestId)}`);
+      data = await api(`${_acItemBase(moduleId)}${encodeURIComponent(moduleId)}/purchase-status/${encodeURIComponent(checkoutRequestId)}`);
     } catch (e) { /* transient network blip — keep polling */ }
     if (done || _acPurchaseCheckoutId !== checkoutRequestId) return;
 
@@ -3278,9 +3427,16 @@ function _acPollPurchaseStatus(moduleId, checkoutRequestId, again = false) {
     const receipt = data && (data.mpesa_receipt || data.mpesaReceipt || data.receipt);
     if (status === 'success' || status === 'completed') {
       done = true; _acStopPurchasePoll();
-      _acFetchState(true).then(() => _acUpdateBadges()).catch(() => {});
-      _acShowPurchaseResult('success', moduleId,
-        'Payment confirmed' + (receipt ? ` (M-Pesa ref ${receipt})` : '') + '. The course is yours for life — enjoy the lessons!');
+      if (_acIsGuide(moduleId)) {
+        _acOwnedGuides.add(moduleId); _acPaintGuides();
+        _acFetchGuides(true).then(_acPaintGuides).catch(() => {});
+        _acShowPurchaseResult('success', moduleId,
+          'Payment confirmed' + (receipt ? ` (M-Pesa ref ${receipt})` : '') + '. Download your guide now, or any time later from the Academy page.');
+      } else {
+        _acFetchState(true).then(() => _acUpdateBadges()).catch(() => {});
+        _acShowPurchaseResult('success', moduleId,
+          'Payment confirmed' + (receipt ? ` (M-Pesa ref ${receipt})` : '') + '. The course is yours for life — enjoy the lessons!');
+      }
     } else if (status === 'failed' || status === 'cancelled') {
       done = true; _acStopPurchasePoll();
       _acShowPurchaseResult(status, moduleId, status === 'cancelled'
@@ -3298,7 +3454,7 @@ function _acPollPurchaseStatus(moduleId, checkoutRequestId, again = false) {
         });
       }
       _acShowPurchaseResult('pending', moduleId,
-        "We haven't received your M-Pesa confirmation yet. If you already entered your PIN, the course will unlock automatically within a few minutes. If you didn't pay, nothing was charged.");
+        `We haven't received your M-Pesa confirmation yet. If you already entered your PIN, the ${_acIsGuide(moduleId) ? 'guide' : 'course'} will unlock automatically within a few minutes. If you didn't pay, nothing was charged.`);
     }
   }
 

@@ -42,18 +42,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 
 <!-- ══ STRUCTURED DATA — Article (updated per-article by JS) ══ -->
-<script type="application/ld+json" id="schema-article">
-{
-  "@context": "https://schema.org",
-  "@type": "Article",
-  "headline": "EndaViral Blog",
-  "publisher": {
-    "@type": "Organization",
-    "name": "EndaViral",
-    "logo": { "@type": "ImageObject", "url": "https://endaviral.co.ke/EndaViral_logo_transparent.png" }
-  }
-}
-</script>
+<script type="application/ld+json" id="schema-article">{"@context":"https://schema.org","@type":"CollectionPage","name":"EndaViral Blog","url":"https://endaviral.co.ke/blog","description":"Free guides on TikTok growth, Instagram followers, YouTube monetisation and social media marketing in Kenya.","publisher":{"@type":"Organization","name":"EndaViral","url":"https://endaviral.co.ke"},"mainEntity":{"@type":"ItemList","itemListElement":[{"@type":"ListItem","position":1,"url":"https://endaviral.co.ke/how-to-grow-on-tiktok-in-kenya","name":"How to Grow on TikTok in Kenya (2026 Complete Guide)"},{"@type":"ListItem","position":2,"url":"https://endaviral.co.ke/how-to-reach-10k-followers-on-tiktok-kenya","name":"How to Reach 10,000 Followers on TikTok in Kenya"},{"@type":"ListItem","position":3,"url":"https://endaviral.co.ke/how-tiktok-monetization-works-kenya","name":"How TikTok Monetization Works in Kenya (2026 Guide)"},{"@type":"ListItem","position":4,"url":"https://endaviral.co.ke/how-to-grow-on-instagram-in-kenya","name":"How to Grow on Instagram in Kenya (2026 Complete Guide)"},{"@type":"ListItem","position":5,"url":"https://endaviral.co.ke/youtube-watch-hours-kenya","name":"YouTube Watch Hours Kenya: How to Hit 4,000 Hours Fast (2026)"},{"@type":"ListItem","position":6,"url":"https://endaviral.co.ke/best-time-to-post-on-instagram-kenya","name":"Best Time to Post on Instagram in Kenya (2026 Data)"},{"@type":"ListItem","position":7,"url":"https://endaviral.co.ke/how-to-get-verified-on-tiktok-kenya","name":"How to Get Verified on TikTok in Kenya (Blue Tick Guide 2026)"},{"@type":"ListItem","position":8,"url":"https://endaviral.co.ke/why-your-followers-arent-buying-kenya","name":"Why Your Followers Aren't Buying (and How to Fix It) — Kenya Guide"},{"@type":"ListItem","position":9,"url":"https://endaviral.co.ke/how-to-sell-on-instagram-in-kenya","name":"How to Sell on Instagram in Kenya: From DM to M-Pesa (2026)"}]}}</script>
 
 <!-- ══ STRUCTURED DATA — BreadcrumbList ══ -->
 <script type="application/ld+json" id="schema-breadcrumb">
@@ -275,7 +264,6 @@ body::after{content:'';position:fixed;inset:0;background-image:
   </a>
   <div class="blog-nav-links">
     <a href="https://endaviral.co.ke" class="blog-nav-link">Home</a>
-    <a href="/learn" class="blog-nav-link">Free Academy</a>
     <a href="/blog" class="blog-nav-link active">Blog</a>
     <a href="https://endaviral.co.ke/#services" class="blog-nav-link">Services</a>
     <a href="https://endaviral.co.ke/#pricing" class="blog-nav-link">Pricing</a>
@@ -297,11 +285,6 @@ body::after{content:'';position:fixed;inset:0;background-image:
     </div>
   </div>
   <div class="blog-index">
-    <a href="/learn" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;text-decoration:none;margin-bottom:36px;padding:22px 24px;border-radius:18px;background:linear-gradient(120deg,#1a1330,#241a42 50%,#0d2b18);border:1px solid rgba(155,107,255,.35);">
-      <span style="font-size:40px;">🎓</span>
-      <span style="flex:1;min-width:220px;"><span style="display:block;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#c4a8ff;margin-bottom:4px;">New · Free Creator Academy</span><span style="display:block;font-size:20px;font-weight:900;color:#fff;line-height:1.3;">60+ free lessons: TikTok, Instagram, YouTube, account rescue &amp; more</span><span style="display:block;font-size:14px;color:var(--muted);margin-top:4px;">Researched, sourced and written for Kenya. Quizzes, templates and step-by-step fixes.</span></span>
-      <span style="background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;font-weight:800;font-size:14px;padding:12px 20px;border-radius:10px;">Start learning free →</span>
-    </a>
     <div class="blog-grid" id="blog-grid">
         <a href="/how-to-grow-on-tiktok-in-kenya" class="blog-card">
           <div class="blog-card-thumb" style="background:linear-gradient(135deg,#010101,#1a1a2e);">🎵</div>
@@ -544,7 +527,7 @@ const ARTICLES = [
     faqs: [
       { q: "How long does it take to get 10,000 TikTok followers in Kenya?", a: "With consistent posting (5x per week), the right niche, and engagement strategies, most creators reach 10K in 3–6 months. Using an SMM service like EndaViral can shorten this to weeks." },
       { q: "What happens when you reach 10,000 followers on TikTok?", a: "At 10K followers you unlock TikTok LIVE, can add clickable links to your bio, and become eligible for the TikTok Creator Fund. You also qualify for paid brand deals with Kenyan companies." },
-      { q: "Is buying TikTok followers safe in Kenya?", a: "Yes, when you use a trusted service. EndaViral delivers real-looking followers that don't violate TikTok's terms. We never ask for your password and all payments are via M-Pesa." },
+      { q: "Is buying TikTok followers safe in Kenya?", a: "Yes, when using a trusted provider. EndaViral delivers real-looking followers that don't violate TikTok's terms. We never ask for your password and all payments are via M-Pesa." },
     ],
     body: `
       <p>10,000 followers on TikTok is the first real milestone. It unlocks the TikTok LIVE feature, makes you eligible for brand deals, and tells the algorithm you're a creator worth promoting. Here's a realistic roadmap to get there in Kenya.</p>
@@ -1235,14 +1218,14 @@ function articleCtas(article) {
         <div class="hire-box">
           <div class="hire-box-eyebrow">Hire EndaViral</div>
           <div class="hire-box-title">Rather have us do it for you?</div>
-          <p>A strategist reviews your account and tells you exactly what to fix. Or we run it for you every month.</p>
+          <p>A <a href="/social-media-consultant-kenya">social media consultant</a> reviews your account and tells you exactly what to fix. Or we <a href="/social-media-management-kenya">manage your social media</a> every month.</p>
           <ul class="hire-box-tiers">
             <li><b>Quick Fix</b><span>KES 500</span></li>
             <li><b>Growth Plan</b><span>KES 1,000</span></li>
             <li><b>Money Plan</b><span>KES 1,500</span></li>
             <li><b>We run it</b><span>KES 5,000/mo</span></li>
           </ul>
-          <a class="hire-box-btn" href="https://endaviral.co.ke/#hire-endaviral">See packages →</a>
+          <a class="hire-box-btn" href="/social-media-consultant-kenya">See packages →</a>
         </div>
       </div>`;
 }
@@ -1276,6 +1259,16 @@ function articleCtas(article) {
       desc: 'Free guides on TikTok growth, Instagram followers, YouTube monetisation and social media marketing in Kenya.',
       url: 'https://endaviral.co.ke/blog',
       keywords: 'tiktok growth kenya, social media tips kenya, endaviral blog'
+    });
+    document.getElementById('schema-article').textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": "EndaViral Blog",
+      "url": "https://endaviral.co.ke/blog",
+      "description": "Free guides on TikTok growth, Instagram followers, YouTube monetisation and social media marketing in Kenya.",
+      "publisher": { "@type": "Organization", "name": "EndaViral", "url": "https://endaviral.co.ke" },
+      "mainEntity": { "@type": "ItemList", "itemListElement": ARTICLES.map((a, i) => ({
+        "@type": "ListItem", "position": i + 1, "url": "https://endaviral.co.ke/" + a.slug, "name": a.title })) }
     });
     return;
   }
@@ -1389,4 +1382,4 @@ function articleCtas(article) {
 })();
 </script>
 </body>
-</html>
+</html>
