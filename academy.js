@@ -1875,14 +1875,21 @@ function _acInjectHomeStyles() {
     .ac-start-btn{flex-shrink:0;background:linear-gradient(135deg,#3dd44a,#28a035);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
     @media(max-width:520px){ .ac-start-btn{width:100%;} }
     .ac-reco{margin:0 0 20px;}
-    .ac-reco-list{display:flex;flex-direction:column;gap:8px;}
-    .ac-reco-row{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:13px;background:var(--card);border:1px solid rgba(255,215,0,.28);cursor:pointer;}
+    .ac-reco-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;}
+    .ac-reco-row{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:13px;background:var(--card);border:1px solid rgba(255,215,0,.28);cursor:pointer;min-width:0;}
     .ac-reco-row:hover{border-color:rgba(255,215,0,.6);}
-    .ac-reco-row .i{font-size:20px;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(255,215,0,.12);flex-shrink:0;}
-    .ac-reco-row .b{flex:1;min-width:0;}
-    .ac-reco-row .t{font-size:13px;font-weight:700;color:var(--white);line-height:1.3;}
-    .ac-reco-row .w{font-size:11px;color:var(--muted);margin-top:2px;}
+    .ac-reco-row .top{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+    .ac-reco-row .i{font-size:18px;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(255,215,0,.12);flex-shrink:0;}
+    .ac-reco-row .t{font-size:13px;font-weight:700;color:var(--white);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .ac-reco-row .w{font-size:11px;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
     .ac-reco-row .p{font-size:12px;font-weight:800;color:#ffd700;white-space:nowrap;}
+    @media(max-width:768px){
+      .ac-reco-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+      .ac-reco-row{padding:10px;}
+      .ac-reco-row .t{font-size:12px;}
+      .ac-reco-row .w{font-size:10.5px;}
+      .ac-reco-row .p{font-size:11px;}
+    }
     .ac-premium-teaser{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;background:linear-gradient(120deg,rgba(255,215,0,.14),rgba(255,193,7,.05) 60%);border:1px solid rgba(255,215,0,.4);border-radius:16px;padding:15px 16px;margin-bottom:20px;cursor:pointer;transition:border-color .2s,transform .15s;}
     .ac-premium-teaser:active{transform:scale(.98);}
     .ac-premium-teaser:hover{border-color:rgba(255,215,0,.65);}
@@ -1906,6 +1913,18 @@ function _acInjectHomeStyles() {
     .ac-modcard.locked:hover{border-color:rgba(255,215,0,.65);}
     .ac-modcard.done{border-color:rgba(61,212,74,.3);}
     .ac-modcard.done:hover{border-color:rgba(61,212,74,.65);}
+    @media(max-width:768px){
+      .ac-modgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:22px;}
+      .ac-modcard{padding:12px;border-radius:14px;min-width:0;}
+      .ac-modcard .ac-mod-top{margin-bottom:8px;gap:6px;}
+      .ac-modcard .ac-mod-icon{width:32px;height:32px;font-size:15px;border-radius:10px;}
+      .ac-modcard .ac-mod-pill{font-size:9.5px;padding:2px 7px;}
+      .ac-modcard .ac-mod-pill .lbl,.ac-modcard .ac-mod-pill .pts{display:none;}
+      .ac-modcard .ac-mod-title{font-size:12.5px;line-height:1.3;}
+      .ac-modcard .ac-mod-blurb{font-size:10.5px;line-height:1.4;margin-bottom:9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+      .ac-modcard .ac-mod-progress-row{font-size:10px;}
+      .ac-modcard .ac-mod-unlock{font-size:10px;}
+    }
     .ac-mod-top{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
     .ac-mod-icon{flex-shrink:0;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:19px;background:var(--ac-cbg);border:1px solid var(--ac-cbd);}
     .ac-mod-pill{margin-left:auto;flex-shrink:0;font-size:10px;font-weight:800;border-radius:20px;padding:3px 9px;white-space:nowrap;}
@@ -2121,9 +2140,9 @@ function _acRenderModCard(mod, state) {
   <div class="${cardClass}" style="${_acModAccent(kind)}" onclick="_acOpenModule('${mod.id}')">
     <div class="ac-mod-top">
       <div class="ac-mod-icon">${mod.icon}</div>
-      ${badge ? `<span onclick="event.stopPropagation();acOpenCertificate('${mod.id}')" class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.3);color:#ffd700;cursor:pointer;">🎓 Certificate</span>` : ''}
-      ${(!badge && locked) ? `<span class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.32);color:#ffd700;">🔒 KSh ${price}${ptsCost ? ` · or ⭐ ${ptsCost} reward points` : ''}</span>` : ''}
-      ${(!badge && !locked && kind === 'done') ? `<span class="ac-mod-pill" style="background:rgba(61,212,74,.14);border:1px solid rgba(61,212,74,.3);color:var(--green);">✓ Done</span>` : ''}
+      ${badge ? `<span onclick="event.stopPropagation();acOpenCertificate('${mod.id}')" class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.3);color:#ffd700;cursor:pointer;">🎓<span class="lbl"> Certificate</span></span>` : ''}
+      ${(!badge && locked) ? `<span class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.32);color:#ffd700;">🔒 KSh ${price}${ptsCost ? `<span class="pts"> · or ⭐ ${ptsCost} reward points</span>` : ''}</span>` : ''}
+      ${(!badge && !locked && kind === 'done') ? `<span class="ac-mod-pill" style="background:rgba(61,212,74,.14);border:1px solid rgba(61,212,74,.3);color:var(--green);">✓<span class="lbl"> Done</span></span>` : ''}
     </div>
     <div class="ac-mod-title">${esc(mod.title)}</div>
     <div class="ac-mod-blurb">${esc(mod.blurb)}</div>
@@ -2149,7 +2168,7 @@ function _acRenderHome(sec, state) {
 
   const freeMods   = ACADEMY_MODULES.filter(m => !(m.premium && !_acIsPurchased(state, m.id)));
   const lockedMods = ACADEMY_MODULES.filter(m => m.premium && !_acIsPurchased(state, m.id));
-  const recoMods   = _acRecommendedPro(state, 3);
+  const recoMods   = _acRecommendedPro(state, 2);
   const startMod   = ACADEMY_MODULES.find(m => m.id === 'basics');
   const startProg  = startMod ? _acModuleProgress(state, startMod) : null;
   const showStart  = startMod && startProg && startProg.done < startProg.total;
@@ -2163,7 +2182,7 @@ function _acRenderHome(sec, state) {
       <div class="ac-hero-crest">🎓</div>
       <div class="ac-hero-copy">
         <div class="ac-hero-kicker">CREATOR ACADEMY</div>
-        <div class="ac-hero-title">Grow your social media — free lessons &amp; premium courses</div>
+        <div class="ac-hero-title">Grow your social media with Free Courses</div>
         <div class="ac-hero-sub">Start free, earn points as you go, then go deeper with step-by-step premium courses from KSh 50</div>
       </div>
       <div class="ac-hero-level">
@@ -2194,9 +2213,9 @@ function _acRenderHome(sec, state) {
     <div class="ac-reco-list">
       ${recoMods.map(m => `
       <div class="ac-reco-row" onclick="_acOpenModule('${m.id}')">
-        <div class="i">${m.icon}</div>
-        <div class="b"><div class="t">${esc(m.title)}</div><div class="w">${m.lessons.length} lessons · ${esc(m.blurb)}</div></div>
-        <div class="p">KSh ${_acPriceFor(m, state)} ›</div>
+        <div class="top"><div class="i">${m.icon}</div><div class="p">KSh ${_acPriceFor(m, state)} ›</div></div>
+        <div class="t">${esc(m.title)}</div>
+        <div class="w">${m.lessons.length} lessons · ${esc(m.blurb)}</div>
       </div>`).join('')}
     </div>
   </div>` : ''}
@@ -2244,7 +2263,7 @@ function _acRenderHome(sec, state) {
     </div>
   </div>
 
-  <div class="ac-group-hd"><span class="t">📘 Learning Path</span><span class="n">${freeMods.length} courses</span><span class="line"></span></div>
+  <div class="ac-group-hd"><span class="t">📘 Free Learning Path</span><span class="n">${freeMods.length} courses</span><span class="line"></span></div>
   <div class="ac-modgrid">
     ${freeMods.map(mod => _acRenderModCard(mod, state)).join('')}
   </div>
