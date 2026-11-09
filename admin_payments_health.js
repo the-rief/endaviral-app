@@ -68,7 +68,7 @@ function _phRender(d) {
 
   const missing = rc.missing_receipt
     ? `<div style="${_phCard}margin-bottom:16px;border-left:3px solid #ffb347;"><div style="${_phLabel}">Paid orders missing an M-Pesa reference (${rc.missing_receipt})</div>
-       <div style="font-size:12px;color:var(--muted);">Marked paid but the provider gave no receipt. The nightly run re-checks these with the provider; if one stays here, look it up in your Paywave dashboard.</div>
+       <div style="font-size:12px;color:var(--muted);">Marked paid but the provider gave no receipt. The nightly run re-checks these with the provider; if one stays here, look it up in your payment provider's dashboard.</div>
        ${_phTable(['Order', 'Amount', 'Phone', 'Paid at'], rc.missing_list.map(r => [_phShort(r.order_id), fmtKES(r.amount), esc(r.phone || ''), esc(_phWhen(r.created_at))]))}</div>` : '';
 
   const unpaid = un.count
@@ -158,7 +158,7 @@ function _phAutoRefill(ar) {
 }
 
 async function phRunReconciliation() {
-  if (!confirm('Run the full reconciliation now? It re-checks yesterday and today with Paywave and can take a minute or two.')) return;
+  if (!confirm('Run the full reconciliation now? It re-checks yesterday and today with each payment's provider and can take a minute or two.')) return;
   const b = document.getElementById('phRunBtn');
   if (b) { b.disabled = true; b.textContent = 'Running…'; }
   try {
