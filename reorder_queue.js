@@ -223,8 +223,9 @@ function rqRenderList() {
 
 const _rqPlat = (u) => {
   const h = (() => { try { return new URL(u).hostname.toLowerCase(); } catch (_) { return ''; } })();
-  return /tiktok|tt\.site/.test(h) ? '🎵' : /instagram|instagr/.test(h) ? '📸' : /youtu/.test(h) ? '▶️' : /facebook|fb\./.test(h) ? '📘'
-    : /twitter|x\.com|t\.co/.test(h) ? '𝕏' : /t\.me|telegram/.test(h) ? '✈️' : /spotify/.test(h) ? '🎧' : '🔗';
+  // Real platform logos (bundled in /icons/platforms/), line icon for anything else.
+  return /tiktok|tt\.site/.test(h) ? '<img class="plat-logo" src="/icons/platforms/tiktok.svg" alt="" width="14" height="14">' : /instagram|instagr/.test(h) ? '<img class="plat-logo" src="/icons/platforms/instagram.svg" alt="" width="14" height="14">' : /youtu/.test(h) ? '<img class="plat-logo" src="/icons/platforms/youtube.svg" alt="" width="14" height="14">' : /facebook|fb\./.test(h) ? '<img class="plat-logo" src="/icons/platforms/facebook.svg" alt="" width="14" height="14">'
+    : /twitter|x\.com|t\.co/.test(h) ? '<img class="plat-logo" src="/icons/platforms/x.svg" alt="" width="14" height="14">' : /t\.me|telegram/.test(h) ? '<img class="plat-logo" src="/icons/platforms/telegram.svg" alt="" width="14" height="14">' : /spotify/.test(h) ? '<img class="plat-logo" src="/icons/platforms/spotify.svg" alt="" width="14" height="14">' : '<svg class=ev-i aria-hidden=true><use href=#ev-link></use></svg>';
 };
 const _rqShort = (u) => {
   try { const x = new URL(u); const t = x.hostname.replace(/^www\./, '') + (x.pathname + x.search).replace(/\/$/, ''); return t.length > 40 ? t.slice(0, 38) + '…' : t; }

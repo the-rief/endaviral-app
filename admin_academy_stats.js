@@ -391,7 +391,7 @@ function _acAgo(iso) {
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-const _AC_GUIDE_COLOR = { guide_standard: '#3dd44a', guide_advanced: '#ffb020' };
+const _AC_GUIDE_COLOR = { guide_standard: '#3dd44a', guide_advanced: '#ffb020', guide_premium: '#9b6bff' };
 const _AC_STATUS_STYLE = {
   success:   'color:#3dd44a;background:rgba(61,212,74,.12);',
   pending:   'color:#22d3ee;background:rgba(34,211,238,.12);',
@@ -425,7 +425,7 @@ function _acRenderGuideStats() {
   const cards = [
     _acStatCard('💰', 'Guide Revenue', fmtKES(t.revenue_kes || 0), `${fmtKES(t.revenue_30d_kes || 0)} in the last 30 days`, '#3dd44a'),
     _acStatCard('🧾', 'Guides Sold', t.sales || 0, `${t.sales_today || 0} today`, '#ffb020'),
-    _acStatCard('👥', 'Buyers', t.buyers || 0, `${t.buyers_both || 0} bought both editions`, '#9b6bff'),
+    _acStatCard('👥', 'Buyers', t.buyers || 0, `${t.buyers_both || 0} bought 2+ editions`, '#9b6bff'),
     _acStatCard('⬇️', 'Downloads', t.downloads || 0, 'total PDF downloads', '#22d3ee'),
     _acStatCard('⏳', 'Pending Payments', t.pending || 0, 'waiting for M-Pesa confirmation', '#ff9a3c'),
     _acStatCard('🎓', 'Academy Learners', t.learners || 0, 'base for conversion %', '#7a8fad'),
@@ -453,23 +453,24 @@ function _acRenderGuideStats() {
     </div>`;
   }).join('');
 
-  // 30-day trend: one stacked column per day (Standard + Advanced revenue).
+  // 30-day trend: one stacked column per day (Standard + Advanced + Premium revenue).
   const daily = data.daily || [];
-  const maxDay = Math.max(1, ...daily.map(d => (d.guide_standard?.revenue_kes || 0) + (d.guide_advanced?.revenue_kes || 0)));
+  const maxDay = Math.max(1, ...daily.map(d => (d.guide_standard?.revenue_kes || 0) + (d.guide_advanced?.revenue_kes || 0) + (d.guide_premium?.revenue_kes || 0)));
   const bars = daily.map(d => {
-    const s = d.guide_standard?.revenue_kes || 0, a = d.guide_advanced?.revenue_kes || 0;
-    const n = (d.guide_standard?.sales || 0) + (d.guide_advanced?.sales || 0);
+    const s = d.guide_standard?.revenue_kes || 0, a = d.guide_advanced?.revenue_kes || 0, pr = d.guide_premium?.revenue_kes || 0;
+    const n = (d.guide_standard?.sales || 0) + (d.guide_advanced?.sales || 0) + (d.guide_premium?.sales || 0);
     const label = new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-    return `<div title="${label}: ${n} sold · ${fmtKES(s + a)}" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-width:4px;">
-      <div style="height:${(a / maxDay) * 100}%;background:#ffb020;border-radius:3px 3px 0 0;"></div>
-      <div style="height:${(s / maxDay) * 100}%;background:#3dd44a;${a ? '' : 'border-radius:3px 3px 0 0;'}"></div>
+    return `<div title="${label}: ${n} sold · ${fmtKES(s + a + pr)}" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-width:4px;">
+      <div style="height:${(pr / maxDay) * 100}%;background:#9b6bff;border-radius:3px 3px 0 0;"></div>
+      <div style="height:${(a / maxDay) * 100}%;background:#ffb020;${pr ? '' : 'border-radius:3px 3px 0 0;'}"></div>
+      <div style="height:${(s / maxDay) * 100}%;background:#3dd44a;${a || pr ? '' : 'border-radius:3px 3px 0 0;'}"></div>
     </div>`;
   }).join('');
   const first = daily[0] ? new Date(daily[0].date + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '';
   const trend = `${head('Daily guide revenue · last 30 days')}
     <div style="display:flex;gap:3px;align-items:flex-end;height:120px;border-bottom:1px solid var(--border);padding-bottom:2px;">${bars}</div>
     <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:6px;"><span>${first}</span>
-      <span><span style="color:#3dd44a;"><svg class=ev-i aria-hidden=true><use href=#ev-stop></use></svg></span> Standard &nbsp; <span style="color:#ffb020;"><svg class=ev-i aria-hidden=true><use href=#ev-stop></use></svg></span> Advanced · busiest day ${fmtKES(maxDay === 1 ? 0 : maxDay)}</span><span>Today</span></div>`;
+      <span><span style="color:#3dd44a;"><svg class=ev-i aria-hidden=true><use href=#ev-stop></use></svg></span> Standard &nbsp; <span style="color:#ffb020;"><svg class=ev-i aria-hidden=true><use href=#ev-stop></use></svg></span> Advanced &nbsp; <span style="color:#9b6bff;"><svg class=ev-i aria-hidden=true><use href=#ev-stop></use></svg></span> Premium · busiest day ${fmtKES(maxDay === 1 ? 0 : maxDay)}</span><span>Today</span></div>`;
 
   const recent = (data.recent || []).filter(r => _acGuideFilter === 'all' || r.status === _acGuideFilter
     || (_acGuideFilter === 'not_downloaded' && r.status === 'success' && !r.downloads));

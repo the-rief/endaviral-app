@@ -702,7 +702,7 @@ async function _evDrawTicket(canvas, t, logoImg) {
   ctx.textAlign = 'center';
   ctx.font = '18px sans-serif';
   ctx.fillStyle = green;
-  ctx.fillText('🎫', badgeX + badgeW / 2, badgeY + 24);
+  if (typeof evDrawIcon === 'function') evDrawIcon(ctx, 'ticket', badgeX + badgeW / 2, badgeY + 18, 18, green, 1.9);
   ctx.font = '800 11px Montserrat, sans-serif';
   ctx.fillStyle = muted;
   _evFillTracked(ctx, 'VALID TICKET', badgeX + badgeW / 2, badgeY + 40, 1, 'center');

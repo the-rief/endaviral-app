@@ -796,7 +796,7 @@ const ACADEMY_MODULES = [
         {"type": "ul", "items": ["**Elections 2027.** The NCIC says online posts carry the same legal consequences as public speeches, and it has called on influencers to show restraint.", "**Cyber law.** The High Court's July 2026 ruling removed the 'likely to cause suicide' clause and NC4's power to block websites without a court. Harassment, phishing and identity-theft offences under the Computer Misuse and Cybercrimes Act still apply.", "**Paid trends.** Pushing a hashtag for cash without disclosure breaks X's rules on coordinated activity. If a campaign spreads ethnic hatred, it can also break the NCIC Act."]},
         {"type": "myth", "myth": "Using hashtags gets you shadowbanned on X.", "truth": "X's policy targets **excessive, unrelated** hashtags and hijacking trends to push something. One or two relevant tags are fine. The thing that actually reduces visibility is spammy behaviour: bulk replies, duplicate posts, and coordinated accounts."},
         {"type": "action", "label": "Your 10-minute rules audit", "items": ["Delete any post where you used a trending hashtag that has nothing to do with your content.", "List every account you control. Merge or delete any that duplicate each other.", "Leave any 'retweet group' or paid trend WhatsApp group.", "If you're aiming for payouts, check your verified-follower count and Premium impressions in the monetisation dashboard."]},
-        {"type": "quiz", "q": "Under X's Original Content Rewards, which of these earns you nothing?", "options": ["A thread with your own analysis of the Finance Bill", "Photos you took at a Nairobi event", "Someone else's viral video with your caption 'Wueh, look at this'", "A meme you created"], "answer": 2, "explain": "X counts your own writing, photos, reporting and memes, plus clips you add real commentary to or creatively edit. A caption that just describes someone else's video doesn't qualify."},
+        {"type": "quiz", "q": "Under X's Original Content Rewards, which of these earns you nothing?", "options": ["A thread with your own analysis of the Finance Bill", "Photos you took at a Nairobi event", "Someone else's viral video with your caption 'Wueh, look at this 😂'", "A meme you created"], "answer": 2, "explain": "X counts your own writing, photos, reporting and memes, plus clips you add real commentary to or creatively edit. A caption that just describes someone else's video doesn't qualify."},
         {"type": "takeaways", "items": ["X now pays only for original content, and only from verified users' impressions.", "Buying, selling, follow churn, trend hijacking and multi-account boosting are all named violations.", "The ladder runs reduced visibility, then challenges, then feature limits, then suspension.", "In Kenya, election-season posts and paid political trends carry legal risk as well as platform risk."]},
         {"type": "locked", "module": "branding_pro", "text": "X rewards people with a clear voice and punishes hot-take chaos. The Personal Branding Blueprint helps you build the first and survive the second:", "items": ["Why lasting damage comes from your first hour, not the mistake itself, plus the exact holding and apology posts", "The three-circle test for a niche you won't be bored of in six months", "The 'voice is never' list that keeps you consistent on bad days", "How to move your best followers onto a channel you own, so one suspension can't wipe you out"]},
         {"type": "sources", "items": [{"title": "X Help Center: Platform manipulation and spam policy", "url": "https://help.x.com/rules-and-policies/platform-manipulation"}, {"title": "Engadget: X is replacing revenue sharing with an Original Content Rewards program (2026)", "url": "https://www.engadget.com/2232981/x-replacing-revenue-sharing-with-original-content-rewards-program/"}, {"title": "Mozilla Foundation: Inside the shadowy world of disinformation-for-hire in Kenya", "url": "https://www.mozillafoundation.org/en/blog/fellow-research-inside-the-shadowy-world-of-disinformation-for-hire-in-kenya/"}, {"title": "HapaKenya: High Court declares 2 sections of the Cybercrimes Amendment Act unconstitutional (Jul 2026)", "url": "https://hapakenya.com/2026/07/02/high-court-declares-2-sections-of-cybercrimes-amendment-act-as-unconstitutional/"}]},
@@ -1591,6 +1591,19 @@ const ACADEMY_MODULES = [
 // openAcademyLesson) don't need to be async themselves.
 let _acState = null;
 
+
+// Course and level icons are stored as emoji in ACADEMY_MODULES (the Learn
+// page generator reads them too). They're drawn as real platform logos or
+// line icons from the app's icon set (index.html → evIcon()).
+const _AC_PLAT = { '📸': 'instagram', '🎵': 'tiktok', '▶': 'youtube' };
+const _AC_ICON = {"⏳": "hourglass", "✂": "scissors", "🌱": "leaf", "🌿": "leaf", "🎁": "gift", "🎓": "graduation", "🎨": "palette", "🎬": "film", "🏢": "building", "👆": "pointer", "👑": "crown", "👤": "user", "👥": "users", "💬": "message", "💰": "coins", "💵": "banknote", "💼": "briefcase", "📊": "chart", "📋": "clipboard", "📱": "phone", "🔍": "search", "🔓": "unlock", "🔥": "trending", "🚀": "rocket", "🚑": "lifebuoy", "🛡": "shield", "🤖": "bot", "🧭": "compass"};
+function _acIcon(e) {
+  const k = String(e || '').replace(/\uFE0F/g, '');
+  if (_AC_PLAT[k]) return `<img class="plat-logo" src="/icons/platforms/${_AC_PLAT[k]}.svg" alt="">`;
+  const n = _AC_ICON[k];
+  return n && typeof evIcon === 'function' ? evIcon(n) : (e || '');
+}
+
 function _acEmptyState() {
   return { xp: 0, completed: {}, moduleBadges: [], streak: { count: 0 }, graduated: false, purchasedModules: [], moduleMeta: {}, pointsBalance: 0 };
 }
@@ -1732,7 +1745,7 @@ async function _acUpdateBadges() {
   if (desc) {
     if (done === 0) desc.textContent = 'Learn how to grow on every platform — free lessons & badges';
     else if (pct >= 100) desc.textContent = "You've completed the Academy 🎓 — revisit any lesson anytime";
-    else desc.textContent = `${done}/${total} lessons done · ${_acLevelFor(state.xp).icon} ${_acLevelFor(state.xp).name}`;
+    else desc.textContent = `${done}/${total} lessons done · ${_acLevelFor(state.xp).name}`;
   }
   if (btn) btn.textContent = done === 0 ? 'Start Learning →' : (pct >= 100 ? 'Review Lessons →' : 'Continue →');
 }
@@ -2027,7 +2040,7 @@ function _acFollowUpCard(mod, state, finished) {
   const kicker = finished ? (owned ? 'KEEP GOING' : 'YOUR NEXT STEP') : 'WANT TO GO DEEPER?';
   return `
   <div class="ac-next${finished ? ' ac-next-hot' : ''}" onclick="${owned ? `_acOpenModule('${pro.id}')` : `openAcademyPurchase('${pro.id}')`}">
-    <div class="ac-next-icon">${pro.icon}</div>
+    <div class="ac-next-icon">${_acIcon(pro.icon)}</div>
     <div class="ac-next-body">
       <div class="ac-next-kicker">${kicker}</div>
       <div class="ac-next-title">${esc(pro.title)}</div>
@@ -2064,10 +2077,10 @@ function acOrderSuggestionHTML(platKey) {
   const tag = isPaid ? `KSh ${_acPriceFor(mod, state || _acEmptyState())}` : 'FREE';
   return `
   <div class="om-ac-tip" onclick="acGoToCourse('${mod.id}')" role="button" tabindex="0">
-    <div class="om-ac-kicker">🎓 ${kicker}</div>
+    <div class="om-ac-kicker"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg> ${kicker}</div>
     <div class="om-ac-line">${line}</div>
     <div class="om-ac-row">
-      <div class="om-ac-icon">${mod.icon}</div>
+      <div class="om-ac-icon">${_acIcon(mod.icon)}</div>
       <div class="om-ac-body"><div class="om-ac-title">${esc(mod.title)}</div><div class="om-ac-sub">${mod.lessons.length} short lessons · ${esc(mod.blurb)}</div></div>
       <div class="om-ac-tag${isPaid ? ' paid' : ''}">${tag}</div>
     </div>
@@ -2082,11 +2095,11 @@ function _acSummaryBox(mod) {
   if (!mod || !Array.isArray(mod.summary) || !mod.summary.length) return '';
   return `
   <div style="max-width:640px;margin:0 0 16px;background:rgba(61,212,74,.06);border:1px solid rgba(61,212,74,.22);border-radius:14px;padding:14px 16px;">
-    <div style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.4px;margin-bottom:10px;">⚡ QUICK SUMMARY · 30 SECONDS</div>
+    <div style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.4px;margin-bottom:10px;"><svg class=ev-i aria-hidden=true><use href=#ev-zap></use></svg> QUICK SUMMARY · 30 SECONDS</div>
     <div style="display:flex;flex-direction:column;gap:9px;">
       ${mod.summary.map(s => `
       <div style="display:flex;gap:10px;align-items:flex-start;">
-        <div style="font-size:15px;line-height:1.3;flex-shrink:0;width:20px;text-align:center;">${s.icon}</div>
+        <div style="font-size:15px;line-height:1.3;flex-shrink:0;width:20px;text-align:center;">${_acIcon(s.icon)}</div>
         <div style="font-size:12.5px;line-height:1.45;color:#c9d4e3;">${s.text}</div>
       </div>`).join('')}
     </div>
@@ -2139,10 +2152,10 @@ function _acRenderModCard(mod, state) {
   return `
   <div class="${cardClass}" style="${_acModAccent(kind)}" onclick="_acOpenModule('${mod.id}')">
     <div class="ac-mod-top">
-      <div class="ac-mod-icon">${mod.icon}</div>
-      ${badge ? `<span onclick="event.stopPropagation();acOpenCertificate('${mod.id}')" class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.3);color:#ffd700;cursor:pointer;">🎓<span class="lbl"> Certificate</span></span>` : ''}
-      ${(!badge && locked) ? `<span class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.32);color:#ffd700;">🔒 KSh ${price}${ptsCost ? `<span class="pts"> · or ⭐ ${ptsCost} pts</span>` : ''}</span>` : ''}
-      ${(!badge && !locked && kind === 'done') ? `<span class="ac-mod-pill" style="background:rgba(61,212,74,.14);border:1px solid rgba(61,212,74,.3);color:var(--green);">✓<span class="lbl"> Done</span></span>` : ''}
+      <div class="ac-mod-icon">${_acIcon(mod.icon)}</div>
+      ${badge ? `<span onclick="event.stopPropagation();acOpenCertificate('${mod.id}')" class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.3);color:#ffd700;cursor:pointer;"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg><span class="lbl"> Certificate</span></span>` : ''}
+      ${(!badge && locked) ? `<span class="ac-mod-pill" style="background:rgba(255,215,0,.14);border:1px solid rgba(255,215,0,.32);color:#ffd700;"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg> KSh ${price}${ptsCost ? `<span class="pts"> · or ⭐ ${ptsCost} pts</span>` : ''}</span>` : ''}
+      ${(!badge && !locked && kind === 'done') ? `<span class="ac-mod-pill" style="background:rgba(61,212,74,.14);border:1px solid rgba(61,212,74,.3);color:var(--green);"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg><span class="lbl"> Done</span></span>` : ''}
     </div>
     <div class="ac-mod-title">${esc(mod.title)}</div>
     <div class="ac-mod-blurb">${esc(mod.blurb)}</div>
@@ -2179,14 +2192,14 @@ function _acRenderHome(sec, state) {
     <div class="ac-hero-corner tl"></div><div class="ac-hero-corner tr"></div>
     <div class="ac-hero-corner bl"></div><div class="ac-hero-corner br"></div>
     <div class="ac-hero-main">
-      <div class="ac-hero-crest">🎓</div>
+      <div class="ac-hero-crest"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg></div>
       <div class="ac-hero-copy">
         <div class="ac-hero-kicker">CREATOR ACADEMY</div>
         <div class="ac-hero-title">Grow your social media with Free Courses</div>
         <div class="ac-hero-sub">Start free, earn points as you go, then go deeper with step-by-step premium courses from KSh 50</div>
       </div>
       <div class="ac-hero-level">
-        <div class="ac-hero-level-top"><span>${level.icon}</span><span>${esc(level.name)}</span></div>
+        <div class="ac-hero-level-top"><span>${_acIcon(level.icon)}</span><span>${esc(level.name)}</span></div>
         <div class="ac-hero-level-xp">${state.xp} learning points${nextLvl ? ` <span class="ac-hero-level-next">· ${xpToNext} more to level up</span>` : ' · Max level'}</div>
       </div>
     </div>
@@ -2198,7 +2211,7 @@ function _acRenderHome(sec, state) {
 
   ${showStart ? `
   <div class="ac-start" onclick="_acOpenModule('basics')">
-    <div class="ac-start-icon">${startMod.icon}</div>
+    <div class="ac-start-icon">${_acIcon(startMod.icon)}</div>
     <div class="ac-start-body">
       <div class="ac-start-kicker">${startProg.done ? 'CONTINUE WHERE YOU LEFT OFF' : 'NEW HERE? START HERE'}</div>
       <div class="ac-start-title">${esc(startMod.title)}</div>
@@ -2209,11 +2222,11 @@ function _acRenderHome(sec, state) {
 
   ${recoMods.length ? `
   <div class="ac-reco">
-    <div class="ac-group-hd" style="margin-top:0;"><span class="t">💎 ${anyStarted ? 'Recommended for you' : 'Popular premium courses'}</span><span class="line"></span></div>
+    <div class="ac-group-hd" style="margin-top:0;"><span class="t"><svg class=ev-i aria-hidden=true><use href=#ev-crown></use></svg> ${anyStarted ? 'Recommended for you' : 'Popular premium courses'}</span><span class="line"></span></div>
     <div class="ac-reco-list">
       ${recoMods.map(m => `
       <div class="ac-reco-row" onclick="_acOpenModule('${m.id}')">
-        <div class="i">${m.icon}</div>
+        <div class="i">${_acIcon(m.icon)}</div>
         <div class="t">${esc(m.title)}</div>
         <div class="w">${m.lessons.length} lessons · ${esc(m.blurb)}</div>
         <div class="p">KSh ${_acPriceFor(m, state)} ›</div>
@@ -2222,13 +2235,13 @@ function _acRenderHome(sec, state) {
   </div>` : ''}
 
   <div id="ac-guides-section">
-    <div class="ac-group-hd" style="margin-top:0;"><span class="t">📘 Premium Guides · PDF</span><span class="n">from KSh ${Math.min(...ACADEMY_GUIDES.map(g => g.priceKes))}</span><span class="line"></span></div>
+    <div class="ac-group-hd" style="margin-top:0;"><span class="t"><svg class=ev-i aria-hidden=true><use href=#ev-book></use></svg> Premium Guides · PDF</span><span class="n">from KSh ${Math.min(...ACADEMY_GUIDES.map(g => g.priceKes))}</span><span class="line"></span></div>
     <div class="ac-guides" id="ac-guides">${_acGuidesInner()}</div>
   </div>
 
   ${lockedMods.length > recoMods.length ? `
   <div class="ac-premium-teaser" onclick="_acScrollToPremium()">
-    <div class="ac-premium-teaser-icon">💎</div>
+    <div class="ac-premium-teaser-icon"><svg class=ev-i aria-hidden=true><use href=#ev-crown></use></svg></div>
     <div class="ac-premium-teaser-body">
       <div class="ac-premium-teaser-title">See all ${lockedMods.length} premium courses — from KSh ${Math.min(...lockedMods.map(m => m.priceKes || ACADEMY_PREMIUM_PRICE_KES))}</div>
       <div class="ac-premium-teaser-sub">Deeper, step-by-step guides beyond the free lessons. Pay with M-Pesa or use your reward points.</div>
@@ -2238,7 +2251,7 @@ function _acRenderHome(sec, state) {
 
   ${state.graduated ? `
   <div class="ac-grad-banner">
-    <div class="ac-grad-icon">🎓</div>
+    <div class="ac-grad-icon"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg></div>
     <div style="flex:1;min-width:180px;">
       <div style="font-size:13px;font-weight:900;color:var(--white);margin-bottom:3px;">Academy Graduate</div>
       <div style="font-size:12px;color:#a9b8cc;line-height:1.5;">You finished every course — claim your graduation certificate</div>
@@ -2248,29 +2261,29 @@ function _acRenderHome(sec, state) {
 
   <div class="ac-stats">
     <div class="ac-stat" style="${_acModAccent('active')}">
-      <div class="ac-stat-icon">🔥</div>
+      <div class="ac-stat-icon"><svg class=ev-i aria-hidden=true><use href=#ev-trending></use></svg></div>
       <div class="ac-stat-val">${streak} day${streak === 1 ? '' : 's'}</div>
       <div class="ac-stat-sub">Days in a row you've studied</div>
     </div>
     <div class="ac-stat" style="${_acModAccent('locked')}">
-      <div class="ac-stat-icon">🏅</div>
+      <div class="ac-stat-icon"><svg class=ev-i aria-hidden=true><use href=#ev-medal></use></svg></div>
       <div class="ac-stat-val">${state.moduleBadges.length}/${ACADEMY_MODULES.length} badges</div>
       <div class="ac-stat-sub">${state.graduated ? 'Academy Graduate 🎓' : 'Finish a course to earn one'}</div>
     </div>
     <div class="ac-stat" style="${_acModAccent('done')}">
-      <div class="ac-stat-icon">⭐</div>
+      <div class="ac-stat-icon"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg></div>
       <div class="ac-stat-val">${(state.pointsBalance || 0).toLocaleString()} reward points</div>
       <div class="ac-stat-sub">You get these from placing orders — use them to unlock paid lessons</div>
     </div>
   </div>
 
-  <div class="ac-group-hd"><span class="t">📘 Free Learning Path</span><span class="n">${freeMods.length} courses</span><span class="line"></span></div>
+  <div class="ac-group-hd"><span class="t"><svg class=ev-i aria-hidden=true><use href=#ev-book></use></svg> Free Learning Path</span><span class="n">${freeMods.length} courses</span><span class="line"></span></div>
   <div class="ac-modgrid">
     ${freeMods.map(mod => _acRenderModCard(mod, state)).join('')}
   </div>
 
   ${lockedMods.length ? `
-  <div class="ac-group-hd" id="ac-premium-section"><span class="t">🔒 Premium Courses</span><span class="n">${lockedMods.length} to unlock</span><span class="line"></span></div>
+  <div class="ac-group-hd" id="ac-premium-section"><span class="t"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg> Premium Courses</span><span class="n">${lockedMods.length} to unlock</span><span class="line"></span></div>
   <div class="ac-modgrid">
     ${lockedMods.map(mod => _acRenderModCard(mod, state)).join('')}
   </div>` : ''}`;
@@ -2322,7 +2335,7 @@ async function _acOpenModule(moduleId) {
       <div>
         <button class="btn-secondary" style="margin-bottom:14px;" onclick="initAcademyPage()">← All Modules</button>
         <div class="ac-modhead">
-          <div class="ac-modhead-icon">${mod.icon}</div>
+          <div class="ac-modhead-icon">${_acIcon(mod.icon)}</div>
           <div class="ac-modhead-title">${esc(mod.title)}</div>
         </div>
       </div>
@@ -2354,7 +2367,7 @@ async function _acOpenModule(moduleId) {
     <div>
       <button class="btn-secondary" style="margin-bottom:14px;" onclick="initAcademyPage()">← All Modules</button>
       <div class="ac-modhead">
-        <div class="ac-modhead-icon" style="${_acModAccent(badgeEarned ? 'done' : (doneCount > 0 ? 'active' : 'idle'))}">${mod.icon}</div>
+        <div class="ac-modhead-icon" style="${_acModAccent(badgeEarned ? 'done' : (doneCount > 0 ? 'active' : 'idle'))}">${_acIcon(mod.icon)}</div>
         <div>
           <div class="ac-modhead-title">${esc(mod.title)}</div>
           <div class="ac-modhead-sub">${esc(mod.blurb)} · ${doneCount}/${mod.lessons.length} lessons</div>
@@ -2381,7 +2394,7 @@ async function _acOpenModule(moduleId) {
   </div>
   ${badgeEarned ? `
   <div class="ac-grad-banner" style="max-width:640px;margin-top:20px;margin-bottom:14px;">
-    <div class="ac-grad-icon">🎓</div>
+    <div class="ac-grad-icon"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg></div>
     <div style="flex:1;min-width:180px;">
       <div style="font-size:13px;font-weight:900;color:var(--white);">Course complete — your certificate is ready</div>
       <div style="font-size:11.5px;color:#a9b8cc;margin-top:2px;">Download it or share it straight to your socials</div>
@@ -2417,10 +2430,10 @@ function _acRenderBlocks(body, ctx) {
     if (t === 'h3') return `<h3 class="ac-h3">${_acInline(block.text)}</h3>`;
     if (t === 'hook') return `<div class="ac-hook">${_acInline(block.text)}</div>`;
     if (t === 'callout') return `<div class="ac-callout">${block.label ? `<div class="ac-callout-lb">${esc(block.label)}</div>` : ''}<div class="ac-callout-tx">${_acInline(block.text)}</div></div>`;
-    if (t === 'insight') return `<div class="ac-insight"><div class="ac-insight-lb">💡 ${esc(block.label || 'What most creators miss')}</div><div class="ac-insight-tx">${_acInline(block.text)}</div></div>`;
+    if (t === 'insight') return `<div class="ac-insight"><div class="ac-insight-lb"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg> ${esc(block.label || 'What most creators miss')}</div><div class="ac-insight-tx">${_acInline(block.text)}</div></div>`;
     if (t === 'stat') return `<div class="ac-stat-blk"><div class="ac-stat-v">${esc(block.value)}</div><div class="ac-stat-l">${_acInline(block.label)}</div></div>`;
-    if (t === 'myth') return `<div class="ac-myth"><div class="ac-myth-row bad"><span class="ac-myth-tag">✗ MYTH</span><span>${_acInline(block.myth)}</span></div><div class="ac-myth-row good"><span class="ac-myth-tag">✓ REALITY</span><span>${_acInline(block.truth)}</span></div></div>`;
-    if (t === 'takeaways') return `<div class="ac-take"><div class="ac-take-hd">🧠 Key takeaways</div>${(block.items || []).map((it, i) => `<div class="ac-take-row"><span class="ac-take-n">${i + 1}</span><span>${_acInline(it)}</span></div>`).join('')}</div>`;
+    if (t === 'myth') return `<div class="ac-myth"><div class="ac-myth-row bad"><span class="ac-myth-tag"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> MYTH</span><span>${_acInline(block.myth)}</span></div><div class="ac-myth-row good"><span class="ac-myth-tag"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg> REALITY</span><span>${_acInline(block.truth)}</span></div></div>`;
+    if (t === 'takeaways') return `<div class="ac-take"><div class="ac-take-hd"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg> Key takeaways</div>${(block.items || []).map((it, i) => `<div class="ac-take-row"><span class="ac-take-n">${i + 1}</span><span>${_acInline(it)}</span></div>`).join('')}</div>`;
     if (t === 'table') {
       const head = (block.headers || []).map(h => `<th>${esc(h)}</th>`).join('');
       const rows = (block.rows || []).map(r => `<tr>${r.map(c => `<td>${_acInline(c)}</td>`).join('')}</tr>`).join('');
@@ -2428,24 +2441,24 @@ function _acRenderBlocks(body, ctx) {
     }
     if (t === 'template') {
       const i = _acTemplates.push(block.text || '') - 1;
-      return `<div class="ac-tpl"><div class="ac-tpl-hd"><span>📋 ${esc(block.label || 'Template')}</span><button type="button" class="ac-tpl-copy" onclick="_acCopyTemplate(${i}, this)">Copy</button></div><pre class="ac-tpl-body">${esc(block.text || '')}</pre></div>`;
+      return `<div class="ac-tpl"><div class="ac-tpl-hd"><span><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg> ${esc(block.label || 'Template')}</span><button type="button" class="ac-tpl-copy" onclick="_acCopyTemplate(${i}, this)">Copy</button></div><pre class="ac-tpl-body">${esc(block.text || '')}</pre></div>`;
     }
     if (t === 'service') {
       const plat = String(block.platform || 'all').replace(/[^a-z]/g, '');
       const sub  = String(block.subcat || 'all').replace(/[^a-z]/g, '');
-      return `<div class="ac-svc"><div class="ac-svc-kicker">🚀 ENDAVIRAL GROWTH</div><div class="ac-svc-title">${esc(block.label || '')}</div><div class="ac-svc-text">${_acInline(block.text || '')}</div><button type="button" class="ac-svc-btn" onclick="acOrderService('${plat}','${sub}')">${esc(block.cta || 'Order now')} →</button><div class="ac-svc-note">Works best as social proof on content you're proud of. Bought numbers don't count toward monetisation, so keep them out of brand pitches.</div></div>`;
+      return `<div class="ac-svc"><div class="ac-svc-kicker"><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg> ENDAVIRAL GROWTH</div><div class="ac-svc-title">${esc(block.label || '')}</div><div class="ac-svc-text">${_acInline(block.text || '')}</div><button type="button" class="ac-svc-btn" onclick="acOrderService('${plat}','${sub}')">${esc(block.cta || 'Order now')} →</button><div class="ac-svc-note">Works best as social proof on content you're proud of. Bought numbers don't count toward monetisation, so keep them out of brand pitches.</div></div>`;
     }
     if (t === 'action') {
-      return `<div class="ac-act"><div class="ac-act-hd">✅ ${esc(block.label || 'Do this today')}</div>${(block.items || []).map(it => `<label class="ac-act-row"><input type="checkbox"><span>${_acInline(it)}</span></label>`).join('')}</div>`;
+      return `<div class="ac-act"><div class="ac-act-hd"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> ${esc(block.label || 'Do this today')}</div>${(block.items || []).map(it => `<label class="ac-act-row"><input type="checkbox"><span>${_acInline(it)}</span></label>`).join('')}</div>`;
     }
     if (t === 'quiz') {
       const qi = _acQuizzes.push(block) - 1;
-      return `<div class="ac-quiz" id="acQuiz${qi}"><div class="ac-quiz-kicker">⚡ QUICK CHECK</div><div class="ac-quiz-q">${_acInline(block.q)}</div>${(block.options || []).map((o, oi) => `<button type="button" class="ac-quiz-opt" onclick="_acQuizPick(${qi},${oi})"><span class="ac-quiz-l">${'ABCD'[oi] || '•'}</span><span>${_acInline(o)}</span></button>`).join('')}<div class="ac-quiz-ex" style="display:none;"></div></div>`;
+      return `<div class="ac-quiz" id="acQuiz${qi}"><div class="ac-quiz-kicker"><svg class=ev-i aria-hidden=true><use href=#ev-zap></use></svg> QUICK CHECK</div><div class="ac-quiz-q">${_acInline(block.q)}</div>${(block.options || []).map((o, oi) => `<button type="button" class="ac-quiz-opt" onclick="_acQuizPick(${qi},${oi})"><span class="ac-quiz-l">${'ABCD'[oi] || '•'}</span><span>${_acInline(o)}</span></button>`).join('')}<div class="ac-quiz-ex" style="display:none;"></div></div>`;
     }
     if (t === 'sources') {
       const items = (block.items || []).filter(x => x && /^https?:\/\//i.test(x.url || ''));
       if (!items.length) return '';
-      return `<details class="ac-src"><summary>📚 Research sources (${items.length})</summary>${items.map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer nofollow">${esc(x.title)}</a>`).join('')}</details>`;
+      return `<details class="ac-src"><summary><svg class=ev-i aria-hidden=true><use href=#ev-book></use></svg> Research sources (${items.length})</summary>${items.map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer nofollow">${esc(x.title)}</a>`).join('')}</details>`;
     }
     if (t === 'locked') {
       const pm = ACADEMY_MODULES.find(m => m.id === block.module);
@@ -2454,7 +2467,7 @@ function _acRenderBlocks(body, ctx) {
       const owned = _acIsPurchased(st, pm.id);
       const meta = st.moduleMeta && st.moduleMeta[pm.id];
       const price = (meta && meta.price_kes) || pm.priceKes || ACADEMY_PREMIUM_PRICE_KES;
-      return `<div class="ac-lockteaser"><div class="ac-lt-kicker">${owned ? '✅ YOU OWN THIS COURSE' : '💎 GO DEEPER — PREMIUM'}</div><div class="ac-lt-title">${pm.icon} ${esc(pm.title)}</div><div class="ac-lt-text">${_acInline(block.text)}</div>${(block.items || []).map(it => `<div class="ac-lt-row"><span>${owned ? '▸' : '🔒'}</span><span>${_acInline(it)}</span></div>`).join('')}<button type="button" class="ac-lt-btn" onclick="_acOpenFromLesson('${pm.id}')">${owned ? 'Open the course →' : `Read lesson 1 free · then KSh ${price} →`}</button></div>`;
+      return `<div class="ac-lockteaser"><div class="ac-lt-kicker">${owned ? 'YOU OWN THIS COURSE' : 'GO DEEPER — PREMIUM'}</div><div class="ac-lt-title">${_acIcon(pm.icon)} ${esc(pm.title)}</div><div class="ac-lt-text">${_acInline(block.text)}</div>${(block.items || []).map(it => `<div class="ac-lt-row"><span>${owned ? '▸' : evIcon('lock')}</span><span>${_acInline(it)}</span></div>`).join('')}<button type="button" class="ac-lt-btn" onclick="_acOpenFromLesson('${pm.id}')">${owned ? 'Open the course →' : `Read lesson 1 free · then KSh ${price} →`}</button></div>`;
     }
     return '';
   }).join('');
@@ -2473,7 +2486,7 @@ function _acQuizPick(qi, oi) {
   });
   const ex = box.querySelector('.ac-quiz-ex');
   if (ex) {
-    ex.innerHTML = `<b style="color:${right ? 'var(--green)' : '#ffb347'};">${right ? '✓ Spot on.' : '✗ Not quite.'}</b> ${_acInline(q.explain)}`;
+    ex.innerHTML = `<b style="color:${right ? 'var(--green)' : '#ffb347'};">${right ? 'Spot on.' : 'Not quite.'}</b> ${_acInline(q.explain)}`;
     ex.style.display = 'block';
   }
 }
@@ -2543,7 +2556,7 @@ function _acCommentHtml(c) {
     <div class="ac-cm-main">
       <div class="ac-cm-meta"><b>${esc(c.name)}</b>${c.is_mine ? ' <span class="ac-cm-you">you</span>' : ''} · ${esc(_acTimeAgo(c.created_at))}${c.hidden ? ' · <span style="color:#ffb347;">hidden by moderators</span>' : ''}${c.is_mine ? ` · <button type="button" class="ac-cm-del" onclick="_acDeleteComment('${esc(c.id)}')">delete</button>` : ''}</div>
       <div class="ac-cm-tx">${esc(c.comment)}</div>
-      ${c.admin_reply ? `<div class="ac-cm-reply"><div class="ac-cm-reply-hd">✔ ${esc(c.admin_reply_by || 'EndaViral Team')} · ${esc(_acTimeAgo(c.admin_replied_at))}</div><div>${esc(c.admin_reply)}</div></div>` : ''}
+      ${c.admin_reply ? `<div class="ac-cm-reply"><div class="ac-cm-reply-hd"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg> ${esc(c.admin_reply_by || 'EndaViral Team')} · ${esc(_acTimeAgo(c.admin_replied_at))}</div><div>${esc(c.admin_reply)}</div></div>` : ''}
     </div>
   </div>`;
 }
@@ -2555,12 +2568,12 @@ function _acRenderCommunityShell(moduleId, lessonId) {
   <div class="ac-react">
     <div class="ac-react-q">Was this lesson useful?</div>
     <div class="ac-react-btns">
-      <button type="button" class="ac-react-btn" id="acReactUp" onclick="_acReact(1)">🔥 Yes, learned something <span id="acReactUpN"></span></button>
+      <button type="button" class="ac-react-btn" id="acReactUp" onclick="_acReact(1)"><svg class=ev-i aria-hidden=true><use href=#ev-trending></use></svg> Yes, learned something <span id="acReactUpN"></span></button>
       <button type="button" class="ac-react-btn" id="acReactDown" onclick="_acReact(-1)">😐 Not really</button>
     </div>
   </div>
   <div class="ac-disc">
-    <div class="ac-disc-hd">💬 Discussion <span id="acDiscCount" class="ac-disc-n"></span></div>
+    <div class="ac-disc-hd"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Discussion <span id="acDiscCount" class="ac-disc-n"></span></div>
     <div class="ac-disc-sub">Ask a question, share a result, or tell us what to cover next — the EndaViral team reads and replies to every comment.</div>
     <textarea id="acDiscInput" maxlength="1000" rows="3" placeholder="e.g. I tried this on my salon page and…"></textarea>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;">
@@ -2620,7 +2633,7 @@ async function _acReact(value) {
       const ta = document.getElementById('acDiscInput');
       if (ta) { ta.placeholder = 'What was missing or unclear? We read every comment and improve lessons from them.'; ta.focus(); }
     } else if (next === 1) {
-      toast('🔥 Thanks! Glad it helped.', 'success');
+      toast('Thanks! Glad it helped.', 'success');
     }
   } catch (e) {
     toast(e.message || 'Could not save your vote', 'error');
@@ -2647,7 +2660,7 @@ async function _acPostComment() {
     }
     const cnt = document.getElementById('acDiscCount');
     if (cnt) { const n = (parseInt((cnt.textContent || '').replace(/\D/g, ''), 10) || 0) + 1; cnt.textContent = `· ${n}`; }
-    toast('💬 Posted — the team will reply here', 'success');
+    toast('Posted — the team will reply here', 'success');
   } catch (e) {
     toast(e.message || 'Could not post your comment', 'error');
   } finally {
@@ -2689,7 +2702,7 @@ function _acPaintReplyBanner(sec) {
   const div = document.createElement('div');
   div.id = 'acReplyBanner';
   div.className = 'ac-reply-banner';
-  div.innerHTML = `<div style="font-size:20px;">💬</div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:800;color:var(--white);">The EndaViral team replied to ${items.length > 1 ? items.length + ' of your comments' : 'your comment'}</div><div style="font-size:11.5px;color:#a9b8cc;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lesson ? esc(lesson.title) + ' — ' : ''}“${esc(String(first.admin_reply || '').slice(0, 90))}”</div></div><button type="button" class="ac-grad-btn">Read →</button>`;
+  div.innerHTML = `<div style="font-size:20px;"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg></div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:800;color:var(--white);">The EndaViral team replied to ${items.length > 1 ? items.length + ' of your comments' : 'your comment'}</div><div style="font-size:11.5px;color:#a9b8cc;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lesson ? esc(lesson.title) + ' — ' : ''}“${esc(String(first.admin_reply || '').slice(0, 90))}”</div></div><button type="button" class="ac-grad-btn">Read →</button>`;
   div.onclick = () => {
     _acPendingReplies = _acPendingReplies.filter(r => r !== first);
     div.remove();
@@ -2732,10 +2745,10 @@ function _acPreviewEndHtml(mod, pv) {
   const rest = mod.lessons.slice(1);
   const hooks = (pv && pv.hooks) || {};
   return `<div class="ac-pv-end">
-    <div class="ac-pv-end-kicker">🎁 END OF YOUR FREE LESSON</div>
+    <div class="ac-pv-end-kicker"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> END OF YOUR FREE LESSON</div>
     <div class="ac-pv-end-title">That was 1 of ${mod.lessons.length}. Here's what the other ${rest.length} lessons unlock:</div>
     ${rest.map((l, i) => `<div class="ac-pv-row"><span class="ac-pv-n">${i + 2}</span><div><div class="ac-pv-t">${esc(l.title)}</div>${hooks[l.id] ? `<div class="ac-pv-h">${_acInline(hooks[l.id])}</div>` : ''}</div></div>`).join('')}
-    <button type="button" class="ac-pv-btn" onclick="closeAcademyLesson();openAcademyPurchase('${mod.id}')">🔓 Unlock all ${mod.lessons.length} lessons — KSh ${price}</button>
+    <button type="button" class="ac-pv-btn" onclick="closeAcademyLesson();openAcademyPurchase('${mod.id}')"><svg class=ev-i aria-hidden=true><use href=#ev-unlock></use></svg> Unlock all ${mod.lessons.length} lessons — KSh ${price}</button>
     <div class="ac-pv-note">One-time M-Pesa payment · yours forever · or use your loyalty points</div>
   </div>`;
 }
@@ -2751,8 +2764,8 @@ function _acLockedModuleHtml(mod, state, pv) {
   const hooks = (pv && pv.hooks) || {};
   const outcomes = (pv && pv.outcomes) || [];
   const proof = [];
-  if (pv && pv.owners >= 10) proof.push(`👥 ${pv.owners} creators unlocked this`);
-  if (pv && pv.comments >= 3) proof.push(`💬 ${pv.comments} comments from learners`);
+  if (pv && pv.owners >= 10) proof.push(`${pv.owners} creators unlocked this`);
+  if (pv && pv.comments >= 3) proof.push(`${pv.comments} comments from learners`);
   const totalMin = mod.lessons.reduce((n, l) => n + (l.minutes || 0), 0);
 
   return `
@@ -2760,7 +2773,7 @@ function _acLockedModuleHtml(mod, state, pv) {
     <div>
       <button class="btn-secondary" style="margin-bottom:14px;" onclick="initAcademyPage()">← All Modules</button>
       <div class="ac-modhead">
-        <div class="ac-modhead-icon" style="${_acModAccent('locked')}">${mod.icon}</div>
+        <div class="ac-modhead-icon" style="${_acModAccent('locked')}">${_acIcon(mod.icon)}</div>
         <div>
           <div class="ac-modhead-title">${esc(mod.title)}</div>
           <div class="ac-modhead-sub">${esc(mod.blurb)} · ${mod.lessons.length} lessons · ~${totalMin} min</div>
@@ -2776,7 +2789,7 @@ function _acLockedModuleHtml(mod, state, pv) {
       <span style="flex:1;text-align:left;"><b>Read lesson 1 now</b><br><span style="font-size:11.5px;color:#a9b8cc;">${esc(mod.lessons[0].title)} · ${mod.lessons[0].minutes} min</span></span>
       <span style="font-size:18px;">→</span>
     </button>
-    ${outcomes.length ? `<div class="ac-pw-sec">After this course you'll be able to</div>${outcomes.map(o => `<div class="ac-pw-out"><span>✓</span><span>${_acInline(o)}</span></div>`).join('')}` : ''}
+    ${outcomes.length ? `<div class="ac-pw-sec">After this course you'll be able to</div>${outcomes.map(o => `<div class="ac-pw-out"><span><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></span><span>${_acInline(o)}</span></div>`).join('')}` : ''}
     <div class="ac-pw-sec">What's inside</div>
     ${mod.lessons.map((l, i) => `
       <div class="ac-pw-lesson${i === 0 ? ' free' : ''}" onclick="${i === 0 ? `_acOpenPreviewLesson('${mod.id}')` : `openAcademyPurchase('${mod.id}')`}">
@@ -2789,7 +2802,7 @@ function _acLockedModuleHtml(mod, state, pv) {
     <div class="ac-pw-buy">
       <button class="btn-primary" style="width:100%;" onclick="openAcademyPurchase('${mod.id}')">Unlock all ${mod.lessons.length} lessons — KSh ${price} with M-Pesa</button>
       ${ptsCost ? `
-      <button class="btn-secondary" style="width:100%;margin-top:10px;${canAffordPoints ? '' : 'opacity:.55;cursor:not-allowed;'}" ${canAffordPoints ? `onclick="acRedeemWithPoints('${mod.id}')"` : 'disabled'}>⭐ Or unlock for ${ptsCost} loyalty points</button>
+      <button class="btn-secondary" style="width:100%;margin-top:10px;${canAffordPoints ? '' : 'opacity:.55;cursor:not-allowed;'}" ${canAffordPoints ? `onclick="acRedeemWithPoints('${mod.id}')"` : 'disabled'}><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg> Or unlock for ${ptsCost} loyalty points</button>
       <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center;">${canAffordPoints ? `You have ${ptsBalance} points — this leaves you ${ptsBalance - ptsCost}.` : `You have ${ptsBalance} points · earn ${ptsStillNeeded} more from orders to unlock free.`}</div>` : ''}
       <div style="font-size:11px;color:var(--muted);margin-top:10px;text-align:center;">One-time unlock · yours forever · less than a plate of chips 🍟</div>
     </div>
@@ -2936,7 +2949,7 @@ function openAcademyLesson(moduleId, lessonId, opts) {
   document.getElementById('acLessonTitle').textContent = lesson.title;
   const idx = mod.lessons.findIndex(l => l.id === lessonId);
   document.getElementById('acLessonMeta').textContent = preview
-    ? `🎁 Free preview · ${lesson.minutes} min read · Lesson 1 of ${mod.lessons.length}`
+    ? `Free preview · ${lesson.minutes} min read · Lesson 1 of ${mod.lessons.length}`
     : `${lesson.minutes} min read · Lesson ${idx + 1} of ${mod.lessons.length}`;
   document.getElementById('acLessonBody').innerHTML = _acRenderBlocks(lesson.body, { moduleId });
 
@@ -2947,8 +2960,8 @@ function openAcademyLesson(moduleId, lessonId, opts) {
   const xpEl = document.getElementById('acLessonXp');
   if (xpEl) xpEl.textContent = ACADEMY_XP_PER_LESSON;
   if (btn) {
-    if (preview) { btn.textContent = '🔓 Unlock the full course'; btn.disabled = false; btn.style.opacity = '1'; }
-    else if (complete) { btn.textContent = '✓ Completed'; btn.disabled = true; btn.style.opacity = '.7'; }
+    if (preview) { btn.textContent = 'Unlock the full course'; btn.disabled = false; btn.style.opacity = '1'; }
+    else if (complete) { btn.textContent = 'Completed'; btn.disabled = true; btn.style.opacity = '.7'; }
     else { btn.innerHTML = `Mark Complete +<span id="acLessonXp">${ACADEMY_XP_PER_LESSON}</span> points`; btn.disabled = false; btn.style.opacity = '1'; }
   }
 
@@ -3030,12 +3043,12 @@ async function acMarkCurrentComplete() {
 
   if (data.completed_now) {
     if (data.graduated && !wasGraduated) {
-      toast('🎓 Academy Graduate! You completed every lesson.', 'success');
+      toast('Academy Graduate! You completed every lesson.', 'success');
     } else if (data.module_badge_earned) {
-      toast(`🏅 Course badge earned: ${mod.title}! +${ACADEMY_XP_PER_MODULE} bonus points`, 'success');
+      toast(`Course badge earned: ${mod.title}! +${ACADEMY_XP_PER_MODULE} bonus points`, 'success');
     } else if (data.leveled_up) {
       const newLevel = _acLevelFor(data.xp);
-      toast(`${newLevel.icon} Leveled up! You're now a ${newLevel.name}`, 'success');
+      toast(`${_acIcon(newLevel.icon)} Leveled up! You're now a ${newLevel.name}`, 'success');
     } else {
       toast(`+${data.xp_gained || ACADEMY_XP_PER_LESSON} points earned!`, 'success');
     }
@@ -3075,7 +3088,7 @@ async function openAcademyFeedback(moduleId) {
   const subEl = document.getElementById('acFeedbackSub');
   const commentEl = document.getElementById('acFeedbackComment');
   const btn = document.getElementById('acFeedbackSubmitBtn');
-  if (titleEl) titleEl.textContent = `🏅 ${mod.title} complete!`;
+  if (titleEl) titleEl.textContent = `${mod.title} complete!`;
   if (subEl) subEl.textContent = 'How was it? Your feedback helps us improve the Academy.';
   if (commentEl) commentEl.value = '';
   if (btn) { btn.disabled = false; btn.textContent = 'Send Feedback'; }
@@ -3105,7 +3118,7 @@ function _acRenderFeedbackStars(rating) {
   const container = document.getElementById('acFeedbackStars');
   if (!container) return;
   container.innerHTML = [1, 2, 3, 4, 5].map(n => `
-    <span onclick="_acRenderFeedbackStars(${n})" style="cursor:pointer;font-size:28px;line-height:1;color:${n <= rating ? '#ffd700' : 'var(--border)'};transition:color .15s;">★</span>
+    <span onclick="_acRenderFeedbackStars(${n})" style="cursor:pointer;font-size:28px;line-height:1;color:${n <= rating ? '#ffd700' : 'var(--border)'};transition:color .15s;"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg></span>
   `).join('');
 }
 
@@ -3132,7 +3145,7 @@ async function submitAcademyFeedback() {
   }
 }
 // ─── Rendering: premium module purchase (M-Pesa STK, same pattern as wallet deposit) ─
-// ─── Premium guides: downloadable PDFs (Standard KSh 250, Advanced KSh 500) ─
+// ─── Premium guides: downloadable PDFs (Standard KSh 250, Advanced KSh 500, Premium KSh 1,500) ─
 // Bought with the same M-Pesa modal as premium courses, but against
 // /academy/guides/*. The server owns the prices and the files; once paid,
 // a guide can be downloaded again any time from this page.
@@ -3143,6 +3156,9 @@ const ACADEMY_GUIDES = [
   { id: 'guide_advanced', edition: 'Advanced', priceKes: 500, pages: 44, sections: 15,
     title: 'Social Media Growth Strategy — Advanced Edition', cover: 'guide-advanced-cover.jpg',
     blurb: 'Build a growth system: give every post a job, read your numbers, test and grow on several apps. Plain English, 90-day plan.' },
+  { id: 'guide_premium', edition: 'Premium', priceKes: 1500, pages: 72, sections: 16,
+    title: 'Social Media Growth Strategy — Premium Edition', cover: 'guide-premium-cover.jpg',
+    blurb: 'Turn your page into a media brand: own a category, the 2026 app rules, brand deals, launching your own offer, protecting your name and Kenyan creator tax rules. 12-month roadmap.' },
 ];
 let _acOwnedGuides = new Set();
 let _acGuidesLoaded = false;
@@ -3195,14 +3211,14 @@ function _acGuidesInner() {
     <div class="ac-guide${owned ? ' owned' : ''}">
       <img src="${g.cover}" alt="${esc(g.title)} cover" loading="lazy">
       <div class="ac-guide-b">
-        <div class="ac-guide-ed">${owned ? '✓ Yours · ' : ''}${g.edition} Edition · PDF</div>
+        <div class="ac-guide-ed">${owned ? 'Yours · ' : ''}${g.edition} Edition · PDF</div>
         <div class="ac-guide-t">Social Media Growth Strategy</div>
         <div class="ac-guide-w">${esc(g.blurb)}</div>
         <div class="ac-guide-m">${g.pages} pages · ${g.sections} sections · worksheets &amp; templates</div>
         <div class="ac-guide-act">
           ${owned
-            ? `<button class="ac-guide-btn" onclick="acDownloadGuide('${g.id}', this)">⬇ Download PDF</button><span class="ac-guide-note">Download again any time</span>`
-            : `<button class="ac-guide-btn" onclick="openAcademyPurchase('${g.id}')">Buy · KSh ${g.priceKes}</button><span class="ac-guide-note">M-Pesa · instant download</span>`}
+            ? `<button class="ac-guide-btn" onclick="acDownloadGuide('${g.id}', this)"><svg class=ev-i aria-hidden=true><use href=#ev-download></use></svg> Download PDF</button><span class="ac-guide-note">Download again any time</span>`
+            : `<button class="ac-guide-btn" onclick="openAcademyPurchase('${g.id}')">Buy · KSh ${Number(g.priceKes).toLocaleString("en-KE")}</button><span class="ac-guide-note">M-Pesa · instant download</span>`}
         </div>
       </div>
     </div>`;
@@ -3280,14 +3296,14 @@ function openAcademyPurchase(moduleId) {
   const priceEl = document.getElementById('acPurchasePrice');
   const phoneInput = document.getElementById('acPurchasePhone');
   const btn = document.getElementById('acPurchaseBtn');
-  if (titleEl) titleEl.textContent = guide ? '📘 ' + guide.title : mod.icon + ' ' + mod.title;
+  if (titleEl) titleEl.textContent = guide ? '' + guide.title : mod.icon + ' ' + mod.title;
   if (priceEl) priceEl.textContent = 'KSh ' + price;
   // Keep a number they already typed (e.g. coming back via "Try Again");
   // otherwise prefill from the account.
   if (phoneInput && !phoneInput.value) {
     phoneInput.value = (typeof currentUser !== 'undefined' && currentUser && currentUser.phone) ? currentUser.phone : '';
   }
-  if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = guide ? '📱 PAY & GET PDF' : '📱 PAY & UNLOCK'; }
+  if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = guide ? 'PAY & GET PDF' : 'PAY & UNLOCK'; }
 
   _acPurchaseStep('form');
   document.getElementById('academyPurchaseModal').classList.add('show');
@@ -3350,7 +3366,7 @@ function _acShowPurchaseResult(kind, moduleId, msg) {
     b1.textContent = 'Start Learning →';
     b1.onclick = () => { closeAcademyPurchase(); _acOpenModule(moduleId); };
   } else if (kind === 'pending') {
-    b1.textContent = '🔄 Check Again';
+    b1.textContent = 'Check Again';
     b1.onclick = () => _acPollPurchaseStatus(moduleId, _acPurchaseCheckoutId, true);
     b2.style.display = '';
     b2.textContent = 'Close';
@@ -3359,7 +3375,7 @@ function _acShowPurchaseResult(kind, moduleId, msg) {
     b1.textContent = 'Try Again';
     b1.onclick = () => openAcademyPurchase(moduleId);
     b2.style.display = '';
-    b2.textContent = '🎫 Get Help';
+    b2.textContent = 'Get Help';
     b2.onclick = () => {
       closeAcademyPurchase();
       if (typeof navTo === 'function') navTo('tickets');
@@ -3373,7 +3389,7 @@ async function submitAcademyPurchase() {
   const moduleId = _acPurchaseModuleId;
   if (!moduleId) return;
   const isGuide = _acIsGuide(moduleId);
-  const payLabel = isGuide ? '📱 PAY & GET PDF' : '📱 PAY & UNLOCK';
+  const payLabel = isGuide ? 'PAY & GET PDF' : 'PAY & UNLOCK';
   const phoneInput = document.getElementById('acPurchasePhone');
   const phone = phoneInput ? phoneInput.value.trim() : '';
   const digits = phone.replace(/\D/g, '');
@@ -3513,7 +3529,7 @@ async function acRedeemWithPoints(moduleId) {
   if (data.already_unlocked) {
     toast('You already own this course!', 'success');
   } else if (data.unlocked) {
-    toast(`⭐ Unlocked with ${data.points_spent} points! ${data.points_remaining} left.`, 'success');
+    toast(`Unlocked with ${data.points_spent} points! ${data.points_remaining} left.`, 'success');
   }
 
   await _acFetchState(true);
@@ -3760,7 +3776,7 @@ function _acDrawCertificate(canvas, data, logoImg) {
     // file, etc.) — keeps the certificate usable either way.
     ctx.fillStyle = green;
     ctx.font = '900 22px Montserrat, sans-serif';
-    ctx.fillText('🚀 ENDAVIRAL', W / 2, 120);
+    ctx.fillText('ENDAVIRAL', W / 2, 120);
     brandBottom = 128;
   }
 
@@ -3845,7 +3861,7 @@ function _acDrawCertificate(canvas, data, logoImg) {
   ctx.stroke();
   ctx.fillStyle = gold;
   ctx.font = '30px sans-serif';
-  ctx.fillText(data.kind === 'graduation' ? '🎓' : '🏅', W / 2, sealY + 10);
+  if (typeof evDrawIcon === 'function') evDrawIcon(ctx, data.kind === 'graduation' ? 'graduation' : 'medal', W / 2, sealY, 34, gold, 1.8);
 
   // Issued date (left) + certificate number (right) — small and unobtrusive,
   // sitting just above the promo banner rather than competing with it.
@@ -3883,7 +3899,7 @@ function _acDrawCertificate(canvas, data, logoImg) {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#08120a';
   ctx.font = '900 21px Montserrat, sans-serif';
-  ctx.fillText('🚀  ENDAVIRAL.CO.KE', W / 2, bannerY + 25);
+  ctx.fillText('ENDAVIRAL.CO.KE', W / 2, bannerY + 25);
   ctx.font = '700 12px Montserrat, sans-serif';
   ctx.fillText('Fuel Your Growth  ·  Learn a skill, get paid for it', W / 2, bannerY + 44);
 }

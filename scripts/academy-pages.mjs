@@ -254,11 +254,11 @@ if(!navigator.share){document.querySelectorAll('[data-share="native"]').forEach(
 function shareBar(url, text) {
   const u = encodeURIComponent(url), t = encodeURIComponent(text);
   return `<div class="share"><span>Share:</span>
-    <a class="wa" href="https://wa.me/?text=${t}%20${u}" target="_blank" rel="noopener">WhatsApp</a>
-    <a href="https://x.com/intent/post?text=${t}&amp;url=${u}" target="_blank" rel="noopener">X</a>
-    <a href="https://www.facebook.com/sharer/sharer.php?u=${u}" target="_blank" rel="noopener">Facebook</a>
-    <a href="https://t.me/share/url?url=${u}&amp;text=${t}" target="_blank" rel="noopener">Telegram</a>
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url=${u}" target="_blank" rel="noopener">LinkedIn</a>
+    <a class="wa" href="https://wa.me/?text=${t}%20${u}" target="_blank" rel="noopener"><img src="/icons/platforms/whatsapp-white.svg" alt="" width="15" height="15">WhatsApp</a>
+    <a href="https://x.com/intent/post?text=${t}&amp;url=${u}" target="_blank" rel="noopener"><img src="/icons/platforms/x.svg" alt="" width="15" height="15">X</a>
+    <a href="https://www.facebook.com/sharer/sharer.php?u=${u}" target="_blank" rel="noopener"><img src="/icons/platforms/facebook.svg" alt="" width="15" height="15">Facebook</a>
+    <a href="https://t.me/share/url?url=${u}&amp;text=${t}" target="_blank" rel="noopener"><img src="/icons/platforms/telegram.svg" alt="" width="15" height="15">Telegram</a>
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=${u}" target="_blank" rel="noopener"><img src="/icons/platforms/linkedin.svg" alt="" width="15" height="15">LinkedIn</a>
     <button type="button" data-share="native">Share…</button>
     <button type="button" data-share="copy">Copy link</button></div>`;
 }
@@ -289,7 +289,10 @@ function page({ title, desc, url, keywords, schemas, body, ogType = 'article' })
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(desc)}"/>
 <meta name="twitter:image" content="https://endaviral.co.ke/og-image.jpg"/>
-<link rel="icon" type="image/png" href="/EndaViral_logo_transparent.png"/>
+<link rel="icon" href="/favicon.ico" sizes="48x48"/>
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png"/>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+<link rel="manifest" href="/site.webmanifest"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
 ${schemas.map(s => `<script type="application/ld+json">${JSON.stringify(s).replace(/</g, '\\u003c')}</script>`).join('\n')}
@@ -441,6 +444,7 @@ ${free.map(m => `<a class="cc" href="${courseUrl(m)}"><div class="ic">${esc(m.ic
 <div class="grid">
 <a class="cc prem" href="/?go=academy&amp;m=guide_standard"><div class="ic">📘</div><h3>Social Media Growth Strategy — Standard Edition</h3><p>Brand positioning, audience segments, a weekly content system, hooks, engagement and analytics · 47 pages in plain English with worked examples and a 30-day plan</p><span class="go">Get the PDF → KSh 250</span></a>
 <a class="cc prem" href="/?go=academy&amp;m=guide_advanced"><div class="ic">📗</div><h3>Social Media Growth Strategy — Advanced Edition</h3><p>Content ecosystems, hook engineering, growth loops, predictive planning and retention mapping · 44 pages in plain English with worked examples and a 90-day plan</p><span class="go">Get the PDF → KSh 500</span></a>
+<a class="cc prem" href="/?go=academy&amp;m=guide_premium"><div class="ic">📒</div><h3>Social Media Growth Strategy — Premium Edition</h3><p>Category positioning, a content library that compounds, 2026 app rules, brand deals, launching your own offer, protecting your name and Kenyan creator tax rules · 72 pages in plain English with worked examples and a 12-month roadmap</p><span class="go">Get the PDF → KSh 1,500</span></a>
 </div>
 <div class="sec-h">Premium deep-dives — in the app, from KSh 50</div>
 <div class="grid">

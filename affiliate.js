@@ -410,11 +410,11 @@ function _renderDashboard(sec, data) {
       <button onclick="affCopyLink()" class="btn-secondary" style="white-space:nowrap;"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg> Copy</button>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button onclick="affShareWhatsApp()" style="flex:1;background:#25d366;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;min-width:120px;">
-        📱 WhatsApp
+      <button onclick="affShareWhatsApp()" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:1;background:#25d366;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;min-width:120px;">
+        <img class="plat-logo" src="/icons/platforms/whatsapp-white.svg" alt="" width="16" height="16"> WhatsApp
       </button>
-      <button onclick="affShareTikTok()" style="flex:1;background:#010101;color:#fff;border:1px solid #333;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;min-width:120px;">
-        🎵 TikTok Bio
+      <button onclick="affShareTikTok()" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:1;background:#010101;color:#fff;border:1px solid #333;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;min-width:120px;">
+        <img class="plat-logo" src="/icons/platforms/tiktok.svg" alt="" width="16" height="16"> TikTok Bio
       </button>
       <button onclick="affCopyCode()" style="flex:1;background:var(--navy);color:var(--white);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;min-width:120px;">
         🔑 Code: <strong style="color:var(--green);">${safeCode}</strong>

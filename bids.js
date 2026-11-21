@@ -309,7 +309,7 @@ function _bwRenderRail() {
       <label>Platform</label>
       <select onchange="_bwSetPlatform(this.value)">
         <option value="">Any</option>
-        ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}" ${_bwPlatform === p.key ? 'selected' : ''}>${p.emoji} ${esc(p.label)}</option>`).join('')}
+        ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}" ${_bwPlatform === p.key ? 'selected' : ''}>${esc(p.label)}</option>`).join('')}
       </select>
     </div>
     <div class="bw-rail-field">

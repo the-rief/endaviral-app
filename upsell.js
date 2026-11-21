@@ -114,7 +114,7 @@ function _upRowHTML(s, idx) {
     <div class="up-row" data-key="${esc(s.key)}">
       <button class="up-x" title="Hide" aria-label="Hide suggestion" onclick="upsellDismiss(event,'${esc(s.key)}')"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
       <div class="up-top">
-        <span class="up-ic">${_UP_ICON[s.platform] || '🚀'}</span>
+        <span class="up-ic">${typeof platIconHTML === 'function' ? platIconHTML(s.platform) : (_UP_ICON[s.platform] || '')}</span>
         <div class="up-main-txt">
           <div class="up-head">${esc(s.headline || s.title)}</div>
           <div class="up-sub">${esc(s.pitch || '')}</div>
@@ -293,7 +293,7 @@ function _upAfterCardHTML(s) {
   <div class="upa-card" role="region" aria-label="Recommended next step">
     <div class="upa-kicker"><svg class=ev-i aria-hidden=true><use href=#ev-zap></use></svg> ONE MORE STEP</div>
     <div class="upa-head">
-      <div class="upa-ic">${_UP_ICON[s.platform] || '🚀'}</div>
+      <div class="upa-ic">${typeof platIconHTML === 'function' ? platIconHTML(s.platform) : (_UP_ICON[s.platform] || '')}</div>
       <div class="upa-body">
         <div class="upa-title">${esc(s.headline || s.title)}</div>
         ${s.pitch ? `<div class="upa-meta">${esc(s.pitch)}</div>` : ''}

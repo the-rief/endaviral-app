@@ -37,7 +37,10 @@
 <meta name="twitter:image" content="https://endaviral.co.ke/og-image.jpg"/>
 <meta name="twitter:site" content="@endaviral"/>
 
-<link rel="icon" type="image/png" href="/EndaViral_logo_transparent.png"/>
+<link rel="icon" href="/favicon.ico" sizes="48x48"/>
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png"/>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+<link rel="manifest" href="/site.webmanifest"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 
@@ -236,11 +239,13 @@ body::before{content:'';position:fixed;inset:0;background:
   .blog-grid{grid-template-columns:1fr;}
 }
 </style>
+<style>/* ev-icons */.ev-i{width:1.1em;height:1.1em;display:inline-block;vertical-align:-0.18em;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.blog-card-thumb,.suggested-thumb{color:#fff}</style>
 </head>
 <body>
+<svg id="ev-sprite" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="ev-alarm" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6M22 6l-3-3"/></symbol><symbol id="ev-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol><symbol id="ev-arrow-down" viewBox="0 0 24 24"><path d="M12 4v16M6 14l6 6 6-6"/></symbol><symbol id="ev-banknote" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></symbol><symbol id="ev-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></symbol><symbol id="ev-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M15.1 14c.2-1 .7-1.7 1.4-2.5A5.8 5.8 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.2 1.5 1.4 2.5"/></symbol><symbol id="ev-cart" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L22 7H6"/></symbol><symbol id="ev-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol><symbol id="ev-coins" viewBox="0 0 24 24"><circle cx="9" cy="9" r="6"/><path d="M18.1 10.4A6 6 0 1 1 10.3 18"/><path d="M8 7h1.5v4M16.7 13.9l.8.8-2.8 2.8"/></symbol><symbol id="ev-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></symbol><symbol id="ev-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15 9 12a22 22 0 0 1 2-4A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></symbol><symbol id="ev-sparkle" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><path d="m6 6 2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></symbol><symbol id="ev-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol><symbol id="ev-sunrise" viewBox="0 0 24 24"><path d="M12 2v6M4.9 10.9l1.4 1.4M2 18h2M20 18h2M17.7 12.3l1.4-1.4M22 22H2M8 6l4-4 4 4M16 18a4 4 0 0 0-8 0"/></symbol><symbol id="ev-thumbs-up" viewBox="0 0 24 24"><path d="M7 10v12M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9z"/></symbol><symbol id="ev-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18.5 14.6A6.5 6.5 0 0 1 21.5 20"/></symbol></defs></svg>
 
 <!-- TOPBAR -->
-<div class="lp-topbar">🇰🇪 Kenya's #1 SMM Panel &nbsp;•&nbsp; Pay via M-Pesa &nbsp;•&nbsp; Instant Delivery
+<div class="lp-topbar"><img class="ev-flag" src="/icons/flags/ke.svg" alt="Kenya" style="width:1.35em;height:.9em;vertical-align:-.1em;border-radius:2px"> Kenya's #1 SMM Panel &nbsp;•&nbsp; Pay via M-Pesa &nbsp;•&nbsp; Instant Delivery
   <a href="https://endaviral.co.ke">Start Growing →</a>
 </div>
 
@@ -299,7 +304,7 @@ body::before{content:'';position:fixed;inset:0;background:
       <p>Before you post a single piece of content, your profile needs to work as a landing page. Kenyan users decide whether to follow you in under 3 seconds.</p>
       <ul>
         <li><strong>Username:</strong> Keep it short, memorable, and ideally include your niche or location keyword (e.g. <em>@NairobiEats</em>, <em>@KenyaFitness</em>).</li>
-        <li><strong>Bio:</strong> One line on what you do, one line on who it's for, and a call to action. Example: <em>"Kenyan street food reviews 🇰🇪 | New video every Tuesday | 👇 Watch latest"</em></li>
+        <li><strong>Bio:</strong> One line on what you do, one line on who it's for, and a call to action. Example: <em>"Kenyan street food reviews <img class="ev-flag" src="/icons/flags/ke.svg" alt="Kenya" style="width:1.35em;height:.9em;vertical-align:-.1em;border-radius:2px"> | New video every Tuesday | <svg class=ev-i aria-hidden=true><use href=#ev-arrow-down></use></svg> Watch latest"</em></li>
         <li><strong>Link in bio:</strong> Use a free tool like Linktree or a direct WhatsApp link to capture leads.</li>
         <li><strong>Profile photo:</strong> A clear, well-lit face photo outperforms logos for personal brands. Brands should use a clean logo on a white or coloured background.</li>
       </ul>
@@ -315,7 +320,7 @@ body::before{content:'';position:fixed;inset:0;background:
         <li>Post Reels <strong>4–5 times per week</strong> for consistent algorithmic reach.</li>
       </ul>
       <div class="callout callout-green">
-        <div class="callout-label">💡 Kenya-Specific Tip</div>
+        <div class="callout-label"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg> Kenya-Specific Tip</div>
         <p>Content in Swahili or mixing English and Sheng performs exceptionally well with Kenyan audiences. Even one Swahili phrase in your caption can double your comment rate from local followers.</p>
       </div>
 
@@ -395,7 +400,7 @@ body::before{content:'';position:fixed;inset:0;background:
       <div class="sidebar-card sidebar-cta-card">
         <h3>Ready to Go Viral?</h3>
         <p>Get real TikTok, Instagram & YouTube growth — pay via M-Pesa. Instant delivery, no password needed.</p>
-        <a href="https://endaviral.co.ke" class="sidebar-cta-btn">🚀 Start Growing Now</a>
+        <a href="https://endaviral.co.ke" class="sidebar-cta-btn"><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg> Start Growing Now</a>
       </div>
       <!-- Related Posts -->
       <div class="sidebar-card">
@@ -445,13 +450,13 @@ body::before{content:'';position:fixed;inset:0;background:
       <!-- Services -->
       <div class="sidebar-card">
         <h4>Our Services</h4>
-        <a class="platform-badge" href="/buy-tiktok-views-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#010101;">🎵</div><div><div class="pb-label">TikTok Views</div><div class="pb-sub">Boost a video's reach</div></div></a>
-        <a class="platform-badge" href="/buy-tiktok-followers-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#010101;">👥</div><div><div class="pb-label">TikTok Followers</div><div class="pb-sub">Followers and likes</div></div></a>
-        <a class="platform-badge" href="/buy-instagram-followers-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#e1306c;">📸</div><div><div class="pb-label">Instagram Growth</div><div class="pb-sub">Followers, Likes, Views</div></div></a>
-        <a class="platform-badge" href="/buy-youtube-watch-hours-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#ff0000;">▶️</div><div><div class="pb-label">YouTube Growth</div><div class="pb-sub">Views, Watch Hours, Subs</div></div></a>
-        <a class="platform-badge" href="/telegram-members-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#0088cc;">✈️</div><div><div class="pb-label">Telegram Growth</div><div class="pb-sub">Members, Views</div></div></a>
-        <a class="platform-badge" href="/buy-facebook-page-likes-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#1877f2;">👍</div><div><div class="pb-label">Facebook Page Likes</div><div class="pb-sub">Page credibility</div></div></a>
-        <a class="platform-badge" href="/social-media-management-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#3dd44a;">🧑‍💼</div><div><div class="pb-label">Social Media Management</div><div class="pb-sub">We run it from KES 5,000/mo</div></div></a>
+        <a class="platform-badge" href="/buy-tiktok-views-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#010101;"><img class="ev-logo" src="/icons/platforms/tiktok.svg" alt="" style="width:1em;height:1em;vertical-align:-0.15em;display:inline-block"></div><div><div class="pb-label">TikTok Views</div><div class="pb-sub">Boost a video's reach</div></div></a>
+        <a class="platform-badge" href="/buy-tiktok-followers-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#010101;"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg></div><div><div class="pb-label">TikTok Followers</div><div class="pb-sub">Followers and likes</div></div></a>
+        <a class="platform-badge" href="/buy-instagram-followers-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#e1306c;"><img class="ev-logo" src="/icons/platforms/instagram-white.svg" alt="" style="width:1em;height:1em;vertical-align:-0.15em;display:inline-block"></div><div><div class="pb-label">Instagram Growth</div><div class="pb-sub">Followers, Likes, Views</div></div></a>
+        <a class="platform-badge" href="/buy-youtube-watch-hours-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#ff0000;"><img class="ev-logo" src="/icons/platforms/youtube-white.svg" alt="" style="width:1em;height:1em;vertical-align:-0.15em;display:inline-block"></div><div><div class="pb-label">YouTube Growth</div><div class="pb-sub">Views, Watch Hours, Subs</div></div></a>
+        <a class="platform-badge" href="/telegram-members-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#0088cc;"><img class="ev-logo" src="/icons/platforms/telegram-white.svg" alt="" style="width:1em;height:1em;vertical-align:-0.15em;display:inline-block"></div><div><div class="pb-label">Telegram Growth</div><div class="pb-sub">Members, Views</div></div></a>
+        <a class="platform-badge" href="/buy-facebook-page-likes-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#1877f2;"><svg class=ev-i aria-hidden=true><use href=#ev-thumbs-up></use></svg></div><div><div class="pb-label">Facebook Page Likes</div><div class="pb-sub">Page credibility</div></div></a>
+        <a class="platform-badge" href="/social-media-management-kenya" style="text-decoration:none;color:inherit;"><div class="pb-icon" style="background:#3dd44a;"><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg></div><div><div class="pb-label">Social Media Management</div><div class="pb-sub">We run it from KES 5,000/mo</div></div></a>
       </div>
     </aside>
   </div>
@@ -461,7 +466,7 @@ body::before{content:'';position:fixed;inset:0;background:
     <h3>Keep Reading — <span>More for Kenyan Creators</span></h3>
     <div class="suggested-grid" id="suggested-grid">
       <a href="/how-to-grow-on-tiktok-in-kenya" class="suggested-card">
-        <div class="suggested-thumb" style="background:linear-gradient(135deg,#010101,#1a1a2e);">🎵</div>
+        <div class="suggested-thumb" style="background:linear-gradient(135deg,#010101,#1a1a2e);"><img class="ev-logo" src="/icons/platforms/tiktok.svg" alt="" style="width:1em;height:1em;vertical-align:-0.15em;display:inline-block"></div>
         <div class="suggested-body">
           <div class="suggested-tag">TikTok</div>
           <div class="suggested-title">How to Grow on TikTok in Kenya (2026 Complete Guide)</div>
@@ -473,7 +478,7 @@ body::before{content:'';position:fixed;inset:0;background:
         </div>
       </a>
       <a href="/how-to-reach-10k-followers-on-tiktok-kenya" class="suggested-card">
-        <div class="suggested-thumb" style="background:linear-gradient(135deg,#0d1b3e,#1a5c2a);">🚀</div>
+        <div class="suggested-thumb" style="background:linear-gradient(135deg,#0d1b3e,#1a5c2a);"><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg></div>
         <div class="suggested-body">
           <div class="suggested-tag">TikTok</div>
           <div class="suggested-title">How to Reach 10,000 Followers on TikTok in Kenya</div>
@@ -485,7 +490,7 @@ body::before{content:'';position:fixed;inset:0;background:
         </div>
       </a>
       <a href="/how-tiktok-monetization-works-kenya" class="suggested-card">
-        <div class="suggested-thumb" style="background:linear-gradient(135deg,#1a2a00,#0d3b1a);">💰</div>
+        <div class="suggested-thumb" style="background:linear-gradient(135deg,#1a2a00,#0d3b1a);"><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg></div>
         <div class="suggested-body">
           <div class="suggested-tag">TikTok</div>
           <div class="suggested-title">How TikTok Monetization Works in Kenya (2026 Guide)</div>
@@ -523,7 +528,7 @@ const ARTICLES = [
     date: "June 2026",
     description: "Step-by-step guide to growing your TikTok account in Kenya in 2026. Learn the best posting times, trending sounds, hashtags, and how to use the algorithm to go viral.",
     keywords: "how to grow on tiktok in kenya, tiktok kenya 2026, tiktok algorithm kenya, tiktok tips kenya, grow tiktok kenya",
-    thumb: "🎵",
+    thumb: '<img class="ev-logo" src="/icons/platforms/tiktok.svg" alt="" style="width:1em;height:1em;vertical-align:-0.15em;display:inline-block">',
     thumbBg: "linear-gradient(135deg,#010101,#1a1a2e)",
     cardDesc: "Step-by-step guide to growing your TikTok in Kenya — best posting times, trending sounds, hashtags and more.",
     faqs: [
@@ -626,7 +631,7 @@ const ARTICLES = [
     date: "June 2026",
     description: "A practical roadmap to hit 10K followers on TikTok in Kenya. From your first 100 to 10,000 — posting strategies, collaborations, and M-Pesa growth hacks.",
     keywords: "how to get 10k followers tiktok kenya, 10000 followers tiktok kenya, grow tiktok kenya fast, tiktok 10k kenya",
-    thumb: "🚀",
+    thumb: '<svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg>',
     thumbBg: "linear-gradient(135deg,#0d1b3e,#1a5c2a)",
     cardDesc: "A realistic roadmap from 0 to 10K TikTok followers in Kenya — posting strategy, collabs, and smart growth hacks.",
     faqs: [
@@ -646,7 +651,7 @@ const ARTICLES = [
         <li>Follow 20–30 accounts in your niche and genuinely engage with their content.</li>
       </ul>
       <div class="callout callout-green">
-        <div class="callout-label">💡 Quick Win</div>
+        <div class="callout-label"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg> Quick Win</div>
         <p>Post a "Tell me if you're Kenyan in the comments" video early on. Kenyan creators get huge comment engagement from these, which pushes the video to more Kenyans.</p>
       </div>
 
@@ -682,11 +687,11 @@ const ARTICLES = [
 
       <h2>What Unlocks at 10,000 Followers?</h2>
       <ul>
-        <li>✅ <strong>TikTok LIVE</strong> — host live streams and earn gifts</li>
-        <li>✅ <strong>Clickable bio link</strong> — send traffic to your website or WhatsApp</li>
-        <li>✅ <strong>TikTok Creator Fund eligibility</strong> — get paid by TikTok for views</li>
-        <li>✅ <strong>Brand deals</strong> — Kenyan brands start approaching creators at 10K</li>
-        <li>✅ <strong>Higher algorithm trust</strong> — TikTok promotes 10K+ accounts more aggressively</li>
+        <li><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> <strong>TikTok LIVE</strong> — host live streams and earn gifts</li>
+        <li><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> <strong>Clickable bio link</strong> — send traffic to your website or WhatsApp</li>
+        <li><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> <strong>TikTok Creator Fund eligibility</strong> — get paid by TikTok for views</li>
+        <li><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> <strong>Brand deals</strong> — Kenyan brands start approaching creators at 10K</li>
+        <li><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> <strong>Higher algorithm trust</strong> — TikTok promotes 10K+ accounts more aggressively</li>
       </ul>
 
       <h2>Frequently Asked Questions</h2>
@@ -709,7 +714,7 @@ const ARTICLES = [
     date: "June 2026",
     description: "Everything Kenyan creators need to know about earning money on TikTok in 2026 — Creator Fund, LIVE gifts, brand deals, TikTok Shop, and how to get started.",
     keywords: "tiktok monetization kenya, how to earn from tiktok kenya, tiktok creator fund kenya, tiktok income kenya 2026",
-    thumb: "💰",
+    thumb: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>',
     thumbBg: "linear-gradient(135deg,#1a2a00,#0d3b1a)",
     cardDesc: "Everything about earning money on TikTok in Kenya — Creator Fund, LIVE gifts, brand deals and TikTok Shop explained.",
     faqs: [
@@ -730,7 +735,7 @@ const ARTICLES = [
       </ul>
       <p>Once approved, you earn between <strong>$0.02 – $0.04 per 1,000 views</strong>. That's roughly <strong>KES 2,600 – 5,200 per million views</strong>. Not huge, but it compounds as your audience grows.</p>
       <div class="callout callout-orange">
-        <div class="callout-label">⚠️ Important</div>
+        <div class="callout-label"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Important</div>
         <p>Creator Fund payments are in USD. You'll need a PayPal or Payoneer account to withdraw to your Kenyan bank. Some creators use Payoneer → KCB or Equity Bank direct transfer.</p>
       </div>
 
@@ -795,7 +800,7 @@ const ARTICLES = [
     date: "June 2026",
     description: "Complete guide to growing your Instagram account in Kenya in 2026. Learn the best posting times, Reels strategy, hashtags, and how to attract Kenyan followers fast.",
     keywords: "how to grow on instagram in kenya, instagram growth kenya, instagram followers kenya, grow instagram kenya 2026, instagram tips kenya",
-    thumb: "📸",
+    thumb: '<img class="ev-logo" src="/icons/platforms/instagram-white.svg" alt="" style="width:1em;height:1em;vertical-align:-0.15em;display:inline-block">',
     thumbBg: "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)",
     cardDesc: "The complete 2026 playbook for growing your Instagram in Kenya — Reels strategy, hashtags, posting times and more.",
     faqs: [
@@ -811,7 +816,7 @@ const ARTICLES = [
       <p>Before you post a single piece of content, your profile needs to work as a landing page. Kenyan users decide whether to follow you in under 3 seconds.</p>
       <ul>
         <li><strong>Username:</strong> Keep it short, memorable, and ideally include your niche or location keyword (e.g. <em>@NairobiEats</em>, <em>@KenyaFitness</em>).</li>
-        <li><strong>Bio:</strong> One line on what you do, one line on who it's for, and a call to action. Example: <em>"Kenyan street food reviews 🇰🇪 | New video every Tuesday | 👇 Watch latest"</em></li>
+        <li><strong>Bio:</strong> One line on what you do, one line on who it's for, and a call to action. Example: <em>"Kenyan street food reviews <img class=ev-flag src=/icons/flags/ke.svg alt=Kenya style=width:1.35em;height:.9em;vertical-align:-.1em;border-radius:2px> | New video every Tuesday | <svg class=ev-i aria-hidden=true><use href=#ev-arrow-down></use></svg> Watch latest"</em></li>
         <li><strong>Link in bio:</strong> Use a free tool like Linktree or a direct WhatsApp link to capture leads.</li>
         <li><strong>Profile photo:</strong> A clear, well-lit face photo outperforms logos for personal brands. Brands should use a clean logo on a white or coloured background.</li>
       </ul>
@@ -827,7 +832,7 @@ const ARTICLES = [
         <li>Post Reels <strong>4–5 times per week</strong> for consistent algorithmic reach.</li>
       </ul>
       <div class="callout callout-green">
-        <div class="callout-label">💡 Kenya-Specific Tip</div>
+        <div class="callout-label"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg> Kenya-Specific Tip</div>
         <p>Content in Swahili or mixing English and Sheng performs exceptionally well with Kenyan audiences. Even one Swahili phrase in your caption can double your comment rate from local followers.</p>
       </div>
 
@@ -899,7 +904,7 @@ const ARTICLES = [
     date: "June 2026",
     description: "How to reach YouTube's 4,000 watch hours monetisation threshold in Kenya. Strategies to increase watch time fast, types of content that work, and how M-Pesa can help.",
     keywords: "youtube watch hours kenya, 4000 watch hours kenya, youtube monetization kenya, youtube partner program kenya, grow youtube kenya",
-    thumb: "▶️",
+    thumb: '<img class="ev-logo" src="/icons/platforms/youtube-white.svg" alt="" style="width:1em;height:1em;vertical-align:-0.15em;display:inline-block">',
     thumbBg: "linear-gradient(135deg,#1a0000,#ff0000,#8b0000)",
     cardDesc: "How to hit YouTube's 4,000 watch hours threshold in Kenya — content strategies, video types, and fast-track methods.",
     faqs: [
@@ -930,7 +935,7 @@ const ARTICLES = [
         <li><strong>Finance/business content (8–15 min):</strong> "How I make money in Kenya," M-Pesa hacks, investment tips — these perform extremely well and attract return viewers.</li>
       </ul>
       <div class="callout callout-green">
-        <div class="callout-label">💡 Watch Hours Math</div>
+        <div class="callout-label"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg> Watch Hours Math</div>
         <p>A 10-minute video watched by 24,000 people to completion = 4,000 hours. A single viral video can get you all the way there. Focus on making one great video per week rather than many mediocre ones.</p>
       </div>
 
@@ -964,11 +969,11 @@ const ARTICLES = [
       <h2>What Happens After You Hit 4,000 Watch Hours?</h2>
       <p>Once you hit both 1,000 subscribers and 4,000 watch hours, apply for the YouTube Partner Program through <strong>YouTube Studio → Monetisation</strong>. Review typically takes 1–4 weeks. Once approved:</p>
       <ul>
-        <li>✅ Ad revenue on all your videos (typically $1–$3 per 1,000 Kenyan views)</li>
-        <li>✅ Channel memberships — fans pay a monthly fee for perks</li>
-        <li>✅ Super Thanks and Super Chat during live streams</li>
-        <li>✅ YouTube Shopping integration</li>
-        <li>✅ Access to YouTube's Creator Support team</li>
+        <li><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Ad revenue on all your videos (typically $1–$3 per 1,000 Kenyan views)</li>
+        <li><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Channel memberships — fans pay a monthly fee for perks</li>
+        <li><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Super Thanks and Super Chat during live streams</li>
+        <li><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> YouTube Shopping integration</li>
+        <li><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Access to YouTube's Creator Support team</li>
       </ul>
 
       <h2>Frequently Asked Questions</h2>
@@ -991,7 +996,7 @@ const ARTICLES = [
     date: "June 2026",
     description: "When is the best time to post on Instagram in Kenya for maximum reach and engagement? 2026 data by day and hour for Kenyan creators, plus tips to find your personal best time.",
     keywords: "best time to post on instagram kenya, instagram posting time kenya, when to post instagram kenya, instagram reach kenya, best day to post instagram kenya",
-    thumb: "⏰",
+    thumb: '<svg class=ev-i aria-hidden=true><use href=#ev-alarm></use></svg>',
     thumbBg: "linear-gradient(135deg,#1a0030,#833ab4,#fd1d1d)",
     cardDesc: "Exact best posting times for Instagram in Kenya — broken down by hour and day, with tips to find your personal peak window.",
     faqs: [
@@ -1006,13 +1011,13 @@ const ARTICLES = [
       <h2>Best Times to Post on Instagram in Kenya (EAT)</h2>
       <p>Based on engagement patterns across Kenyan Instagram accounts, these windows consistently produce the highest reach:</p>
 
-      <h3>🌅 Morning Window — 7:00 AM to 8:30 AM EAT</h3>
+      <h3><svg class=ev-i aria-hidden=true><use href=#ev-sunrise></use></svg> Morning Window — 7:00 AM to 8:30 AM EAT</h3>
       <p>Kenyans check Instagram during the morning commute — matatu rides, waiting for school transport, and the first 30 minutes at the office. Posts published just before 7 AM catch this wave perfectly. <strong>Best for:</strong> motivational content, news reactions, daily tips.</p>
 
-      <h3>☀️ Midday Window — 12:00 PM to 1:30 PM EAT</h3>
+      <h3><svg class=ev-i aria-hidden=true><use href=#ev-sun></use></svg> Midday Window — 12:00 PM to 1:30 PM EAT</h3>
       <p>Lunch breaks are a major scroll session for employed Kenyans. Campus students are also most active between 12–2 PM. <strong>Best for:</strong> food content, entertainment, product showcases.</p>
 
-      <h3>🌙 Evening Window — 7:00 PM to 9:30 PM EAT</h3>
+      <h3><svg class=ev-i aria-hidden=true><use href=#ev-moon></use></svg> Evening Window — 7:00 PM to 9:30 PM EAT</h3>
       <p>This is the <strong>highest-traffic period</strong> for Kenyan Instagram. People are home, relaxed, and scrolling for 2–3 hours. Engagement rates — comments, saves, shares — are at their highest during this window. <strong>Best for:</strong> all content types, especially Reels and carousel posts.</p>
 
       <h2>Best Days to Post on Instagram in Kenya</h2>
@@ -1024,7 +1029,7 @@ const ARTICLES = [
       </ul>
 
       <div class="callout callout-orange">
-        <div class="callout-label">⚠️ Important Caveat</div>
+        <div class="callout-label"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Important Caveat</div>
         <p>These are general patterns for Kenyan audiences. Your specific best time depends on your niche and follower demographics. A fashion account targeting college students will have different peak times than a business account targeting Nairobi professionals.</p>
       </div>
 
@@ -1080,7 +1085,7 @@ const ARTICLES = [
     date: "June 2026",
     description: "How to get the TikTok blue tick verification in Kenya in 2026. Requirements, application process, what TikTok looks for, and how to build the account that qualifies.",
     keywords: "how to get verified on tiktok kenya, tiktok blue tick kenya, tiktok verification kenya, tiktok verified account kenya 2026",
-    thumb: "✅",
+    thumb: '<svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg>',
     thumbBg: "linear-gradient(135deg,#010101,#0a2a40)",
     cardDesc: "Everything about getting the TikTok blue tick in Kenya — requirements, the application process, and what actually gets accounts verified.",
     faqs: [
@@ -1102,7 +1107,7 @@ const ARTICLES = [
         <li><strong>Through a TikTok representative</strong> — Brands and creators who have a TikTok business account manager or work with TikTok's creator programs can request verification through their rep.</li>
       </ul>
       <div class="callout callout-orange">
-        <div class="callout-label">⚠️ Beware of Scams</div>
+        <div class="callout-label"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Beware of Scams</div>
         <p>There are many people in Kenya claiming to sell TikTok verification for KES 5,000–20,000. This is a scam — verification cannot be purchased and those accounts are either fake badges or temporary access that TikTok removes. Never pay anyone for social media verification.</p>
       </div>
 
@@ -1168,7 +1173,7 @@ const ARTICLES = [
     published: "2026-10-18",
     description: "Lots of followers but no sales, bookings or brand deals? The 6 most common reasons Kenyan accounts don't convert, and exactly how to fix each one.",
     keywords: "followers not buying, instagram sales kenya, tiktok sales kenya, convert followers to customers, social media sales kenya",
-    thumb: "💸",
+    thumb: '<svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg>',
     thumbBg: "linear-gradient(135deg,#2b1a05,#0d2b18)",
     cardDesc: "Lots of followers but a quiet M-Pesa? The six most common reasons Kenyan accounts don't convert, and how to fix each one.",
     faqs: [
@@ -1181,7 +1186,7 @@ const ARTICLES = [
       <p>This is the most common problem we see on Kenyan accounts, and the good news is it's rarely about follower count. It's almost always one of six fixable things. Go through them in order.</p>
 
       <h2>1. Your profile doesn't say what you sell</h2>
-      <p>A new visitor gives your profile a few seconds. In that time they need to know what you offer, who it's for and how to get it. "Living my best life ✨" doesn't sell cakes.</p>
+      <p>A new visitor gives your profile a few seconds. In that time they need to know what you offer, who it's for and how to get it. "Living my best life <svg class=ev-i aria-hidden=true><use href=#ev-sparkle></use></svg>" doesn't sell cakes.</p>
       <ul>
         <li><strong>Name field:</strong> include what you do: "Wanjiru | Custom Cakes Nairobi".</li>
         <li><strong>Bio line one:</strong> what you sell and where you deliver.</li>
@@ -1242,7 +1247,7 @@ const ARTICLES = [
     published: "2026-10-18",
     description: "A practical guide to selling on Instagram in Kenya: setting up your shop profile, posts that sell, pricing, WhatsApp ordering, M-Pesa payments and delivery.",
     keywords: "how to sell on instagram kenya, instagram business kenya, sell online kenya, instagram shop kenya, mpesa instagram sales",
-    thumb: "🛍️",
+    thumb: '<svg class=ev-i aria-hidden=true><use href=#ev-cart></use></svg>',
     thumbBg: "linear-gradient(135deg,#833ab4,#e1306c)",
     cardDesc: "Set up your shop profile, post content that sells, and take orders on WhatsApp with M-Pesa: a step-by-step guide.",
     faqs: [

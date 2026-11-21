@@ -88,39 +88,39 @@ let _cnRolesResolved = false;      // becomes true once _cnDetectJoinedRoles() h
 
 const CONNECT_COMMISSION_RATE = 0.15;   // display-only — server (connect_service.py) is the source of truth
 const CONNECT_PLATFORMS = [
-  { key: 'tiktok',    label: 'TikTok',    emoji: '🎵' },
-  { key: 'instagram', label: 'Instagram', emoji: '📸' },
-  { key: 'facebook',  label: 'Facebook',  emoji: '👥' },
-  { key: 'youtube',   label: 'YouTube',   emoji: '▶️' },
+  { key: 'tiktok',    label: 'TikTok',    emoji: '<img class="plat-logo" src="/icons/platforms/tiktok.svg" alt="" width="14" height="14">' },
+  { key: 'instagram', label: 'Instagram', emoji: '<img class="plat-logo" src="/icons/platforms/instagram.svg" alt="" width="14" height="14">' },
+  { key: 'facebook',  label: 'Facebook',  emoji: '<img class="plat-logo" src="/icons/platforms/facebook.svg" alt="" width="14" height="14">' },
+  { key: 'youtube',   label: 'YouTube',   emoji: '<img class="plat-logo" src="/icons/platforms/youtube.svg" alt="" width="14" height="14">' },
 ];
 
 function _cnPlatformDef(key) {
-  return CONNECT_PLATFORMS.find(p => p.key === key) || { key, label: key || '—', emoji: '📱' };
+  return CONNECT_PLATFORMS.find(p => p.key === key) || { key, label: key || '—', emoji: '' };
 }
 
 // Niches a creator (or a business, when describing who they're after) can
 // fall into — a creator/business can tick more than one.
 const CONNECT_NICHES = [
-  { key: 'comedy',      label: 'Comedy',       emoji: '😂' },
-  { key: 'fashion',     label: 'Fashion',      emoji: '👗' },
-  { key: 'beauty',      label: 'Beauty',       emoji: '💄' },
-  { key: 'fitness',     label: 'Fitness',      emoji: '💪' },
-  { key: 'food',        label: 'Food',         emoji: '🍲' },
-  { key: 'travel',      label: 'Travel',       emoji: '✈️' },
-  { key: 'tech',        label: 'Tech',         emoji: '💻' },
-  { key: 'gaming',      label: 'Gaming',       emoji: '🎮' },
-  { key: 'music',       label: 'Music',        emoji: '🎶' },
-  { key: 'lifestyle',   label: 'Lifestyle',    emoji: '🌿' },
-  { key: 'business',    label: 'Business/Finance', emoji: '💼' },
-  { key: 'education',   label: 'Education',    emoji: '📚' },
-  { key: 'parenting',   label: 'Parenting/Family', emoji: '👨‍👩‍👧' },
-  { key: 'sports',      label: 'Sports',       emoji: '⚽' },
-  { key: 'beauty_hair', label: 'Hair & Skincare', emoji: '💇' },
-  { key: 'art',         label: 'Art & Design', emoji: '🎨' },
-];
+  { key: 'comedy',      label: 'Comedy',           icon: 'smile' },
+  { key: 'fashion',     label: 'Fashion',          icon: 'shirt' },
+  { key: 'beauty',      label: 'Beauty',           icon: 'sparkle' },
+  { key: 'fitness',     label: 'Fitness',          icon: 'dumbbell' },
+  { key: 'food',        label: 'Food',             icon: 'utensils' },
+  { key: 'travel',      label: 'Travel',           icon: 'plane' },
+  { key: 'tech',        label: 'Tech',             icon: 'laptop' },
+  { key: 'gaming',      label: 'Gaming',           icon: 'gamepad' },
+  { key: 'music',       label: 'Music',            icon: 'music' },
+  { key: 'lifestyle',   label: 'Lifestyle',        icon: 'leaf' },
+  { key: 'business',    label: 'Business/Finance', icon: 'briefcase' },
+  { key: 'education',   label: 'Education',        icon: 'book' },
+  { key: 'parenting',   label: 'Parenting/Family', icon: 'users' },
+  { key: 'sports',      label: 'Sports',           icon: 'ball' },
+  { key: 'beauty_hair', label: 'Hair & Skincare',  icon: 'scissors' },
+  { key: 'art',         label: 'Art & Design',     icon: 'palette' },
+].map(n => ({ ...n, emoji: evIcon(n.icon) }));
 
 function _cnNicheDef(key) {
-  return CONNECT_NICHES.find(n => n.key === key) || { key, label: key || '—', emoji: '🏷️' };
+  return CONNECT_NICHES.find(n => n.key === key) || { key, label: key || '—', emoji: evIcon('tag') };
 }
 
 // ─── Multi-value campaign fields ────────────────────────────────────────────
@@ -2415,7 +2415,7 @@ function _cnRenderAccRows() {
     return `
     <div class="cn-acc-row">
       <select aria-label="Platform" onchange="_cnAccSetPlatform(${i}, this.value)">
-        ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}" ${a.platform === p.key ? 'selected' : ''}>${p.emoji} ${esc(p.label)}</option>`).join('')}
+        ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}" ${a.platform === p.key ? 'selected' : ''}>${esc(p.label)}</option>`).join('')}
       </select>
       <input class="cn-acc-url ${bad ? 'bad' : ''}" type="text" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="@yourhandle or profile link" value="${esc(a.url)}" aria-label="Account link or handle"
         oninput="_cnAccept.accounts[${i}].url=this.value;_cnAccHint(${i});_cnUpdateStrength()" onblur="_cnRenderAccRows()">
@@ -3240,11 +3240,11 @@ async function _cnRenderFindCreators(target) {
     <div class="cn-fc-grid">
       <select id="cnFcNiche" class="cn-fc-input">
         <option value="">Any niche</option>
-        ${CONNECT_NICHES.map(n => `<option value="${n.key}" ${_cnCreatorFilters.niche === n.key ? 'selected' : ''}>${n.emoji} ${esc(n.label)}</option>`).join('')}
+        ${CONNECT_NICHES.map(n => `<option value="${n.key}" ${_cnCreatorFilters.niche === n.key ? 'selected' : ''}>${esc(n.label)}</option>`).join('')}
       </select>
       <select id="cnFcPlatform" class="cn-fc-input">
         <option value="">Any platform</option>
-        ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}" ${_cnCreatorFilters.platform === p.key ? 'selected' : ''}>${p.emoji} ${esc(p.label)}</option>`).join('')}
+        ${CONNECT_PLATFORMS.map(p => `<option value="${p.key}" ${_cnCreatorFilters.platform === p.key ? 'selected' : ''}>${esc(p.label)}</option>`).join('')}
       </select>
       <input type="text" id="cnFcLocation" placeholder="Location" class="cn-fc-input" value="${esc(_cnCreatorFilters.location)}">
       <input type="number" id="cnFcMinFollowers" placeholder="Min. followers" min="0" class="cn-fc-input" value="${_cnCreatorFilters.min_followers}">
@@ -3361,7 +3361,7 @@ async function _cnOpenInviteModal(creatorUserId, creatorLabel, campaignId) {
         body.innerHTML = `<div class="cn-empty">No creators in the directory yet.</div>`;
         return;
       }
-      creatorOptionsHtml = creators.map(p => `<option value="${p.user_id}">${esc(p.display_name)}${p.is_verified ? ' ✔️' : ''} — ★${p.rating_avg || 0}</option>`).join('');
+      creatorOptionsHtml = creators.map(p => `<option value="${p.user_id}">${esc(p.display_name)}${p.is_verified ? ' (verified)' : ''} — ★${p.rating_avg || 0}</option>`).join('');
     } catch (e) {
       body.innerHTML = `<div class="cn-empty">${esc(e.message || "Couldn't load creators.")}</div>`;
       return;

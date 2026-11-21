@@ -27,6 +27,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { buildAcademyPages } from './academy-pages.mjs';
+import { iconify } from './ev-icons.mjs';   // emoji → real platform logos + line icons
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = 'https://endaviral.co.ke';
@@ -224,6 +225,7 @@ function write(file, html) {
   // Templates may be checked out with Windows line endings; the published
   // pages are always LF, so a rebuild on any machine gives the same files.
   html = html.replace(/\r\n/g, '\n');
+  html = iconify(html);                     // same icons as the app (scripts/ev-icons.mjs)
   const p = path.join(ROOT, file);
   fs.mkdirSync(path.dirname(p), { recursive: true });
   const before = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;

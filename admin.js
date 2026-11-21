@@ -3243,7 +3243,7 @@ async function openSupportThread(threadId, opts) {
       const onGreen = isAdmin && !m.is_bot;
       const quote = m.reply_to_id ? supQuoteHtml(m.reply_to, 'staff', t.user, onGreen) : '';
       const shot = (m.attachment && typeof evShotHtml === 'function') ? evShotHtml(m.attachment) : '';
-      const formatted = quote + tag + shot + ((shot && (m.body || '') === '📷 Screenshot') ? '' : supLinkifyOrderRefs(safeBody.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')).replace(/\n/g,'<br>'));
+      const formatted = quote + tag + shot + ((shot && ['📷 Screenshot', 'Screenshot'].includes(m.body || '')) ? '' : supLinkifyOrderRefs(safeBody.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')).replace(/\n/g,'<br>'));
       const time = m.created_at ? new Date(m.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'}) : '';
       const replyBtn = m.id ? ` · <a class="sup-reply-link" href="javascript:void(0)" onclick="supportReplyTo('${esc(m.id)}')" title="Reply to this message" style="color:#7fe08b;text-decoration:none;font-weight:700;">Reply</a>` : '';
       if (m.sender === 'user' && (m.body || '').startsWith('🚨 Automatic')) {
@@ -3256,7 +3256,7 @@ async function openSupportThread(threadId, opts) {
             : 'background:#187a2b;color:#ffffff;border-radius:14px 14px 4px 14px;')
         : 'background:#172238;color:#e8eef7;border-radius:14px 14px 14px 4px;';
       const who = isAdmin ? (m.is_bot ? 'Automatic' : (m.sender_id && currentUser && m.sender_id === currentUser.id ? 'You' : 'Staff')) : '';
-      return `<div class="sup-msg" data-msg-id="${esc(m.id || '')}" style="align-self:${isAdmin ? 'flex-end' : 'flex-start'};max-width:68%;display:flex;flex-direction:column;align-items:${isAdmin ? 'flex-end' : 'flex-start'};gap:4px;">
+      return `<div class="sup-msg"${m.is_bot ? '' : ' data-ugc'} data-msg-id="${esc(m.id || '')}" style="align-self:${isAdmin ? 'flex-end' : 'flex-start'};max-width:68%;display:flex;flex-direction:column;align-items:${isAdmin ? 'flex-end' : 'flex-start'};gap:4px;">
         <div class="ev-msg-bubble" style="${bubble}padding:10px 12px;font-size:13px;line-height:1.5;word-break:break-word;">${formatted}</div>
         <div class="sup-msg-meta" style="font-size:10.5px;color:#93a3ba;">${who ? esc(who) + ' · ' : ''}${time}${replyBtn}</div>
       </div>`;
@@ -4594,7 +4594,7 @@ function _ttMsgHtml(m, userInitial) {
     : '';
   const shot = (m.attachment && typeof evShotHtml === 'function') ? evShotHtml(m.attachment)
     : (m._localShot ? `<div class="ev-shot" data-loaded="1"><img src="${m._localShot}" alt="Screenshot"></div>` : '');
-  const bodyText = (shot && (m.body || '') === '📷 Screenshot') ? '' : (m.body || '');
+  const bodyText = (shot && ['📷 Screenshot', 'Screenshot'].includes(m.body || '')) ? '' : (m.body || '');
   const body = bodyText
     .replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
@@ -4602,7 +4602,7 @@ function _ttMsgHtml(m, userInitial) {
   if (m.id) _ttMsgById[m.id] = m;
   const quote = m.reply_to_id ? supQuoteHtml(m.reply_to, 'client', null, m.sender === 'user') : '';
   const replyBtn = m.id ? ` · <a href="javascript:void(0)" onclick="ticketReplyTo('${esc(m.id)}')" title="Reply to this message" style="color:#7fe08b;text-decoration:none;font-weight:700;">Reply</a>` : '';
-  return `<div class="tt-msg from-${isAdmin?'admin':'user'} ${humanCls}" data-msg-id="${esc(m.id || '')}">
+  return `<div class="tt-msg from-${isAdmin?'admin':'user'} ${humanCls}"${isBot ? '' : ' data-ugc'} data-msg-id="${esc(m.id || '')}">
     ${avatar}
     <div>
       <div class="tt-bubble">${quote}${_msgTagHtml(m)}${shot}${body}</div>
@@ -4669,7 +4669,7 @@ async function sendTicketReply() {
   const initial = (user.name || 'U').charAt(0).toUpperCase();
   const reply_to_id = (_ttReplyTo && _ttReplyTo.threadId === _activeTicketId) ? _ttReplyTo.id : null;
   const quoted = reply_to_id ? _ttMsgById[reply_to_id] : null;
-  const fakeMsg = { sender:'user', is_bot:false, body: body || (image_data ? '📷 Screenshot' : ''), _localShot: image_data, created_at: new Date().toISOString(),
+  const fakeMsg = { sender:'user', is_bot:false, body: body || (image_data ? 'Screenshot' : ''), _localShot: image_data, created_at: new Date().toISOString(),
                     reply_to_id, reply_to: quoted ? { id: quoted.id, sender: quoted.sender, is_bot: quoted.is_bot, order_id: quoted.order_id, body: String(quoted.body || '').slice(0, 160) } : null };
   document.getElementById('ttMessages').insertAdjacentHTML('beforeend', _ttMsgHtml(fakeMsg, initial));
   const el = document.getElementById('ttMessages');

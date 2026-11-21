@@ -384,7 +384,7 @@
       if (desc) { desc.disabled = true; }
       setTimeout(() => { evGoToTicketsPage(); }, 900);
     } catch (_) {
-      if (desc) desc.placeholder = '❌ Could not submit. Please try again.';
+      if (desc) desc.placeholder = 'Could not submit. Please try again.';
     } finally {
       if (btn && btn.textContent !== '✅ Message sent!') { btn.disabled = false; btn.textContent = 'Send message'; }
     }
