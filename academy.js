@@ -2308,6 +2308,7 @@ async function _acOpenModule(moduleId) {
   if (!mod) return;
   _acHomeToken++; // a pending home refresh must not overwrite this module view
   _acInjectHomeStyles();
+  _acInjectLessonStyles();   // the paywall/preview blocks are styled there too
   const sec = document.getElementById('sec-academy');
   const state = _acCachedState() || _acEmptyState();
   const locked = mod.premium && !_acIsPurchased(state, mod.id);
@@ -2793,7 +2794,7 @@ function _acLockedModuleHtml(mod, state, pv) {
     <div class="ac-pw-sec">What's inside</div>
     ${mod.lessons.map((l, i) => `
       <div class="ac-pw-lesson${i === 0 ? ' free' : ''}" onclick="${i === 0 ? `_acOpenPreviewLesson('${mod.id}')` : `openAcademyPurchase('${mod.id}')`}">
-        <div class="ac-pw-ln">${i === 0 ? '▶' : '🔒'}</div>
+        <div class="ac-pw-ln">${i === 0 ? evIcon('play') : evIcon('lock')}</div>
         <div style="flex:1;min-width:0;">
           <div class="ac-pw-lt">${esc(l.title)} ${i === 0 ? '<span class="ac-pw-badge">FREE PREVIEW</span>' : ''}</div>
           ${hooks[l.id] ? `<div class="ac-pw-lh">${_acInline(hooks[l.id])}</div>` : `<div class="ac-pw-lh">${l.minutes} min read</div>`}
