@@ -4336,18 +4336,35 @@ function evFallbackHTML(e) {
 function evStripEmoji(s) {
   return String(s ?? '').replace(EV_EMOJI_RX, ' ').replace(EV_ANY_EMOJI_RX, '').replace(/[‍️]/g, '').replace(/[ \t]{2,}/g, ' ').trim();
 }
-const evHasEmoji = s => { EV_EMOJI_RX.lastIndex = 0; EV_ANY_EMOJI_RX.lastIndex = 0; return EV_EMOJI_RX.test(s) || EV_ANY_EMOJI_RX.test(s); };
+// Cheap first check (one character class) so ordinary text skips the big regexes.
+const EV_PRE_RX = /[\u2190-\u2BFF\u{1D54F}\u{1F000}-\u{1FAFF}]/u;
+const evHasEmoji = s => {
+  if (!s || !EV_PRE_RX.test(s)) return false;
+  EV_EMOJI_RX.lastIndex = 0; EV_ANY_EMOJI_RX.lastIndex = 0;
+  return EV_EMOJI_RX.test(s) || EV_ANY_EMOJI_RX.test(s);
+};
 const EV_ATTRS = ['placeholder', 'title', 'aria-label', 'alt', 'data-tip'];
 function evCleanAttrs(el) {
   if (el.closest?.(EV_UGC_SEL)) return;
   for (const a of EV_ATTRS) { const v = el.getAttribute?.(a); if (v && evHasEmoji(v)) el.setAttribute(a, evStripEmoji(v)); }
 }
+// Attributes (placeholder, tooltip…) are checked when the browser is idle,
+// in one batch, so rendering a big list never waits on it.
+let evAttrQueue = [];
+const EV_ATTR_SEL = EV_ATTRS.map(a => `[${a}]`).join(',');
+function evQueueAttrs(root) {
+  if (evAttrQueue.push(root) > 1) return;
+  (window.requestIdleCallback || (f => setTimeout(f, 200)))(() => {
+    const q = evAttrQueue; evAttrQueue = [];
+    for (const r of q) { if (!r.isConnected) continue; evCleanAttrs(r); r.querySelectorAll(EV_ATTR_SEL).forEach(evCleanAttrs); }
+  });
+}
 function evIconifyNode(root) {
   if (!root) return;
   if (root.nodeType === 3) { evIconifyText(root); return; }
   if (root.nodeType !== 1 || root.closest?.(EV_SKIP_SEL)) return;
-  evCleanAttrs(root);
-  root.querySelectorAll?.(EV_ATTRS.map(a => `[${a}]`).join(',')).forEach(evCleanAttrs);
+  evQueueAttrs(root);
+  if (!evHasEmoji(root.textContent)) return;          // nothing to draw in this subtree
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: n => evHasEmoji(n.data) && !n.parentElement?.closest(EV_SKIP_SEL)
       ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
