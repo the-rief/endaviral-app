@@ -76,7 +76,7 @@ async function initCCRAgentPage() {
     // leaving the agent stranded on whatever month they last paged to.
     loadCCRCalendar(new Date().toISOString().slice(0, 7));
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -94,27 +94,27 @@ function renderCCRAgentPage() {
   if (a.status !== 'active') {
     payoutAction = `<div class="empty-state" style="padding:20px;"><p>Your CCR access is currently suspended — contact an admin.</p></div>`;
   } else if (a.pending_kes <= 0) {
-    payoutAction = `<div class="empty-state" style="padding:20px;"><div class="icon">💤</div><p>Nothing pending yet — check back after the next commission run.</p></div>`;
+    payoutAction = `<div class="empty-state" style="padding:20px;"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-sleep></use></svg></div><p>Nothing pending yet — check back after the next commission run.</p></div>`;
   } else if (!d.can_request_payout) {
-    payoutAction = `<div class="empty-state" style="padding:20px;"><div class="icon">⏳</div><p>Your payout request is awaiting admin review.<br>You can request again as soon as it's processed.</p></div>`;
+    payoutAction = `<div class="empty-state" style="padding:20px;"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg></div><p>Your payout request is awaiting admin review.<br>You can request again as soon as it's processed.</p></div>`;
   } else {
     payoutAction = `
       <div style="display:flex;flex-direction:column;gap:10px;max-width:360px;">
         <div class="modal-field" style="margin:0;"><label>M-Pesa Phone (optional)</label><input type="tel" id="ccrPayoutPhone" placeholder="07XX XXX XXX"/></div>
-        <button class="btn-primary" style="margin-top:0;" onclick="ccrRequestPayout()">💸 Request Payout — ${fmtKES(a.pending_kes)}</button>
+        <button class="btn-primary" style="margin-top:0;" onclick="ccrRequestPayout()"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg> Request Payout — ${fmtKES(a.pending_kes)}</button>
       </div>`;
   }
 
   el.innerHTML = `
     <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
-      <div><div class="sec-title">🎧 MY EARNINGS</div><div class="sec-sub">Your commission as a Customer Care Rep — ${(a.commission_rate * 100).toFixed(2)}% of total platform profit ${statusBadge}</div></div>
-      <button class="btn-secondary" onclick="initCCRAgentPage()">↻ Refresh</button>
+      <div><div class="sec-title"><svg class=ev-i aria-hidden=true><use href=#ev-headphones></use></svg> MY EARNINGS</div><div class="sec-sub">Your commission as a Customer Care Rep — ${(a.commission_rate * 100).toFixed(2)}% of total platform profit ${statusBadge}</div></div>
+      <button class="btn-secondary" onclick="initCCRAgentPage()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;">
-      <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-label">Total Earned</div><div class="stat-val">${fmtKES(a.total_earned_kes)}</div><div class="stat-sub">All time</div></div>
-      <div class="stat-card blue"><div class="stat-icon">⏳</div><div class="stat-label">Pending</div><div class="stat-val">${fmtKES(a.pending_kes)}</div><div class="stat-sub">Available to request</div></div>
-      <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-label">Paid Out</div><div class="stat-val">${fmtKES(a.paid_kes)}</div><div class="stat-sub">Already in your wallet</div></div>
+      <div class="stat-card green"><div class="stat-icon"><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg></div><div class="stat-label">Total Earned</div><div class="stat-val">${fmtKES(a.total_earned_kes)}</div><div class="stat-sub">All time</div></div>
+      <div class="stat-card blue"><div class="stat-icon"><svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg></div><div class="stat-label">Pending</div><div class="stat-val">${fmtKES(a.pending_kes)}</div><div class="stat-sub">Available to request</div></div>
+      <div class="stat-card"><div class="stat-icon"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg></div><div class="stat-label">Paid Out</div><div class="stat-val">${fmtKES(a.paid_kes)}</div><div class="stat-sub">Already in your wallet</div></div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;" class="wallet-main-grid">
@@ -135,7 +135,7 @@ function renderCCRAgentPage() {
 
 function renderCCROwnCommissions(commissions) {
   if (!commissions || !commissions.length) {
-    return `<div class="empty-state" style="padding:20px;"><div class="icon">🧾</div><p>No commissions generated yet.</p></div>`;
+    return `<div class="empty-state" style="padding:20px;"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-receipt></use></svg></div><p>No commissions generated yet.</p></div>`;
   }
   return `<table>
     <thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
@@ -169,7 +169,7 @@ async function loadCCRCalendar(monthKey) {
     _ccrCalendarCache = data;
     renderCCRCalendar();
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -212,7 +212,7 @@ function renderCCRCalendar() {
         <div style="border:1px solid ${isToday ? 'var(--green)' : 'var(--border)'};border-radius:8px;padding:6px 4px;min-height:56px;background:${paid ? 'rgba(61,212,74,.14)' : 'rgba(61,212,74,.06)'};">
           <div style="font-size:11px;color:var(--muted);">${d}</div>
           <div style="font-size:12px;font-weight:700;color:var(--green);margin-top:4px;">${fmtKES(c.commission_amount_kes)}</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:1px;">${paid ? '✓ paid' : 'pending'}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:1px;">${paid ? 'paid' : 'pending'}</div>
         </div>`;
     } else {
       cells += `
@@ -240,7 +240,7 @@ function renderCCRCalendar() {
 
 function renderCCRPayoutHistory(requests) {
   if (!requests || !requests.length) {
-    return `<div class="empty-state" style="padding:20px;"><div class="icon">💸</div><p>No payout requests yet.</p></div>`;
+    return `<div class="empty-state" style="padding:20px;"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg></div><p>No payout requests yet.</p></div>`;
   }
   const badge = (status) => {
     const map = {

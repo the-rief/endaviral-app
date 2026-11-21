@@ -8,7 +8,7 @@ function initAccountPage() {
   document.getElementById('acctAvatar').textContent = name.charAt(0).toUpperCase() || '?';
   document.getElementById('acctName').textContent = name || '—';
   document.getElementById('acctEmail').textContent = u.email || '—';
-  document.getElementById('acctRole').textContent = u.role === 'admin' ? '👑 Admin' : 'User';
+  document.getElementById('acctRole').textContent = u.role === 'admin' ? 'Admin' : 'User';
   document.getElementById('acctNewName').value = name;
   document.getElementById('chpassErr').style.display = 'none';
   document.getElementById('chpassOk').style.display = 'none';

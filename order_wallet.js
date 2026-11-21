@@ -116,9 +116,9 @@
     const btn = document.getElementById('placeOrderBtn');
     if (!btn || btn.classList.contains('loading')) return;
     const p = window.walletPayInfo();
-    if (p.method !== 'mpesa' && p.mpesa === 0 && _cost > 0) btn.textContent = '💳 PAY WITH WALLET';
-    else if (p.method === 'wallet_mpesa') btn.textContent = `📱 PAY ${_kes(p.mpesa)} & ORDER`;
-    else btn.textContent = '📱 PAY & ORDER';
+    if (p.method !== 'mpesa' && p.mpesa === 0 && _cost > 0) btn.textContent = 'PAY WITH WALLET';
+    else if (p.method === 'wallet_mpesa') btn.textContent = `PAY ${_kes(p.mpesa)} & ORDER`;
+    else btn.textContent = 'PAY & ORDER';
   };
 
   window.walletPick = function (m) { _choice = m; _render(); };
@@ -138,14 +138,14 @@
     const w = _split(cost, 'wallet'), wm = _split(cost, 'wallet_mpesa');
     const opt = (id, title, sub, ok) => `<button type="button" class="wp-opt ${cur === id ? 'on' : ''}" ${ok ? '' : 'disabled'} onclick="walletPick('${id}')">
         <span class="wp-dot"></span><span><div class="wp-t">${title}</div><div class="wp-s">${sub}</div></span></button>`;
-    let html = `<div class="wp-box"><div class="wp-head">💳 YOUR WALLET <b>${_kes(bal)}</b></div>`;
-    html += opt('wallet', '💳 Pay with Wallet',
+    let html = `<div class="wp-box"><div class="wp-head"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg> YOUR WALLET <b>${_kes(bal)}</b></div>`;
+    html += opt('wallet', 'Pay with Wallet',
       w.ok ? `Pays the full ${_kes(cost)}.` : `Not enough (${_e(w.why)}).`, w.ok);
     if (bal < cost) {
-      html += opt('wallet_mpesa', '💳 + 📱 Wallet + M-Pesa',
+      html += opt('wallet_mpesa', '+ 📱 Wallet + M-Pesa',
         wm.ok ? `${_kes(wm.wallet)} from Wallet + ${_kes(wm.mpesa)} M-Pesa.` : `Not available for this amount.`, wm.ok);
     }
-    html += opt('mpesa', '📱 M-Pesa only', `Pay ${_kes(cost)} by M-Pesa.`, true);
+    html += opt('mpesa', 'M-Pesa only', `Pay ${_kes(cost)} by M-Pesa.`, true);
     html += `</div>`;
     box.innerHTML = html;
     const p = _split(cost, cur);
@@ -213,7 +213,7 @@
     el.innerHTML = `<div class="wl-card">
       <div class="wl-top">
         <div style="flex:1;min-width:200px;">
-          <div class="wl-lbl">💳 Your Wallet</div>
+          <div class="wl-lbl"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg> Your Wallet</div>
           <div class="wl-bal">${_kes(d.balance)}</div>
         </div>
         ${Number(d.balance) > 0 ? `<button class="btn-primary" style="width:auto;padding:10px 18px;margin:0;" onclick="navTo('services')">USE IT NOW</button>` : ''}
@@ -227,7 +227,7 @@
   window.walletOnPush = function (evt) {
     if (_wc && evt && typeof evt.balance === 'number') { _wc.balance = evt.balance; _wcAt = 0; }
     window.walletRefresh();
-    if (evt && typeof evt.balance === 'number') toast(`💳 Refund added to your Wallet · ${_kes(evt.balance)}`, 'success');
+    if (evt && typeof evt.balance === 'number') toast(`Refund added to your Wallet · ${_kes(evt.balance)}`, 'success');
   };
 
   /* ── My Orders: "refunded to wallet" / "paid from wallet" tags ── */
@@ -237,8 +237,8 @@
     const wrapped = function (o, big) {
       let html = orig.apply(this, arguments);
       const fs = big ? '12.5px' : '10.5px';
-      if (o && o.wallet_refund) html += `<div class="od-wallet" style="font-size:${fs};" title="Use it to pay for any order">↩️ ${_kes(o.wallet_refund.amount)} refunded to Wallet</div>`;
-      else if (o && Number(o.wallet_paid) > 0) html += `<div class="od-wallet" style="font-size:${fs};color:var(--muted);font-weight:600;">💳 ${_kes(o.wallet_paid)} paid from Wallet</div>`;
+      if (o && o.wallet_refund) html += `<div class="od-wallet" style="font-size:${fs};" title="Use it to pay for any order"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> ${_kes(o.wallet_refund.amount)} refunded to Wallet</div>`;
+      else if (o && Number(o.wallet_paid) > 0) html += `<div class="od-wallet" style="font-size:${fs};color:var(--muted);font-weight:600;"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg> ${_kes(o.wallet_paid)} paid from Wallet</div>`;
       return html;
     };
     wrapped._wallet = true;

@@ -41,16 +41,16 @@
  *       if (tab === 'academy') acAdminSubTab('overview');
  *
  * ★TABBTN
- * <div class="admin-tab" onclick="adminTab('academy', this)">🎓 Academy</div>
+ * <div class="admin-tab" onclick="adminTab('academy', this)"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg> Academy</div>
  *
  * ★PANEL
  * <div class="admin-panel" id="ap-academy">
  *   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
  *     <div>
- *       <div style="font-size:16px;font-weight:900;color:var(--white);" id="acAdminPanelTitle">📊 ACADEMY OVERVIEW</div>
+ *       <div style="font-size:16px;font-weight:900;color:var(--white);" id="acAdminPanelTitle"><svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg> ACADEMY OVERVIEW</div>
  *       <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="acAdminPanelSub">Learner activity, drop-off, revenue &amp; top performers</div>
  *     </div>
- *     <button class="btn-secondary" id="acAdminRefreshBtn" style="font-size:12px;padding:8px 16px;">↻ Refresh</button>
+ *     <button class="btn-secondary" id="acAdminRefreshBtn" style="font-size:12px;padding:8px 16px;"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
  *   </div>
  *   <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
  *     <button id="acSubTab-overview"    onclick="acAdminSubTab('overview')"    style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Overview</button>
@@ -92,14 +92,14 @@ function acAdminSubTab(tab) {
   const refreshBtn = document.getElementById('acAdminRefreshBtn');
 
   const meta = {
-    overview:    { title: '📊 ACADEMY OVERVIEW',    sub: 'Learners, levels, streaks & premium ownership', fn: adminLoadAcademyOverview },
-    funnel:      { title: '🔻 ACADEMY FUNNEL',       sub: 'Where learners drop off, lesson by lesson',     fn: adminLoadAcademyFunnel },
-    revenue:     { title: '💰 ACADEMY REVENUE',      sub: 'Premium module sales + loyalty points economy', fn: adminLoadAcademyRevenue },
-    guides:      { title: '📘 PREMIUM GUIDES (PDF)', sub: 'Growth Strategy guide sales, buyers, payments & downloads', fn: adminLoadAcademyGuides },
-    leaderboard: { title: '🏆 ACADEMY LEADERBOARD',  sub: 'Top learners ranked by XP',                     fn: adminLoadAcademyLeaderboard },
-    comments:    { title: '💬 LESSON COMMENTS',      sub: 'Questions & comments left on individual lessons — reply, hide or follow up', fn: () => adminLoadAcademyComments(true) },
-    insights:    { title: '🔥 LESSON INSIGHTS',      sub: 'Which lessons land, which flop, and which free previews sell', fn: adminLoadAcademyInsights },
-    feedback:    { title: '⭐ MODULE FEEDBACK',      sub: 'Ratings learners left after finishing a whole module', fn: () => adminLoadAcademyFeedback(true) },
+    overview:    { title: 'ACADEMY OVERVIEW',    sub: 'Learners, levels, streaks & premium ownership', fn: adminLoadAcademyOverview },
+    funnel:      { title: 'ACADEMY FUNNEL',       sub: 'Where learners drop off, lesson by lesson',     fn: adminLoadAcademyFunnel },
+    revenue:     { title: 'ACADEMY REVENUE',      sub: 'Premium module sales + loyalty points economy', fn: adminLoadAcademyRevenue },
+    guides:      { title: 'PREMIUM GUIDES (PDF)', sub: 'Growth Strategy guide sales, buyers, payments & downloads', fn: adminLoadAcademyGuides },
+    leaderboard: { title: 'ACADEMY LEADERBOARD',  sub: 'Top learners ranked by XP',                     fn: adminLoadAcademyLeaderboard },
+    comments:    { title: 'LESSON COMMENTS',      sub: 'Questions & comments left on individual lessons — reply, hide or follow up', fn: () => adminLoadAcademyComments(true) },
+    insights:    { title: 'LESSON INSIGHTS',      sub: 'Which lessons land, which flop, and which free previews sell', fn: adminLoadAcademyInsights },
+    feedback:    { title: 'MODULE FEEDBACK',      sub: 'Ratings learners left after finishing a whole module', fn: () => adminLoadAcademyFeedback(true) },
   }[tab];
 
   if (titleEl) titleEl.textContent = meta.title;
@@ -117,7 +117,7 @@ async function _acSafeFetch(path, label, warnings) {
 function _acWarnBanner(warnings, retryFn) {
   const banner = document.createElement('div');
   banner.style.cssText = 'background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:#ff6b6b;display:flex;align-items:center;gap:10px;';
-  banner.innerHTML = `<span style="font-size:16px;">⚠️</span><span><strong>Could not reach backend:</strong> ${warnings.map(esc).join(' · ')}<br><span style="color:var(--muted);">Showing zeros. <button onclick="${retryFn}()" style="background:none;border:none;color:#ff9a3c;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;padding:0;">Retry</button></span></span>`;
+  banner.innerHTML = `<span style="font-size:16px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></span><span><strong>Could not reach backend:</strong> ${warnings.map(esc).join(' · ')}<br><span style="color:var(--muted);">Showing zeros. <button onclick="${retryFn}()" style="background:none;border:none;color:#ff9a3c;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;padding:0;">Retry</button></span></span>`;
   return banner;
 }
 
@@ -170,10 +170,10 @@ async function adminLoadAcademyOverview() {
   if (!stats) return;
 
   const cards = [
-    { icon: '🎓', label: 'Learners Started', value: stats.learners_started || 0, sub: `of ${stats.curriculum_size?.lessons || 0} total lessons`, color: '#3dd44a' },
-    { icon: '🔥', label: 'Active (7 days)',  value: stats.active_learners_7d || 0, sub: `${stats.active_learners_30d || 0} active in 30 days`, color: '#ff9a3c' },
-    { icon: '🏁', label: 'Graduated',        value: stats.graduates || 0, sub: 'completed every module', color: '#ffd700' },
-    { icon: '✅', label: 'Lessons Completed', value: stats.lessons_completed_total || 0, sub: 'across all learners', color: '#3dd44a' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg>', label: 'Learners Started', value: stats.learners_started || 0, sub: `of ${stats.curriculum_size?.lessons || 0} total lessons`, color: '#3dd44a' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-trending></use></svg>', label: 'Active (7 days)',  value: stats.active_learners_7d || 0, sub: `${stats.active_learners_30d || 0} active in 30 days`, color: '#ff9a3c' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-flag></use></svg>', label: 'Graduated',        value: stats.graduates || 0, sub: 'completed every module', color: '#ffd700' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg>', label: 'Lessons Completed', value: stats.lessons_completed_total || 0, sub: 'across all learners', color: '#3dd44a' },
   ];
 
   const el = document.createElement('div');
@@ -264,11 +264,11 @@ async function adminLoadAcademyFunnel() {
   const first = stages[0]?.count || 1;
 
   const stageLabels = {
-    visited_academy: '👀 Visited Academy',
-    completed_a_lesson: '📖 Completed a Lesson',
-    finished_a_module: '🏅 Finished a Whole Module',
-    unlocked_a_premium_module: '💎 Unlocked a Premium Module',
-    graduated: '🎓 Graduated',
+    visited_academy: 'Visited Academy',
+    completed_a_lesson: 'Completed a Lesson',
+    finished_a_module: 'Finished a Whole Module',
+    unlocked_a_premium_module: 'Unlocked a Premium Module',
+    graduated: 'Graduated',
   };
 
   const el = document.createElement('div');
@@ -326,10 +326,10 @@ async function adminLoadAcademyRevenue() {
 
   const pe = data.points_economy || {};
   const cards = [
-    { icon: '💰', label: 'Total M-Pesa Revenue', value: fmtKES(data.total_revenue_kes || 0), sub: 'premium courses + PDF guides', color: '#3dd44a' },
-    { icon: '⭐', label: 'Points Redeemed',       value: pe.total_points_redeemed || 0, sub: `≈ ${fmtKES(pe.redemption_value_kes || 0)} equivalent`, color: '#ffd700' },
-    { icon: '🎁', label: 'Outstanding Points',    value: pe.outstanding_points_balance || 0, sub: 'held by users, not yet redeemed', color: '#9b6bff' },
-    { icon: '🧾', label: 'Points Redemptions',    value: pe.redemptions_count || 0, sub: 'module unlocks paid with points', color: '#ff9a3c' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', label: 'Total M-Pesa Revenue', value: fmtKES(data.total_revenue_kes || 0), sub: 'premium courses + PDF guides', color: '#3dd44a' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg>', label: 'Points Redeemed',       value: pe.total_points_redeemed || 0, sub: `≈ ${fmtKES(pe.redemption_value_kes || 0)} equivalent`, color: '#ffd700' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg>', label: 'Outstanding Points',    value: pe.outstanding_points_balance || 0, sub: 'held by users, not yet redeemed', color: '#9b6bff' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-receipt></use></svg>', label: 'Points Redemptions',    value: pe.redemptions_count || 0, sub: 'module unlocks paid with points', color: '#ff9a3c' },
   ];
 
   const monthly = data.monthly || [];
@@ -368,7 +368,7 @@ async function adminLoadAcademyRevenue() {
 
     <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;">
       <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Insights</div>
-      ${(data.insights || []).map(i => `<div style="font-size:13px;color:var(--white);padding:6px 0;border-bottom:1px solid var(--border);">💡 ${esc(i)}</div>`).join('')}
+      ${(data.insights || []).map(i => `<div style="font-size:13px;color:var(--white);padding:6px 0;border-bottom:1px solid var(--border);"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg> ${esc(i)}</div>`).join('')}
     </div>
   `;
   container.appendChild(el);
@@ -469,7 +469,7 @@ function _acRenderGuideStats() {
   const trend = `${head('Daily guide revenue · last 30 days')}
     <div style="display:flex;gap:3px;align-items:flex-end;height:120px;border-bottom:1px solid var(--border);padding-bottom:2px;">${bars}</div>
     <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:6px;"><span>${first}</span>
-      <span><span style="color:#3dd44a;">■</span> Standard &nbsp; <span style="color:#ffb020;">■</span> Advanced · busiest day ${fmtKES(maxDay === 1 ? 0 : maxDay)}</span><span>Today</span></div>`;
+      <span><span style="color:#3dd44a;"><svg class=ev-i aria-hidden=true><use href=#ev-stop></use></svg></span> Standard &nbsp; <span style="color:#ffb020;"><svg class=ev-i aria-hidden=true><use href=#ev-stop></use></svg></span> Advanced · busiest day ${fmtKES(maxDay === 1 ? 0 : maxDay)}</span><span>Today</span></div>`;
 
   const recent = (data.recent || []).filter(r => _acGuideFilter === 'all' || r.status === _acGuideFilter
     || (_acGuideFilter === 'not_downloaded' && r.status === 'success' && !r.downloads));
@@ -477,7 +477,7 @@ function _acRenderGuideStats() {
   const table = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
       ${head('Recent purchases').replace('margin-bottom:14px;', 'margin:0;')}
       <div style="display:flex;gap:6px;flex-wrap:wrap;">${fbtn('all', 'All')}${fbtn('success', 'Paid')}${fbtn('pending', 'Pending')}${fbtn('failed', 'Failed')}${fbtn('cancelled', 'Cancelled')}${fbtn('not_downloaded', 'Paid, not downloaded')}
-        <button onclick="_acGuideExportCsv()" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:'Montserrat',sans-serif;border:1px solid var(--border);background:var(--navy);color:var(--white);">⬇ CSV</button></div>
+        <button onclick="_acGuideExportCsv()" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:'Montserrat',sans-serif;border:1px solid var(--border);background:var(--navy);color:var(--white);"><svg class=ev-i aria-hidden=true><use href=#ev-download></use></svg> CSV</button></div>
     </div>
     ${recent.length ? `<div class="tbl-wrap"><table>
       <thead><tr><th>When</th><th>Customer</th><th>Guide</th><th>Amount</th><th>Status</th><th>M-Pesa ref</th><th>Downloads</th></tr></thead>
@@ -497,7 +497,7 @@ function _acRenderGuideStats() {
     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:22px;">${perGuide}</div>
     ${card(trend)}
     ${card(table)}
-    ${card(head('Insights') + (data.insights || []).map(i => `<div style="font-size:13px;color:var(--white);padding:6px 0;border-bottom:1px solid var(--border);">💡 ${esc(i)}</div>`).join(''))}
+    ${card(head('Insights') + (data.insights || []).map(i => `<div style="font-size:13px;color:var(--white);padding:6px 0;border-bottom:1px solid var(--border);"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg> ${esc(i)}</div>`).join(''))}
   `;
 }
 
@@ -534,7 +534,7 @@ async function adminLoadAcademyLeaderboard() {
   const el = document.createElement('div');
 
   if (!rows.length) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">🎓</div><p>No learners yet.</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg></div><p>No learners yet.</p></div>`;
     container.appendChild(el);
     return;
   }
@@ -552,8 +552,8 @@ async function adminLoadAcademyLeaderboard() {
         <td style="color:var(--green);font-weight:800;">${r.xp.toLocaleString()}</td>
         <td>${r.lessons_done}</td>
         <td>${r.badges_earned}</td>
-        <td>${r.streak > 0 ? `🔥 ${r.streak}` : '—'}</td>
-        <td>${r.premium_modules_owned > 0 ? `💎 ${r.premium_modules_owned}` : '—'}</td>
+        <td>${r.streak > 0 ? `${r.streak}` : '—'}</td>
+        <td>${r.premium_modules_owned > 0 ? `${r.premium_modules_owned}` : '—'}</td>
         <td style="color:var(--muted);">${r.points_balance.toLocaleString()}</td>
       </tr>`).join('')}
     </tbody>
@@ -624,14 +624,14 @@ async function adminLoadAcademyFeedback(reset) {
         <option value="">All ratings</option>
         ${[5, 4, 3, 2, 1].map(n => `<option value="${n}" ${String(n) === _acFeedbackRatingFilter ? 'selected' : ''}>${'★'.repeat(n)} only</option>`).join('')}
       </select>
-      ${data.avg_rating != null ? `<span style="margin-left:auto;font-size:12px;color:var(--muted);">Avg rating: <strong style="color:#ffd700;">★ ${data.avg_rating}</strong></span>` : ''}
+      ${data.avg_rating != null ? `<span style="margin-left:auto;font-size:12px;color:var(--muted);">Avg rating: <strong style="color:#ffd700;"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg> ${data.avg_rating}</strong></span>` : ''}
     </div>`;
 
   container.innerHTML = '';
   const el = document.createElement('div');
 
   if (!_acFeedbackItems.length) {
-    el.innerHTML = filterBarHtml + `<div class="empty-state"><div class="icon">💬</div><p>No feedback yet.</p></div>`;
+    el.innerHTML = filterBarHtml + `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg></div><p>No feedback yet.</p></div>`;
     container.appendChild(el);
     return;
   }
@@ -682,10 +682,10 @@ function _acCmContact(u) {
   const bits = [];
   if (u.phone) {
     const wa = String(u.phone).replace(/\D/g, '').replace(/^0/, '254');
-    bits.push(`<a href="tel:${esc(u.phone)}" style="color:#7fb8ff;text-decoration:none;">📞 ${esc(u.phone)}</a>`);
+    bits.push(`<a href="tel:${esc(u.phone)}" style="color:#7fb8ff;text-decoration:none;"><svg class=ev-i aria-hidden=true><use href=#ev-phone-call></use></svg> ${esc(u.phone)}</a>`);
     bits.push(`<a href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener" style="color:var(--green);text-decoration:none;">WhatsApp</a>`);
   }
-  if (u.email) bits.push(`<a href="mailto:${esc(u.email)}" style="color:#7fb8ff;text-decoration:none;">✉ ${esc(u.email)}</a>`);
+  if (u.email) bits.push(`<a href="mailto:${esc(u.email)}" style="color:#7fb8ff;text-decoration:none;"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg> ${esc(u.email)}</a>`);
   return bits.join(' · ');
 }
 
@@ -703,7 +703,7 @@ function _acCmCard(c) {
       <div style="font-size:11px;color:var(--muted);white-space:nowrap;">${c.created_at ? new Date(c.created_at).toLocaleString() : ''}</div>
     </div>
     <div style="color:var(--white);font-size:13.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;margin:8px 0;">${esc(c.comment)}</div>
-    ${c.admin_reply ? `<div style="padding:9px 11px;border-radius:9px;background:rgba(61,212,74,.08);border-left:3px solid var(--green);font-size:13px;color:var(--white);white-space:pre-wrap;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:var(--green);margin-bottom:3px;">Your reply · ${c.admin_replied_at ? new Date(c.admin_replied_at).toLocaleString() : ''} · ${c.reply_seen ? '👀 seen by learner' : 'not seen yet'}</div>${esc(c.admin_reply)}</div>` : ''}
+    ${c.admin_reply ? `<div style="padding:9px 11px;border-radius:9px;background:rgba(61,212,74,.08);border-left:3px solid var(--green);font-size:13px;color:var(--white);white-space:pre-wrap;margin-bottom:8px;"><div style="font-size:11px;font-weight:800;color:var(--green);margin-bottom:3px;">Your reply · ${c.admin_replied_at ? new Date(c.admin_replied_at).toLocaleString() : ''} · ${c.reply_seen ? 'seen by learner' : 'not seen yet'}</div>${esc(c.admin_reply)}</div>` : ''}
     <textarea id="acAdmReply-${esc(c.id)}" rows="2" maxlength="1500" placeholder="${c.admin_reply ? 'Edit your reply…' : 'Write a reply — the learner sees it under their comment and gets a notice in the Academy'}" style="width:100%;box-sizing:border-box;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:9px 10px;color:var(--white);font-size:12.5px;font-family:'Montserrat',sans-serif;resize:vertical;"></textarea>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
       <button class="btn-primary" style="font-size:12px;padding:7px 14px;" onclick="_acCmReply('${esc(c.id)}')">${c.admin_reply ? 'Update reply' : 'Reply'}</button>
@@ -738,9 +738,9 @@ async function adminLoadAcademyComments(reset) {
   const statusBtn = (k, label) => `<button onclick="_acCmStatus='${k}';adminLoadAcademyComments(true)" style="${sel}cursor:pointer;${_acCmStatus === k ? 'border-color:var(--green);color:var(--green);font-weight:800;' : ''}">${label}</button>`;
   const bar = `
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
-      ${statusBtn('unreplied', `⏳ Needs reply (${(data.counts || {}).unreplied || 0})`)}
-      ${statusBtn('replied', '✔ Replied')}
-      ${statusBtn('hidden', '🙈 Hidden')}
+      ${statusBtn('unreplied', `Needs reply (${(data.counts || {}).unreplied || 0})`)}
+      ${statusBtn('replied', 'Replied')}
+      ${statusBtn('hidden', 'Hidden')}
       ${statusBtn('all', `All (${(data.counts || {}).all || 0})`)}
       <select onchange="_acCmModule=this.value;adminLoadAcademyComments(true)" style="${sel}">
         <option value="">All modules</option>
@@ -751,7 +751,7 @@ async function adminLoadAcademyComments(reset) {
 
   container.innerHTML = bar + (_acCmItems.length
     ? _acCmItems.map(_acCmCard).join('') + (_acCmOffset < _acCmTotal ? `<button class="btn-secondary" style="width:100%;margin-top:6px;" onclick="adminLoadAcademyComments(false)">Load more (${_acCmTotal - _acCmOffset} more)</button>` : '')
-    : `<div class="empty-state"><div class="icon">💬</div><p>${_acCmStatus === 'unreplied' ? 'All caught up — no comments waiting for a reply.' : 'No comments here yet.'}</p></div>`);
+    : `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg></div><p>${_acCmStatus === 'unreplied' ? 'All caught up — no comments waiting for a reply.' : 'No comments here yet.'}</p></div>`);
 }
 
 function _acCmUpdateTabCount(n) {
@@ -831,10 +831,10 @@ async function adminLoadAcademyInsights() {
 
   container.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:14px;">
-      ${card('🔥 Most useful lessons', best.map(r => row(r, `🔥 ${r.up} · 😐 ${r.down}`)).join(''))}
-      ${card('😐 Lessons to improve', worst.map(r => row(r, `😐 ${r.down} · 🔥 ${r.up}`)).join(''))}
-      ${card('💬 Most discussed', talked.map(r => row(r, `${r.comments} comments`)).join(''))}
+      ${card('Most useful lessons', best.map(r => row(r, `${r.up} · 😐 ${r.down}`)).join(''))}
+      ${card('Lessons to improve', worst.map(r => row(r, `${r.down} · 🔥 ${r.up}`)).join(''))}
+      ${card('Most discussed', talked.map(r => row(r, `${r.comments} comments`)).join(''))}
     </div>
-    ${card('🎁 Free preview → purchase', `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12.5px;color:var(--muted);"><thead><tr><th style="text-align:left;padding:8px 10px;">Premium course</th><th style="text-align:right;padding:8px 10px;">Read free lesson</th><th style="text-align:right;padding:8px 10px;">Then bought</th><th style="text-align:right;padding:8px 10px;">Conversion</th></tr></thead><tbody>${previews}</tbody></table></div>`)}
+    ${card('Free preview → purchase', `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12.5px;color:var(--muted);"><thead><tr><th style="text-align:left;padding:8px 10px;">Premium course</th><th style="text-align:right;padding:8px 10px;">Read free lesson</th><th style="text-align:right;padding:8px 10px;">Then bought</th><th style="text-align:right;padding:8px 10px;">Conversion</th></tr></thead><tbody>${previews}</tbody></table></div>`)}
   `;
 }

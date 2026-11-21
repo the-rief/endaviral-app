@@ -36,7 +36,7 @@ async function loadAdminConsultations() {
     _renderConsultStats(stats);
     _renderAdminConsultations();
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -119,7 +119,7 @@ function _renderAdminConsultations() {
   const el = document.getElementById('adminConsultationsList');
   if (!el) return;
   if (!_adminConsultCache.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">💼</div><p>No consultations match this filter.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg></div><p>No consultations match this filter.</p></div>';
     return;
   }
   el.innerHTML = `<table>
@@ -130,7 +130,7 @@ function _renderAdminConsultations() {
           <div style="font-size:11px;color:var(--muted);margin-top:4px;">${fmtKES(b.amount_kes)}${b.credit_kes ? ` <span title="Consult fee credited">(−${fmtKES(b.credit_kes)} credit)</span>` : ''}</div></td>
         <td><strong>${esc(b.name)}</strong>${b.business_name ? `<div style="font-size:11px;color:var(--muted);">${esc(b.business_name)}</div>` : ''}${b.email ? `<div style="font-size:11px;color:var(--muted);">${esc(b.email)}</div>` : ''}</td>
         <td><a href="tel:${esc(b.phone)}" style="color:var(--white);">${esc(b.phone)}</a></td>
-        <td>${b.social_handle ? `<strong>${esc(b.social_handle)}</strong>` : '—'}${b.goal ? `<div style="font-size:11px;color:var(--muted);">🎯 ${esc(_CONSULT_GOAL_LABEL[b.goal] || b.goal)}</div>` : ''}</td>
+        <td>${b.social_handle ? `<strong>${esc(b.social_handle)}</strong>` : '—'}${b.goal ? `<div style="font-size:11px;color:var(--muted);"><svg class=ev-i aria-hidden=true><use href=#ev-target></use></svg> ${esc(_CONSULT_GOAL_LABEL[b.goal] || b.goal)}</div>` : ''}</td>
         <td style="max-width:220px;font-size:12.5px;color:var(--muted);white-space:normal;">${esc(b.notes || '—')}</td>
         <td>${b.paid_at ? new Date(b.paid_at).toLocaleString() : '—'}</td>
         <td>${_stageBadge(b.stage)}</td>

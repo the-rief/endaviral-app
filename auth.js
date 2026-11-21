@@ -415,7 +415,7 @@ function initApp() {
   const name = u.name || u.username || u.email || 'User';
   document.getElementById('sbUsername').textContent = name;
   document.getElementById('sbAvatar').textContent = name.charAt(0).toUpperCase();
-  document.getElementById('sbRole').textContent = u.role === 'admin' ? '👑 Admin' : (u.is_ccr_agent ? '🎧 Support' : 'User');
+  document.getElementById('sbRole').textContent = u.role === 'admin' ? 'Admin' : (u.is_ccr_agent ? 'Support' : 'User');
   const isAdmin = u.role === 'admin';
   const isCCR = !!u.is_ccr_agent;
   if (isAdmin || isCCR) {
@@ -613,8 +613,8 @@ function copyTempPassword() {
   if (!pass) return;
   navigator.clipboard.writeText(pass).then(() => {
     const btn = document.getElementById('forgotCopyBtn');
-    btn.textContent = '✅';
-    setTimeout(() => { btn.textContent = '📋'; }, 2000);
+    btn.textContent = '';
+    setTimeout(() => { btn.textContent = ''; }, 2000);
   }).catch(() => {
     // Fallback for older browsers / http
     const el = document.getElementById('forgotTempPass');

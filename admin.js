@@ -22,7 +22,7 @@ function adminTab(tab, el) {
   document.getElementById('ap-' + tab).classList.add('active');
   if (tab === 'users') loadAdminUsers();
   if (tab === 'allorders') loadAdminOrders();
-  if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); loadServiceSyncStatus(); }
+  if (tab === 'services-mgmt') { loadAdminServices(); loadSavedPricingSettings(); loadServiceSyncStatus(); saleLoad(); }
   if (tab === 'stats') { loadAdminCommandCenter(); }
   if (tab === 'providers') loadAdminProviders();
   if (tab === 'support') openAdminSupportTab();
@@ -46,7 +46,7 @@ async function loadAdminUsers() {
   try {
     const data = await api('/admin/users?limit=100');
     const users = data.users || data.data || data || [];
-    if (!users.length) { el.innerHTML = '<div class="empty-state"><div class="icon">👥</div><p>No users found.</p></div>'; return; }
+    if (!users.length) { el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg></div><p>No users found.</p></div>'; return; }
     el.innerHTML = `<table>
       <thead><tr><th>Name</th><th>Email</th><th>Role</th><th title="Withdrawable earnings from the Marketplace / CCR — NOT the order wallet. Order wallet (refunds + bank transfers) is in Admin → Wallet Credit.">Earnings 💼</th><th>Orders</th><th>Joined</th><th>Actions</th></tr></thead>
       <tbody>${users.map(u => {
@@ -65,12 +65,12 @@ async function loadAdminUsers() {
           <td style="color:var(--green);font-family:'Montserrat',sans-serif;font-size:16px;">${fmtKES(u.balance||u.wallet_balance)}</td>
           <td>${parseInt(u.total_orders||u.orders_count||0)}</td>
           <td style="font-size:12px;color:var(--muted);">${joined}</td>
-          <td><div style="display:flex;gap:6px;"><button class="action-btn" data-uid="${uid}" data-name="${name}" data-email="${email}" onclick="awcBankDeposit({id:this.dataset.uid,name:this.dataset.name,email:this.dataset.email})" title="Customer paid by bank transfer — add it to their order wallet">🏦 + Bank payment</button><button class="action-btn danger" onclick="adminBanUser('${uid}')">Ban</button></div></td>
+          <td><div style="display:flex;gap:6px;"><button class="action-btn" data-uid="${uid}" data-name="${name}" data-email="${email}" onclick="awcBankDeposit({id:this.dataset.uid,name:this.dataset.name,email:this.dataset.email})" title="Customer paid by bank transfer — add it to their order wallet"><svg class=ev-i aria-hidden=true><use href=#ev-bank></use></svg> + Bank payment</button><button class="action-btn danger" onclick="adminBanUser('${uid}')">Ban</button></div></td>
         </tr>`;
       }).join('')}
       </tbody>
     </table>`;
-  } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`; }
+  } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${e.message}</p></div>`; }
 }
 
 // Populated by loadAdminOrders so openOrderDetailModal (also used from
@@ -116,11 +116,11 @@ async function loadAdminOrders() {
     const hasFilter = !!(emailFilter || orderIdFilter || statusFilter || freeOnly || upsellOnly);
     const clearBtn = hasFilter
       ? `<div style="padding:0 0 12px;">
-           <button class="action-btn" onclick="clearAdminOrderFilters()">✕ Clear Filters</button>
+           <button class="action-btn" onclick="clearAdminOrderFilters()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> Clear Filters</button>
          </div>`
       : '';
 
-    if (!orders.length) { el.innerHTML = `${clearBtn}<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>`; return; }
+    if (!orders.length) { el.innerHTML = `${clearBtn}<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-inbox></use></svg></div><p>No orders found.</p></div>`; return; }
     el.innerHTML = `${clearBtn}<table>
       <thead><tr><th>#ID</th><th>Customer</th><th>Service</th><th>Link</th><th>Qty</th><th>Start/Remains</th><th>Cost</th><th>Status</th><th>M-Pesa Ref</th><th>Date</th><th>Action</th></tr></thead>
       <tbody>${orders.map(o => {
@@ -139,18 +139,18 @@ async function loadAdminOrders() {
         const userId     = esc(o.user_id||'');
         const phone      = esc(o.phone||'');
         const phoneDisplay = phone
-          ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">📞 ${phone} <button onclick="navigator.clipboard.writeText('${phone}').then(()=>toast('Phone copied!','success'))" title="Copy phone number" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button></div>`
+          ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;"><svg class=ev-i aria-hidden=true><use href=#ev-phone-call></use></svg> ${phone} <button onclick="navigator.clipboard.writeText('${phone}').then(()=>toast('Phone copied!','success'))" title="Copy phone number" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button></div>`
           : '';
         const date       = o.created_at ? new Date(o.created_at).toLocaleDateString() : '—';
         const mpesaRef   = esc(o.mpesa_receipt||'');
         const mpesaCell  = mpesaRef
           ? `<span style="font-family:monospace;font-size:12px;color:var(--green);">${mpesaRef}</span> <button onclick="event.stopPropagation();navigator.clipboard.writeText('${mpesaRef}').then(()=>toast('M-Pesa ref copied!','success'))" title="Copy M-Pesa reference" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0 2px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button>`
-          : (String(o.service_name||o.service||'').startsWith('🔁 Reorder')
-              ? '<span style="color:var(--muted);font-size:11px;" title="Re-placed for a client who already paid">🔁 reorder</span>'
+          : (String(o.service_name||o.service||'').startsWith('Reorder')
+              ? '<span style="color:var(--muted);font-size:11px;" title="Re-placed for a client who already paid"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> reorder</span>'
               : (o.is_free || !(Number(o.charge||o.cost||0) > 0))
-                ? '<span style="color:var(--muted);font-size:11px;" title="Free / bonus order — no payment">🎁 free</span>'
+                ? '<span style="color:var(--muted);font-size:11px;" title="Free / bonus order — no payment"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> free</span>'
                 : (o.provider_order_id && ['processing','inprogress','completed','partial'].includes((o.status||'').toLowerCase()))
-                  ? '<span style="color:#ff5252;font-size:11px;font-weight:700;" title="Sent to the provider but no M-Pesa payment/reference on record — check Payments Health">⚠ none</span>'
+                  ? '<span style="color:#ff5252;font-size:11px;font-weight:700;" title="Sent to the provider but no M-Pesa payment/reference on record — check Payments Health"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> none</span>'
                   : '<span style="color:var(--muted);font-size:11px;">—</span>');
         const startRemains = (o.start_count != null || o.remains != null)
           ? `${o.start_count != null ? parseInt(o.start_count).toLocaleString() : '—'} / ${o.remains != null ? parseInt(o.remains).toLocaleString() : '—'}`
@@ -176,7 +176,7 @@ async function loadAdminOrders() {
             ${phoneDisplay}
           </td>
           <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${svcName}${o.from_upsell
-            ? `<div style="margin-top:3px;"><span title="${o.upsell_how === 'suggested' ? 'Ordered the suggested service' : 'Came from a suggestion, picked another service'} · from ${o.upsell_source === 'after_order' ? 'order-placed screen' : 'dashboard'}" style="font-size:10px;font-weight:700;color:#3dd44a;background:rgba(61,212,74,.12);border:1px solid rgba(61,212,74,.3);border-radius:6px;padding:1px 6px;">💡 Suggested${o.upsell_how === 'other_service' ? ' · other svc' : ''}</span></div>` : ''}</td>
+            ? `<div style="margin-top:3px;"><span title="${o.upsell_how === 'suggested' ? 'Ordered the suggested service' : 'Came from a suggestion, picked another service'} · from ${o.upsell_source === 'after_order' ? 'order-placed screen' : 'dashboard'}" style="font-size:10px;font-weight:700;color:#3dd44a;background:rgba(61,212,74,.12);border:1px solid rgba(61,212,74,.3);border-radius:6px;padding:1px 6px;"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg> Suggested${o.upsell_how === 'other_service' ? ' · other svc' : ''}</span></div>` : ''}</td>
           <td style="max-width:160px;" onclick="event.stopPropagation();">${linkDisplay}</td>
           <td>${parseInt(o.quantity||0).toLocaleString()}</td>
           <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${startRemains}</td>
@@ -185,14 +185,14 @@ async function loadAdminOrders() {
           <td style="white-space:nowrap;">${mpesaCell}</td>
           <td style="font-size:12px;color:var(--muted);">${date}</td>
           <td style="white-space:nowrap;" onclick="event.stopPropagation();">
-            <button class="action-btn" onclick="adminMessageCustomer('${userId}','${userEmail}')" title="Open support thread with customer">💬 Message</button>
-            ${canAdminRefill ? `<button class="action-btn" onclick="adminRefillOrder('${fullId}')" title="Request a refill from the provider">↻ Refill</button>` : ''}
+            <button class="action-btn" onclick="adminMessageCustomer('${userId}','${userEmail}')" title="Open support thread with customer"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Message</button>
+            ${canAdminRefill ? `<button class="action-btn" onclick="adminRefillOrder('${fullId}')" title="Request a refill from the provider"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refill</button>` : ''}
           </td>
         </tr>`;
       }).join('')}
       </tbody>
     </table>`;
-  } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`; }
+  } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${e.message}</p></div>`; }
 }
 
 // Resets both All Orders search boxes (email + order ID) and reloads the
@@ -230,7 +230,7 @@ async function loadAdminServices() {
     const data = await api('/admin/services' + '?' + 'include_inactive=true').catch(() => api('/services'));
     _adminAllSvcs = data.services || data.data || data || [];
     renderAdminServices();
-  } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`; }
+  } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${e.message}</p></div>`; }
 }
 
 function applyMinQtyFilter() {
@@ -265,8 +265,8 @@ function renderAdminServices() {
     return parseInt(s.min || 0) <= minQtyLimit && (rate < minRateKes || rate > maxRateKes);
   });
 
-  if (!_adminAllSvcs.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No services. Click Sync.</p></div>'; return; }
-  if (searchTerm && !searched.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No services match "${esc(document.getElementById('adminSvcSearch').value)}".</p></div>`; return; }
+  if (!_adminAllSvcs.length) { el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg></div><p>No services. Click Sync.</p></div>'; return; }
+  if (searchTerm && !searched.length) { el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-search></use></svg></div><p>No services match "${esc(document.getElementById('adminSvcSearch').value)}".</p></div>`; return; }
   el.innerHTML = `
     <div style="padding:10px 0 14px;font-size:12px;color:var(--muted);">
       Showing <strong style="color:var(--white);">${shown.length}</strong> services
@@ -291,8 +291,8 @@ function renderAdminServices() {
           <td>${parseInt(s.max||0).toLocaleString()}</td>
           <td><span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${isActive ? 'rgba(61,212,74,.12)' : 'rgba(229,57,53,.1)'};color:${isActive ? 'var(--green)' : 'var(--red)'};">${isActive ? 'Shown' : 'Hidden'}</span></td>
           <td><div style="display:flex;gap:6px;">
-            <button class="action-btn" onclick="toggleSvcVisibility('${svcId}','${isActive}')">${isActive ? '🙈 Hide' : '👁 Show'}</button>
-            <button class="action-btn danger" onclick="deleteSvc('${svcId}')">🗑 Del</button>
+            <button class="action-btn" onclick="toggleSvcVisibility('${svcId}','${isActive}')">${isActive ? 'Hide' : 'Show'}</button>
+            <button class="action-btn danger" onclick="deleteSvc('${svcId}')"><svg class=ev-i aria-hidden=true><use href=#ev-trash></use></svg> Del</button>
           </div></td>
         </tr>`;
       }).join('')}
@@ -390,7 +390,7 @@ async function loadBusinessHealth(force = false) {
       notes.push(`LTV : CAC is ${ltvCac.toFixed(1)}x${ltvCac < 3 ? ' — below the 3x benchmark considered healthy' : ' — above the 3x benchmark, a healthy ratio'}.`);
     }
     if (burn.burn_usd_per_day > 0 && burn.days_until_empty !== null && burn.days_until_empty !== undefined && burn.days_until_empty <= 14) {
-      notes.push(`⚠️ Provider panel balance runs out in ~${burn.days_until_empty} day${burn.days_until_empty === 1 ? '' : 's'} at the current burn rate.`);
+      notes.push(`Provider panel balance runs out in ~${burn.days_until_empty} day${burn.days_until_empty === 1 ? '' : 's'} at the current burn rate.`);
     }
 
     el.innerHTML = `
@@ -409,7 +409,7 @@ async function loadBusinessHealth(force = false) {
             </div>
           </div>
           <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:2px;">
-            ${notes.map(n => `<div style="font-size:13px;color:var(--white);line-height:1.6;">💡 ${esc(n)}</div>`).join('')}
+            ${notes.map(n => `<div style="font-size:13px;color:var(--white);line-height:1.6;"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg> ${esc(n)}</div>`).join('')}
           </div>
         </div>
         <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
@@ -421,7 +421,7 @@ async function loadBusinessHealth(force = false) {
         </div>
       </div>`;
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't compute business health. <button class="action-btn" onclick="loadBusinessHealth(true)">Retry</button></p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>Couldn't compute business health. <button class="action-btn" onclick="loadBusinessHealth(true)">Retry</button></p></div>`;
   }
 }
 
@@ -508,26 +508,26 @@ async function loadBusinessUnitsGlance(force = false) {
   const totalAuxRevenue  = cnRevenue + acRevenue;  // revenue outside the core SMM panel, all-time
 
   const warnBanner = failed
-    ? `<div style="background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#ff6b6b;">⚠️ ${failed} of 4 business units couldn't be reached — showing what loaded. <button onclick="loadBusinessUnitsGlance(true)" style="background:none;border:none;color:#ff9a3c;font-size:12px;font-weight:700;cursor:pointer;">Retry</button></div>`
+    ? `<div style="background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#ff6b6b;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> ${failed} of 4 business units couldn't be reached — showing what loaded. <button onclick="loadBusinessUnitsGlance(true)" style="background:none;border:none;color:#ff9a3c;font-size:12px;font-weight:700;cursor:pointer;">Retry</button></div>`
     : '';
 
   el.innerHTML = `
     ${warnBanner}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px;">
       <div style="background:rgba(255,112,67,.08);border:1px solid rgba(255,112,67,.2);border-radius:12px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:6px;">🤝 Cost of Growth</div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg> Cost of Growth</div>
         <div style="font-size:20px;font-weight:900;color:var(--white);">${fmtKES(totalPartnerCost)}</div>
         <div style="font-size:10px;color:var(--muted);margin-top:2px;">Affiliate + CCR commissions, all-time</div>
       </div>
       <div style="background:rgba(155,107,255,.08);border:1px solid rgba(155,107,255,.2);border-radius:12px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9b6bff;margin-bottom:6px;">🧩 Auxiliary Revenue</div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9b6bff;margin-bottom:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-puzzle></use></svg> Auxiliary Revenue</div>
         <div style="font-size:20px;font-weight:900;color:var(--white);">${fmtKES(totalAuxRevenue)}</div>
         <div style="font-size:10px;color:var(--muted);margin-top:2px;">Connect + Academy, all-time</div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">
       ${_bizUnitCard({
-        icon: '🤝', title: 'Affiliates', tabName: 'affiliate-payouts',
+        icon: '<svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg>', title: 'Affiliates', tabName: 'affiliate-payouts',
         lines: [
           { label: 'Active affiliates', value: `${affActive} / ${aff.length}` },
           { label: 'Total earned', value: fmtKES(affEarned), color: 'var(--green)' },
@@ -536,7 +536,7 @@ async function loadBusinessUnitsGlance(force = false) {
         ],
       })}
       ${_bizUnitCard({
-        icon: '🎧', title: 'CCR Agents', tabName: 'ccr-agents',
+        icon: '<svg class=ev-i aria-hidden=true><use href=#ev-headphones></use></svg>', title: 'CCR Agents', tabName: 'ccr-agents',
         lines: [
           { label: 'Active agents', value: `${ccrActive} / ${ccr.length}` },
           { label: 'Total earned', value: fmtKES(ccrEarned), color: 'var(--green)' },
@@ -545,7 +545,7 @@ async function loadBusinessUnitsGlance(force = false) {
         ],
       })}
       ${_bizUnitCard({
-        icon: '🛍️', title: 'Connect Marketplace', tabName: 'connect', warn: cnDisputes > 0,
+        icon: '<svg class=ev-i aria-hidden=true><use href=#ev-cart></use></svg>', title: 'Connect Marketplace', tabName: 'connect', warn: cnDisputes > 0,
         lines: [
           { label: 'Campaigns', value: cnCampaigns },
           { label: 'Platform revenue', value: fmtKES(cnRevenue), color: 'var(--green)' },
@@ -554,7 +554,7 @@ async function loadBusinessUnitsGlance(force = false) {
         ],
       })}
       ${_bizUnitCard({
-        icon: '🎓', title: 'Creator Academy', tabName: 'academy',
+        icon: '<svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg>', title: 'Creator Academy', tabName: 'academy',
         lines: [
           { label: 'Learners started', value: acLearners },
           { label: 'Active (7d)', value: acActive7d },
@@ -755,7 +755,7 @@ function _growthBadge(pct) {
 
 /* ── Shared building blocks: KPI card + section panel ─────────────────── */
 
-function _chcKpi({ icon = '📊', label = '', value = '', sub = '', tone = 'neutral', trend = null, wide = false }) {
+function _chcKpi({ icon = '<svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg>', label = '', value = '', sub = '', tone = 'neutral', trend = null, wide = false }) {
   const toneMap = {
     green:   { border: 'rgba(61,212,74,.35)',  bg: 'rgba(61,212,74,.06)',  fg: 'var(--green)' },
     red:     { border: 'rgba(229,57,53,.35)',  bg: 'rgba(229,57,53,.06)',  fg: '#ff8a80' },
@@ -918,7 +918,7 @@ async function loadAdminCommandCenter(force = false) {
 // All Orders, with a "From suggestions" filter there.
 function _chcUpsellPanel(u) {
   if (!u) {
-    return _chcPanel({ title: 'Upsell Suggestions', icon: '💡', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load suggestion stats (is the latest backend deployed?).</div>` });
+    return _chcPanel({ title: 'Upsell Suggestions', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg>', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load suggestion stats (is the latest backend deployed?).</div>` });
   }
   const tile = (label, value, sub, color) => `
     <div style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">
@@ -932,10 +932,10 @@ function _chcUpsellPanel(u) {
       <span style="color:var(--muted);white-space:nowrap;">${v.paid} paid of ${v.orders} · <b style="color:#3dd44a;">${fmtKES(v.revenue_kes)}</b></span>
     </div>`;
   const LBL = {
-    dashboard: '🏠 Dashboard row', after_order: '✅ Order-placed screen',
-    suggested: '🎯 Ordered the suggested service', other_service: '🔀 Picked another service',
+    dashboard: 'Dashboard row', after_order: 'Order-placed screen',
+    suggested: 'Ordered the suggested service', other_service: 'Picked another service',
     medium: '<span style="color:#22c55e;">●</span> Medium', elite: '<span style="color:#3b82f6;">●</span> Elite',
-    unmarked: '⚪ No tier in name', basic: '<span style="color:#facc15;">●</span> Basic',
+    unmarked: 'No tier in name', basic: '<span style="color:#facc15;">●</span> Basic',
   };
   const group = (title, obj) => {
     const rows = Object.entries(obj || {}).map(([k, v]) => line(LBL[k] || esc(k), v)).join('');
@@ -949,7 +949,7 @@ function _chcUpsellPanel(u) {
     </div>`).join('');
   const empty = !u.orders_started && !u.customers_shown;
   return _chcPanel({
-    title: 'Upsell Suggestions', icon: '💡',
+    title: 'Upsell Suggestions', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg>',
     sub: `last ${u.window_days}d · "Suggested for you" rows + order-placed screen · only 🟢 Medium / 🔵 Elite services are ever suggested`,
     extra: `<button class="action-btn" onclick="_chcJumpUpsellOrders()" style="font-size:11px;">View orders →</button>`,
     body: empty ? `<div style="font-size:12px;color:var(--muted);">No suggestions shown yet in this window. They appear to customers once an order is delivered.</div>` : `
@@ -976,7 +976,7 @@ function _chcUpsellPanel(u) {
 // all paid orders of the same platform + type — are customers following it?
 function _chcRecommendedPanel(r) {
   if (!r) {
-    return _chcPanel({ title: 'EndaViral Recommends', icon: '⭐', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load recommendation stats (is the latest backend deployed?).</div>` });
+    return _chcPanel({ title: 'EndaViral Recommends', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg>', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load recommendation stats (is the latest backend deployed?).</div>` });
   }
   const tile = (label, value, sub, color) => `
     <div style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">
@@ -985,7 +985,7 @@ function _chcRecommendedPanel(r) {
       ${sub ? `<div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${sub}</div>` : ''}
     </div>`;
   const hd = t => `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px;">${t}</div>`;
-  const PL = { card: '⭐ Top card', list: '📋 ⭐ badge in the list' };
+  const PL = { card: 'Top card', list: '⭐ badge in the list' };
   const placements = Object.entries(r.by_placement || {}).filter(([, v]) => v.opened || v.orders).map(([k, v]) => `
     <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);">
       <span style="color:var(--white);">${PL[k] || esc(k)}</span>
@@ -1017,7 +1017,7 @@ function _chcRecommendedPanel(r) {
     </div>`).join('');
   const empty = !r.customers_shown && !r.orders_started;
   return _chcPanel({
-    title: 'EndaViral Recommends', icon: '⭐',
+    title: 'EndaViral Recommends', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg>',
     sub: `last ${r.window_days}d · one ♻️ refill pick per platform + type, shown above the services list · logged-in customers`,
     body: empty ? `<div style="font-size:12px;color:var(--muted);">No recommendations seen yet in this window. They show once a customer picks a platform in Services.</div>` : `
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
@@ -1066,12 +1066,12 @@ function _chcBuildSkeleton(root) {
 
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:16px;">
       <div>
-        <div style="font-size:20px;font-weight:900;color:var(--white);">🎯 Business Health Command Center</div>
+        <div style="font-size:20px;font-weight:900;color:var(--white);"><svg class=ev-i aria-hidden=true><use href=#ev-target></use></svg> Business Health Command Center</div>
         <div style="font-size:12px;color:var(--muted);margin-top:4px;">Revenue, growth, and engagement — everything that matters, in one place</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
         <span id="chcUpdatedAt" style="font-size:11px;color:var(--muted);"></span>
-        <button class="btn-secondary" id="chcRefreshBtn" style="margin:0;padding:8px 16px;font-size:12px;" onclick="loadAdminCommandCenter(true)">⟳ Refresh</button>
+        <button class="btn-secondary" id="chcRefreshBtn" style="margin:0;padding:8px 16px;font-size:12px;" onclick="loadAdminCommandCenter(true)"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
       </div>
     </div>
 
@@ -1080,14 +1080,14 @@ function _chcBuildSkeleton(root) {
     <div id="chcHealthScore" style="margin-bottom:20px;"></div>
 
     <div id="chcNav" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:16px;">
-      <button class="chc-nav-btn active" data-sec="overview" onclick="chcShowSection('overview',this)">📊 Overview</button>
-      <button class="chc-nav-btn" data-sec="operations" onclick="chcShowSection('operations',this)">🛠️ Operations</button>
-      <button class="chc-nav-btn" data-sec="revenue" onclick="chcShowSection('revenue',this)">💼 Revenue</button>
-      <button class="chc-nav-btn" data-sec="moneyflow" onclick="chcShowSection('moneyflow',this)">💵 Money Flow</button>
-      <button class="chc-nav-btn" data-sec="growth" onclick="chcShowSection('growth',this)">📈 Growth</button>
-      <button class="chc-nav-btn" data-sec="engagement" onclick="chcShowSection('engagement',this)">🔑 Engagement</button>
-      <button class="chc-nav-btn" data-sec="services" onclick="chcShowSection('services',this)">🧩 Services</button>
-      <button class="chc-nav-btn" data-sec="units" onclick="chcShowSection('units',this)">🏢 Business Units</button>
+      <button class="chc-nav-btn active" data-sec="overview" onclick="chcShowSection('overview',this)"><svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg> Overview</button>
+      <button class="chc-nav-btn" data-sec="operations" onclick="chcShowSection('operations',this)"><svg class=ev-i aria-hidden=true><use href=#ev-wrench></use></svg> Operations</button>
+      <button class="chc-nav-btn" data-sec="revenue" onclick="chcShowSection('revenue',this)"><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg> Revenue</button>
+      <button class="chc-nav-btn" data-sec="moneyflow" onclick="chcShowSection('moneyflow',this)"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg> Money Flow</button>
+      <button class="chc-nav-btn" data-sec="growth" onclick="chcShowSection('growth',this)"><svg class=ev-i aria-hidden=true><use href=#ev-chart-up></use></svg> Growth</button>
+      <button class="chc-nav-btn" data-sec="engagement" onclick="chcShowSection('engagement',this)"><svg class=ev-i aria-hidden=true><use href=#ev-key></use></svg> Engagement</button>
+      <button class="chc-nav-btn" data-sec="services" onclick="chcShowSection('services',this)"><svg class=ev-i aria-hidden=true><use href=#ev-puzzle></use></svg> Services</button>
+      <button class="chc-nav-btn" data-sec="units" onclick="chcShowSection('units',this)"><svg class=ev-i aria-hidden=true><use href=#ev-building></use></svg> Business Units</button>
     </div>
 
     <div id="chcSection-overview" class="chc-section active"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
@@ -1145,44 +1145,44 @@ function _chcRenderAlerts() {
     const bal = st.panel_balance_usd;
     if (bal !== null && bal !== undefined) {
       const balNum = parseFloat(bal);
-      if (balNum < 3) alerts.push({ tone: 'red', icon: '🚨', text: `Provider balance critical — $${balNum.toFixed(2)}. Customers cannot place orders.` });
-      else if (balNum < 10) alerts.push({ tone: 'orange', icon: '⚠️', text: `Provider balance low — $${balNum.toFixed(2)}. Top up soon.` });
+      if (balNum < 3) alerts.push({ tone: 'red', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg>', text: `Provider balance critical — $${balNum.toFixed(2)}. Customers cannot place orders.` });
+      else if (balNum < 10) alerts.push({ tone: 'orange', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg>', text: `Provider balance low — $${balNum.toFixed(2)}. Top up soon.` });
     }
   }
 
   const burn = (_chc.data.trends && _chc.data.trends.balance_burn) || {};
   if (burn.days_until_empty !== null && burn.days_until_empty !== undefined) {
-    if (burn.days_until_empty <= 3) alerts.push({ tone: 'red', icon: '🔥', text: `Balance projected to run out in ${burn.days_until_empty} day${burn.days_until_empty === 1 ? '' : 's'} at current burn rate.` });
-    else if (burn.days_until_empty <= 7) alerts.push({ tone: 'orange', icon: '🔥', text: `Balance projected to run out in ${burn.days_until_empty} days at current burn rate.` });
+    if (burn.days_until_empty <= 3) alerts.push({ tone: 'red', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-trending></use></svg>', text: `Balance projected to run out in ${burn.days_until_empty} day${burn.days_until_empty === 1 ? '' : 's'} at current burn rate.` });
+    else if (burn.days_until_empty <= 7) alerts.push({ tone: 'orange', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-trending></use></svg>', text: `Balance projected to run out in ${burn.days_until_empty} days at current burn rate.` });
   }
 
   const bd = _chc.data.breakdown || {};
   const hiddenTotal = bd.hidden_total ?? 0;
   const totalSvc = bd.total_services ?? 0;
   if (totalSvc > 0 && (hiddenTotal / totalSvc) > 0.5) {
-    alerts.push({ tone: 'blue', icon: '🙈', text: `${hiddenTotal.toLocaleString()} of ${totalSvc.toLocaleString()} services are hidden from customers.` });
+    alerts.push({ tone: 'blue', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-eye-off></use></svg>', text: `${hiddenTotal.toLocaleString()} of ${totalSvc.toLocaleString()} services are hidden from customers.` });
   }
 
   const cn = _chc.data.connectStats;
   if (cn && cn.open_disputes > 0) {
-    alerts.push({ tone: cn.open_disputes >= 3 ? 'red' : 'orange', icon: '⚖️', text: `${cn.open_disputes} open Connect dispute${cn.open_disputes === 1 ? '' : 's'} awaiting resolution.` });
+    alerts.push({ tone: cn.open_disputes >= 3 ? 'red' : 'orange', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-scale></use></svg>', text: `${cn.open_disputes} open Connect dispute${cn.open_disputes === 1 ? '' : 's'} awaiting resolution.` });
   }
   const cnRev = _chc.data.connectRevenue;
   const cnPQ = cnRev ? (cnRev.payout_queue || {}) : {};
   if (cnPQ.pending_count > 0) {
-    alerts.push({ tone: 'blue', icon: '💸', text: `${cnPQ.pending_count} Connect creator payout${cnPQ.pending_count === 1 ? '' : 's'} pending — ${fmtKES(cnPQ.pending_amount_kes || 0)}.` });
+    alerts.push({ tone: 'blue', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg>', text: `${cnPQ.pending_count} Connect creator payout${cnPQ.pending_count === 1 ? '' : 's'} pending — ${fmtKES(cnPQ.pending_amount_kes || 0)}.` });
   }
 
   const ccrAgents = _chc.data.ccrAgents;
   if (ccrAgents && ccrAgents.length) {
     const ccrPending = ccrAgents.reduce((s, a) => s + (a.pending_kes || 0), 0);
-    if (ccrPending > 0) alerts.push({ tone: 'blue', icon: '🎧', text: `${fmtKES(ccrPending)} in CCR agent commissions pending payout.` });
+    if (ccrPending > 0) alerts.push({ tone: 'blue', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-headphones></use></svg>', text: `${fmtKES(ccrPending)} in CCR agent commissions pending payout.` });
   }
 
   const affiliates = _chc.data.affiliates;
   if (affiliates && affiliates.length) {
     const affPending = affiliates.reduce((s, a) => s + (a.pending_kes || 0), 0);
-    if (affPending > 0) alerts.push({ tone: 'blue', icon: '🤝', text: `${fmtKES(affPending)} in affiliate commissions pending payout.` });
+    if (affPending > 0) alerts.push({ tone: 'blue', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg>', text: `${fmtKES(affPending)} in affiliate commissions pending payout.` });
   }
 
   // Operations: payments, support, refunds (GET /admin/stats/operations + /admin/wallet-credit/summary)
@@ -1190,19 +1190,19 @@ function _chcRenderAlerts() {
   if (ops) {
     const pay = ops.payments || {};
     if (pay.success_rate_pct !== null && pay.success_rate_pct !== undefined && pay.prompts >= 10) {
-      if (pay.success_rate_pct < 70) alerts.push({ tone: 'red', icon: '📱', text: `Only ${pay.success_rate_pct}% of M-Pesa prompts were paid in the last 7 days — ${fmtKES(pay.not_completed_kes || 0)} not completed.` });
-      else if (pay.success_rate_pct < 85) alerts.push({ tone: 'orange', icon: '📱', text: `${pay.success_rate_pct}% of M-Pesa prompts were paid in the last 7 days — ${fmtKES(pay.not_completed_kes || 0)} not completed.` });
+      if (pay.success_rate_pct < 70) alerts.push({ tone: 'red', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg>', text: `Only ${pay.success_rate_pct}% of M-Pesa prompts were paid in the last 7 days — ${fmtKES(pay.not_completed_kes || 0)} not completed.` });
+      else if (pay.success_rate_pct < 85) alerts.push({ tone: 'orange', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg>', text: `${pay.success_rate_pct}% of M-Pesa prompts were paid in the last 7 days — ${fmtKES(pay.not_completed_kes || 0)} not completed.` });
     }
-    if (pay.stuck_pending > 0) alerts.push({ tone: 'orange', icon: '⏳', text: `${pay.stuck_pending} M-Pesa payment${pay.stuck_pending === 1 ? '' : 's'} stuck pending over 10 minutes.` });
+    if (pay.stuck_pending > 0) alerts.push({ tone: 'orange', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg>', text: `${pay.stuck_pending} M-Pesa payment${pay.stuck_pending === 1 ? '' : 's'} stuck pending over 10 minutes.` });
     const sup = ops.support || {};
-    if (sup.waiting_over_2h > 0) alerts.push({ tone: 'orange', icon: '💬', text: `${sup.waiting_over_2h} customer${sup.waiting_over_2h === 1 ? ' has' : 's have'} waited over 2 hours for a support reply.` });
+    if (sup.waiting_over_2h > 0) alerts.push({ tone: 'orange', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg>', text: `${sup.waiting_over_2h} customer${sup.waiting_over_2h === 1 ? ' has' : 's have'} waited over 2 hours for a support reply.` });
     const rf = ops.refunds || {};
     if (rf.refund_rate_8w_pct !== null && rf.refund_rate_8w_pct !== undefined && rf.refund_rate_8w_pct >= 10) {
-      alerts.push({ tone: rf.refund_rate_8w_pct >= 20 ? 'red' : 'orange', icon: '↩️', text: `${rf.refund_rate_8w_pct}% of money taken in the last 8 weeks was refunded to wallets (${fmtKES(rf.refunded_8w_kes || 0)}).` });
+      alerts.push({ tone: rf.refund_rate_8w_pct >= 20 ? 'red' : 'orange', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg>', text: `${rf.refund_rate_8w_pct}% of money taken in the last 8 weeks was refunded to wallets (${fmtKES(rf.refunded_8w_kes || 0)}).` });
     }
   }
   const wcs = _chc.data.walletCredit;
-  if (wcs && wcs.refunds_not_messaged > 0) alerts.push({ tone: 'orange', icon: '✉️', text: `${wcs.refunds_not_messaged} wallet refund${wcs.refunds_not_messaged === 1 ? '' : 's'} where the customer was NOT messaged.` });
+  if (wcs && wcs.refunds_not_messaged > 0) alerts.push({ tone: 'orange', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg>', text: `${wcs.refunds_not_messaged} wallet refund${wcs.refunds_not_messaged === 1 ? '' : 's'} where the customer was NOT messaged.` });
 
   if (!alerts.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
 
@@ -1342,7 +1342,7 @@ function _chcRenderOverview() {
   const s = _chc.data.snapshot;
   const statsWrap = _chc.data.stats;
   if (!s && !statsWrap) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load overview data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>Couldn't load overview data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
     return;
   }
 
@@ -1359,14 +1359,14 @@ function _chcRenderOverview() {
     snapshotKpis = `
       <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:10px;">AT A GLANCE</div>
       <div class="chc-kpi-grid" style="margin-bottom:24px;">
-        ${_chcKpi({ icon: '📅', label: "Today's Revenue", value: fmtKES(s.today_revenue_kes), sub: 'profit booked today', tone: 'green' })}
-        ${_chcKpi({ icon: '💰', label: 'Gross Profit (all-time)', value: fmtKES(s.gross_profit_kes), sub: s.markup_percent_used ? `${Math.round(s.markup_percent_used * 100)}% markup` : '', tone: 'green' })}
-        ${_chcKpi({ icon: '🏭', label: 'Provider Cost (all-time)', value: fmtKES(s.provider_cost_kes), sub: 'paid to provider', tone: 'orange' })}
-        ${_chcKpi({ icon: '📐', label: 'Net Margin', value: s.net_margin_pct + '%', sub: 'profit ÷ sales', tone: 'blue' })}
-        ${_chcKpi({ icon: '🔁', label: 'Repeat Customers', value: s.repeat_rate_pct + '%', sub: 'ordered 2+ times', tone: 'blue' })}
-        ${_chcKpi({ icon: '🧾', label: 'Avg. Order', value: fmtKES(s.avg_order_value_kes), sub: 'all-time sales ÷ orders', tone: 'green' })}
-        ${_chcKpi({ icon: '💎', label: 'CLV', value: fmtKES(s.clv_kes), sub: 'spend-to-date per payer', tone: 'blue' })}
-        ${_chcKpi({ icon: '🎯', label: 'CAC', value: cacVal, sub: cacSub, tone: 'orange' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-calendar></use></svg>', label: "Today's Revenue", value: fmtKES(s.today_revenue_kes), sub: 'profit booked today', tone: 'green' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', label: 'Gross Profit (all-time)', value: fmtKES(s.gross_profit_kes), sub: s.markup_percent_used ? `${Math.round(s.markup_percent_used * 100)}% markup` : '', tone: 'green' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-building></use></svg>', label: 'Provider Cost (all-time)', value: fmtKES(s.provider_cost_kes), sub: 'paid to provider', tone: 'orange' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg>', label: 'Net Margin', value: s.net_margin_pct + '%', sub: 'profit ÷ sales', tone: 'blue' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg>', label: 'Repeat Customers', value: s.repeat_rate_pct + '%', sub: 'ordered 2+ times', tone: 'blue' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-receipt></use></svg>', label: 'Avg. Order', value: fmtKES(s.avg_order_value_kes), sub: 'all-time sales ÷ orders', tone: 'green' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-crown></use></svg>', label: 'CLV', value: fmtKES(s.clv_kes), sub: 'spend-to-date per payer', tone: 'blue' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-target></use></svg>', label: 'CAC', value: cacVal, sub: cacSub, tone: 'orange' })}
       </div>`;
   }
 
@@ -1387,14 +1387,14 @@ function _chcRenderOverview() {
       return `${Math.floor(diff / 3600)}h ago`;
     })() : '';
     const warningBar = balNum < 3
-      ? `<div style="margin-top:12px;padding:8px 12px;background:rgba(229,57,53,.12);border:1px solid rgba(229,57,53,.25);border-radius:8px;font-size:12px;color:#ff8a80;font-weight:600;">⚠️ Critical — customers cannot place orders</div>`
+      ? `<div style="margin-top:12px;padding:8px 12px;background:rgba(229,57,53,.12);border:1px solid rgba(229,57,53,.25);border-radius:8px;font-size:12px;color:#ff8a80;font-weight:600;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Critical — customers cannot place orders</div>`
       : balNum < 10
-      ? `<div style="margin-top:12px;padding:8px 12px;background:rgba(255,112,67,.10);border:1px solid rgba(255,112,67,.2);border-radius:8px;font-size:12px;color:var(--orange);font-weight:600;">⚠️ Low — top up soon</div>`
+      ? `<div style="margin-top:12px;padding:8px 12px;background:rgba(255,112,67,.10);border:1px solid rgba(255,112,67,.2);border-radius:8px;font-size:12px;color:var(--orange);font-weight:600;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Low — top up soon</div>`
       : '';
     balCard = `
       <div style="background:var(--card);border:2px solid ${balColor};border-radius:16px;padding:22px 24px;height:100%;box-sizing:border-box;" title="Provider panel balance. Reduces with every order.">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-          <span style="font-size:20px;">🏦</span>
+          <span style="font-size:20px;"><svg class=ev-i aria-hidden=true><use href=#ev-bank></use></svg></span>
           <div style="font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;">Panel Balance${st.active_provider ? ' · ' + esc(st.active_provider) : ''}</div>
           ${liveTag}
         </div>
@@ -1415,12 +1415,12 @@ function _chcRenderOverview() {
   const coreKpis = `
     <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:10px;">PLATFORM CORE</div>
     <div class="chc-kpi-grid">
-      ${_chcKpi({ icon: '💳', label: 'Total Sales', value: fmtKES(st.total_sales ?? st.total_revenue ?? 0), sub: 'All paid orders', tone: 'green' })}
-      ${_chcKpi({ icon: '💰', label: 'Your Revenue', value: fmtKES(st.total_revenue ?? 0), sub: st.markup_label ? `${st.markup_label} markup` : 'Profit only', tone: 'green' })}
-      ${_chcKpi({ icon: '👥', label: 'Total Users', value: (st.total_users || st.users || 0).toLocaleString(), tone: 'blue' })}
-      ${_chcKpi({ icon: '📦', label: 'Total Orders', value: (st.total_orders || st.orders || 0).toLocaleString(), tone: 'orange' })}
-      ${_chcKpi({ icon: '🔄', label: 'Active Orders', value: (st.active_orders || 0).toLocaleString(), tone: 'red' })}
-      ${_chcKpi({ icon: '👁', label: 'Visible Services', value: (svcSummary.visible_to_customers ?? bd.visible ?? 0).toLocaleString(), sub: `of ${(svcSummary.total ?? bd.total_services ?? 0).toLocaleString()} total`, tone: 'green' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg>', label: 'Total Sales', value: fmtKES(st.total_sales ?? st.total_revenue ?? 0), sub: 'All paid orders', tone: 'green' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', label: 'Your Revenue', value: fmtKES(st.total_revenue ?? 0), sub: st.markup_label ? `${st.markup_label} markup` : 'Profit only', tone: 'green' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg>', label: 'Total Users', value: (st.total_users || st.users || 0).toLocaleString(), tone: 'blue' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-package></use></svg>', label: 'Total Orders', value: (st.total_orders || st.orders || 0).toLocaleString(), tone: 'orange' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg>', label: 'Active Orders', value: (st.active_orders || 0).toLocaleString(), tone: 'red' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-eye></use></svg>', label: 'Visible Services', value: (svcSummary.visible_to_customers ?? bd.visible ?? 0).toLocaleString(), sub: `of ${(svcSummary.total ?? bd.total_services ?? 0).toLocaleString()} total`, tone: 'green' })}
     </div>`;
 
   el.innerHTML = `
@@ -1452,7 +1452,7 @@ function _chcRenderOperations() {
   if (!el) return;
   const ops = _chc.data.operations;
   if (!ops) {
-    el.innerHTML = _chcPanel({ title: 'Operations', icon: '🛠️', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load operations stats (is the latest backend deployed? It needs GET /admin/stats/operations).</div>` });
+    el.innerHTML = _chcPanel({ title: 'Operations', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-wrench></use></svg>', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load operations stats (is the latest backend deployed? It needs GET /admin/stats/operations).</div>` });
     return;
   }
   const pay = ops.payments || {}, rf = ops.refunds || {}, rc = ops.real_cost || {}, qc = ops.quiet_customers || {}, sup = ops.support || {};
@@ -1462,18 +1462,18 @@ function _chcRenderOperations() {
 
   const reorderRate = wc && wc.refunded_customers ? Math.round(wc.reordered_customers / wc.refunded_customers * 100) : null;
   const kpis = [
-    _chcKpi({ icon: '📱', label: 'M-Pesa prompts paid (7d)', value: pct(pay.success_rate_pct), tone: toneFor(pay.success_rate_pct, 85, 70),
+    _chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg>', label: 'M-Pesa prompts paid (7d)', value: pct(pay.success_rate_pct), tone: toneFor(pay.success_rate_pct, 85, 70),
       sub: `${(pay.prompts || 0).toLocaleString()} prompts · ${fmtKES(pay.not_completed_kes || 0)} not completed` }),
-    _chcKpi({ icon: '↩️', label: 'Refund rate (8 weeks)', value: pct(rf.refund_rate_8w_pct),
+    _chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg>', label: 'Refund rate (8 weeks)', value: pct(rf.refund_rate_8w_pct),
       tone: rf.refund_rate_8w_pct === null || rf.refund_rate_8w_pct === undefined ? 'neutral' : rf.refund_rate_8w_pct < 5 ? 'green' : rf.refund_rate_8w_pct < 10 ? 'orange' : 'red',
       sub: `${fmtKES(rf.refunded_8w_kes || 0)} refunded of ${fmtKES(rf.taken_8w_kes || 0)} taken` }),
-    _chcKpi({ icon: '💳', label: 'Wallet credit held', value: wc ? fmtKES(wc.outstanding_kes || 0) : '—', tone: 'blue',
+    _chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg>', label: 'Wallet credit held', value: wc ? fmtKES(wc.outstanding_kes || 0) : '—', tone: 'blue',
       sub: wc ? `${(wc.customers_with_credit || 0).toLocaleString()} customers · ${reorderRate === null ? '—' : reorderRate + '%'} of refunded clients reordered` : "couldn't load" }),
-    _chcKpi({ icon: '💰', label: 'Real margin (30d)', value: pct(rc.margin_pct), tone: toneFor(rc.margin_pct, 25, 10),
+    _chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', label: 'Real margin (30d)', value: pct(rc.margin_pct), tone: toneFor(rc.margin_pct, 25, 10),
       sub: `vs ${pct(rc.estimated_margin_pct)} estimated from markup` }),
     _chcKpi({ icon: '😴', label: 'Customers gone quiet', value: (qc.quiet_customers || 0).toLocaleString(), tone: (qc.quiet_customers || 0) > (qc.active_paying_30d || 0) ? 'orange' : 'neutral',
       sub: `no order in 30+ days · ${(qc.active_paying_30d || 0).toLocaleString()} ordered in last 30d` }),
-    _chcKpi({ icon: '💬', label: 'Support reply time', value: sup.median_reply_minutes === null || sup.median_reply_minutes === undefined ? '—' : (sup.median_reply_minutes >= 60 ? `${Math.round(sup.median_reply_minutes / 6) / 10}h` : `${Math.round(sup.median_reply_minutes)} min`),
+    _chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg>', label: 'Support reply time', value: sup.median_reply_minutes === null || sup.median_reply_minutes === undefined ? '—' : (sup.median_reply_minutes >= 60 ? `${Math.round(sup.median_reply_minutes / 6) / 10}h` : `${Math.round(sup.median_reply_minutes)} min`),
       tone: sup.median_reply_minutes === null || sup.median_reply_minutes === undefined ? 'neutral' : sup.median_reply_minutes <= 30 ? 'green' : sup.median_reply_minutes <= 120 ? 'orange' : 'red',
       sub: `median, 14d · ${(sup.waiting_over_2h || 0)} waiting 2h+ now` }),
   ].join('');
@@ -1483,11 +1483,11 @@ function _chcRenderOperations() {
   const c = k => ((bs[k] || {}).count || 0).toLocaleString();
   const k = k => fmtKES((bs[k] || {}).kes || 0);
   const payBody = `
-    ${_chcOpsRow('✅ Paid', `${c('success')} · ${k('success')}`, 'var(--green)')}
-    ${_chcOpsRow('❌ Failed', `${c('failed')} · ${k('failed')}`, '#ff8a80')}
-    ${_chcOpsRow('🚫 Cancelled by customer', `${c('cancelled')} · ${k('cancelled')}`)}
+    ${_chcOpsRow('Paid', `${c('success')} · ${k('success')}`, 'var(--green)')}
+    ${_chcOpsRow('Failed', `${c('failed')} · ${k('failed')}`, '#ff8a80')}
+    ${_chcOpsRow('Cancelled by customer', `${c('cancelled')} · ${k('cancelled')}`)}
     ${_chcOpsRow('⌛ Timed out (no PIN)', `${c('timeout')} · ${k('timeout')}`)}
-    ${_chcOpsRow('⏳ Still pending', `${c('pending')}${pay.stuck_pending ? ` · <span style="color:var(--orange);">${pay.stuck_pending} stuck 10+ min</span>` : ''}`)}`;
+    ${_chcOpsRow('Still pending', `${c('pending')}${pay.stuck_pending ? ` · <span style="color:var(--orange);">${pay.stuck_pending} stuck 10+ min</span>` : ''}`)}`;
 
   // Refunds by week
   const weekly = (rf.weekly || []).map(w => ({ ...w, label: _fmtShortDate(w.week_start) }));
@@ -1560,17 +1560,17 @@ function _chcRenderOperations() {
   el.innerHTML = `
     <div class="chc-kpi-grid" style="margin-bottom:18px;">${kpis}</div>
     <div class="chc-two-col">
-      ${_chcPanel({ title: 'M-Pesa Payments — last 7 days', icon: '📱', sub: 'Every prompt sent, by how it ended', extra: _chcOpsOpen('payments-health', 'Payments Health'), body: payBody })}
-      ${_chcPanel({ title: 'Refunds to Wallets by Week', icon: '↩️', sub: 'Failed / partial / cancelled paid orders refunded as wallet credit', extra: _chcOpsOpen('wallet-credit', 'Wallet Credit'), body: refundBody })}
+      ${_chcPanel({ title: 'M-Pesa Payments — last 7 days', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg>', sub: 'Every prompt sent, by how it ended', extra: _chcOpsOpen('payments-health', 'Payments Health'), body: payBody })}
+      ${_chcPanel({ title: 'Refunds to Wallets by Week', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg>', sub: 'Failed / partial / cancelled paid orders refunded as wallet credit', extra: _chcOpsOpen('wallet-credit', 'Wallet Credit'), body: refundBody })}
     </div>
     ${_chcPanel({ title: 'Services That Fail Most — last 30 days', icon: '🧯', sub: 'Paid orders that failed, were cancelled or only partly delivered, by service', extra: _chcOpsOpen('services-mgmt', 'Services'), body: psBody })}
     <div class="chc-two-col">
-      ${_chcPanel({ title: 'Real Profit — last 30 days', icon: '💰', sub: 'Sales vs what the provider actually charges', body: rcBody })}
+      ${_chcPanel({ title: 'Real Profit — last 30 days', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', sub: 'Sales vs what the provider actually charges', body: rcBody })}
       ${_chcPanel({ title: 'Customers Going Quiet', icon: '😴', sub: 'Paid before, nothing in 30+ days', extra: _chcOpsOpen('broadcasts', 'Broadcasts'), body: qcBody })}
     </div>
     <div class="chc-two-col">
-      ${_chcPanel({ title: 'Support Load — last 14 days', icon: '💬', sub: 'New conversations per day', extra: _chcOpsOpen('support', 'Support'), body: supBody })}
-      ${_chcPanel({ title: 'Free Orders Given', icon: '🎁', sub: 'Loyalty rewards — a real cost against profit', extra: _chcOpsOpen('free-orders', 'Free Orders'), body: foBody })}
+      ${_chcPanel({ title: 'Support Load — last 14 days', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg>', sub: 'New conversations per day', extra: _chcOpsOpen('support', 'Support'), body: supBody })}
+      ${_chcPanel({ title: 'Free Orders Given', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg>', sub: 'Loyalty rewards — a real cost against profit', extra: _chcOpsOpen('free-orders', 'Free Orders'), body: foBody })}
     </div>`;
 }
 
@@ -1579,7 +1579,7 @@ function _chcRenderRevenue() {
   if (!el) return;
   const r = _chc.data.revenue;
   if (!r) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load revenue data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>Couldn't load revenue data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
     return;
   }
 
@@ -1596,42 +1596,42 @@ function _chcRenderRevenue() {
 
   const weekKpis = thisWeek ? `
     <div class="chc-kpi-grid">
-      ${_chcKpi({ icon: '📅', label: 'Sales', value: fmtKES(thisWeek.sales_kes), sub: lastWeek ? '' : `${thisWeek.orders} orders`, trend: lastWeek ? pct(thisWeek.sales_kes, lastWeek.sales_kes) : null, tone: 'green' })}
-      ${_chcKpi({ icon: '💰', label: 'Profit', value: fmtKES(thisWeek.revenue_kes), sub: lastWeek ? '' : 'before affiliate cost', trend: lastWeek ? pct(thisWeek.revenue_kes, lastWeek.revenue_kes) : null, tone: 'green' })}
-      ${_chcKpi({ icon: '🤝', label: 'Affiliate Cost', value: fmtKES(thisWeek.affiliate_commission_kes), sub: 'owed to affiliates', tone: 'orange' })}
-      ${_chcKpi({ icon: '🏆', label: 'Net to Business', value: fmtKES(thisWeek.net_revenue_kes), sub: 'profit − affiliate cost', tone: 'blue' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-calendar></use></svg>', label: 'Sales', value: fmtKES(thisWeek.sales_kes), sub: lastWeek ? '' : `${thisWeek.orders} orders`, trend: lastWeek ? pct(thisWeek.sales_kes, lastWeek.sales_kes) : null, tone: 'green' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', label: 'Profit', value: fmtKES(thisWeek.revenue_kes), sub: lastWeek ? '' : 'before affiliate cost', trend: lastWeek ? pct(thisWeek.revenue_kes, lastWeek.revenue_kes) : null, tone: 'green' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg>', label: 'Affiliate Cost', value: fmtKES(thisWeek.affiliate_commission_kes), sub: 'owed to affiliates', tone: 'orange' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-trophy></use></svg>', label: 'Net to Business', value: fmtKES(thisWeek.net_revenue_kes), sub: 'profit − affiliate cost', tone: 'blue' })}
     </div>` : `<div class="empty-state"><p>No paid orders yet this week.</p></div>`;
 
   const monthKpis = thisMonth ? `
     <div class="chc-kpi-grid">
-      ${_chcKpi({ icon: '🗓️', label: 'Sales', value: fmtKES(thisMonth.sales_kes), sub: lastMonth ? '' : `${thisMonth.orders} orders`, trend: lastMonth ? pct(thisMonth.sales_kes, lastMonth.sales_kes) : null, tone: 'green' })}
-      ${_chcKpi({ icon: '💰', label: 'Profit', value: fmtKES(thisMonth.revenue_kes), sub: lastMonth ? '' : 'before affiliate cost', trend: lastMonth ? pct(thisMonth.revenue_kes, lastMonth.revenue_kes) : null, tone: 'green' })}
-      ${_chcKpi({ icon: '🤝', label: 'Affiliate Cost', value: fmtKES(thisMonth.affiliate_commission_kes), sub: `${ai.commission_pct_of_revenue_this_month || 0}% of profit`, tone: 'orange' })}
-      ${_chcKpi({ icon: '🏆', label: 'Net to Business', value: fmtKES(thisMonth.net_revenue_kes), sub: 'profit − affiliate cost', tone: 'blue' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-calendar></use></svg>', label: 'Sales', value: fmtKES(thisMonth.sales_kes), sub: lastMonth ? '' : `${thisMonth.orders} orders`, trend: lastMonth ? pct(thisMonth.sales_kes, lastMonth.sales_kes) : null, tone: 'green' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', label: 'Profit', value: fmtKES(thisMonth.revenue_kes), sub: lastMonth ? '' : 'before affiliate cost', trend: lastMonth ? pct(thisMonth.revenue_kes, lastMonth.revenue_kes) : null, tone: 'green' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg>', label: 'Affiliate Cost', value: fmtKES(thisMonth.affiliate_commission_kes), sub: `${ai.commission_pct_of_revenue_this_month || 0}% of profit`, tone: 'orange' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-trophy></use></svg>', label: 'Net to Business', value: fmtKES(thisMonth.net_revenue_kes), sub: 'profit − affiliate cost', tone: 'blue' })}
     </div>` : `<div class="empty-state"><p>No paid orders yet this month.</p></div>`;
 
   const insightsHtml = insights.length ? insights.map(txt => `
     <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);">
-      <span style="font-size:16px;flex-shrink:0;">💡</span>
+      <span style="font-size:16px;flex-shrink:0;"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg></span>
       <span style="font-size:13px;color:var(--white);line-height:1.5;">${esc(txt)}</span>
     </div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:8px 0;">No insights yet.</div>`;
 
   el.innerHTML = `
-    ${_chcPanel({ title: 'This Week', icon: '📅', body: weekKpis })}
-    ${_chcPanel({ title: 'This Month', icon: '🗓️', body: monthKpis })}
+    ${_chcPanel({ title: 'This Week', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-calendar></use></svg>', body: weekKpis })}
+    ${_chcPanel({ title: 'This Month', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-calendar></use></svg>', body: monthKpis })}
     ${_chcPanel({
-      title: 'Affiliate Cost — All Time', icon: '🤝', body: `
+      title: 'Affiliate Cost — All Time', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg>', body: `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;">
         <div><div style="font-size:22px;font-weight:800;color:var(--white);">${fmtKES(ai.total_commission_owed_kes || 0)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Total owed to affiliates (accrued)</div></div>
         <div><div style="font-size:22px;font-weight:800;color:var(--white);">${fmtKES(ai.total_commission_paid_kes || 0)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Already paid out</div></div>
         <div><div style="font-size:22px;font-weight:800;color:var(--orange);">${fmtKES((ai.total_commission_owed_kes || 0) - (ai.total_commission_paid_kes || 0))}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Accrued but not yet paid</div></div>
       </div>` })}
     <div class="chc-two-col" style="grid-template-columns:1fr 1fr;">
-      ${_chcPanel({ title: 'Net-to-Business by Week', icon: '📊', sub: `last ${weekly.length}`, body: _miniBarChart(weekly, { key: 'net_revenue_kes', labelKey: 'week_start', color: '#3dd44a' }) })}
-      ${_chcPanel({ title: 'Net-to-Business by Month', icon: '📊', sub: `last ${monthly.length}`, body: _miniBarChart(monthly, { key: 'net_revenue_kes', labelKey: 'month', color: '#3dd44a' }) })}
+      ${_chcPanel({ title: 'Net-to-Business by Week', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg>', sub: `last ${weekly.length}`, body: _miniBarChart(weekly, { key: 'net_revenue_kes', labelKey: 'week_start', color: '#3dd44a' }) })}
+      ${_chcPanel({ title: 'Net-to-Business by Month', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg>', sub: `last ${monthly.length}`, body: _miniBarChart(monthly, { key: 'net_revenue_kes', labelKey: 'month', color: '#3dd44a' }) })}
     </div>
     ${_chcPanel({
-      title: 'Owner Draw & Cash Allocation', icon: '💰', sub: 'Built on the Profit First framework (Michalowicz) — Profit / Owner\u2019s Pay / Tax / OpEx target allocation for sub-$250K-revenue businesses', extra: `
+      title: 'Owner Draw & Cash Allocation', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', sub: 'Built on the Profit First framework (Michalowicz) — Profit / Owner\u2019s Pay / Tax / OpEx target allocation for sub-$250K-revenue businesses', extra: `
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:11px;color:var(--muted);">Reserve</span>
           <input type="number" id="chcReserveDaysInput" value="${_chc.reserveDays}" min="0" max="90" step="1"
@@ -1661,7 +1661,7 @@ function _chcRenderRevenue() {
         <div id="chcOwnerDrawBody"></div>`,
     })}
     ${_chcPanel({
-      title: 'Recommended Marketing Budget', icon: '📣', sub: 'SBA guidance: 7\u201310% of gross revenue for businesses under $5M; 10\u201320% if you\u2019re in growth mode', extra: `
+      title: 'Recommended Marketing Budget', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-megaphone></use></svg>', sub: 'SBA guidance: 7\u201310% of gross revenue for businesses under $5M; 10\u201320% if you\u2019re in growth mode', extra: `
         <div style="display:flex;align-items:center;gap:8px;">
           <input type="number" id="chcMarketingPctInput" value="${_chc.marketingPct}" min="0" max="100" step="0.5" oninput="_chcRecalcOwnerDraw()"
                  style="width:52px;background:var(--navy);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:4px 6px;font-size:12px;text-align:center;" />
@@ -1669,7 +1669,7 @@ function _chcRenderRevenue() {
         </div>`,
       body: `<div id="chcMarketingBody"></div>`,
     })}
-    ${_chcPanel({ title: 'Insights', icon: '💡', extra: `<button class="btn-secondary" style="margin:0;padding:7px 14px;font-size:11px;" onclick="loadAdminCommandCenter(true)">↻ Refresh</button>`, body: `<div style="padding:0 2px;">${insightsHtml}</div>` })}
+    ${_chcPanel({ title: 'Insights', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg>', extra: `<button class="btn-secondary" style="margin:0;padding:7px 14px;font-size:11px;" onclick="loadAdminCommandCenter(true)"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>`, body: `<div style="padding:0 2px;">${insightsHtml}</div>` })}
   `;
   _chcRecalcOwnerDraw();
 }
@@ -1820,7 +1820,7 @@ function _chcRecalcOwnerDraw() {
         <div style="font-size:22px;font-weight:900;color:var(--blue);">${fmtKES(ownerDraw)}</div>
       </div>
     </div>
-    <div style="font-size:10.5px;color:var(--muted);margin-top:12px;line-height:1.6;">⚠️ Set Tax % to whichever KRA regime actually applies to you — flat 3% Turnover Tax on gross turnover (MSMEs, KES 1M\u201325M/year, if elected) or 30% corporate tax on net profit otherwise. This tool doesn't know which one you're on. Get real tax advice before drawing this in full.</div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:12px;line-height:1.6;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Set Tax % to whichever KRA regime actually applies to you — flat 3% Turnover Tax on gross turnover (MSMEs, KES 1M\u201325M/year, if elected) or 30% corporate tax on net profit otherwise. This tool doesn't know which one you're on. Get real tax advice before drawing this in full.</div>
   `;
 }
 
@@ -1962,7 +1962,7 @@ function _chcRenderMoneyFlow() {
     </div>`;
 
   if (!statsWrap || !r || !snap) {
-    el.innerHTML = `${periodNav}<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load money flow data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
+    el.innerHTML = `${periodNav}<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>Couldn't load money flow data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
     return;
   }
 
@@ -2053,15 +2053,15 @@ function _chcRenderMoneyFlow() {
     </style>
     ${periodNav}
 
-    ${_chcPanel({ title: fig.label, icon: '💵', sub: 'Full money flow for this window', body: `
+    ${_chcPanel({ title: fig.label, icon: '<svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg>', sub: 'Full money flow for this window', body: `
       <div class="chc-kpi-grid">
-        ${_chcKpi({ icon: '🧾', label: 'Total Sales', value: fmtKES(fig.sales), tone: 'neutral' })}
-        ${_chcKpi({ icon: '📦', label: 'Provider Costs', value: fmtKES(fig.providerCost), tone: 'orange' })}
-        ${_chcKpi({ icon: '💰', label: 'Gross Profit', value: fmtKES(fig.grossProfit), tone: 'green' })}
-        ${_chcKpi({ icon: '🏆', label: 'Net Profit', value: fmtKES(netProfit), sub: 'gross profit \u2212 affiliate cost this window', tone: 'blue' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-receipt></use></svg>', label: 'Total Sales', value: fmtKES(fig.sales), tone: 'neutral' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-package></use></svg>', label: 'Provider Costs', value: fmtKES(fig.providerCost), tone: 'orange' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', label: 'Gross Profit', value: fmtKES(fig.grossProfit), tone: 'green' })}
+        ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-trophy></use></svg>', label: 'Net Profit', value: fmtKES(netProfit), sub: 'gross profit \u2212 affiliate cost this window', tone: 'blue' })}
       </div>` })}
 
-    ${_chcPanel({ title: '45% vs 55% Split', icon: '⚖️', sub: 'How every KES of Net Profit this window is divided', body: `
+    ${_chcPanel({ title: '45% vs 55% Split', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-scale></use></svg>', sub: 'How every KES of Net Profit this window is divided', body: `
       <div class="mf-split-bar">
         <div style="width:${titanPct}%;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#04140a;font-weight:900;font-size:13px;">${titanPct}%</div>
         <div style="width:${businessPct}%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#04140a;font-weight:900;font-size:13px;">${businessPct}%</div>
@@ -2095,14 +2095,14 @@ function _chcRenderMoneyFlow() {
       ${_chcPanel({ title: 'Safe to Withdraw', icon: '🟢', sub: 'Titan / Owner Pay bucket, net of outstanding liabilities', body: `
         <div style="font-size:30px;font-weight:900;color:var(--green);">${fmtKES(safeToWithdraw)}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6;">${fmtKES(titanKes)} (${titanPct}% of Net Profit) \u2212 ${fmtKES(totalLiabilities)} outstanding liabilities</div>` })}
-      ${_chcPanel({ title: 'Affiliate & Other Liabilities', icon: '🤝', sub: 'Everything owed out, not yet paid', body: `
+      ${_chcPanel({ title: 'Affiliate & Other Liabilities', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg>', sub: 'Everything owed out, not yet paid', body: `
         <div style="display:grid;gap:8px;">
           <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--muted);">Affiliate commission (unpaid)</span><span style="font-weight:700;color:var(--white);">${fmtKES(affLiability)}</span></div>
           <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--muted);">CCR agent commission (pending)</span><span style="font-weight:700;color:var(--white);">${fmtKES(ccrLiability)}</span></div>
           <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--muted);">Connect creator payouts (pending)</span><span style="font-weight:700;color:var(--white);">${fmtKES(cnLiability)}</span></div>
           <div style="display:flex;justify-content:space-between;font-size:13.5px;padding-top:8px;border-top:1px solid var(--border);"><span style="font-weight:800;color:var(--white);">Total</span><span style="font-weight:900;color:var(--orange);">${fmtKES(totalLiabilities)}</span></div>
           ${_chc.data.walletCredit ? `<div style="margin-top:6px;padding:10px 12px;border-radius:10px;background:rgba(61,212,74,.06);border:1px solid rgba(61,212,74,.25);">
-            <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--white);font-weight:700;">💳 Customer wallet credit held</span><span style="font-weight:800;color:var(--green);white-space:nowrap;">${fmtKES(_chc.data.walletCredit.outstanding_kes || 0)}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--white);font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg> Customer wallet credit held</span><span style="font-weight:800;color:var(--green);white-space:nowrap;">${fmtKES(_chc.data.walletCredit.outstanding_kes || 0)}</span></div>
             <div style="font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.5;">Refunds sitting in ${(_chc.data.walletCredit.customers_with_credit || 0).toLocaleString()} customers' wallets. It's in your account but belongs to customers' future orders — keep it there. Already left out of profit, so it isn't subtracted above.</div>
           </div>` : ''}
         </div>` })}
@@ -2118,8 +2118,8 @@ function _chcRenderMoneyFlow() {
         </div>`,
       body: `
         <div class="chc-kpi-grid">
-          ${_chcKpi({ icon: '💳', label: 'Panel Balance', value: balKes !== null ? fmtKES(balKes) : '\u2014', sub: balUsd !== null ? `$${balUsd.toFixed(2)} USD` : 'No balance data', tone: 'blue' })}
-          ${_chcKpi({ icon: '⏳', label: 'Runway', value: (runwayDays !== null && runwayDays !== undefined) ? `${runwayDays}d` : '\u2014', sub: burnUsdPerDay ? `burning $${burnUsdPerDay.toFixed(2)}/day` : 'not enough history yet', tone: (runwayDays !== null && runwayDays !== undefined && runwayDays <= 7) ? 'red' : 'neutral' })}
+          ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg>', label: 'Panel Balance', value: balKes !== null ? fmtKES(balKes) : '\u2014', sub: balUsd !== null ? `$${balUsd.toFixed(2)} USD` : 'No balance data', tone: 'blue' })}
+          ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg>', label: 'Runway', value: (runwayDays !== null && runwayDays !== undefined) ? `${runwayDays}d` : '\u2014', sub: burnUsdPerDay ? `burning $${burnUsdPerDay.toFixed(2)}/day` : 'not enough history yet', tone: (runwayDays !== null && runwayDays !== undefined && runwayDays <= 7) ? 'red' : 'neutral' })}
           ${_chcKpi({ icon: '🔋', label: 'Recommended Top-Up', value: fmtKES(recommendedTopupKes), sub: `$${recommendedTopupUsd.toFixed(2)} to reach ${targetRunway}d runway`, tone: 'orange' })}
         </div>
         <div style="font-size:10.5px;color:var(--muted);margin-top:14px;line-height:1.6;">Of the ${fmtKES(growthBucketKes)} Panel Balance & Growth bucket this window, ${fmtKES(panelTopupFromBucket)} covers the recommended top-up above \u2014 the remaining ${fmtKES(reinvestKes)} is free for Business Growth / Reinvestment.</div>
@@ -2135,7 +2135,7 @@ function _chcRenderMoneyFlow() {
         </div>`,
       body: `<div id="mfTitanBody">${_mfTitanBody(titanLedger, titanKes)}</div>` })}
 
-    ${_chcPanel({ title: 'Business Account — Withdrawals', icon: '🏦', sub: 'Each bucket\u2019s share of all-time net profit, minus what you\u2019ve logged as withdrawn', body: `
+    ${_chcPanel({ title: 'Business Account — Withdrawals', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-bank></use></svg>', sub: 'Each bucket\u2019s share of all-time net profit, minus what you\u2019ve logged as withdrawn', body: `
       <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr auto;gap:10px;padding:0 4px 8px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">
         <span>Bucket</span><span>Allocated</span><span>Withdrawn</span><span>Remaining</span><span></span>
       </div>
@@ -2312,7 +2312,7 @@ function _chcRenderGrowth() {
   if (!el) return;
   const t = _chc.data.trends;
   if (!t) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load growth data. <button class="action-btn" onclick="chcSetTrendsWindow(${_chc.trendsDays})">Retry</button></p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>Couldn't load growth data. <button class="action-btn" onclick="chcSetTrendsWindow(${_chc.trendsDays})">Retry</button></p></div>`;
     return;
   }
 
@@ -2332,7 +2332,7 @@ function _chcRenderGrowth() {
     const fg = critical ? '#ff8a80' : warn ? 'var(--orange)' : 'var(--green)';
     burnBanner = `
       <div style="background:${bg};border:1px solid ${border};border-radius:12px;padding:14px 18px;margin-bottom:20px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${fg};margin-bottom:4px;">🔥 Panel Balance Burn Rate</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${fg};margin-bottom:4px;"><svg class=ev-i aria-hidden=true><use href=#ev-trending></use></svg> Panel Balance Burn Rate</div>
         <div style="font-size:13px;color:var(--muted);">Spending ~<b style="color:${fg};">$${burn.burn_usd_per_day.toFixed(2)}/day</b>${burn.days_until_empty !== null ? ` · projected to run out in <b style="color:${fg};">${burn.days_until_empty} day${burn.days_until_empty == 1 ? '' : 's'}</b> at this pace` : ''}</div>
       </div>`;
   }
@@ -2414,11 +2414,11 @@ function _chcRenderGrowth() {
         </div>`;
     }).join('');
     platformPanel = _chcPanel({
-      title: 'SMM Sales by Platform', icon: '📱', sub: `last ${pf.window_days}d, vs the prior ${pf.window_days}d — inferred from service category, not a guaranteed-exact platform tag`,
+      title: 'SMM Sales by Platform', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg>', sub: `last ${pf.window_days}d, vs the prior ${pf.window_days}d — inferred from service category, not a guaranteed-exact platform tag`,
       body: rows,
     });
   } else {
-    platformPanel = _chcPanel({ title: 'SMM Sales by Platform', icon: '📱', body: `<div style="font-size:12px;color:var(--muted);">No platform data for this window.</div>` });
+    platformPanel = _chcPanel({ title: 'SMM Sales by Platform', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg>', body: `<div style="font-size:12px;color:var(--muted);">No platform data for this window.</div>` });
   }
 
   // ── Order outcomes by platform: who FAILS / CANCELS / goes PARTIAL most ──
@@ -2474,14 +2474,14 @@ function _chcRenderGrowth() {
       </div>`).join('');
     const subhead = t => `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:16px 0 6px;">${t}</div>`;
     outcomesPanel = _chcPanel({
-      title: 'Order Outcomes by Platform', icon: '⚠️',
+      title: 'Order Outcomes by Platform', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg>',
       sub: `last ${oc.window_days}d · paid / provider-accepted orders only · rates = share of finished orders · platforms under ${oc.min_sample_orders} orders aren't ranked`,
       body: `${tiles}${platRows}
         ${typeRows ? subhead('Worst platform + service type') + typeRows : ''}
         ${svcRows ? subhead('Worst individual services') + svcRows : ''}`,
     });
   } else {
-    outcomesPanel = _chcPanel({ title: 'Order Outcomes by Platform', icon: '⚠️', body: `<div style="font-size:12px;color:var(--muted);">No failed, cancelled or partial orders in this window (or the outcomes endpoint isn't deployed yet).</div>` });
+    outcomesPanel = _chcPanel({ title: 'Order Outcomes by Platform', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg>', body: `<div style="font-size:12px;color:var(--muted);">No failed, cancelled or partial orders in this window (or the outcomes endpoint isn't deployed yet).</div>` });
   }
 
   // ── Paid vs 🎁 Free vs 🔁 Reorder orders ────────────────────────────
@@ -2507,10 +2507,10 @@ function _chcRenderGrowth() {
     const platRows = (ok.replacement_by_platform || []).map(p => `
       <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);">
         <span style="color:var(--white);font-weight:700;">${esc(p.platform)}</span>
-        <span style="color:var(--muted);">🎁 ${p.free_orders} free · 🔁 ${p.reorders} reorder${p.reorders === 1 ? '' : 's'} · ${p.failed + p.cancelled} failed/cancelled · <b style="color:#ff7043;">≈ ${fmtKES(p.cost_kes)}</b></span>
+        <span style="color:var(--muted);"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> ${p.free_orders} free · 🔁 ${p.reorders} reorder${p.reorders === 1 ? '' : 's'} · ${p.failed + p.cancelled} failed/cancelled · <b style="color:#ff7043;">≈ ${fmtKES(p.cost_kes)}</b></span>
       </div>`).join('');
     kindsPanel = _chcPanel({
-      title: 'Paid vs Free vs Reorder Orders', icon: '🔁',
+      title: 'Paid vs Free vs Reorder Orders', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg>',
       sub: `last ${ok.window_days}d · free (🎁 loyalty bonus) and reorder (🔁 replacement for a failed order) are NOT counted as customer orders anywhere else on this page`,
       body: `
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
@@ -2527,19 +2527,19 @@ function _chcRenderGrowth() {
         <div style="font-size:10px;color:var(--muted);margin-top:10px;">Cost = your provider price per 1000 × quantity — an upper bound for partial orders.</div>`,
     });
   } else {
-    kindsPanel = _chcPanel({ title: 'Paid vs Free vs Reorder Orders', icon: '🔁', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load order-kind stats (is the latest backend deployed?).</div>` });
+    kindsPanel = _chcPanel({ title: 'Paid vs Free vs Reorder Orders', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg>', body: `<div style="font-size:12px;color:var(--muted);">Couldn't load order-kind stats (is the latest backend deployed?).</div>` });
   }
 
   el.innerHTML = `
     ${burnBanner}
     ${_chcPanel({
-      title: 'Revenue per Day', icon: '💵', sub: 'platform profit — sales × markup, the same number CCR agent commissions are a % of', extra: windowPicker, body: `
+      title: 'Revenue per Day', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg>', sub: 'platform profit — sales × markup, the same number CCR agent commissions are a % of', extra: windowPicker, body: `
         <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;">
           <div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(revenue7d)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> revenue/7d</span></div>
         </div>
         ${revenueChart}` })}
     ${_chcPanel({
-      title: 'Sales per Day', icon: '🧾', sub: 'total sales value per day — the gross amount customers paid, before subtracting provider cost', extra: windowPicker, body: `
+      title: 'Sales per Day', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-receipt></use></svg>', sub: 'total sales value per day — the gross amount customers paid, before subtracting provider cost', extra: windowPicker, body: `
         <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;">
           <div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(sales7d)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> sales/7d</span></div>
           <div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(diff7d)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> sales − revenue /7d</span></div>
@@ -2548,7 +2548,7 @@ function _chcRenderGrowth() {
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;">Difference vs Revenue — per day (provider cost)</div>
         ${diffChart}` })}
     ${_chcPanel({
-      title: 'Orders & Sales', icon: '📈', sub: 'count + value per day', extra: windowPicker, body: `
+      title: 'Orders & Sales', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-chart-up></use></svg>', sub: 'count + value per day', extra: windowPicker, body: `
         <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;">
           <div style="font-size:20px;font-weight:800;color:var(--white);">${fmtKES(g.this_week ? g.this_week.sales_kes : 0)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> sales/7d</span> ${_growthBadge(g.sales_wow_pct)}</div>
           <div style="font-size:20px;font-weight:800;color:var(--white);">${g.this_week ? g.this_week.orders : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> orders/7d</span> ${_growthBadge(g.orders_wow_pct)}</div>
@@ -2564,25 +2564,25 @@ function _chcRenderGrowth() {
     ${_chcUpsellPanel(_chc.data.upsell)}
     ${_chcRecommendedPanel(_chc.data.recommended)}
     ${_chcPanel({
-      title: 'New Users per Day', icon: '👤', body: `
+      title: 'New Users per Day', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-user></use></svg>', body: `
         <div style="font-size:18px;font-weight:800;color:var(--white);margin-bottom:8px;">${g.this_week ? g.this_week.new_users : 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> /7d</span> ${_growthBadge(g.users_wow_pct)}</div>
         ${usersChart}` })}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;">
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🧭 Order Status Funnel · customer orders (${_chc.trendsDays}d)</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;"><svg class=ev-i aria-hidden=true><use href=#ev-compass></use></svg> Order Status Funnel · customer orders (${_chc.trendsDays}d)</div>
         ${funnelHtml}
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🏆 Top 5 Services (${_chc.trendsDays}d)</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;"><svg class=ev-i aria-hidden=true><use href=#ev-trophy></use></svg> Top 5 Services (${_chc.trendsDays}d)</div>
         ${topServicesHtml}
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">🔁 Repeat-Customer Rate</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Repeat-Customer Rate</div>
         <div style="font-size:28px;font-weight:800;color:var(--white);">${customers.repeat_rate_pct ?? 0}%</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px;">${customers.repeat_customers || 0} of ${customers.customers_with_orders || 0} paying customers have ordered 2+ times</div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">💵 Avg Spend / Paying User</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg> Avg Spend / Paying User</div>
         <div style="font-size:28px;font-weight:800;color:var(--white);">${fmtKES(customers.avg_spend_per_user_kes || 0)}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px;">across ${customers.paying_users_in_window || 0} paying user${(customers.paying_users_in_window || 0) === 1 ? '' : 's'} in last ${_chc.trendsDays}d</div>
       </div>
@@ -2609,7 +2609,7 @@ function _chcRenderEngagement() {
   if (!el) return;
   const t = _chc.data.engagement;
   if (!t) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load engagement data. <button class="action-btn" onclick="chcSetEngagementWindow(${_chc.engagementDays})">Retry</button></p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>Couldn't load engagement data. <button class="action-btn" onclick="chcSetEngagementWindow(${_chc.engagementDays})">Retry</button></p></div>`;
     return;
   }
 
@@ -2625,12 +2625,12 @@ function _chcRenderEngagement() {
   const windowPicker = `
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
       ${[7, 14, 30].map(d => `<button onclick="chcSetEngagementWindow(${d})" style="background:${d === _chc.engagementDays ? 'var(--green)' : 'var(--card)'};color:${d === _chc.engagementDays ? '#04140a' : 'var(--muted)'};border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">${d}D</button>`).join('')}
-      <button onclick="adminCleanupLoginEvents()" title="Delete login_events older than 90 days — keeps storage usage bounded" style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">🧹 Cleanup</button>
+      <button onclick="adminCleanupLoginEvents()" title="Delete login_events older than 90 days — keeps storage usage bounded" style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;"><svg class=ev-i aria-hidden=true><use href=#ev-broom></use></svg> Cleanup</button>
     </div>`;
 
   el.innerHTML = `
     ${_chcPanel({
-      title: 'Daily Active Users', icon: '👥', sub: 'unique logins', extra: windowPicker, body: `
+      title: 'Daily Active Users', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg>', sub: 'unique logins', extra: windowPicker, body: `
         <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;">
           <div style="font-size:20px;font-weight:800;color:var(--white);">${latest.unique_logins || 0}<span style="font-size:11px;color:var(--muted);font-weight:600;"> logins today</span></div>
           <div style="font-size:20px;font-weight:800;color:var(--white);">${dauAvg7}<span style="font-size:11px;color:var(--muted);font-weight:600;"> avg DAU / 7d</span></div>
@@ -2638,14 +2638,14 @@ function _chcRenderEngagement() {
         </div>
         ${dauChart}` })}
     ${_chcPanel({
-      title: 'Avg Spend per Active User / day', icon: '💵', body: `
+      title: 'Avg Spend per Active User / day', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg>', body: `
         <div style="font-size:18px;font-weight:800;color:var(--white);margin-bottom:8px;">${fmtKES(latest.avg_spend_per_active_user_kes || 0)}<span style="font-size:11px;color:var(--muted);font-weight:600;"> today</span></div>
         ${spendChart}` })}
     <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:10px;">ALL-TIME AVERAGES</div>
     <div class="chc-kpi-grid">
-      ${_chcKpi({ icon: '📊', label: 'ARPU (all users)', value: fmtKES(allTime.arpu_kes || 0), sub: `across ${allTime.total_users || 0} total users`, tone: 'blue' })}
-      ${_chcKpi({ icon: '💎', label: 'ARPPU (paying users)', value: fmtKES(allTime.arppu_kes || 0), sub: `across ${allTime.paying_users || 0} paying users`, tone: 'blue' })}
-      ${_chcKpi({ icon: '🧾', label: 'Avg Order Value', value: fmtKES(allTime.avg_order_value_kes || 0), sub: 'all-time, paid orders only', tone: 'green' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg>', label: 'ARPU (all users)', value: fmtKES(allTime.arpu_kes || 0), sub: `across ${allTime.total_users || 0} total users`, tone: 'blue' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-crown></use></svg>', label: 'ARPPU (paying users)', value: fmtKES(allTime.arppu_kes || 0), sub: `across ${allTime.paying_users || 0} paying users`, tone: 'blue' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-receipt></use></svg>', label: 'Avg Order Value', value: fmtKES(allTime.avg_order_value_kes || 0), sub: 'all-time, paid orders only', tone: 'green' })}
     </div>
   `;
 }
@@ -2658,7 +2658,7 @@ function _chcRenderServices() {
   const statsWrap = _chc.data.stats;
   const bd = _chc.data.breakdown;
   if (!statsWrap || !bd) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Couldn't load service data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>Couldn't load service data. <button class="action-btn" onclick="loadAdminCommandCenter(true)">Retry</button></p></div>`;
     return;
   }
 
@@ -2671,12 +2671,12 @@ function _chcRenderServices() {
 
   const summaryKpis = `
     <div class="chc-kpi-grid" style="margin-bottom:22px;">
-      ${_chcKpi({ icon: '👁', label: 'Visible Services', value: (svcSummary.visible_to_customers ?? bd.visible ?? 0).toLocaleString(), sub: `of ${(svcSummary.total ?? bd.total_services ?? 0).toLocaleString()} total`, tone: 'green' })}
-      ${_chcKpi({ icon: '🚫', label: 'Hidden Services', value: (svcSummary.hidden_total ?? bd.hidden_total ?? 0).toLocaleString(), sub: 'filtered out', tone: 'red' })}
-      ${_chcKpi({ icon: '🌍', label: 'Geo-Targeted', value: countryCount.toLocaleString(), sub: 'country-specific services', tone: 'red' })}
-      ${_chcKpi({ icon: '📊', label: 'Min Qty Too High', value: qtyCount.toLocaleString(), sub: 'exceed qty filter', tone: 'orange' })}
-      ${_chcKpi({ icon: '💲', label: 'Rate Out of Range', value: rateCount.toLocaleString(), sub: 'outside KES rate band', tone: 'blue' })}
-      ${_chcKpi({ icon: '🙈', label: 'Manually Hidden', value: manualCount.toLocaleString(), sub: 'hidden by admin', tone: 'neutral' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-eye></use></svg>', label: 'Visible Services', value: (svcSummary.visible_to_customers ?? bd.visible ?? 0).toLocaleString(), sub: `of ${(svcSummary.total ?? bd.total_services ?? 0).toLocaleString()} total`, tone: 'green' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-ban></use></svg>', label: 'Hidden Services', value: (svcSummary.hidden_total ?? bd.hidden_total ?? 0).toLocaleString(), sub: 'filtered out', tone: 'red' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-globe></use></svg>', label: 'Geo-Targeted', value: countryCount.toLocaleString(), sub: 'country-specific services', tone: 'red' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg>', label: 'Min Qty Too High', value: qtyCount.toLocaleString(), sub: 'exceed qty filter', tone: 'orange' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', label: 'Rate Out of Range', value: rateCount.toLocaleString(), sub: 'outside KES rate band', tone: 'blue' })}
+      ${_chcKpi({ icon: '<svg class=ev-i aria-hidden=true><use href=#ev-eye-off></use></svg>', label: 'Manually Hidden', value: manualCount.toLocaleString(), sub: 'hidden by admin', tone: 'neutral' })}
     </div>`;
 
   const catMap = bd.country_targeted_by_category || {};
@@ -2700,7 +2700,7 @@ function _chcRenderServices() {
         ${sampleHtml}
       </div>`;
     }).join('');
-    catSection = _chcPanel({ title: 'Geo-Targeted Services by Category', icon: '🌍', body: `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">${catGrid}</div>` });
+    catSection = _chcPanel({ title: 'Geo-Targeted Services by Category', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-globe></use></svg>', body: `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">${catGrid}</div>` });
   }
 
   el.innerHTML = `${summaryKpis}${catSection}`;
@@ -2723,7 +2723,7 @@ function _chcUnitCard({ icon, name, tone, kpis, tab, trend }) {
   let trendHtml = '';
   if (trend) {
     if (trend.pct === null || trend.pct === undefined) {
-      trendHtml = `<div style="font-size:10.5px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);">📉 ${esc(trend.label)}: no trend data available yet — snapshot only</div>`;
+      trendHtml = `<div style="font-size:10.5px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);"><svg class=ev-i aria-hidden=true><use href=#ev-trending-down></use></svg> ${esc(trend.label)}: no trend data available yet — snapshot only</div>`;
     } else {
       trendHtml = `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);">${esc(trend.label)} ${_growthBadge(trend.pct)}</div>`;
     }
@@ -2820,7 +2820,7 @@ function _chcRenderUnits() {
     }).join('');
 
     mixSection = _chcPanel({
-      title: 'Consolidated Revenue Mix (all-time)', icon: '📊', sub: 'SMM profit + Academy + Connect platform revenue + Hire EndaViral + Creator Events tickets — totals only, no unit here shares a common monthly close date', body: `
+      title: 'Consolidated Revenue Mix (all-time)', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg>', sub: 'SMM profit + Academy + Connect platform revenue + Hire EndaViral + Creator Events tickets — totals only, no unit here shares a common monthly close date', body: `
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;">
         <div style="font-size:30px;font-weight:900;color:var(--white);">${fmtKES(total)}</div>
         <div style="font-size:12px;color:var(--muted);">combined across all business lines</div>
@@ -2831,7 +2831,7 @@ function _chcRenderUnits() {
 
   const cards = [
     _chcUnitCard({
-      icon: '🤝', name: 'Affiliates', tone: 'green', tab: 'affiliate-payouts',
+      icon: '<svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg>', name: 'Affiliates', tone: 'green', tab: 'affiliate-payouts',
       kpis: [
         { value: affiliates.length.toLocaleString(), label: 'total affiliates' },
         { value: affActive.toLocaleString(), label: 'active (1+ referral)' },
@@ -2841,7 +2841,7 @@ function _chcRenderUnits() {
       trend: { label: 'Month-over-month', pct: null },
     }),
     _chcUnitCard({
-      icon: '🎧', name: 'CCR Agents', tone: 'blue', tab: 'ccr-agents',
+      icon: '<svg class=ev-i aria-hidden=true><use href=#ev-headphones></use></svg>', name: 'CCR Agents', tone: 'blue', tab: 'ccr-agents',
       kpis: [
         { value: ccrAgents.length.toLocaleString(), label: 'total agents' },
         { value: ccrActive.toLocaleString(), label: 'active' },
@@ -2851,7 +2851,7 @@ function _chcRenderUnits() {
       trend: { label: 'Month-over-month', pct: null },
     }),
     _chcUnitCard({
-      icon: '🎓', name: 'Creator Academy', tone: 'gold', tab: 'academy',
+      icon: '<svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg>', name: 'Creator Academy', tone: 'gold', tab: 'academy',
       kpis: [
         { value: (acStats.learners_started || 0).toLocaleString(), label: 'learners started' },
         { value: (acStats.active_learners_7d || 0).toLocaleString(), label: 'active last 7d' },
@@ -2861,7 +2861,7 @@ function _chcRenderUnits() {
       trend: { label: 'Revenue, month-over-month', pct: acMomPct },
     }),
     _chcUnitCard({
-      icon: '📣', name: 'Connect Marketplace', tone: 'cyan', tab: 'connect',
+      icon: '<svg class=ev-i aria-hidden=true><use href=#ev-megaphone></use></svg>', name: 'Connect Marketplace', tone: 'cyan', tab: 'connect',
       kpis: [
         { value: (cn.total_campaigns || 0).toLocaleString(), label: 'campaigns total' },
         { value: (cn.visibility?.visible_campaigns || 0).toLocaleString(), label: 'visible on /discover' },
@@ -2871,7 +2871,7 @@ function _chcRenderUnits() {
       trend: { label: 'Escrow funding, month-over-month', pct: cnMomPct },
     }),
     _chcUnitCard({
-      icon: '💼', name: 'Hire EndaViral', tone: 'purple', tab: 'consultations',
+      icon: '<svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg>', name: 'Hire EndaViral', tone: 'purple', tab: 'consultations',
       kpis: hire ? [
         { value: (hire.paid_bookings || 0).toLocaleString(), label: 'paid bookings' },
         { value: (hire.awaiting_contact || 0).toLocaleString(), label: 'awaiting contact' },
@@ -2881,7 +2881,7 @@ function _chcRenderUnits() {
       trend: { label: 'Month-over-month', pct: null },
     }),
     _chcUnitCard({
-      icon: '🎤', name: 'Creator Events', tone: 'gold', tab: 'creator-events',
+      icon: '<svg class=ev-i aria-hidden=true><use href=#ev-mic></use></svg>', name: 'Creator Events', tone: 'gold', tab: 'creator-events',
       kpis: ev ? [
         { value: (ev.tickets_sold || 0).toLocaleString(), label: 'tickets sold' },
         { value: (ev.checked_in || 0).toLocaleString(), label: 'checked in at the door' },
@@ -2910,7 +2910,7 @@ async function adminCleanupLoginEvents() {
 }
 
 /* "Last refresh" line under the Services Management title: when services
- * were last synced from the provider (automatic every 6h at 00/06/12/18 EAT, or a
+ * were last synced from the provider (automatic every 4h at 00/04/08/12/16/20 EAT, or a
  * manual Sync & Apply), the next automatic run, and any failure. */
 function _syncWhen(iso) {
   if (!iso) return '—';
@@ -2943,7 +2943,7 @@ async function loadServiceSyncStatus() {
     }
     let html = parts.join(' · ');
     if (st.last_error) {
-      html += `<div style="margin-top:4px;color:var(--red);">⚠️ Automatic refresh failed ${_syncWhen(st.last_error.at_eat)}: ${esc(st.last_error.error || 'unknown error')} — retrying in ${st.last_error.retry_in_minutes || 30} min</div>`;
+      html += `<div style="margin-top:4px;color:var(--red);"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Automatic refresh failed ${_syncWhen(st.last_error.at_eat)}: ${esc(st.last_error.error || 'unknown error')} — retrying in ${st.last_error.retry_in_minutes || 30} min</div>`;
     }
     el.innerHTML = html;
   } catch (e) {
@@ -3044,7 +3044,7 @@ async function loadAdminProviders() {
     const providers = data.providers || [];
     const active = data.active || '';
     if (!providers.length) {
-      grid.innerHTML = '<div class="empty-state"><div class="icon">🔌</div><p>No providers registered.</p></div>';
+      grid.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-plug></use></svg></div><p>No providers registered.</p></div>';
       return;
     }
     grid.innerHTML = providers.map(p => {
@@ -3065,15 +3065,15 @@ async function loadAdminProviders() {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             ${!isActive && configured ? `<button class="btn-primary" style="padding:9px 18px;margin:0;width:auto;font-size:13px;" onclick="switchProvider('${esc(p.slug)}','${esc(p.name)}')">Switch to ${esc(p.name)}</button>` : ''}
-            ${isActive ? `<button class="btn-secondary" style="padding:9px 18px;font-size:13px;" disabled>✓ Currently Active</button>` : ''}
-            <button class="btn-secondary" style="padding:9px 14px;font-size:13px;" onclick="testProvider('${p.slug}', this)">🔌 Test</button>
+            ${isActive ? `<button class="btn-secondary" style="padding:9px 18px;font-size:13px;" disabled><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg> Currently Active</button>` : ''}
+            <button class="btn-secondary" style="padding:9px 14px;font-size:13px;" onclick="testProvider('${p.slug}', this)"><svg class=ev-i aria-hidden=true><use href=#ev-plug></use></svg> Test</button>
             ${!configured ? `<span style="font-size:11px;color:var(--muted);align-self:center;font-style:italic;">Set ${p.key_env} in Render</span>` : ''}
           </div>
           <div id="test-result-${p.slug}" style="margin-top:12px;font-size:12px;display:none;"></div>
         </div>`;
     }).join('');
   } catch(e) {
-    grid.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${e.message}</p></div>`;
   }
 }
 
@@ -3081,7 +3081,7 @@ async function switchProvider(slug, name) {
   if (!confirm(`Switch to ${name}?\n\nAll new orders will be placed through ${name} immediately. Existing orders stay on their original provider.`)) return;
   try {
     const data = await api('/admin/providers/switch', { method: 'POST', body: JSON.stringify({ slug }) });
-    toast(`✅ Switched to ${data.name}! New orders now go through ${data.name}.`, 'success');
+    toast(`Switched to ${data.name}! New orders now go through ${data.name}.`, 'success');
     loadAdminProviders();
     if (_chc.built) loadAdminCommandCenter(true);
   } catch(e) {
@@ -3098,11 +3098,11 @@ async function testProvider(slug, btn) {
     const data = await api(`/admin/providers/${slug}/test`);
     resultEl.style.display = 'block';
     resultEl.style.color = 'var(--green)';
-    resultEl.textContent = `✓ Connected — Balance: ${data.currency||'USD'} ${parseFloat(data.balance||0).toFixed(2)}`;
+    resultEl.textContent = `Connected — Balance: ${data.currency||'USD'} ${parseFloat(data.balance||0).toFixed(2)}`;
   } catch(e) {
     resultEl.style.display = 'block';
     resultEl.style.color = 'var(--red)';
-    resultEl.textContent = `✗ ${e.message}`;
+    resultEl.textContent = `${e.message}`;
   } finally {
     btn.textContent = orig; btn.disabled = false;
   }
@@ -3184,7 +3184,7 @@ async function openSupportThread(threadId, opts) {
     t.messages = [..._supEarlier.msgs, ...(t.messages || [])].filter(m => !_seen.has(m.id) && _seen.add(m.id));
     const hasMore = _supEarlier.hasMore === null ? !!t.has_more : _supEarlier.hasMore;
     const statusColor = { open:'#e53935', pending:'#ff7043', resolved:'#3dd44a', closed:'#7a8fad' };
-    const typeLabel   = { wrong_order:'📦 Wrong Order', delay:'⏳ Delay' };
+    const typeLabel   = { wrong_order:'Wrong Order', delay:'Delay' };
 
     _supportOrdersCache = {};
     (t.recent_orders || []).forEach(o => { if (o && o.id) _supportOrdersCache[o.id] = o; });
@@ -3289,8 +3289,8 @@ async function openSupportThread(threadId, opts) {
             <div class="sup-chips" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11.5px;">
               <span style="background:${pill[2]};color:${pill[1]};border-radius:999px;padding:2px 9px;font-weight:700;">${pill[0]}</span>
               ${t.board && t.board.topic ? `<span class="sup-topic" style="color:#b9c6d8;">${esc(t.board.topic)}</span>` : ''}
-              ${t.user?.credit_balance == null ? '' : `<span title="EndaViral Wallet — order credit from refunds. The customer pays with it at checkout (Pay with Wallet / Wallet + M-Pesa). Can't be withdrawn." style="background:${t.user.credit_balance > 0 ? 'rgba(61,212,74,.15)' : 'rgba(255,255,255,.06)'};color:${t.user.credit_balance > 0 ? '#3dd44a' : '#93a3ba'};border:1px solid ${t.user.credit_balance > 0 ? 'rgba(61,212,74,.4)' : '#1e2a40'};border-radius:999px;padding:2px 9px;font-weight:700;">💳 Wallet ${fmtKES(t.user.credit_balance)}</span>`}
-              ${(currentUser?.role === 'admin' && t.user?.id && typeof awcBankDeposit === 'function') ? `<button type="button" title="Customer paid by bank transfer? Add it to their wallet so they can order" data-uid="${esc(t.user.id)}" data-name="${esc(t.user.name || t.user.email || '')}" data-email="${esc(t.user.email || '')}" data-bal="${Number(t.user.credit_balance || 0)}" onclick="awcBankDeposit({id:this.dataset.uid,name:this.dataset.name,email:this.dataset.email,credit_balance:Number(this.dataset.bal)}, ()=>openSupportThread('${esc(threadId)}'))" style="background:rgba(255,176,32,.12);color:#ffb020;border:1px solid rgba(255,176,32,.45);border-radius:999px;padding:2px 10px;font-weight:800;font-size:11.5px;cursor:pointer;font-family:inherit;">🏦 + Bank payment</button>` : ''}
+              ${t.user?.credit_balance == null ? '' : `<span title="EndaViral Wallet — order credit from refunds. The customer pays with it at checkout (Pay with Wallet / Wallet + M-Pesa). Can't be withdrawn." style="background:${t.user.credit_balance > 0 ? 'rgba(61,212,74,.15)' : 'rgba(255,255,255,.06)'};color:${t.user.credit_balance > 0 ? '#3dd44a' : '#93a3ba'};border:1px solid ${t.user.credit_balance > 0 ? 'rgba(61,212,74,.4)' : '#1e2a40'};border-radius:999px;padding:2px 9px;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg> Wallet ${fmtKES(t.user.credit_balance)}</span>`}
+              ${(currentUser?.role === 'admin' && t.user?.id && typeof awcBankDeposit === 'function') ? `<button type="button" title="Customer paid by bank transfer? Add it to their wallet so they can order" data-uid="${esc(t.user.id)}" data-name="${esc(t.user.name || t.user.email || '')}" data-email="${esc(t.user.email || '')}" data-bal="${Number(t.user.credit_balance || 0)}" onclick="awcBankDeposit({id:this.dataset.uid,name:this.dataset.name,email:this.dataset.email,credit_balance:Number(this.dataset.bal)}, ()=>openSupportThread('${esc(threadId)}'))" style="background:rgba(255,176,32,.12);color:#ffb020;border:1px solid rgba(255,176,32,.45);border-radius:999px;padding:2px 10px;font-weight:800;font-size:11.5px;cursor:pointer;font-family:inherit;"><svg class=ev-i aria-hidden=true><use href=#ev-bank></use></svg> + Bank payment</button>` : ''}
               <span class="sup-since" style="color:#93a3ba;">${(t.user?.wallet_balance || 0) > 0 ? `Earnings ${fmtKES(t.user.wallet_balance)} · ` : ''}Client since ${t.user?.member_since ? new Date(t.user.member_since).toLocaleDateString('en-KE',{month:'short',year:'numeric'}) : '—'}</span>
             </div>
           </div>
@@ -3343,7 +3343,7 @@ async function openSupportThread(threadId, opts) {
           <div class="sup-m-only sup-side-head">
             <span class="sup-side-grip" aria-hidden="true"></span>
             <b>Orders · ${userName}</b>
-            <button type="button" onclick="supToggleOrders(false)" aria-label="Close orders">✕</button>
+            <button type="button" onclick="supToggleOrders(false)" aria-label="Close orders"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
           </div>
           <div style="padding:14px;border-bottom:1px solid #1e2a40;display:flex;flex-direction:column;gap:8px;">
             <span style="font-size:10.5px;font-weight:800;letter-spacing:1.4px;color:#93a3ba;">FIND AN ORDER</span>
@@ -3389,12 +3389,12 @@ function _quoteWho(q, viewer, user) {
   if (!q) return '';
   if (viewer === 'client') return q.sender === 'user' ? 'You' : (q.is_bot ? 'EndaViral Team' : 'EndaViral Support');
   if (q.sender === 'user') return (user && (user.name || user.email)) ? String(user.name || user.email).split(' ')[0] : 'Client';
-  return q.is_bot ? '🤖 Automatic' : 'Staff';
+  return q.is_bot ? 'Automatic' : 'Staff';
 }
 
 // Quote block shown on top of a reply. onGreen: the reply sits in a green bubble.
 function supQuoteHtml(q, viewer, user, onGreen) {
-  if (!q) return `<div style="font-size:11px;font-style:italic;opacity:.7;margin-bottom:6px;">↩ Replying to a deleted message</div>`;
+  if (!q) return `<div style="font-size:11px;font-style:italic;opacity:.7;margin-bottom:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Replying to a deleted message</div>`;
   const jump = viewer === 'client' ? `ticketJumpTo('${esc(q.id)}')` : `supportJumpTo('${esc(q.id)}')`;
   const body = esc(String(q.body || '').replace(/\*\*/g, '')).replace(/\n/g, ' ');
   return `<div onclick="event.stopPropagation();${jump}" title="Show the original message" style="cursor:pointer;margin-bottom:6px;padding:5px 8px;border-left:3px solid ${onGreen ? 'rgba(255,255,255,.75)' : '#3dd44a'};border-radius:6px;background:${onGreen ? 'rgba(0,0,0,.16)' : 'rgba(255,255,255,.06)'};font-size:11.5px;line-height:1.4;">
@@ -3531,9 +3531,9 @@ function _supOrderCard(o, opts) {
     ${o.mpesa_receipt ? `<div style="color:var(--muted);margin-top:2px;">M-Pesa: <span style="font-family:monospace;color:var(--green);">${esc(o.mpesa_receipt)}</span></div>` : ''}
     ${o.provider_order_id ? `<div style="color:var(--muted);margin-top:2px;">Provider #${esc(o.provider_order_id)}</div>` : ''}
     ${o.matched_by ? `<div style="color:#7fd88a;margin-top:2px;font-size:10px;">matched by ${esc(o.matched_by)}</div>` : ''}
-    ${opts.other ? `<div style="color:#ffb347;margin-top:2px;font-size:10.5px;">⚠ Belongs to ${esc(o.user_email || 'another customer')}</div>` : ''}
+    ${opts.other ? `<div style="color:#ffb347;margin-top:2px;font-size:10.5px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Belongs to ${esc(o.user_email || 'another customer')}</div>` : ''}
     ${typeof reorderedTag === 'function' ? reorderedTag(o) : ''}
-    ${opts.other ? '' : `<button class="action-btn" onclick="event.stopPropagation();supportTagReplyOrder('${id}')" style="margin-top:6px;padding:3px 8px;font-size:10.5px;">🏷 Tag reply with this order</button>`}
+    ${opts.other ? '' : `<button class="action-btn" onclick="event.stopPropagation();supportTagReplyOrder('${id}')" style="margin-top:6px;padding:3px 8px;font-size:10.5px;"><svg class=ev-i aria-hidden=true><use href=#ev-tag></use></svg> Tag reply with this order</button>`}
   </div>`;
 }
 
@@ -3558,7 +3558,7 @@ async function supportFindOrder(query) {
       + (others.length ? `<div style="font-size:10.5px;color:#ffb347;margin:6px 0 5px;">${mine.length ? 'Also' : 'Not this client\'s —'} other customers' orders</div>` + others.map(o => _supOrderCard(o, { other: true })).join('') : '');
     if (mine.length === 1 && !others.length) openOrderDetailModal(mine[0].id);     // the exact order → open it
   } catch (e) {
-    out.innerHTML = `<div style="font-size:11px;color:#ff8a80;">⚠ ${esc(e.message || 'Search failed')}</div>`;
+    out.innerHTML = `<div style="font-size:11px;color:#ff8a80;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> ${esc(e.message || 'Search failed')}</div>`;
   }
 }
 
@@ -3568,7 +3568,7 @@ function supportTagReplyOrder(orderId) {
   const o = _supportOrdersCache[orderId];
   if (!sel || !o) return;
   if (![...sel.options].some(op => op.value === orderId)) {
-    sel.insertAdjacentHTML('beforeend', `<option value="${esc(orderId)}">📦 #${esc(String(orderId).slice(0, 8))} · ${esc(String(o.service_name || '').slice(0, 40))} · ${esc(o.status || '')}</option>`);
+    sel.insertAdjacentHTML('beforeend', `<option value="${esc(orderId)}">#${esc(String(orderId).slice(0, 8))} · ${esc(String(o.service_name || '').slice(0, 40))} · ${esc(o.status || '')}</option>`);
   }
   sel.value = orderId;
   document.getElementById('adminReplyInput')?.focus();
@@ -3640,13 +3640,13 @@ function reorderedTag(o) {
     const ok = live.length > 0;
     const color = ok ? '#ff8a65' : '#ff5252';
     const tip = all.map(r => `#${String(r.new_order_id).slice(0, 8)} · ${r.status || '?'} · ${_reorderVia(r.via)}${r.at ? ' · ' + new Date(r.at).toLocaleString('en-KE') : ''}`).join('\n');
-    return `<div title="${esc('Already reordered:\n' + tip)}" style="margin-top:4px;font-size:10.5px;font-weight:700;color:${color};white-space:nowrap;">🔁 ${ok ? 'Reordered' : 'Reorder failed'}${all.length > 1 ? ' ×' + all.length : ''} → #${esc(String((live[live.length - 1] || last).new_order_id).slice(0, 8))}</div>`;
+    return `<div title="${esc('Already reordered:\n' + tip)}" style="margin-top:4px;font-size:10.5px;font-weight:700;color:${color};white-space:nowrap;"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> ${ok ? 'Reordered' : 'Reorder failed'}${all.length > 1 ? ' ×' + all.length : ''} → #${esc(String((live[live.length - 1] || last).new_order_id).slice(0, 8))}</div>`;
   }
   if (o.reorder_of) {
     if (o.reorder_of_via === 'wallet') {
-      return `<div title="${esc('This order is a REORDER of #' + o.reorder_of + '.\nThat order was refunded to the customer\'s EndaViral Wallet and they paid for this one with the credit.')}" style="margin-top:4px;"><span style="font-size:10.5px;font-weight:700;color:#4fc3f7;background:rgba(79,195,247,.12);border:1px solid rgba(79,195,247,.35);border-radius:6px;padding:1px 6px;white-space:nowrap;">🔁 Reorder of #${esc(String(o.reorder_of).slice(0, 8))} · 💳 wallet</span></div>`;
+      return `<div title="${esc('This order is a REORDER of #' + o.reorder_of + '.\nThat order was refunded to the customer\'s EndaViral Wallet and they paid for this one with the credit.')}" style="margin-top:4px;"><span style="font-size:10.5px;font-weight:700;color:#4fc3f7;background:rgba(79,195,247,.12);border:1px solid rgba(79,195,247,.35);border-radius:6px;padding:1px 6px;white-space:nowrap;"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Reorder of #${esc(String(o.reorder_of).slice(0, 8))} · 💳 wallet</span></div>`;
     }
-    return `<div title="This is a free replacement for order #${esc(o.reorder_of)}" style="margin-top:4px;font-size:10.5px;color:var(--muted);white-space:nowrap;">🔁 reorder of #${esc(String(o.reorder_of).slice(0, 8))}</div>`;
+    return `<div title="This is a free replacement for order #${esc(o.reorder_of)}" style="margin-top:4px;font-size:10.5px;color:var(--muted);white-space:nowrap;"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> reorder of #${esc(String(o.reorder_of).slice(0, 8))}</div>`;
   }
   return '';
 }
@@ -3663,7 +3663,7 @@ function reorderedBanner(o) {
   }
   const ok = _reorderLive(o).length > 0;
   return `<div style="margin:10px 0 4px;padding:9px 11px;border-radius:9px;background:${ok ? 'rgba(255,112,67,.10)' : 'rgba(255,82,82,.10)'};border:1px solid ${ok ? 'rgba(255,112,67,.45)' : 'rgba(255,82,82,.45)'};font-size:12px;color:#ffcc80;line-height:1.6;">
-    <b>🔁 Already reordered ${all.length > 1 ? all.length + '×' : ''}</b>${ok ? ' — don\'t redo it unless the replacement fails.' : ' — but the replacement failed too.'}
+    <b><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Already reordered ${all.length > 1 ? all.length + '×' : ''}</b>${ok ? ' — don\'t redo it unless the replacement fails.' : ' — but the replacement failed too.'}
     ${all.map(r => `<div style="color:var(--muted);">• ${jump(r.new_order_id)} · <b style="color:${['failed', 'cancelled'].includes(r.status) ? '#ff8a80' : 'var(--white)'};">${esc(r.status || '?')}</b> · ${_reorderVia(r.via)}${r.at ? ' · ' + esc(new Date(r.at).toLocaleString('en-KE')) : ''}</div>`).join('')}
   </div>`;
 }
@@ -3725,11 +3725,11 @@ function openOrderDetailModal(orderId) {
       <div id="odmWallet" data-order="${fullId}"></div>
     </div>
     <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;">
-      ${rawLink ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="action-btn" style="text-decoration:none;">🔗 Open Link</a>` : ''}
+      ${rawLink ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="action-btn" style="text-decoration:none;"><svg class=ev-i aria-hidden=true><use href=#ev-link></use></svg> Open Link</a>` : ''}
       ${rawLink ? `<button class="action-btn" onclick="navigator.clipboard.writeText('${safeLink}').then(()=>toast('Link copied!','success'))">⎘ Copy Link</button>` : ''}
-      ${canRefill ? `<button class="action-btn" onclick="adminRefillOrder('${fullId}')">↻ Refill</button>` : ''}
-      <button class="action-btn" onclick="jumpToOrderInAllOrders('${fullId}')">📋 View in All Orders</button>
-      <button class="action-btn" id="odmReorderBtn" onclick="odmOpenReorder('${fullId}')" style="border-color:rgba(255,112,67,.55);color:#ff8a65;font-weight:700;">🔁 Reorder</button>
+      ${canRefill ? `<button class="action-btn" onclick="adminRefillOrder('${fullId}')"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refill</button>` : ''}
+      <button class="action-btn" onclick="jumpToOrderInAllOrders('${fullId}')"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg> View in All Orders</button>
+      <button class="action-btn" id="odmReorderBtn" onclick="odmOpenReorder('${fullId}')" style="border-color:rgba(255,112,67,.55);color:#ff8a65;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Reorder</button>
     </div>
   `;
   modal.style.display = 'flex';
@@ -3771,7 +3771,7 @@ async function odmOpenReorder(orderId) {
     _odmRe = { orderId, info };
     _odmRenderReorder();
   } catch (e) {
-    box.innerHTML = `<div style="color:#ff8a80;font-size:12.5px;">⚠️ ${esc(e.message || 'Could not load reorder options')}</div>
+    box.innerHTML = `<div style="color:#ff8a80;font-size:12.5px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> ${esc(e.message || 'Could not load reorder options')}</div>
       <button class="action-btn" style="margin-top:8px;" onclick="odmCloseReorder()">Close</button>`;
   }
 }
@@ -3798,10 +3798,10 @@ function _odmRenderReorder() {
       ${prev.slice(0, 3).map(p => `<div style="color:var(--muted);">• ${p.created_at ? new Date(p.created_at).toLocaleString('en-KE') : ''} — x${Number(p.quantity).toLocaleString()} · ${esc(p.status || '')} · ${p.same_link ? 'same link' : 'new link'}</div>`).join('')}
     </div>` : '';
   const taskHtml = i.queue_task && i.queue_task.status === 'reordered' ? `
-    <div style="margin:0 0 12px;font-size:12px;color:#ffcc80;">⚠️ The Reorder Queue already re-placed this order once.</div>` : '';
+    <div style="margin:0 0 12px;font-size:12px;color:#ffcc80;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> The Reorder Queue already re-placed this order once.</div>` : '';
   box.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <div style="font-weight:800;font-size:13.5px;color:var(--white);">🔁 Reorder this order</div>
+      <div style="font-weight:800;font-size:13.5px;color:var(--white);"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Reorder this order</div>
       <button onclick="odmCloseReorder()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;" aria-label="Close">×</button>
     </div>
     <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.5;">Free replacement (KES 0), sent straight to the provider.</div>
@@ -3825,9 +3825,9 @@ function _odmRenderReorder() {
       <div id="odmReQtyMax" style="font-size:11px;color:var(--muted);padding-bottom:9px;white-space:nowrap;">max ${Number(i.max_quantity || 0).toLocaleString()}</div>
     </div>
     <div id="odmReQtyHint" style="font-size:11px;color:var(--muted);margin:-4px 0 10px;line-height:1.5;"></div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">✉ The customer is messaged in their support chat that it was re-placed.</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg> The customer is messaged in their support chat that it was re-placed.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn-primary" id="odmReGo" onclick="odmSubmitReorder()" style="margin:0;width:auto;padding:10px 16px;font-size:13px;">🔁 Place reorder (free)</button>
+      <button class="btn-primary" id="odmReGo" onclick="odmSubmitReorder()" style="margin:0;width:auto;padding:10px 16px;font-size:13px;"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Place reorder (free)</button>
       <button class="action-btn" onclick="odmCloseReorder()">Cancel</button>
     </div>
     <div id="odmReMsg" style="margin-top:10px;font-size:12.5px;"></div>`;
@@ -3850,14 +3850,14 @@ function _odmServiceBlock(i) {
   return `
     <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Service</div>
     <div id="odmReSvcState" style="font-size:12px;margin-bottom:6px;">${gone
-      ? `<span style="color:#ff8a80;font-weight:700;">⚠️ ${esc(i.service_reason || 'Service unavailable')}</span> <span style="color:var(--muted);">— pick a similar service below.</span>`
+      ? `<span style="color:#ff8a80;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> ${esc(i.service_reason || 'Service unavailable')}</span> <span style="color:var(--muted);">— pick a similar service below.</span>`
       : ''}</div>
     ${card('orig', !gone, gone, `Same service<br><span style="color:var(--muted);font-size:11.5px;">${esc(i.service_name || '')}</span>`)}
     ${card('alt', gone, false, `A similar service <span style="color:var(--muted);font-size:11.5px;">— same link${i.client_rate_kes ? `, client paid KES ${Number(i.client_rate_kes).toLocaleString(undefined, { maximumFractionDigits: 2 })}/1k` : ''}</span>
       ${alts.length ? '' : '<br><span style="color:#ffb74d;font-size:11.5px;">No close match fits the amount paid — use “Choose another service…”</span>'}`)}
     <div id="odmReAltWrap" style="display:${gone ? 'block' : 'none'};margin:4px 0 10px 4px;">
       <div id="odmReAltList" style="max-height:240px;overflow:auto;">${alts.map((a, k) => rsvcCardHtml(a, { name: 'odmReAlt', owedQty: owed, checked: gone && k === 0 })).join('')}</div>
-      <button type="button" class="action-btn" onclick="_odmBrowseServices()">🔎 Too expensive? Choose another service…</button>
+      <button type="button" class="action-btn" onclick="_odmBrowseServices()"><svg class=ev-i aria-hidden=true><use href=#ev-search></use></svg> Too expensive? Choose another service…</button>
     </div>`;
 }
 
@@ -3933,7 +3933,7 @@ function _odmServiceGone(deadAltSid) {
     const o = document.querySelector('input[name="odmReSvc"][value="orig"]');
     if (o) { o.disabled = true; const l = o.closest('label'); if (l) { l.style.opacity = .5; l.style.cursor = 'not-allowed'; } }
     const st = document.getElementById('odmReSvcState');
-    if (st) st.innerHTML = '<span style="color:#ff8a80;font-weight:700;">⚠️ The provider no longer has this service</span> <span style="color:var(--muted);">— pick a similar service below.</span>';
+    if (st) st.innerHTML = '<span style="color:#ff8a80;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> The provider no longer has this service</span> <span style="color:var(--muted);">— pick a similar service below.</span>';
   }
   const altR = document.querySelector('input[name="odmReSvc"][value="alt"]'); if (altR) altR.checked = true;
   _odmSvcMode();
@@ -3975,13 +3975,13 @@ async function odmSubmitReorder() {
     const r = await api(`/reorders/order/${encodeURIComponent(_odmRe.orderId)}/manual`, { method: 'POST', body: JSON.stringify(body) });
     const box = document.getElementById('odmReorder');
     if (box) box.innerHTML = `
-      <div style="font-weight:800;font-size:13.5px;color:var(--green);margin-bottom:6px;">✅ Reorder placed</div>
+      <div style="font-weight:800;font-size:13.5px;color:var(--green);margin-bottom:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Reorder placed</div>
       <div style="font-size:12.5px;color:var(--white);line-height:1.6;">New order <b>#${esc(String(r.new_order_id || '').slice(0, 8))}</b>
         ${r.provider_order_id ? ` · provider #${esc(r.provider_order_id)}` : ''} · x${Number(r.quantity || qty).toLocaleString()}<br>
-        ${r.service_substituted ? `<span style="color:#ffcc80;">On a similar service: ${esc(String(r.service_name || '').replace('🔁 Reorder · ', ''))}</span><br>` : ''}
+        ${r.service_substituted ? `<span style="color:#ffcc80;">On a similar service: ${esc(String(r.service_name || '').replace('Reorder · ', ''))}</span><br>` : ''}
         ${r.customer_notified
-          ? '<span style="color:var(--green);">✉ Customer messaged in their support chat</span><br>'
-          : '<span style="color:#ff8a80;font-weight:700;">⚠️ The reorder was placed but the customer could NOT be messaged — please message them from Support.</span><br>'}
+          ? '<span style="color:var(--green);"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg> Customer messaged in their support chat</span><br>'
+          : '<span style="color:#ff8a80;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> The reorder was placed but the customer could NOT be messaged — please message them from Support.</span><br>'}
         <span style="color:var(--muted);word-break:break-all;">${esc(r.link || '')}</span></div>
       <button class="action-btn" style="margin-top:10px;" onclick="odmCloseReorder()">Done</button>`;
     toast(r.customer_notified ? 'Reorder placed — customer messaged' : 'Reorder placed, but the customer could not be messaged — message them from Support',
@@ -3989,13 +3989,13 @@ async function odmSubmitReorder() {
     if (document.getElementById('ap-allorders')?.classList.contains('active') && typeof loadAdminOrders === 'function') loadAdminOrders();
     if (typeof rqLoad === 'function' && document.getElementById('reorderQueuePane')?.style.display !== 'none') rqLoad();
   } catch (e) {
-    if (btn) { btn.disabled = false; btn.textContent = '🔁 Place reorder (free)'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Place reorder (free)'; }
     if (rsvcIsServiceGoneError(e)) {
       _odmServiceGone(alt ? String(alt.service) : null);
-      say('⚠️ The provider no longer has ' + (alt ? 'that replacement service' : 'this service') + ' — pick a similar one below and place the reorder again.');
+      say('The provider no longer has ' + (alt ? 'that replacement service' : 'this service') + ' — pick a similar one below and place the reorder again.');
       return;
     }
-    say('⚠️ ' + esc(e.message || 'Reorder failed'));
+    say('' + esc(e.message || 'Reorder failed'));
   }
 }
 
@@ -4023,7 +4023,7 @@ async function _loadOrderPanelErrors(orderId) {
   }
   box.innerHTML = `
     <div style="padding:10px 0;">
-      <div style="color:#ff8a80;font-size:11px;font-weight:700;margin-bottom:6px;">⚠️ Provider error${errors.length > 1 ? 's' : ''} (staff only)</div>
+      <div style="color:#ff8a80;font-size:11px;font-weight:700;margin-bottom:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Provider error${errors.length > 1 ? 's' : ''} (staff only)</div>
       ${errors.map(er => `
         <div style="background:rgba(255,82,82,.08);border:1px solid rgba(255,82,82,.25);border-radius:8px;padding:8px 10px;margin-bottom:6px;">
           <div style="display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--muted);margin-bottom:4px;">
@@ -4056,7 +4056,7 @@ function _renderOrderAutoRefill(orderId, ar) {
     <div style="padding:10px 0;">
       <div style="background:rgba(33,150,243,.07);border:1px solid rgba(33,150,243,.25);border-radius:8px;padding:8px 10px;">
         <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;">
-          <span style="color:#64b5f6;font-size:11px;font-weight:700;">♻️ Auto-refill (staff only)</span>
+          <span style="color:#64b5f6;font-size:11px;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Auto-refill (staff only)</span>
           <span style="color:${color};font-size:11px;font-weight:700;">${state}</span>
         </div>
         ${line('Attempts / accepted', `${ar.attempts || 0} / ${ar.accepted || 0}`)}
@@ -4104,8 +4104,8 @@ async function _loadOrderRefillHistory(orderId, check) {
   box.innerHTML = `
     <div style="padding:10px 0;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
-        <span style="color:#64b5f6;font-size:11px;font-weight:700;">♻️ Refill history (${list.length})</span>
-        ${anyOpen ? `<button id="odmRefillCheckBtn" class="action-btn" style="font-size:10.5px;padding:3px 8px;" onclick="_loadOrderRefillHistory('${esc(orderId)}', true)">⟳ Check status</button>` : ''}
+        <span style="color:#64b5f6;font-size:11px;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refill history (${list.length})</span>
+        ${anyOpen ? `<button id="odmRefillCheckBtn" class="action-btn" style="font-size:10.5px;padding:3px 8px;" onclick="_loadOrderRefillHistory('${esc(orderId)}', true)"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Check status</button>` : ''}
       </div>
       ${list.map(r => `
         <div style="border:1px solid var(--border);border-radius:8px;padding:7px 10px;margin-bottom:6px;font-size:11.5px;">
@@ -4253,12 +4253,12 @@ async function adminMessageCustomer(userId, userEmail) {
       if (pane) {
         pane.innerHTML = `
           <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;">
-            <div style="font-size:36px;">💬</div>
+            <div style="font-size:36px;"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg></div>
             <div style="font-size:14px;font-weight:700;color:var(--white);">No support chat yet with<br><span style="color:var(--green);">${userEmail}</span></div>
             <div style="font-size:13px;color:var(--muted);max-width:340px;">Send a message to start their support chat. They'll see it in Support Chat; every later message goes into the same conversation.</div>
             <select id="adminInitiateType" style="background:var(--card);border:1px solid var(--border);color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;outline:none;cursor:pointer;margin-top:4px;">
-              <option value="wrong_order">📦 Wrong Order</option>
-              <option value="delay">⏳ Delay / Late Delivery</option>
+              <option value="wrong_order">Wrong Order</option>
+              <option value="delay">Delay / Late Delivery</option>
             </select>
             <textarea id="adminInitiateMsg" placeholder="Type your opening message to the customer…" style="width:100%;max-width:400px;min-height:80px;background:var(--card);border:1px solid rgba(61,212,74,.2);border-radius:10px;padding:10px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;outline:none;resize:vertical;"></textarea>
             <button onclick="adminDoInitiateThread('${userEmail}')" style="padding:10px 28px;background:linear-gradient(135deg,#3dd44a,#28a035);border:none;border-radius:10px;color:#fff;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Send Message</button>
@@ -4301,7 +4301,7 @@ let _dashBannerTicketId = null; // single unseen pending ticket id, if exactly o
 // `subject` (already meaningful: "Order Confirmation", "Payment Failed",
 // "Payment Cancelled") instead of a hardcoded wrong guess.
 function _ticketTypeLabel(t) {
-  const map = { wrong_order: '📦 Wrong Order', delay: '⏳ Delayed Service' };
+  const map = { wrong_order: 'Wrong Order', delay: 'Delayed Service' };
   return map[t.type] || t.subject || 'Support Ticket';
 }
 let _ticketsFilter  = 'all';
@@ -4319,7 +4319,7 @@ async function loadTickets() {
     _updateDashTicketBanner();
     renderTickets(_allTickets);
   } catch(e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${e.message}</p></div>`;
   }
 }
 
@@ -4334,12 +4334,12 @@ function filterTickets(status, btn) {
 // One support conversation per client (backend: support_tickets.py →
 // client_thread). The page shows that one conversation; "New message" posts
 // into it. The list shape from GET /support/threads is kept (one item).
-const _CONV_STATUS = { open: '🟠 Waiting for our reply', pending: '💬 We replied', resolved: '✅ Sorted', closed: '✅ Sorted' };
+const _CONV_STATUS = { open: 'Waiting for our reply', pending: 'We replied', resolved: 'Sorted', closed: 'Sorted' };
 
 function renderTickets(tickets) {
   const el = document.getElementById('ticketsList');
   if (!tickets.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">💬</div><p>No messages yet. Tap <b>＋ New message</b> if you need help — our team replies right here.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg></div><p>No messages yet. Tap <b>＋ New message</b> if you need help — our team replies right here.</p></div>';
     return;
   }
   el.innerHTML = tickets.map(t => {
@@ -4348,7 +4348,7 @@ function renderTickets(tickets) {
     const when = t.updated_at || (last && last.created_at) || t.created_at;
     return `
     <div class="ticket-card" onclick="openTicketThread('${tid}')">
-      <div class="ticket-icon">💬</div>
+      <div class="ticket-icon"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg></div>
       <div class="ticket-body">
         <div class="ticket-title">EndaViral Support</div>
         <div class="ticket-preview">${_ticketPreview(_ticketBodyText(last || t.first_message))}</div>
@@ -4519,7 +4519,7 @@ async function _loadTicketThread(threadId, opts) {
     if (!msgs.length) {
       el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">No messages yet.</div>';
     } else {
-      if (hasMore) el.insertAdjacentHTML('beforeend', `<button id="ttLoadEarlier" onclick="ticketLoadEarlier()" style="align-self:center;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--white);border-radius:14px;padding:6px 14px;font-size:11.5px;font-family:inherit;cursor:pointer;">⬆ Load earlier messages</button>`);
+      if (hasMore) el.insertAdjacentHTML('beforeend', `<button id="ttLoadEarlier" onclick="ticketLoadEarlier()" style="align-self:center;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--white);border-radius:14px;padding:6px 14px;font-size:11.5px;font-family:inherit;cursor:pointer;"><svg class=ev-i aria-hidden=true><use href=#ev-upload></use></svg> Load earlier messages</button>`);
       _ttMsgById = {};
     _ttRenderMessages(el, msgs, initial);
     }
@@ -4531,7 +4531,7 @@ async function _loadTicketThread(threadId, opts) {
     document.getElementById('ttReplyRow').style.display     = 'flex';
   } catch(e) {
     document.getElementById('ttMessages').innerHTML =
-      `<div style="padding:24px;color:var(--muted);">⚠️ ${e.message}</div>`;
+      `<div style="padding:24px;color:var(--muted);"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> ${e.message}</div>`;
   }
 }
 
@@ -4900,7 +4900,7 @@ function _showTicketDashPopup(preview, threadId) {
     <div style="display:flex;align-items:flex-start;gap:12px;">
       <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#28a035,#1a6b23);
                   display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
-                  box-shadow:0 0 0 3px rgba(61,212,74,.3);">👤</div>
+                  box-shadow:0 0 0 3px rgba(61,212,74,.3);"><svg class=ev-i aria-hidden=true><use href=#ev-user></use></svg></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:700;color:#3dd44a;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px;">
           EndaViral Support sent you a message
@@ -5086,7 +5086,7 @@ async function adminPlaceOrder() {
     toast(e.message || 'Failed to place order', 'error');
     _setAcoStatus('idle');
   } finally {
-    btn.textContent = '📱 SEND STK PUSH TO CUSTOMER'; btn.disabled = false;
+    btn.textContent = 'SEND STK PUSH TO CUSTOMER'; btn.disabled = false;
   }
 }
 
@@ -5120,13 +5120,13 @@ function _setAcoStatus(state, data = {}) {
   if (!el) return;
   if (state === 'idle') {
     el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);">
-      <div style="font-size:36px;margin-bottom:12px;">📋</div>
+      <div style="font-size:36px;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg></div>
       <div style="font-size:13px;">Fill in the form to create an order</div>
     </div>`; return;
   }
   if (state === 'waiting') {
     el.innerHTML = `<div style="text-align:center;padding:20px 0;">
-      <div style="font-size:48px;margin-bottom:14px;">📱</div>
+      <div style="font-size:48px;margin-bottom:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg></div>
       <div style="font-size:15px;font-weight:800;color:var(--white);margin-bottom:8px;">WAITING FOR PAYMENT</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">STK push sent to <strong style="color:var(--white);">${data.phone}</strong></div>
       <div style="background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:left;margin-bottom:16px;">
@@ -5135,12 +5135,12 @@ function _setAcoStatus(state, data = {}) {
         <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px;"><span style="color:var(--muted);">Amount</span><strong style="color:var(--green);">${data.cost}</strong></div>
       </div>
       <div class="loading-spinner" style="margin:0 auto 12px;"><div class="spinner"></div><span>Checking payment…</span></div>
-      <button class="btn-secondary" style="width:100%;" onclick="_stopAcoPoll();_setAcoStatus('idle');">✕ Cancel</button>
+      <button class="btn-secondary" style="width:100%;" onclick="_stopAcoPoll();_setAcoStatus('idle');"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> Cancel</button>
     </div>`; return;
   }
   if (state === 'success') {
     el.innerHTML = `<div style="text-align:center;padding:30px 0;">
-      <div style="font-size:56px;margin-bottom:14px;">✅</div>
+      <div style="font-size:56px;margin-bottom:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg></div>
       <div style="font-size:16px;font-weight:800;color:var(--white);margin-bottom:8px;">ORDER PLACED!</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:24px;">Payment confirmed. Order submitted and visible in customer's <strong style="color:var(--white);">My Orders</strong> and admin <strong style="color:var(--white);">All Orders</strong>.</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:20px;">Order ID: <code style="color:var(--green);">#${(data.orderId||'').slice(0,8)}</code></div>
@@ -5149,7 +5149,7 @@ function _setAcoStatus(state, data = {}) {
   }
   if (state === 'failed') {
     el.innerHTML = `<div style="text-align:center;padding:30px 0;">
-      <div style="font-size:56px;margin-bottom:14px;">❌</div>
+      <div style="font-size:56px;margin-bottom:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-x-circle></use></svg></div>
       <div style="font-size:16px;font-weight:800;color:var(--white);margin-bottom:8px;">PAYMENT FAILED</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:24px;">${data.reason || 'The customer did not complete the payment.'}</div>
       <button class="btn-primary" onclick="_setAcoStatus('idle')" style="width:100%;">Try Again</button>
@@ -5157,10 +5157,112 @@ function _setAcoStatus(state, data = {}) {
   }
   if (state === 'timeout') {
     el.innerHTML = `<div style="text-align:center;padding:30px 0;">
-      <div style="font-size:56px;margin-bottom:14px;">⏱️</div>
+      <div style="font-size:56px;margin-bottom:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-clock></use></svg></div>
       <div style="font-size:16px;font-weight:800;color:var(--white);margin-bottom:8px;">TIMED OUT</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:24px;">No payment received in 2 minutes. If the customer paid, the order will process automatically once M-Pesa confirms.</div>
       <button class="btn-secondary" onclick="initAdminCreateOrder()" style="width:100%;">Start Over</button>
     </div>`;
   }
+}
+
+/* ══ Site-wide sale (backend: services/site_sale.py, routers/admin_sale.py) ══
+ * Save & announce → every price drops by X% between start and end (never
+ * below cost), one promo broadcast goes to every customer, and when the sale
+ * ends prices return to normal and the broadcast is removed from chats. */
+let _saleEdited = false;
+let _salePreviewTimer = null;
+
+function _saleLocalEAT(d) {   // Date → "YYYY-MM-DDTHH:MM" in Nairobi time, for datetime-local
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Nairobi', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(d);
+  const g = t => p.find(x => x.type === t).value;
+  return `${g('year')}-${g('month')}-${g('day')}T${g('hour') === '24' ? '00' : g('hour')}:${g('minute')}`;
+}
+function _saleISO(v) { return v ? v + ':00+03:00' : null; }   // the inputs are Nairobi time
+function _saleWhen(iso) {
+  return new Date(iso).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+}
+
+function _saleBody() {
+  return {
+    percent: parseInt(document.getElementById('salePct').value, 10),
+    starts_at: _saleISO(document.getElementById('saleStart').value),
+    ends_at: _saleISO(document.getElementById('saleEnd').value),
+  };
+}
+
+async function saleLoad() {
+  const st = document.getElementById('saleStatus');
+  if (!st) return;
+  let s = { state: 'none' };
+  try { s = await api('/admin/sale/'); } catch (e) { st.textContent = 'Could not load the sale: ' + e.message; return; }
+  const endBtn = document.getElementById('saleEndBtn');
+  endBtn.style.display = (s.state === 'live' || s.state === 'scheduled') ? '' : 'none';
+  if (s.state === 'live') {
+    st.innerHTML = `<span style="color:var(--gold);">●</span> <strong style="color:var(--white);">${s.percent}% off is LIVE</strong> until ${esc(_saleWhen(s.ends_at))}` + (s.recipients ? ` · announced to ${Number(s.recipients).toLocaleString()} customers` : '') + (s.broadcast_error ? ` · <span style="color:var(--red);">announcement failed: ${esc(s.broadcast_error)}</span>` : '');
+  } else if (s.state === 'scheduled') {
+    st.innerHTML = `<span style="color:var(--blue);">●</span> <strong style="color:var(--white);">${s.percent}% off scheduled</strong> ${esc(_saleWhen(s.starts_at))} → ${esc(_saleWhen(s.ends_at))}` + (s.recipients ? ` · announced to ${Number(s.recipients).toLocaleString()} customers` : '');
+  } else if (s.state === 'ended') {
+    st.textContent = `Last sale (${s.percent}%) ended ${_saleWhen(s.ended_at || s.ends_at)}. Prices are normal.`;
+  } else {
+    st.textContent = 'No sale running. Prices are normal.';
+  }
+  // Form: show the current sale, or sensible defaults (now → 3 days, 23:59).
+  const now = new Date();
+  if (s.state === 'live' || s.state === 'scheduled') {
+    document.getElementById('salePct').value = s.percent;
+    document.getElementById('saleStart').value = _saleLocalEAT(new Date(s.starts_at));
+    document.getElementById('saleEnd').value = _saleLocalEAT(new Date(s.ends_at));
+    document.getElementById('saleTitle').value = s.title || '';
+    document.getElementById('saleBody').value = s.body || '';
+    _saleEdited = true;
+  } else {
+    document.getElementById('saleStart').value = _saleLocalEAT(now);
+    const end = _saleLocalEAT(new Date(now.getTime() + 3 * 86400000)).slice(0, 10) + 'T23:59';
+    document.getElementById('saleEnd').value = end;
+    _saleEdited = false;
+    saleRefreshPreview();
+  }
+}
+
+function saleRefreshPreview() {
+  if (_saleEdited) return;   // never overwrite text the admin typed
+  clearTimeout(_salePreviewTimer);
+  _salePreviewTimer = setTimeout(async () => {
+    const b = _saleBody();
+    if (!b.percent || !b.starts_at || !b.ends_at) return;
+    try {
+      const m = await api('/admin/sale/preview', { method: 'POST', body: JSON.stringify(b) });
+      if (_saleEdited) return;
+      document.getElementById('saleTitle').value = m.title;
+      document.getElementById('saleBody').value = m.body;
+    } catch (_) {}
+  }, 300);
+}
+
+async function saleSave() {
+  const b = _saleBody();
+  if (!b.percent || b.percent < 1 || b.percent > 50) { toast('Discount must be between 1% and 50%', 'error'); return; }
+  if (!b.starts_at || !b.ends_at) { toast('Pick a start and an end time', 'error'); return; }
+  if (Date.parse(b.ends_at) <= Date.parse(b.starts_at)) { toast('The end must be after the start', 'error'); return; }
+  b.title = document.getElementById('saleTitle').value.trim() || null;
+  b.body = document.getElementById('saleBody').value.trim() || null;
+  if (!confirm(`Start ${b.percent}% off every service and send the announcement to ALL customers now?`)) return;
+  const btn = document.getElementById('saleSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const s = await api('/admin/sale/', { method: 'POST', body: JSON.stringify(b) });
+    toast(s.broadcast_error ? 'Sale saved, but the announcement failed. Send it from Broadcasts.' : `Sale saved and announced to ${Number(s.recipients || 0).toLocaleString()} customers`, s.broadcast_error ? 'error' : 'success');
+    if (typeof loadServices === 'function') loadServices(true);
+  } catch (e) { toast(e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Save & announce'; saleLoad(); }
+}
+
+async function saleEndNow() {
+  if (!confirm('End the sale now? Prices go back to normal immediately and the announcement is removed from customers\' chats.')) return;
+  try {
+    await api('/admin/sale/end', { method: 'POST' });
+    toast('Sale ended. Prices are back to normal.', 'success');
+    if (typeof loadServices === 'function') loadServices(true);
+  } catch (e) { toast(e.message, 'error'); }
+  saleLoad();
 }

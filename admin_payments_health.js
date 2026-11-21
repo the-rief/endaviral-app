@@ -48,7 +48,7 @@ function _phRender(d) {
 
   const header = `<div class="sec-hd"><div><div class="sec-title">PAYMENTS HEALTH</div>
     <div class="sec-sub">Every order paid by its own M-Pesa STK push · every payment traceable to its M-Pesa reference · reconciled every midnight (EAT). Updated ${esc(_phWhen(d.generated_at))}</div></div>
-    <div style="display:flex;gap:8px;"><button class="btn-secondary" onclick="loadPaymentsHealth()">↻ Refresh</button></div></div>`;
+    <div style="display:flex;gap:8px;"><button class="btn-secondary" onclick="loadPaymentsHealth()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button></div></div>`;
 
   const policy = `<div style="${_phCard}margin-bottom:16px;display:flex;gap:18px 28px;flex-wrap:wrap;align-items:center;">
     <div><div style="${_phLabel}">Payment provider</div><b style="text-transform:capitalize;">${esc(p.payment_provider)}</b></div>
@@ -78,7 +78,7 @@ function _phRender(d) {
 
   const queue = `<div style="${_phCard}margin-bottom:16px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;">
     <div><div style="${_phLabel}">Reorder queue (failed / partial / cancelled, flagged at midnight)</div>
-      <div style="font-size:13px;">🔴 Needs contact <b>${rq.pending || 0}</b> · 🟡 Contacted <b>${rq.contacted || 0}</b> · 🟢 Reordered <b>${rq.reordered || 0}</b> · ⚪ Dismissed <b>${rq.dismissed || 0}</b></div></div>
+      <div style="font-size:13px;"><span class=ev-dot style=background:#ef4444></span> Needs contact <b>${rq.pending || 0}</b> · <span class=ev-dot style=background:#facc15></span> Contacted <b>${rq.contacted || 0}</b> · <span class=ev-dot style=background:#22c55e></span> Reordered <b>${rq.reordered || 0}</b> · <span class=ev-dot style=background:#94a3b8></span> Dismissed <b>${rq.dismissed || 0}</b></div></div>
     <button class="btn-primary" onclick="phOpenReorderQueue()">Open Reorder Queue${rq.open ? ' (' + rq.open + ')' : ''}</button></div>`;
 
   let recon = `<div style="${_phCard}"><div style="${_phLabel}">Last full reconciliation</div><div style="font-size:13px;color:var(--muted);">No report yet — the first one is created right after midnight (EAT), or press “Run now”.</div></div>`;
@@ -92,7 +92,7 @@ function _phRender(d) {
     recon = `<div style="${_phCard}"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
       <div><div style="${_phLabel}">Last full reconciliation</div>
         <div style="font-size:13px;">Day <b>${esc(lr.day)}</b> · ran ${esc(_phWhen(lr.ran_at_eat))} · ${esc(lr.seconds)}s ${_phPill(!!lr.ok, 'ALL CLEAR', (lr.problem_count || 0) + ' PROBLEM(S)')}</div></div>
-      <button class="btn-secondary" id="phRunBtn" onclick="phRunReconciliation()">▶ Run now</button></div>
+      <button class="btn-secondary" id="phRunBtn" onclick="phRunReconciliation()"><svg class=ev-i aria-hidden=true><use href=#ev-play></use></svg> Run now</button></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px;font-size:12px;color:var(--muted);">
         <div>Provider checks<br><b style="color:var(--white);font-size:18px;">${lr.polled || 0}</b></div>
         <div>Late payments recovered<br><b style="color:var(--white);font-size:18px;">${(lr.recovered_late_payments || []).length}</b></div>
@@ -102,7 +102,7 @@ function _phRender(d) {
         <div>New reorder flags<br><b style="color:var(--white);font-size:18px;">${(lr.reorder_queue || {}).new ?? 0}</b></div></div>
       ${_phAutoRefill(lr.auto_refill)}
       ${lr.refill_status && lr.refill_status.open != null ? `<div style="margin-top:8px;font-size:12px;color:var(--muted);">Refill status check: ${esc(lr.refill_status.open)} open refill(s) asked · ${esc(lr.refill_status.checked || 0)} answered · ${esc(lr.refill_status.updated || 0)} changed${lr.refill_status.errors ? ` · <span style="color:#ff5252;">${esc(lr.refill_status.errors)} failed request(s)</span>` : ''}</div>` : ''}
-      ${lr.truncated ? '<div style="margin-top:10px;font-size:12px;color:#ffb347;">⚠ Hit the provider-check limit; some rows were not re-checked. Raise NIGHTLY_RECONCILIATION_MAX_POLLS if this repeats.</div>' : ''}
+      ${lr.truncated ? '<div style="margin-top:10px;font-size:12px;color:#ffb347;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Hit the provider-check limit; some rows were not re-checked. Raise NIGHTLY_RECONCILIATION_MAX_POLLS if this repeats.</div>' : ''}
       ${(lr.errors || []).length ? `<div style="margin-top:10px;font-size:12px;color:#ff5252;">Errors: ${(lr.errors).slice(0, 5).map(esc).join(' · ')}</div>` : ''}
       ${probs.map(k => `<div style="margin-top:14px;"><div style="${_phLabel}color:#ff5252;">${probLabels[k]} (${pr[k].length})</div>
         ${_phTable(['Order / checkout', 'Details'], pr[k].slice(0, 20).map(r => [_phShort(r.order_id || r.checkout_request_id || r.receipt), esc([r.service_name, r.status, r.charge != null ? 'KES ' + r.charge : '', r.phone, r.receipt, r.payments ? r.payments + ' payments' : ''].filter(Boolean).join(' · '))]))}</div>`).join('')}
@@ -123,7 +123,7 @@ function _phRefills(rf) {
   const statusPills = Object.keys(st).sort((a, b) => st[b] - st[a]).map(k =>
     `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid ${color(k)};color:${color(k)};">${esc(k)} · ${st[k]}</span>`).join(' ');
   return `<div style="${_phCard}margin-bottom:16px;">
-    <div style="${_phLabel}">♻️ Refills — last 7 days</div>
+    <div style="${_phLabel}"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refills — last 7 days</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;font-size:12px;color:var(--muted);">
       <div>Total<br><b style="color:var(--white);font-size:18px;">${rf.total || 0}</b></div>
       ${['customer', 'admin', 'auto'].map(k => `<div>${SRC[k]}<br><b style="color:var(--white);font-size:18px;">${src[k] || 0}</b></div>`).join('')}
@@ -147,7 +147,7 @@ function _phAutoRefill(ar) {
   const n = (label, v, c) => `<div>${label}<br><b style="color:${c || 'var(--white)'};font-size:18px;">${v ?? 0}</b></div>`;
   const ran = ar.enabled !== false && !ar.skipped;
   return `<div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06);">
-    <div style="${_phLabel}">♻️ Auto-refill</div>
+    <div style="${_phLabel}"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Auto-refill</div>
     <div style="font-size:12px;color:var(--muted);">${status}</div>
     ${ran ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px;font-size:12px;color:var(--muted);">
       ${n('Eligible', ar.eligible)}${n('Requested', ar.requested)}${n('Accepted', ar.accepted, '#3dd44a')}
@@ -158,7 +158,7 @@ function _phAutoRefill(ar) {
 }
 
 async function phRunReconciliation() {
-  if (!confirm('Run the full reconciliation now? It re-checks yesterday and today with each payment's provider and can take a minute or two.')) return;
+  if (!confirm('Run the full reconciliation now? It re-checks yesterday and today with each payment\'s provider and can take a minute or two.')) return;
   const b = document.getElementById('phRunBtn');
   if (b) { b.disabled = true; b.textContent = 'Running…'; }
   try {

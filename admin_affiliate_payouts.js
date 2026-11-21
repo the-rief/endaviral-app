@@ -90,17 +90,17 @@ function affAdminSubTab(tab) {
   const refreshBtn = document.getElementById('affAdminRefreshBtn');
 
   if (tab === 'payouts') {
-    if (titleEl)    titleEl.textContent = '💸 AFFILIATE PAYOUTS';
+    if (titleEl)    titleEl.textContent = 'AFFILIATE PAYOUTS';
     if (subEl)      subEl.textContent   = 'Record M-Pesa disbursements — balance updates automatically';
     if (refreshBtn) { refreshBtn.onclick = () => adminLoadAffiliatePayouts(); refreshBtn.textContent = '↻ Refresh'; }
     adminLoadAffiliatePayouts();
   } else if (tab === 'leaderboard') {
-    if (titleEl)    titleEl.textContent = '🏆 AFFILIATE LEADERBOARD';
+    if (titleEl)    titleEl.textContent = 'AFFILIATE LEADERBOARD';
     if (subEl)      subEl.textContent   = 'All affiliates ranked by earnings';
     if (refreshBtn) { refreshBtn.onclick = () => adminLoadAffiliateLeaderboard(); refreshBtn.textContent = '↻ Refresh'; }
     adminLoadAffiliateLeaderboard();
   } else {
-    if (titleEl)    titleEl.textContent = '👥 AFFILIATE REFERRALS';
+    if (titleEl)    titleEl.textContent = 'AFFILIATE REFERRALS';
     if (subEl)      subEl.textContent   = 'Users who signed up via an affiliate link';
     if (refreshBtn) { refreshBtn.onclick = () => adminLoadAffiliateReferrals(); refreshBtn.textContent = '↻ Refresh'; }
     adminLoadAffiliateReferrals();
@@ -116,7 +116,7 @@ async function _affSafeFetch(path, label, warnings) {
 function _affWarnBanner(warnings, retryFn) {
   const banner = document.createElement('div');
   banner.style.cssText = 'background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:#ff6b6b;display:flex;align-items:center;gap:10px;';
-  banner.innerHTML = `<span style="font-size:16px;">⚠️</span><span><strong>Could not reach backend:</strong> ${warnings.map(esc).join(' · ')}<br><span style="color:var(--muted);">Showing zeros. <button onclick="${retryFn}()" style="background:none;border:none;color:#ff9a3c;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;padding:0;">Retry</button></span></span>`;
+  banner.innerHTML = `<span style="font-size:16px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></span><span><strong>Could not reach backend:</strong> ${warnings.map(esc).join(' · ')}<br><span style="color:var(--muted);">Showing zeros. <button onclick="${retryFn}()" style="background:none;border:none;color:#ff9a3c;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;padding:0;">Retry</button></span></span>`;
   return banner;
 }
 
@@ -190,12 +190,12 @@ function _affAdminBuildStats() {
   }
 
   const cards = [
-    { icon:'🤝', label:'Total Affiliates',  value: totalAff,            sub:`${activeAff} with referrals`,        color:'#3dd44a' },
-    { icon:'👥', label:'Total Referrals',   value: totalRefs,           sub:'signed up via affiliate links',      color:'#3dd44a' },
-    { icon:'🛒', label:'Referral Spend',    value: fmtKES(totalSpend),  sub:'spend by referred users',            color:'#ffd700' },
-    { icon:'💰', label:'Total Commissions', value: fmtKES(totalEarned), sub:'across SMM, Marketplace &amp; Academy', color:'#ffd700' },
-    { icon:'⏳', label:'Pending Balance',   value: fmtKES(totalPending),sub:'awaiting withdrawal requests',       color:'#ff9a3c' },
-    { icon:'✅', label:'Total Paid Out',    value: fmtKES(totalPaid),   sub:'M-Pesa disbursements made',          color:'#3dd44a' },
+    { icon:'<svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg>', label:'Total Affiliates',  value: totalAff,            sub:`${activeAff} with referrals`,        color:'#3dd44a' },
+    { icon:'<svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg>', label:'Total Referrals',   value: totalRefs,           sub:'signed up via affiliate links',      color:'#3dd44a' },
+    { icon:'<svg class=ev-i aria-hidden=true><use href=#ev-cart></use></svg>', label:'Referral Spend',    value: fmtKES(totalSpend),  sub:'spend by referred users',            color:'#ffd700' },
+    { icon:'<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', label:'Total Commissions', value: fmtKES(totalEarned), sub:'across SMM, Marketplace &amp; Academy', color:'#ffd700' },
+    { icon:'<svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg>', label:'Pending Balance',   value: fmtKES(totalPending),sub:'awaiting withdrawal requests',       color:'#ff9a3c' },
+    { icon:'<svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg>', label:'Total Paid Out',    value: fmtKES(totalPaid),   sub:'M-Pesa disbursements made',          color:'#3dd44a' },
     { icon:'📬', label:'Pending Requests',  value: pendingCount,         sub:`${fmtKES(pendingKes)} to disburse`, color: pendingCount > 0 ? '#ff6b6b' : '#3dd44a' },
   ];
 
@@ -209,7 +209,7 @@ function _affAdminBuildStats() {
 
   const el = document.createElement('div');
   el.innerHTML = `
-    <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">📊 PROGRAMME OVERVIEW</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg> PROGRAMME OVERVIEW</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px;">
       ${cards.map(c => `
         <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
@@ -221,12 +221,12 @@ function _affAdminBuildStats() {
           <div style="font-size:10px;color:var(--muted);margin-top:2px;">${c.sub}</div>
         </div>`).join('')}
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-        <div style="font-size:20px;margin-bottom:8px;">🏅</div>
+        <div style="font-size:20px;margin-bottom:8px;"><svg class=ev-i aria-hidden=true><use href=#ev-medal></use></svg></div>
         <div style="font-size:11px;font-weight:700;color:var(--white);margin-bottom:8px;letter-spacing:.5px;">TIER BREAKDOWN</div>
         ${tierHtml}
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
-        <div style="font-size:20px;margin-bottom:8px;">💹</div>
+        <div style="font-size:20px;margin-bottom:8px;"><svg class=ev-i aria-hidden=true><use href=#ev-chart-up></use></svg></div>
         <div style="font-size:11px;font-weight:700;color:var(--white);margin-bottom:8px;letter-spacing:.5px;">EARNINGS BY SOURCE</div>
         ${[
           ['📈','SMM',         bySource.smm_kes,         '#3dd44a'],
@@ -279,7 +279,7 @@ function _affAdminRenderQueue(wrap) {
 
   wrap.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">💸 PAYOUT QUEUE</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg> PAYOUT QUEUE</div>
       ${pendingCount > 0 ? `<span style="background:rgba(255,69,69,.12);border:1px solid rgba(255,69,69,.3);color:#ff6b6b;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;">${pendingCount} pending</span>` : ''}
     </div>
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">${filterBtns}</div>
@@ -548,7 +548,7 @@ function _affAdminRenderLeaderboard(wrap) {
         style="flex:1;min-width:200px;max-width:320px;background:var(--navy);border:1px solid var(--border);
                border-radius:8px;padding:7px 12px;font-size:12px;color:var(--white);font-family:'Montserrat',sans-serif;outline:none;">
       <span style="font-size:11px;color:var(--muted);margin-left:4px;">Sort:</span>
-      ${sBtn('earned','💰 Earned')} ${sBtn('referrals','👥 Referrals')} ${sBtn('spend','🛒 Spend')} ${sBtn('pending','⏳ Pending')}
+      ${sBtn('earned','Earned')} ${sBtn('referrals','Referrals')} ${sBtn('spend','Spend')} ${sBtn('pending','Pending')}
     </div>
     ${!sorted.length
       ? `<div style="padding:32px;text-align:center;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:14px;">
@@ -686,14 +686,14 @@ async function adminLoadAffiliateReferrals(search = '') {
           onkeyup="if(event.key==='Enter')adminLoadAffiliateReferrals(this.value.trim())"
           style="flex:1;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-size:13px;color:var(--white);outline:none;">
         <button onclick="adminLoadAffiliateReferrals(document.getElementById('affReferralsSearch').value.trim())"
-          class="btn-secondary" style="font-size:12px;padding:9px 16px;">🔍 Search</button>
-        ${search ? `<button onclick="adminLoadAffiliateReferrals('')" class="btn-secondary" style="font-size:12px;padding:9px 14px;">✕ Clear</button>` : ''}
+          class="btn-secondary" style="font-size:12px;padding:9px 16px;"><svg class=ev-i aria-hidden=true><use href=#ev-search></use></svg> Search</button>
+        ${search ? `<button onclick="adminLoadAffiliateReferrals('')" class="btn-secondary" style="font-size:12px;padding:9px 14px;"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> Clear</button>` : ''}
       </div>`;
 
     if (!referrals.length) {
       container.innerHTML = summaryHtml + searchBar + `
         <div style="padding:40px;text-align:center;color:var(--muted);">
-          <div style="font-size:36px;margin-bottom:10px;">👥</div>
+          <div style="font-size:36px;margin-bottom:10px;"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg></div>
           <div style="font-size:14px;">${search ? `No results for "${esc(search)}"` : 'No referrals yet.'}</div>
         </div>`;
       return;
@@ -888,7 +888,7 @@ async function _affProfileLoad(profileId) {
 
   let warnHtml = '';
   if (warnings.length) {
-    warnHtml = `<div style="background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:11px;color:#ff6b6b;">⚠️ ${warnings.map(esc).join(' · ')}</div>`;
+    warnHtml = `<div style="background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:11px;color:#ff6b6b;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> ${warnings.map(esc).join(' · ')}</div>`;
   }
 
   body.innerHTML = warnHtml
@@ -959,7 +959,7 @@ function _affProfileRenderReferrals(referrals) {
     : `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">No referrals yet.</td></tr>`;
 
   return `
-    <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:20px 0 10px;">👥 Referred Users (${referrals.length})</div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:20px 0 10px;"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg> Referred Users (${referrals.length})</div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>User</th><th>Orders</th><th>Spend</th><th>Commission Earned</th><th>Joined</th></tr></thead>
       <tbody>${rows}</tbody>
@@ -990,7 +990,7 @@ function _affProfileRenderCommissions(commissions) {
     : `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">No commissions yet.</td></tr>`;
 
   return `
-    <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:20px 0 10px;">🧾 Recent Commissions (${commissions.length})</div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:20px 0 10px;"><svg class=ev-i aria-hidden=true><use href=#ev-receipt></use></svg> Recent Commissions (${commissions.length})</div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>Date</th><th>Source</th><th>Amount</th><th>Status</th></tr></thead>
       <tbody>${rows}</tbody>

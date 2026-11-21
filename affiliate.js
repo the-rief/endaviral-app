@@ -65,7 +65,7 @@
 <div id="affPayoutModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:420px;margin:16px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
-      <div style="font-size:18px;font-weight:800;">💸 Request Payout</div>
+      <div style="font-size:18px;font-weight:800;"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg> Request Payout</div>
       <button onclick="affClosePayoutModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;">×</button>
     </div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:20px;background:rgba(61,212,74,.07);border:1px solid rgba(61,212,74,.15);border-radius:10px;padding:12px 14px;">
@@ -158,7 +158,7 @@ async function initAffiliatePage(force = false) {
     } else {
       sec.innerHTML = `
         <div style="background:var(--card);border:1px solid rgba(255,69,69,.3);border-radius:16px;padding:40px;text-align:center;">
-          <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+          <div style="font-size:40px;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div>
           <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:8px;">Could not load affiliate data</div>
           <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">${esc(e.message || 'Network error')}</div>
           <button class="btn-primary" onclick="initAffiliatePage(true)">Try Again</button>
@@ -181,7 +181,7 @@ function _renderOptIn(sec) {
   </div>
 
   <div style="max-width:560px;margin:0 auto;text-align:center;padding:40px 0;">
-    <div style="font-size:64px;margin-bottom:16px;">🤝</div>
+    <div style="font-size:64px;margin-bottom:16px;"><svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg></div>
     <div style="font-size:26px;font-weight:900;color:var(--white);margin-bottom:10px;">Join the Affiliate Programme</div>
     <div style="font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:32px;max-width:420px;margin-left:auto;margin-right:auto;">
       Share your personal link. Every time a referral orders an SMM service, books a Marketplace campaign, or
@@ -222,7 +222,7 @@ async function affDoOptin() {
     initAffiliatePage(true);
   } catch (e) {
     toast(e.message || 'Could not opt in. Please try again.', 'error');
-    if (btn) { btn.disabled = false; btn.textContent = "✅ Join Now — It's Free"; }
+    if (btn) { btn.disabled = false; btn.textContent = "Join Now — It's Free"; }
   }
 }
 
@@ -255,12 +255,12 @@ function _renderDashboard(sec, data) {
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       ${hasPendingPayout
-        ? `<div style="background:rgba(255,165,0,.12);border:1px solid rgba(255,165,0,.25);border-radius:8px;padding:8px 14px;font-size:12px;color:#ffa500;">⏳ Payout in progress</div>`
+        ? `<div style="background:rgba(255,165,0,.12);border:1px solid rgba(255,165,0,.25);border-radius:8px;padding:8px 14px;font-size:12px;color:#ffa500;"><svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg> Payout in progress</div>`
         : canPay
-          ? `<button class="btn-primary" onclick="affRequestPayout()">💸 Withdraw ${fmtKES(pending)}</button>`
+          ? `<button class="btn-primary" onclick="affRequestPayout()"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg> Withdraw ${fmtKES(pending)}</button>`
           : `<div style="font-size:12px;color:var(--muted);">Min. payout: ${fmtKES(AFF_MIN_PAYOUT)} (you have ${fmtKES(pending)})</div>`
       }
-      <button class="btn-secondary" onclick="initAffiliatePage(true)" title="Refresh">↻</button>
+      <button class="btn-secondary" onclick="initAffiliatePage(true)" title="Refresh"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg></button>
     </div>
   </div>
 
@@ -283,7 +283,7 @@ function _renderDashboard(sec, data) {
               <div style="height:100%;background:${tier.color};width:${progress}%;transition:width .6s;border-radius:4px;"></div>
             </div>
             <div style="font-size:10px;color:var(--muted);margin-top:4px;">${fmtKES(nextTier.min - spend)} more referral spend to unlock</div>
-          </div>` : `<div style="font-size:11px;color:var(--green);margin-top:6px;">🎉 Max tier — you're elite!</div>`}
+          </div>` : `<div style="font-size:11px;color:var(--green);margin-top:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-sparkle></use></svg> Max tier — you're elite!</div>`}
         </div>
       </div>
 
@@ -293,7 +293,7 @@ function _renderDashboard(sec, data) {
         <div style="display:flex;flex-direction:column;gap:6px;">
           ${tier.benefits.map(b => `
             <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--white);">
-              <span style="color:var(--green);font-size:10px;">✓</span> ${b}
+              <span style="color:var(--green);font-size:10px;"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></span> ${b}
             </div>`).join('')}
           ${tier.credits_kes > 0
             ? `<div style="margin-top:8px;background:rgba(61,212,74,.08);border:1px solid rgba(61,212,74,.2);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--green);">
@@ -313,7 +313,7 @@ function _renderDashboard(sec, data) {
           <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Rate</div>
           <div style="font-size:32px;font-weight:900;color:var(--green);">${commissionPct}%</div>
           <div style="font-size:10px;color:var(--muted);">per SMM order</div>
-          <button onclick="affCopyLink()" style="margin-top:10px;width:100%;background:var(--green);color:#000;border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;">📋 Copy Link</button>
+          <button onclick="affCopyLink()" style="margin-top:10px;width:100%;background:var(--green);color:#000;border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap;"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg> Copy Link</button>
         </div>
         ${monthlyRank ? `
         <div style="text-align:center;padding:10px 18px;background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.2);border-radius:12px;">
@@ -336,8 +336,8 @@ function _renderDashboard(sec, data) {
             <div style="font-size:18px;margin-bottom:4px;">${t.badge}</div>
             <div style="font-size:11px;font-weight:700;color:${isActive ? 'var(--green)' : t.color};">${t.name}${isActive ? ' ← you' : ''}</div>
             <div style="font-size:10px;color:var(--muted);">${t.min === 0 ? 'Free to join' : fmtKES(t.min) + ' spend'}</div>
-            ${t.credits_kes > 0 ? `<div style="font-size:10px;color:var(--green);margin-top:3px;">🎁 ${fmtKES(t.credits_kes)}/mo</div>` : ''}
-            ${t.featured ? `<div style="font-size:10px;color:#ffd700;margin-top:2px;">⭐ Featured</div>` : ''}
+            ${t.credits_kes > 0 ? `<div style="font-size:10px;color:var(--green);margin-top:3px;"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> ${fmtKES(t.credits_kes)}/mo</div>` : ''}
+            ${t.featured ? `<div style="font-size:10px;color:#ffd700;margin-top:2px;"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg> Featured</div>` : ''}
           </div>`;
         }).join('')}
       </div>
@@ -347,19 +347,19 @@ function _renderDashboard(sec, data) {
   <!-- ══ STATS GRID ══ -->
   <div class="stats-grid" style="margin-bottom:20px;">
     <div class="stat-card green">
-      <div class="stat-icon">💰</div>
+      <div class="stat-icon"><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg></div>
       <div class="stat-label">Total Earned</div>
       <div class="stat-val" style="font-size:20px;">${fmtKES(data.total_earned_kes || 0)}</div>
       <div class="stat-sub">All time</div>
     </div>
     <div class="stat-card orange">
-      <div class="stat-icon">⏳</div>
+      <div class="stat-icon"><svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg></div>
       <div class="stat-label">Available</div>
       <div class="stat-val" style="font-size:20px;">${fmtKES(pending)}</div>
       <div class="stat-sub">Ready to withdraw</div>
     </div>
     <div class="stat-card blue">
-      <div class="stat-icon">👥</div>
+      <div class="stat-icon"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg></div>
       <div class="stat-label">Referrals</div>
       <div class="stat-val" style="font-size:20px;">${data.total_referrals || 0}</div>
       <div class="stat-sub">Via your link</div>
@@ -381,9 +381,9 @@ function _renderDashboard(sec, data) {
     const b = data.earnings_breakdown;
     if (!b) return '';
     const sources = [
-      { key:'smm_kes',         icon:'📈', label:'SMM Services',  sub:'15% of profit on referred orders',      color:'#3dd44a' },
-      { key:'marketplace_kes', icon:'🤝', label:'Marketplace',   sub:'10% of our success fee on campaigns',   color:'#4ea8ff' },
-      { key:'academy_kes',     icon:'🎓', label:'Creator Academy', sub:'10% of paid course purchases',        color:'#ffd700' },
+      { key:'smm_kes',         icon:'<svg class=ev-i aria-hidden=true><use href=#ev-chart-up></use></svg>', label:'SMM Services',  sub:'15% of profit on referred orders',      color:'#3dd44a' },
+      { key:'marketplace_kes', icon:'<svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg>', label:'Marketplace',   sub:'10% of our success fee on campaigns',   color:'#4ea8ff' },
+      { key:'academy_kes',     icon:'<svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg>', label:'Creator Academy', sub:'10% of paid course purchases',        color:'#ffd700' },
     ];
     return `
   <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:20px;">
@@ -407,7 +407,7 @@ function _renderDashboard(sec, data) {
       <!-- FIX: Added data-code attribute for safe code extraction -->
       <input id="affLinkInput" value="${safeLink}" data-code="${safeCode}" readonly
         style="flex:1;min-width:200px;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--green);font-family:monospace;">
-      <button onclick="affCopyLink()" class="btn-secondary" style="white-space:nowrap;">📋 Copy</button>
+      <button onclick="affCopyLink()" class="btn-secondary" style="white-space:nowrap;"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg> Copy</button>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button onclick="affShareWhatsApp()" style="flex:1;background:#25d366;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;min-width:120px;">
@@ -425,10 +425,10 @@ function _renderDashboard(sec, data) {
   <!-- ══ TABS ══ -->
   <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
     ${[
-      ['commissions', '💰 Commissions'],
-      ['referrals',   '👥 Referrals'],
-      ['payouts',     '💳 Payouts'],
-      ['leaderboard', '🏆 Leaderboard'],
+      ['commissions', 'Commissions'],
+      ['referrals',   'Referrals'],
+      ['payouts',     'Payouts'],
+      ['leaderboard', 'Leaderboard'],
     ].map(([tab, label]) =>
       `<button id="affTab-${tab}" class="btn-secondary${tab === _affActiveTab ? ' active' : ''}"
         onclick="affSwitchTab('${tab}')" style="font-size:12px;padding:8px 16px;">${label}</button>`
@@ -489,7 +489,7 @@ async function _loadCommissionsPane() {
     if (!commissions.length) {
       pane.innerHTML = `
         <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;text-align:center;color:var(--muted);">
-          <div style="font-size:40px;margin-bottom:12px;">💸</div>
+          <div style="font-size:40px;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg></div>
           <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:6px;">No commissions yet</div>
           <div style="font-size:13px;">Share your link — earnings appear here once referrals order.</div>
         </div>`;
@@ -505,10 +505,10 @@ async function _loadCommissionsPane() {
         // so affiliates can see at a glance where an earning came from.
         const src = c.source || 'smm';
         const srcMeta = {
-          smm:         { icon:'📈', label:'SMM',         color:'#3dd44a' },
-          marketplace: { icon:'🤝', label:'Marketplace', color:'#4ea8ff' },
-          academy:     { icon:'🎓', label:'Academy',      color:'#ffd700' },
-        }[src] || { icon:'📈', label:esc(src), color:'#7a8fad' };
+          smm:         { icon:'<svg class=ev-i aria-hidden=true><use href=#ev-chart-up></use></svg>', label:'SMM',         color:'#3dd44a' },
+          marketplace: { icon:'<svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg>', label:'Marketplace', color:'#4ea8ff' },
+          academy:     { icon:'<svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg>', label:'Academy',      color:'#ffd700' },
+        }[src] || { icon:'<svg class=ev-i aria-hidden=true><use href=#ev-chart-up></use></svg>', label:esc(src), color:'#7a8fad' };
         return `<tr>
           <td style="font-size:12px;color:var(--muted);">${c.created_at ? new Date(c.created_at).toLocaleDateString('en-KE') : '—'}</td>
           <td><span style="font-size:11px;font-weight:700;color:${srcMeta.color};white-space:nowrap;">${srcMeta.icon} ${srcMeta.label}</span></td>
@@ -536,7 +536,7 @@ async function _loadReferralsPane() {
     if (!referrals.length) {
       pane.innerHTML = `
         <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;text-align:center;color:var(--muted);">
-          <div style="font-size:40px;margin-bottom:12px;">👥</div>
+          <div style="font-size:40px;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg></div>
           <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:6px;">No referrals yet</div>
           <div style="font-size:13px;">Share your link to start building your network.</div>
         </div>`;
@@ -566,7 +566,7 @@ async function _loadPayoutsPane() {
     if (!payouts.length) {
       pane.innerHTML = `
         <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;text-align:center;color:var(--muted);">
-          <div style="font-size:40px;margin-bottom:12px;">💳</div>
+          <div style="font-size:40px;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg></div>
           <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:6px;">No payouts yet</div>
           <div style="font-size:13px;">Once you request a withdrawal, it appears here.</div>
         </div>`;
@@ -610,7 +610,7 @@ async function _loadLeaderboardPane() {
     if (!rows.length) {
       pane.innerHTML = `
         <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;text-align:center;color:var(--muted);">
-          <div style="font-size:40px;margin-bottom:12px;">🏆</div>
+          <div style="font-size:40px;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-trophy></use></svg></div>
           <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:6px;">Leaderboard coming soon</div>
           <div style="font-size:13px;">Rankings reset on the 1st of each month. Be the first on the board!</div>
         </div>`;

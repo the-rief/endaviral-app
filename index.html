@@ -60,10 +60,12 @@ body::before{content:'';position:fixed;inset:0;background:
   radial-gradient(ellipse 70% 50% at 80% 20%,rgba(61,212,74,.06) 0%,transparent 60%),
   radial-gradient(ellipse 50% 40% at 10% 80%,rgba(229,57,53,.04) 0%,transparent 60%);
   pointer-events:none;z-index:0;}
-body::after{content:'';position:fixed;inset:0;background-image:
-  linear-gradient(rgba(61,212,74,.025) 1px,transparent 1px),
-  linear-gradient(90deg,rgba(61,212,74,.025) 1px,transparent 1px);
-  background-size:48px 48px;pointer-events:none;z-index:0;}
+/* background grid removed */
+/* ── Line icons (sprite at top of <body>) ── */
+.ev-i{width:1.1em;height:1.1em;display:inline-block;vertical-align:-0.18em;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+.ev-dot{display:inline-block;width:.62em;height:.62em;border-radius:50%;vertical-align:.05em;flex-shrink:0;}
+.toast .ev-i{width:18px;height:18px;}
+.lp-stars .ev-i{fill:currentColor;stroke-width:1;width:13px;height:13px;margin-right:1px;}
 
 /* ════════════════════ LANDING PAGE ════════════════════ */
 #authWrap{position:relative;z-index:1;min-height:100vh;display:block;background:#fff;}
@@ -93,7 +95,7 @@ body:has(#authWrap[style*="block"]) #ev-chat-widget{display:none!important;}
   radial-gradient(ellipse 40% 40% at 15% 80%,rgba(61,212,74,.05) 0%,transparent 60%),
   radial-gradient(ellipse 30% 30% at 90% 10%,rgba(40,160,53,.06) 0%,transparent 50%);
   pointer-events:none;}
-.lp-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(61,212,74,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(61,212,74,.04) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;}
+.lp-hero-grid{display:none;}
 .lp-hero-inner{display:grid;grid-template-columns:1.1fr 0.9fr;gap:80px;align-items:center;max-width:1240px;margin:0 auto;width:100%;position:relative;z-index:1;}
 
 .lp-hero-eyebrow{display:inline-flex;align-items:center;gap:10px;background:rgba(61,212,74,.12);border:1px solid rgba(61,212,74,.22);color:#6efb7a;font-size:11.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:7px 16px;border-radius:30px;margin-bottom:28px;}
@@ -1024,7 +1026,18 @@ tbody td{padding:13px 16px;font-size:14px;}
 .platform-tile .pt-icon{
   font-size:26px;
   line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
 }
+/* Platform logos (bundled Simple Icons) with an initials tile as fallback */
+.plat-logo{width:1em;height:1em;display:block;}
+.plat-ini{width:1.1em;height:1.1em;border-radius:.25em;display:inline-flex;align-items:center;justify-content:center;font-size:.5em;font-weight:900;letter-spacing:.02em;}
+.pt-icon .plat-ini{font-size:13px;width:26px;height:26px;border-radius:7px;}
+.svc-plat .plat-logo{width:12px;height:12px;}
+.svc-plat .plat-ini{display:none;}
+.plat-line{width:1em;height:1em;display:block;}
+/* White logos (TikTok, X, Threads) would vanish on the white selected tile */
+.platform-tile.active img.plat-light{filter:invert(1);}
+.platform-tile.active .plat-ini.plat-light{color:#111 !important;background:rgba(0,0,0,.08) !important;}
 .platform-tile .pt-label{
   font-size:12px;
   font-weight:700;
@@ -1126,9 +1139,11 @@ tbody td{padding:13px 16px;font-size:14px;}
 .sort-badge{background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:600;padding:8px 12px;border-radius:8px;white-space:nowrap;display:flex;align-items:center;gap:5px;flex-shrink:0;}
 .sort-badge .sort-arrow{color:var(--green);}
 /* Feature filters (Refill / Slow delivery): narrow the list, keep platform + type */
-.svc-chips{display:flex;gap:6px;flex-shrink:0;}
+.svc-chips{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;}
 .svc-chip{background:var(--card);border:1px solid var(--border);color:var(--muted);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;padding:8px 11px;border-radius:8px;white-space:nowrap;cursor:pointer;transition:border-color .2s,color .2s;}
 .svc-chip.on{border-color:var(--green);color:var(--green);background:rgba(34,197,94,.08);}
+.svc-chip.organic{border-color:rgba(94,234,212,.45);color:#5eead4;}
+.svc-chip.organic.on{background:#5eead4;border-color:#5eead4;color:#062a24;font-weight:800;}
 
 /* Service cards */
 .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:14px;}
@@ -1180,6 +1195,16 @@ tbody td{padding:13px 16px;font-size:14px;}
 .svc-feature-badge.refill{background:rgba(33,150,243,.12);color:#2196f3;border:1px solid rgba(33,150,243,.25);}
 .svc-feature-badge.slow{background:rgba(250,204,21,.10);color:#eab308;border:1px solid rgba(250,204,21,.25);}
 .svc-feature-badge.cancel{background:rgba(158,158,158,.12);color:var(--muted);border:1px solid rgba(158,158,158,.2);}
+/* Quality labels from MoreThanPanel's name/category (backend services/service_flags.py) */
+.svc-feature-badge.vip{background:rgba(168,85,247,.14);color:#c084fc;border:1px solid rgba(168,85,247,.32);}
+.svc-feature-badge.nondrop{background:rgba(61,212,74,.12);color:var(--green);border:1px solid rgba(61,212,74,.3);}
+.svc-feature-badge.hiret{background:rgba(34,211,238,.12);color:var(--cyan);border:1px solid rgba(34,211,238,.3);}
+.svc-card.organic-card{border:1.5px solid #5eead4;background:linear-gradient(165deg,rgba(94,234,212,.10),var(--card) 55%);box-shadow:0 10px 28px rgba(94,234,212,.08);}
+.svc-card.organic-card:hover{border-color:#99f6e4;}
+.svc-old-price{font-size:12px;font-weight:600;color:var(--muted);text-decoration:line-through;}
+.svc-price-was{display:flex;align-items:center;gap:6px;white-space:nowrap;margin-bottom:1px;}
+.svc-sale-tag{font-size:10px;font-weight:800;color:#1d1300;background:var(--gold);border-radius:5px;padding:1px 6px;white-space:nowrap;}
+.svc-organic-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:#5eead4;color:#062a24;white-space:nowrap;flex-shrink:0;}
 
 .svc-name{font-size:13.5px;font-weight:600;line-height:1.4;flex:1;}
 .svc-subcat{font-size:11px;color:var(--muted);padding:2px 0;}
@@ -1571,6 +1596,8 @@ tbody td{padding:13px 16px;font-size:14px;}
 <link rel="stylesheet" href="admin_shell.css"/>
 </head>
 <body>
+<!-- EndaViral line icon set: <svg class=ev-i><use href=#ev-NAME></use></svg> or evIcon('NAME') -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="ev-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol><symbol id="ev-package" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></symbol><symbol id="ev-plus-square" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></symbol><symbol id="ev-hourglass" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12"/><path d="M7 3c0 4.5 10 4.5 10 9s-10 4.5-10 9"/><path d="M17 3c0 4.5-10 4.5-10 9s10 4.5 10 9"/></symbol><symbol id="ev-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></symbol><symbol id="ev-wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2.5"/><path d="M6 6V5a2 2 0 0 1 2-2h9"/><path d="M15 13h3"/></symbol><symbol id="ev-message" viewBox="0 0 24 24"><path d="M21 12a8.5 8.5 0 0 1-12.4 7.6L3 21l1.5-5A8.5 8.5 0 1 1 21 12z"/></symbol><symbol id="ev-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18.5 14.6A6.5 6.5 0 0 1 21.5 20"/></symbol><symbol id="ev-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></symbol><symbol id="ev-megaphone" viewBox="0 0 24 24"><path d="M3 10v4a1 1 0 0 0 1 1h3l7 4V5L7 9H4a1 1 0 0 0-1 1z"/><path d="M18 9a4 4 0 0 1 0 6"/><path d="M8 15v4"/></symbol><symbol id="ev-layers" viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 10-5z"/><path d="m2 13 10 5 10-5"/></symbol><symbol id="ev-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol><symbol id="ev-banknote" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></symbol><symbol id="ev-graduation" viewBox="0 0 24 24"><path d="M22 9 12 4 2 9l10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/><path d="M22 9v5"/></symbol><symbol id="ev-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol><symbol id="ev-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol><symbol id="ev-headphones" viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><rect x="3" y="14" width="4" height="7" rx="1.5"/><rect x="17" y="14" width="4" height="7" rx="1.5"/></symbol><symbol id="ev-shield-check" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol><symbol id="ev-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9-9a4.8 4.8 0 0 1 9-3 4.8 4.8 0 0 1 9 3c-2 4.6-9 9-9 9z"/></symbol><symbol id="ev-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="ev-comment" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol><symbol id="ev-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></symbol><symbol id="ev-bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></symbol><symbol id="ev-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z"/></symbol><symbol id="ev-user-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/></symbol><symbol id="ev-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19A10 10 0 0 1 5 5"/></symbol><symbol id="ev-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/></symbol><symbol id="ev-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/></symbol><symbol id="ev-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/></symbol><symbol id="ev-leaf" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6C9.5 14.5 12 13 13 12"/></symbol><symbol id="ev-crown" viewBox="0 0 24 24"><path d="m3 8 4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></symbol><symbol id="ev-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></symbol><symbol id="ev-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol><symbol id="ev-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/></symbol><symbol id="ev-tag" viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol><symbol id="ev-trending" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol><symbol id="ev-sparkle" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><path d="m6 6 2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></symbol><symbol id="ev-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="ev-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol><symbol id="ev-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol><symbol id="ev-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol><symbol id="ev-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></symbol><symbol id="ev-phone-call" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></symbol><symbol id="ev-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15 9 12a22 22 0 0 1 2-4A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></symbol><symbol id="ev-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol><symbol id="ev-coins" viewBox="0 0 24 24"><circle cx="9" cy="9" r="6"/><path d="M18.1 10.4A6 6 0 1 1 10.3 18"/><path d="M8 7h1.5v4M16.7 13.9l.8.8-2.8 2.8"/></symbol><symbol id="ev-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol><symbol id="ev-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></symbol><symbol id="ev-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/></symbol><symbol id="ev-clipboard" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></symbol><symbol id="ev-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7.5 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3.5z"/><circle cx="12" cy="13" r="3.5"/></symbol><symbol id="ev-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol><symbol id="ev-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></symbol><symbol id="ev-ticket" viewBox="0 0 24 24"><path d="M3 9a3 3 0 0 0 0 6v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/><path d="M13 5v2M13 17v2M13 11v2"/></symbol><symbol id="ev-handshake" viewBox="0 0 24 24"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.9-3.9a3 3 0 0 0-4.2 0l-.9.9a1 1 0 1 1-3-3l2.8-2.8a5.8 5.8 0 0 1 7.1-.9l.5.3a4 4 0 0 0 2.8.5L21 4"/><path d="m21 3 1 11h-2M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3M3 4h8"/></symbol><symbol id="ev-cart" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L22 7H6"/></symbol><symbol id="ev-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M8 17v-5M13 17V8M18 17v-8"/></symbol><symbol id="ev-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol><symbol id="ev-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol><symbol id="ev-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20M6 15h4"/></symbol><symbol id="ev-book" viewBox="0 0 24 24"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v16H6.5A2.5 2.5 0 0 0 4 21.5 2.5 2.5 0 0 0 6.5 24"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></symbol><symbol id="ev-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M15.1 14c.2-1 .7-1.7 1.4-2.5A5.8 5.8 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.2 1.5 1.4 2.5"/></symbol><symbol id="ev-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol><symbol id="ev-unlock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.8-1.2"/></symbol><symbol id="ev-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/></symbol><symbol id="ev-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></symbol><symbol id="ev-paperclip" viewBox="0 0 24 24"><path d="m21.4 11-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol><symbol id="ev-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="ev-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></symbol><symbol id="ev-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="m22 7-10 6L2 7"/></symbol><symbol id="ev-trophy" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16M10 14.7V17c0 .6-.5 1-1 1.2-1.2.5-2 2-2 3.8M14 14.7V17c0 .6.5 1 1 1.2 1.2.5 2 2 2 3.8"/><path d="M18 2H6v7a6 6 0 0 0 12 0z"/></symbol><symbol id="ev-medal" viewBox="0 0 24 24"><circle cx="12" cy="15" r="6"/><path d="M8.2 10.2 5 2h4l3 6 3-6h4l-3.2 8.2"/></symbol><symbol id="ev-building" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></symbol><symbol id="ev-bank" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></symbol><symbol id="ev-snowflake" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M4.9 4.9l14.2 14.2M19.1 4.9 4.9 19.1"/></symbol><symbol id="ev-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol><symbol id="ev-receipt" viewBox="0 0 24 24"><path d="M4 2v20l3-2 2.5 2 2.5-2 2.5 2 2.5-2 3 2V2l-3 2-2.5-2L12 4 9.5 2 7 4z"/><path d="M8 9h8M8 13h8M8 17h5"/></symbol><symbol id="ev-film" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M7 3v18M17 3v18M3 8h4M3 12h18M3 16h4M17 8h4M17 16h4"/></symbol><symbol id="ev-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></symbol><symbol id="ev-thumbs-up" viewBox="0 0 24 24"><path d="M7 10v12M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9z"/></symbol><symbol id="ev-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol><symbol id="ev-pointer" viewBox="0 0 24 24"><path d="M9 11V5a2 2 0 0 1 4 0v5M13 9a2 2 0 0 1 4 0v2M17 10a2 2 0 0 1 4 0v4a8 8 0 0 1-8 8h-1a8 8 0 0 1-6.5-3.4L3 15a2 2 0 0 1 3.2-2.4L9 15"/></symbol><symbol id="ev-trending-down" viewBox="0 0 24 24"><path d="m3 7 6 6 4-4 8 8"/><path d="M15 17h6v-6"/></symbol><symbol id="ev-hand" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.4l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></symbol><symbol id="ev-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></symbol><symbol id="ev-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol><symbol id="ev-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol><symbol id="ev-puzzle" viewBox="0 0 24 24"><path d="M19.4 14.9c-.2.5 0 1.1.4 1.5l1.6 1.6a2.4 2.4 0 0 1 0 3.4l-1.6 1.6c-.5.5-1.2.4-1.6 0l-.9-.9a2.4 2.4 0 1 0-3.4 3.4"/><path d="M4 4h6v2a2 2 0 1 0 4 0V4h6v6h-2a2 2 0 1 0 0 4h2v6h-6v-2a2 2 0 1 0-4 0v2H4v-6h2a2 2 0 1 0 0-4H4z"/></symbol><symbol id="ev-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol><symbol id="ev-plug" viewBox="0 0 24 24"><path d="M12 22v-5M9 8V2M15 8V2M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z"/></symbol><symbol id="ev-virus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5 19 19M5 19l3.5-3.5M15.5 8.5 19 5"/></symbol><symbol id="ev-alarm" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6M22 6l-3-3"/></symbol><symbol id="ev-chart-up" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 6-6"/></symbol><symbol id="ev-video" viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2.5"/><path d="m22 8-6 4 6 4z"/></symbol><symbol id="ev-frown" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M16 16s-1.5-2-4-2-4 2-4 2M9 9h.01M15 9h.01"/></symbol><symbol id="ev-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></symbol><symbol id="ev-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></symbol><symbol id="ev-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></symbol><symbol id="ev-scale" viewBox="0 0 24 24"><path d="M12 3v18M7 21h10M3 7h18M6 7l-3 7a4 4 0 0 0 6 0zM18 7l-3 7a4 4 0 0 0 6 0z"/></symbol><symbol id="ev-flag" viewBox="0 0 24 24"><path d="M4 22V4a1 1 0 0 1 1-1h13l-3 5 3 5H5"/></symbol><symbol id="ev-note" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol><symbol id="ev-sleep" viewBox="0 0 24 24"><path d="M4 4h6l-6 7h6M14 12h6l-6 8h6"/></symbol><symbol id="ev-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6z"/></symbol><symbol id="ev-broom" viewBox="0 0 24 24"><path d="m13 11 8-8M8.5 13.5l2 2M3 21c1-4 3-7 5.5-7.5l2 2C10 18 7 20 3 21z"/></symbol><symbol id="ev-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol><symbol id="ev-square-check" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/></symbol><symbol id="ev-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></symbol><symbol id="ev-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol><symbol id="ev-chat-question" viewBox="0 0 24 24"><path d="M21 12a8.5 8.5 0 0 1-12.4 7.6L3 21l1.5-5A8.5 8.5 0 1 1 21 12z"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.8c0 1.7-2.4 2.2-2.4 2.2M12 16h.01"/></symbol><symbol id="ev-eye-off" viewBox="0 0 24 24"><path d="M10.7 5.1A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-2.2 3.2M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M2 2l20 20"/></symbol><symbol id="ev-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol></defs></svg>
 
 <!-- ════════════ LANDING PAGE ════════════ -->
 <div id="authWrap">
@@ -1675,7 +1702,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Your Temporary Password</div>
               <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
                 <span id="forgotTempPass" style="font-family:monospace;font-size:22px;font-weight:800;color:#3dd44a;letter-spacing:3px;"></span>
-                <button onclick="copyTempPassword()" title="Copy password" style="background:rgba(61,212,74,.15);border:1px solid rgba(61,212,74,.3);border-radius:8px;padding:6px 10px;cursor:pointer;color:#3dd44a;font-size:14px;transition:all .2s;" id="forgotCopyBtn">📋</button>
+                <button onclick="copyTempPassword()" title="Copy password" style="background:rgba(61,212,74,.15);border:1px solid rgba(61,212,74,.3);border-radius:8px;padding:6px 10px;cursor:pointer;color:#3dd44a;font-size:14px;transition:all .2s;" id="forgotCopyBtn"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg></button>
               </div>
               <div style="font-size:11.5px;color:var(--muted);margin-top:10px;">Use this to sign in, then change your password in <strong style="color:var(--white);">My Account</strong></div>
             </div>
@@ -1685,18 +1712,18 @@ tbody td{padding:13px 16px;font-size:14px;}
         </div>
         <div class="lp-hero-social-proof">
           <div class="lp-avatars"><span>JM</span><span>AW</span><span>NK</span><span>SO</span><span>+</span></div>
-          <div class="lp-sp-text"><div class="lp-stars">★★★★★</div><strong>10,000+ creators &amp; businesses</strong>Trusted across Kenya</div>
+          <div class="lp-sp-text"><div class="lp-stars" aria-label="5 stars"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg></div><strong>10,000+ creators &amp; businesses</strong>Trusted across Kenya</div>
         </div>
-        <div class="lp-ticker"><span class="lp-ticker-dot"></span><span class="lp-ticker-text" id="lpTickerText">🚀 <b>Brenda</b> just boosted her TikTok in Nairobi</span></div>
+        <div class="lp-ticker"><span class="lp-ticker-dot"></span><span class="lp-ticker-text" id="lpTickerText"><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg> <b>Brenda</b> just boosted her TikTok in Nairobi</span></div>
       </div>
       <div class="lp-hero-visual">
         <div class="lp-visual-glow"></div>
         <div class="lp-visual-ring"></div>
         <div class="lp-visual-ring-2"></div>
-        <div class="lp-orbit-badge"><span class="ob-dot"></span> 🚀 Grow Your Socials</div>
-        <div class="lp-orbit-badge"><span class="ob-dot"></span> 🎓 Creator Academy</div>
-        <div class="lp-orbit-badge"><span class="ob-dot"></span> 💼 Marketplace Gigs</div>
-        <div class="lp-orbit-badge"><span class="ob-dot"></span> 📱 M-Pesa Secure</div>
+        <div class="lp-orbit-badge"><span class="ob-dot"></span> <svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg> Grow Your Socials</div>
+        <div class="lp-orbit-badge"><span class="ob-dot"></span> <svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg> Creator Academy</div>
+        <div class="lp-orbit-badge"><span class="ob-dot"></span> <svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg> Marketplace Gigs</div>
+        <div class="lp-orbit-badge"><span class="ob-dot"></span> <svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg> M-Pesa Secure</div>
         <div class="lp-phone-frame"><img class="lp-rocket" src="endaviral_rocket_hero.svg" alt="EndaViral"/></div>
       </div>
     </div>
@@ -1717,12 +1744,12 @@ tbody td{padding:13px 16px;font-size:14px;}
   <div class="lp-platforms">
     <div class="lp-platforms-label">Platforms we support</div>
     <div class="lp-platforms-row">
-      <div class="lp-plat-pill pp-ig">📸 Instagram</div>
-      <div class="lp-plat-pill pp-tt">🎵 TikTok</div>
-      <div class="lp-plat-pill pp-yt">▶️ YouTube</div>
-      <div class="lp-plat-pill pp-fb">👥 Facebook</div>
+      <div class="lp-plat-pill pp-ig"><svg class=ev-i aria-hidden=true><use href=#ev-camera></use></svg> Instagram</div>
+      <div class="lp-plat-pill pp-tt"><svg class=ev-i aria-hidden=true><use href=#ev-music></use></svg> TikTok</div>
+      <div class="lp-plat-pill pp-yt"><svg class=ev-i aria-hidden=true><use href=#ev-play></use></svg> YouTube</div>
+      <div class="lp-plat-pill pp-fb"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg> Facebook</div>
       <div class="lp-plat-pill pp-tw">𝕏 Twitter/X</div>
-      <div class="lp-plat-pill pp-tk">🎯 Telegram</div>
+      <div class="lp-plat-pill pp-tk"><svg class=ev-i aria-hidden=true><use href=#ev-target></use></svg> Telegram</div>
     </div>
   </div>
 
@@ -1738,10 +1765,10 @@ tbody td{padding:13px 16px;font-size:14px;}
     <div class="lp-orbit-wrap lp-reveal" aria-hidden="true">
       <div class="lp-orbit-ring"></div>
       <div class="lp-orbit-ring-dash"></div>
-      <div class="lp-orbit-core"><span class="oc-loop">🔁</span><span class="oc-label">GROW<br>LEARN<br>EARN</span></div>
-      <div class="lp-orbit-node lp-orbit-node-grow"><span class="on-ico">🚀</span>Grow</div>
-      <div class="lp-orbit-node lp-orbit-node-learn"><span class="on-ico">🎓</span>Learn</div>
-      <div class="lp-orbit-node lp-orbit-node-earn"><span class="on-ico">💼</span>Earn</div>
+      <div class="lp-orbit-core"><span class="oc-loop"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg></span><span class="oc-label">GROW<br>LEARN<br>EARN</span></div>
+      <div class="lp-orbit-node lp-orbit-node-grow"><span class="on-ico"><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg></span>Grow</div>
+      <div class="lp-orbit-node lp-orbit-node-learn"><span class="on-ico"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg></span>Learn</div>
+      <div class="lp-orbit-node lp-orbit-node-earn"><span class="on-ico"><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg></span>Earn</div>
     </div>
 
     <div class="lp-pillars-grid">
@@ -1751,7 +1778,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <span class="lp-pillar-ghost-num">01</span>
         <div class="lp-pillar-corner"></div>
         <span class="lp-pillar-badge">Grow</span>
-        <span class="lp-pillar-icon">🚀</span>
+        <span class="lp-pillar-icon"><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg></span>
         <h3>Social Media Growth</h3>
         <p class="lp-pillar-desc">Followers, views, likes and engagement across every major platform — delivered fast and paid instantly via M-Pesa.</p>
         <ul class="lp-pillar-list">
@@ -1767,7 +1794,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <span class="lp-pillar-ghost-num">02</span>
         <div class="lp-pillar-corner"></div>
         <span class="lp-pillar-badge">Learn</span>
-        <span class="lp-pillar-icon">🎓</span>
+        <span class="lp-pillar-icon"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg></span>
         <h3>Creator Academy</h3>
         <p class="lp-pillar-desc">Deep, research-backed courses on TikTok, YouTube, Instagram, AI, business and personal branding — built for the Kenyan market.</p>
         <ul class="lp-pillar-list">
@@ -1783,7 +1810,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <span class="lp-pillar-ghost-num">03</span>
         <div class="lp-pillar-corner"></div>
         <span class="lp-pillar-badge">Earn</span>
-        <span class="lp-pillar-icon">💼</span>
+        <span class="lp-pillar-icon"><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg></span>
         <h3>Creator Marketplace</h3>
         <p class="lp-pillar-desc">Get discovered by Kenyan brands, apply for paid campaigns, and get paid straight to M-Pesa once the work is done.</p>
         <ul class="lp-pillar-list">
@@ -1814,9 +1841,9 @@ tbody td{padding:13px 16px;font-size:14px;}
         <p>Beyond the app, EndaViral runs in-person Creator Events from time to time — workshops, live speakers, networking and giveaways, hosted in a different Kenyan city each round so it isn't always Nairobi's turn.</p>
         <p>Tickets are affordable and booked straight from your dashboard, paid the same way as everything else here — M-Pesa.</p>
         <div class="lp-evt-meta-row">
-          <div class="lp-evt-chip">🎤 <b>Workshops</b> &amp; speaker sessions</div>
-          <div class="lp-evt-chip">📍 <b>Different city</b> each time</div>
-          <div class="lp-evt-chip">🎟️ <b>M-Pesa</b> checkout, digital ticket</div>
+          <div class="lp-evt-chip"><svg class=ev-i aria-hidden=true><use href=#ev-mic></use></svg> <b>Workshops</b> &amp; speaker sessions</div>
+          <div class="lp-evt-chip"><svg class=ev-i aria-hidden=true><use href=#ev-pin></use></svg> <b>Different city</b> each time</div>
+          <div class="lp-evt-chip"><svg class=ev-i aria-hidden=true><use href=#ev-ticket></use></svg> <b>M-Pesa</b> checkout, digital ticket</div>
         </div>
         <div class="lp-evt-cta-row">
           <a href="#" class="lp-evt-btn" onclick="showReg();document.getElementById('regBox').scrollIntoView({behavior:'smooth'});return false;">Create Free Account →</a>
@@ -1830,14 +1857,14 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="lp-evt-main">
             <div class="lp-evt-cover lp-evt-cover-fallback"></div>
             <div class="lp-evt-brand"><img src="EndaViral_logo_transparent.png" alt="" onerror="this.style.display='none'"><span>EndaViral</span></div>
-            <div class="lp-evt-badge"><span>🔔</span><b>Status</b><em>TBA</em></div>
+            <div class="lp-evt-badge"><span><svg class=ev-i aria-hidden=true><use href=#ev-bell></use></svg></span><b>Status</b><em>TBA</em></div>
             <div class="lp-evt-eyebrow">CREATOR EVENT</div>
             <div class="lp-evt-title">Next city: to be announced</div>
-            <div class="lp-evt-info">📍 Rotates across Kenya — Nairobi, Mombasa, Kisumu &amp; more<br>🎤 Workshops · Networking · Giveaways</div>
+            <div class="lp-evt-info"><svg class=ev-i aria-hidden=true><use href=#ev-pin></use></svg> Rotates across Kenya — Nairobi, Mombasa, Kisumu &amp; more<br><svg class=ev-i aria-hidden=true><use href=#ev-mic></use></svg> Workshops · Networking · Giveaways</div>
             <div class="lp-evt-chiprow">
-              <span class="lp-evt-chip2">🎤 Workshops</span>
-              <span class="lp-evt-chip2">🤝 Networking</span>
-              <span class="lp-evt-chip2">🎁 Giveaways</span>
+              <span class="lp-evt-chip2"><svg class=ev-i aria-hidden=true><use href=#ev-mic></use></svg> Workshops</span>
+              <span class="lp-evt-chip2"><svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg> Networking</span>
+              <span class="lp-evt-chip2"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> Giveaways</span>
             </div>
             <div class="lp-evt-urgency"><span>Nothing scheduled yet</span></div>
           </div>
@@ -1893,11 +1920,11 @@ tbody td{padding:13px 16px;font-size:14px;}
             <div class="lp-hire-ringing">Calling you about your page…</div>
             <div class="lp-hire-actions">
               <div style="text-align:center;">
-                <button class="lp-hire-act-btn lp-hire-decline" aria-label="Not now" onclick="event.preventDefault();">✕</button>
+                <button class="lp-hire-act-btn lp-hire-decline" aria-label="Not now" onclick="event.preventDefault();"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
                 <div class="lp-hire-act-label">Not now</div>
               </div>
               <div style="text-align:center;">
-                <button class="lp-hire-act-btn lp-hire-accept" aria-label="Book this call" onclick="consultOpenBooking();">📞</button>
+                <button class="lp-hire-act-btn lp-hire-accept" aria-label="Book this call" onclick="consultOpenBooking();"><svg class=ev-i aria-hidden=true><use href=#ev-phone-call></use></svg></button>
                 <div class="lp-hire-act-label">Book call</div>
               </div>
             </div>
@@ -1976,43 +2003,43 @@ tbody td{padding:13px 16px;font-size:14px;}
 
         <div class="lp-journey-row lj-left lp-reveal">
           <div class="ljr-card"><h4>Join EndaViral</h4><p>Create your free account in under a minute — no cost, no card required.</p></div>
-          <div class="ljr-marker mk-green"><span class="ljr-step">01</span>👤</div>
+          <div class="ljr-marker mk-green"><span class="ljr-step">01</span><svg class=ev-i aria-hidden=true><use href=#ev-user></use></svg></div>
           <div class="ljr-spacer"></div>
         </div>
 
         <div class="lp-journey-row lj-right lp-reveal">
           <div class="ljr-spacer"></div>
-          <div class="ljr-marker mk-blue"><span class="ljr-step">02</span>🎓</div>
+          <div class="ljr-marker mk-blue"><span class="ljr-step">02</span><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg></div>
           <div class="ljr-card"><h4>Learn at Creator Academy</h4><p>Work through bite-sized, research-backed courses built for the Kenyan market.</p></div>
         </div>
 
         <div class="lp-journey-row lj-left lp-reveal">
           <div class="ljr-card"><h4>Grow Your Following</h4><p>Put it into practice — order real growth across every platform you use.</p></div>
-          <div class="ljr-marker mk-green"><span class="ljr-step">03</span>🚀</div>
+          <div class="ljr-marker mk-green"><span class="ljr-step">03</span><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg></div>
           <div class="ljr-spacer"></div>
         </div>
 
         <div class="lp-journey-row lj-right lp-reveal">
           <div class="ljr-spacer"></div>
-          <div class="ljr-marker mk-blue"><span class="ljr-step">04</span>✅</div>
+          <div class="ljr-marker mk-blue"><span class="ljr-step">04</span><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg></div>
           <div class="ljr-card"><h4>Get Verified</h4><p>Build a creator profile brands can trust, backed by your growth and completed courses.</p></div>
         </div>
 
         <div class="lp-journey-row lj-left lp-reveal">
           <div class="ljr-card"><h4>Apply on Marketplace</h4><p>Browse live campaigns from Kenyan brands and apply directly from your dashboard.</p></div>
-          <div class="ljr-marker mk-gold"><span class="ljr-step">05</span>💼</div>
+          <div class="ljr-marker mk-gold"><span class="ljr-step">05</span><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg></div>
           <div class="ljr-spacer"></div>
         </div>
 
         <div class="lp-journey-row lj-right lp-reveal">
           <div class="ljr-spacer"></div>
-          <div class="ljr-marker mk-gold"><span class="ljr-step">06</span>💰</div>
+          <div class="ljr-marker mk-gold"><span class="ljr-step">06</span><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg></div>
           <div class="ljr-card"><h4>Earn Your First KES</h4><p>Get paid straight to M-Pesa the moment a brand approves your work.</p></div>
         </div>
 
         <div class="lp-journey-row lj-left lp-reveal">
           <div class="ljr-card"><h4>Reinvest &amp; Scale</h4><p>Turn today's earnings into tomorrow's growth — and the loop starts again.</p></div>
-          <div class="ljr-marker mk-green"><span class="ljr-step">07</span>🔁</div>
+          <div class="ljr-marker mk-green"><span class="ljr-step">07</span><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg></div>
           <div class="ljr-spacer"></div>
         </div>
 
@@ -2031,10 +2058,10 @@ tbody td{padding:13px 16px;font-size:14px;}
       <p>Most panels only sell followers. EndaViral pairs growth with real education and real income — so momentum doesn't stop at the numbers.</p>
     </div>
     <div class="lp-features-grid">
-      <div class="lp-feature-card"><div class="lp-feature-icon">👍</div><div class="lp-feature-tag">Quality First</div><h3>High Quality Services</h3><p>Real, lasting engagement delivered every single order.</p></div>
-      <div class="lp-feature-card"><div class="lp-feature-icon">📱</div><div class="lp-feature-tag">Local Payments</div><h3>Pay via M-Pesa</h3><p>Pay easily through your M-Pesa. No international cards needed.</p></div>
-      <div class="lp-feature-card"><div class="lp-feature-icon">💰</div><div class="lp-feature-tag">Best Value</div><h3>Very Low Prices</h3><p>Get premium social growth without breaking the bank.</p></div>
-      <div class="lp-feature-card"><div class="lp-feature-icon">⚡</div><div class="lp-feature-tag">Automated</div><h3>Instant Delivery</h3><p>Place an order and watch results start coming in within minutes.</p></div>
+      <div class="lp-feature-card"><div class="lp-feature-icon"><svg class=ev-i aria-hidden=true><use href=#ev-thumbs-up></use></svg></div><div class="lp-feature-tag">Quality First</div><h3>High Quality Services</h3><p>Real, lasting engagement delivered every single order.</p></div>
+      <div class="lp-feature-card"><div class="lp-feature-icon"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg></div><div class="lp-feature-tag">Local Payments</div><h3>Pay via M-Pesa</h3><p>Pay easily through your M-Pesa. No international cards needed.</p></div>
+      <div class="lp-feature-card"><div class="lp-feature-icon"><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg></div><div class="lp-feature-tag">Best Value</div><h3>Very Low Prices</h3><p>Get premium social growth without breaking the bank.</p></div>
+      <div class="lp-feature-card"><div class="lp-feature-icon"><svg class=ev-i aria-hidden=true><use href=#ev-zap></use></svg></div><div class="lp-feature-tag">Automated</div><h3>Instant Delivery</h3><p>Place an order and watch results start coming in within minutes.</p></div>
     </div>
   </section>
 
@@ -2100,7 +2127,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="lp-story-avatar" style="background:linear-gradient(135deg,#3dd44a,#1a6b23);">M</div>
           <div><div class="lp-story-name">Mary, Nairobi</div><div class="lp-story-role">TikTok Creator</div></div>
         </div>
-        <span class="lp-story-stat">💰 Earned KES 12,000</span>
+        <span class="lp-story-stat"><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg> Earned KES 12,000</span>
       </div>
       <div class="lp-story-card lp-reveal">
         <p class="lp-story-quote">"Growth services got me to 20K followers fast. Once I had the numbers, brands started reaching out through the Marketplace on their own."</p>
@@ -2108,7 +2135,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="lp-story-avatar" style="background:linear-gradient(135deg,#2196f3,#1467b3);">J</div>
           <div><div class="lp-story-name">John, Mombasa</div><div class="lp-story-role">Instagram Creator</div></div>
         </div>
-        <span class="lp-story-stat">💰 Earned KES 35,000</span>
+        <span class="lp-story-stat"><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg> Earned KES 35,000</span>
       </div>
       <div class="lp-story-card lp-reveal">
         <p class="lp-story-quote">"We posted one campaign and had qualified creator applications within a day. Approvals and payments all happen from one dashboard."</p>
@@ -2116,7 +2143,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           <div class="lp-story-avatar" style="background:linear-gradient(135deg,#ffb020,#f2891a);">A</div>
           <div><div class="lp-story-name">Amina's Boutique</div><div class="lp-story-role">Business, Nakuru</div></div>
         </div>
-        <span class="lp-story-stat">💼 8 Campaigns Completed</span>
+        <span class="lp-story-stat"><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg> 8 Campaigns Completed</span>
       </div>
     </div>
   </section>
@@ -2128,10 +2155,10 @@ tbody td{padding:13px 16px;font-size:14px;}
       <p>The fastest pillar to start with — place your first order in under two minutes.</p>
     </div>
     <div class="lp-steps">
-      <div class="lp-step"><div class="lp-step-num">1</div><span class="lp-step-icon">👤</span><h3>Register &amp; Log In</h3><p>Create your free account and log in to access your growth dashboard.</p></div>
-      <div class="lp-step"><div class="lp-step-num">2</div><span class="lp-step-icon">🎯</span><h3>Select SMM Services</h3><p>Pick your desired services from 50+ options and submit your social media link.</p></div>
-      <div class="lp-step"><div class="lp-step-num">3</div><span class="lp-step-icon">📲</span><h3>Enter M-pesa Number</h3><p>Wait for M-pesa prompt, enter PIN and pay instantly.</p></div>
-      <div class="lp-step"><div class="lp-step-num">4</div><span class="lp-step-icon">🚀</span><h3>Enjoy Quick Results</h3><p>Watch your numbers grow in real time.</p></div>
+      <div class="lp-step"><div class="lp-step-num">1</div><span class="lp-step-icon"><svg class=ev-i aria-hidden=true><use href=#ev-user></use></svg></span><h3>Register &amp; Log In</h3><p>Create your free account and log in to access your growth dashboard.</p></div>
+      <div class="lp-step"><div class="lp-step-num">2</div><span class="lp-step-icon"><svg class=ev-i aria-hidden=true><use href=#ev-target></use></svg></span><h3>Select SMM Services</h3><p>Pick your desired services from 50+ options and submit your social media link.</p></div>
+      <div class="lp-step"><div class="lp-step-num">3</div><span class="lp-step-icon"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg></span><h3>Enter M-pesa Number</h3><p>Wait for M-pesa prompt, enter PIN and pay instantly.</p></div>
+      <div class="lp-step"><div class="lp-step-num">4</div><span class="lp-step-icon"><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg></span><h3>Enjoy Quick Results</h3><p>Watch your numbers grow in real time.</p></div>
     </div>
   </section>
 
@@ -2176,16 +2203,16 @@ tbody td{padding:13px 16px;font-size:14px;}
         </div>
         <p>Kenya's Creator Growth Platform. Grow your social media, learn at Creator Academy, and earn through our Marketplace — pay and get paid via M-Pesa. Trusted by 10,000+ Kenyan creators &amp; businesses.</p>
         <div class="lp-footer-social">
-          <a href="https://www.tiktok.com/@endaviral" target="_blank" rel="noopener" title="TikTok">🎵</a>
-          <a href="https://www.instagram.com/endaviral" target="_blank" rel="noopener" title="Instagram">📸</a>
+          <a href="https://www.tiktok.com/@endaviral" target="_blank" rel="noopener" title="TikTok"><svg class=ev-i aria-hidden=true><use href=#ev-music></use></svg></a>
+          <a href="https://www.instagram.com/endaviral" target="_blank" rel="noopener" title="Instagram"><svg class=ev-i aria-hidden=true><use href=#ev-camera></use></svg></a>
           <a href="https://twitter.com/endaviral" target="_blank" rel="noopener" title="X / Twitter">𝕏</a>
-          <a href="https://www.facebook.com/endaviral" target="_blank" rel="noopener" title="Facebook">👥</a>
+          <a href="https://www.facebook.com/endaviral" target="_blank" rel="noopener" title="Facebook"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg></a>
         </div>
       </div>
 
       <!-- Grow column -->
       <div class="lp-footer-col">
-        <h5>🚀 Grow</h5>
+        <h5><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg> Grow</h5>
         <a href="/buy-tiktok-views-kenya">TikTok Views</a>
         <a href="/buy-tiktok-followers-kenya">TikTok Followers</a>
         <a href="/buy-instagram-followers-kenya">Instagram Followers</a>
@@ -2198,7 +2225,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 
       <!-- Learn column -->
       <div class="lp-footer-col">
-        <h5>🎓 Learn</h5>
+        <h5><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg> Learn</h5>
         <a href="#academy" class="badge-new">Creator Academy</a>
         <a href="/learn">Free Courses</a>
         <a href="#academy">Premium Courses</a>
@@ -2211,7 +2238,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 
       <!-- Earn column -->
       <div class="lp-footer-col">
-        <h5>💼 Earn</h5>
+        <h5><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg> Earn</h5>
         <a href="#marketplace" class="badge-new">Marketplace</a>
         <a href="#marketplace">Browse Campaigns</a>
         <a href="#marketplace">Become a Creator</a>
@@ -2233,7 +2260,7 @@ tbody td{padding:13px 16px;font-size:14px;}
     <div class="lp-footer-bottom">
       <div class="lp-footer-copy">© 2026 <a href="https://endaviral.co.ke">EndaViral</a> · Made for Kenya 🇰🇪 · All rights reserved.</div>
       <div class="lp-footer-mpesa">
-        <span>📱 Payments via M-Pesa</span>
+        <span><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg> Payments via M-Pesa</span>
       </div>
     </div>
   </footer>
@@ -2342,7 +2369,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       </div>
       <div class="topbar-right">
         <!-- EndaViral Wallet balance, every page (order_wallet.js walletRefreshCard) -->
-        <button type="button" class="tb-wallet" id="tbWallet" onclick="navTo('wallet')" style="display:none;" title="Your wallet balance — use it to pay for orders">💳 <span id="tbWalletAmt">KES 0</span></button>
+        <button type="button" class="tb-wallet" id="tbWallet" onclick="navTo('wallet')" style="display:none;" title="Your wallet balance — use it to pay for orders"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg> <span id="tbWalletAmt">KES 0</span></button>
         <button class="btn-back-dash" id="backToDashBtn" onclick="navTo('dashboard')" style="display:none;" title="Back to Dashboard">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>
           <span>Home</span>
@@ -2363,7 +2390,7 @@ tbody td{padding:13px 16px;font-size:14px;}
              this tab was closed, not just when a live SSE push happens to land
              while the customer is already looking at this page. ── -->
         <div id="dashTicketBanner" onclick="_onDashTicketBannerClick()" style="display:none;align-items:center;gap:10px;background:rgba(61,212,74,.08);border:1px solid rgba(61,212,74,.3);border-radius:12px;padding:12px 14px;margin-bottom:14px;cursor:pointer;">
-          <div style="font-size:20px;flex-shrink:0;">💬</div>
+          <div style="font-size:20px;flex-shrink:0;"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg></div>
           <div style="flex:1;min-width:0;">
             <div id="dashTicketBannerTitle" style="font-size:13px;font-weight:800;color:var(--white);">Support replied to your ticket</div>
             <div id="dashTicketBannerDesc" style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Tap to view the reply</div>
@@ -2379,9 +2406,9 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div id="howToGuide" style="background:rgba(61,212,74,.05);border:1px solid rgba(61,212,74,.15);border-radius:12px;padding:10px 12px;margin-bottom:14px;">
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="flex:1;min-width:0;">
-              <div id="howToGuideTitle" style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.3px;line-height:1.3;">🚀 PLACE YOUR FIRST ORDER</div>
+              <div id="howToGuideTitle" style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.3px;line-height:1.3;"><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg> PLACE YOUR FIRST ORDER</div>
               <div id="howToGuideDesc" style="font-size:11.5px;color:var(--muted);line-height:1.35;margin-top:2px;">Pick a platform then service → paste your <span style="color:var(--white);font-weight:600;">link</span> → pay via M-Pesa</div>
-              <button id="howToGuideLearn" type="button" onclick="acGoToCourse('basics')" style="margin-top:3px;background:none;border:none;padding:0;color:var(--green);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:2px;">📘 How EndaViral works →</button>
+              <button id="howToGuideLearn" type="button" onclick="acGoToCourse('basics')" style="margin-top:3px;background:none;border:none;padding:0;color:var(--green);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:2px;"><svg class=ev-i aria-hidden=true><use href=#ev-book></use></svg> How EndaViral works →</button>
             </div>
             <button id="howToGuideBtn" onclick="navTo('services')" style="flex-shrink:0;background:linear-gradient(135deg,#3dd44a,#28a035);color:#000;border:none;border-radius:9px;padding:9px 14px;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;">Start order →</button>
           </div>
@@ -2399,7 +2426,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <!-- ── Promo strip: swipe on mobile, 3-up grid on desktop. Replaces the 3 old full-width banners. ── -->
         <div class="promo-strip">
           <div class="promo-card pc-green" id="dashAffBanner" onclick="navTo('affiliate')" title="Refer &amp; Earn">
-            <div class="promo-icon">💸</div>
+            <div class="promo-icon"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg></div>
             <div class="promo-body">
               <div class="promo-title">Refer &amp; Earn</div>
               <div class="promo-desc">15% commission via M-Pesa</div>
@@ -2408,7 +2435,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
 
           <div class="promo-card pc-purple" onclick="navTo('academy')" title="Creator Academy">
-            <div class="promo-icon">🎓</div>
+            <div class="promo-icon"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg></div>
             <div class="promo-body">
               <div class="promo-title">Creator Academy</div>
               <div class="promo-desc">Free &amp; premium courses from KSh 50</div>
@@ -2417,7 +2444,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
 
           <div class="promo-card pc-blue" onclick="navTo('connect')" title="EndaViral Connect">
-            <div class="promo-icon">🤝</div>
+            <div class="promo-icon"><svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg></div>
             <div class="promo-body">
               <div class="promo-title">Creators Marketplace</div>
               <div class="promo-desc">Get paid by real businesses</div>
@@ -2426,7 +2453,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
 
           <div class="promo-card pc-gold" onclick="navTo('creator-events')" title="Creator Events">
-            <div class="promo-icon">🎤</div>
+            <div class="promo-icon"><svg class=ev-i aria-hidden=true><use href=#ev-mic></use></svg></div>
             <div class="promo-body">
               <div class="promo-title">Creator Events</div>
               <div class="promo-desc" id="dashEventsDesc">In-person training with real speakers</div>
@@ -2435,7 +2462,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
 
           <div class="promo-card pc-green" onclick="consultOpenBooking()" title="Hire EndaViral">
-            <div class="promo-icon">💼</div>
+            <div class="promo-icon"><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg></div>
             <div class="promo-body">
               <div class="promo-title">Hire EndaViral</div>
               <div class="promo-desc">Talk to a growth expert about your page. From KES 300</div>
@@ -2444,7 +2471,7 @@ tbody td{padding:13px 16px;font-size:14px;}
           </div>
 
           <div class="promo-card pc-gold" id="dashFreeOrderCard" onclick="freeOrderOpen()" title="Free Order">
-            <div class="promo-icon">🎁</div>
+            <div class="promo-icon"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg></div>
             <div class="promo-body">
               <div class="promo-title">Free Order</div>
               <div class="promo-desc" id="dashFreeOrderDesc">Every 5 orders = 1 free</div>
@@ -2455,7 +2482,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 
         <!-- ── Next-step offers for delivered orders (upsell.js) ── -->
         <div id="dashNextSteps" style="display:none;">
-          <div class="up-label">⚡ FINISH YOUR BOOST</div>
+          <div class="up-label"><svg class=ev-i aria-hidden=true><use href=#ev-zap></use></svg> FINISH YOUR BOOST</div>
           <div class="up-list" id="dashNextStepsList"></div>
         </div>
 
@@ -2484,10 +2511,11 @@ tbody td{padding:13px 16px;font-size:14px;}
 
         <!-- Toolbar: search + sort label -->
         <div class="catalog-toolbar">
-          <input class="search-inp" id="svcSearch" placeholder="🔍  Search within platform…" oninput="applyFilters()"/>
+          <input class="search-inp" id="svcSearch" placeholder="Search within platform…" oninput="applyFilters()"/>
           <div class="svc-chips">
-            <button type="button" class="svc-chip" id="chipRefill" onclick="toggleSvcChip('refill')">♻️ Refill</button>
-            <button type="button" class="svc-chip" id="chipSlow" onclick="toggleSvcChip('slow')" style="display:none;">🐢 Slow delivery</button>
+            <button type="button" class="svc-chip" id="chipRefill" onclick="toggleSvcChip('refill')"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refill</button>
+            <button type="button" class="svc-chip" id="chipSlow" onclick="toggleSvcChip('slow')" style="display:none;"><svg class=ev-i aria-hidden=true><use href=#ev-timer></use></svg> Slow delivery</button>
+            <button type="button" class="svc-chip organic" id="chipOrganic" onclick="toggleSvcChip('organic')" aria-pressed="false" style="display:none;" title="Only services with engagement from real users"><svg class=ev-i aria-hidden=true><use href=#ev-leaf></use></svg> Organic only</button>
           </div>
           <div class="sort-badge"><span class="sort-arrow">↑</span> Cheapest first</div>
         </div>
@@ -2495,6 +2523,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <!-- Service Colors legend — collapsed by default; this is reference
              info (what "Basic/Medium/Elite" in a service name means), not
              something a returning user needs to see on every visit. -->
+        <div id="saleBanner" style="display:none;margin:0 0 12px;padding:12px 16px;border-radius:12px;background:linear-gradient(135deg,rgba(255,176,32,.16),rgba(255,176,32,.05));border:1px solid rgba(255,176,32,.45);color:#ffe2a8;font-size:13.5px;font-weight:700;"></div>
         <div class="svc-colors-box">
           <span class="svc-colors-label">ⓘ What do the service tiers mean?</span>
           <div class="svc-colors-body">
@@ -2513,7 +2542,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="page-section" id="sec-orders">
         <div class="sec-hd">
           <div><div class="sec-title">MY ORDERS</div><div class="sec-sub">Track your order history and status</div></div>
-          <button class="btn-secondary" onclick="loadOrders(true)">↻ Refresh</button>
+          <button class="btn-secondary" onclick="loadOrders(true)"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
         </div>
         <div class="filter-row">
           <button class="cat-btn active" onclick="filterOrders('all',this)">All</button>
@@ -2538,16 +2567,16 @@ tbody td{padding:13px 16px;font-size:14px;}
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <button class="btn-primary" style="padding:9px 18px;font-size:13px;margin-top:0;"
               onclick="openNewTicketModal()">＋ New message</button>
-      <button class="btn-secondary" onclick="loadTickets()">↻ Refresh</button>
+      <button class="btn-secondary" onclick="loadTickets()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
     </div>
   </div>
 
   <!-- Filter tabs -->
   <div class="filter-row" id="ticketsFilterRow" style="display:none;">
     <button class="cat-btn active" onclick="filterTickets('all',this)">All</button>
-    <button class="cat-btn" onclick="filterTickets('open',this)">🔴 Open</button>
-    <button class="cat-btn" onclick="filterTickets('pending',this)">🟡 Pending</button>
-    <button class="cat-btn" onclick="filterTickets('resolved',this)">🟢 Resolved</button>
+    <button class="cat-btn" onclick="filterTickets('open',this)"><span class=ev-dot style=background:#ef4444></span> Open</button>
+    <button class="cat-btn" onclick="filterTickets('pending',this)"><span class=ev-dot style=background:#facc15></span> Pending</button>
+    <button class="cat-btn" onclick="filterTickets('resolved',this)"><span class=ev-dot style=background:#22c55e></span> Resolved</button>
     <button class="cat-btn" onclick="filterTickets('closed',this)">⬛ Closed</button>
   </div>
 
@@ -2562,10 +2591,10 @@ tbody td{padding:13px 16px;font-size:14px;}
 <div class="modal-overlay" id="newTicketModal" style="display:none;"
      onclick="if(event.target===this)closeNewTicketModal()">
   <div class="modal" style="max-width:440px;">
-    <button class="modal-close" onclick="closeNewTicketModal()">✕</button>
+    <button class="modal-close" onclick="closeNewTicketModal()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     <div class="modal-title">MESSAGE SUPPORT</div>
     <div class="nt-howto">
-      <button type="button" class="nt-howto-btn" onclick="ntToggleOrderHowto(this)">🛒 How do I place an order? <span>Show me ▾</span></button>
+      <button type="button" class="nt-howto-btn" onclick="ntToggleOrderHowto(this)"><svg class=ev-i aria-hidden=true><use href=#ev-cart></use></svg> How do I place an order? <span>Show me ▾</span></button>
       <div class="nt-howto-body" id="ntOrderHowto" style="display:none;"></div>
     </div>
     <div class="modal-sub" style="margin-bottom:20px;">
@@ -2584,10 +2613,10 @@ tbody td{padding:13px 16px;font-size:14px;}
       <label>Issue Type</label>
       <div class="nt-checkboxes">
         <label class="nt-cb-row">
-          <input type="checkbox" id="ntCbWrong"> 📦 Wrong Order (wrong link / qty / service)
+          <input type="checkbox" id="ntCbWrong"> <svg class=ev-i aria-hidden=true><use href=#ev-package></use></svg> Wrong Order (wrong link / qty / service)
         </label>
         <label class="nt-cb-row">
-          <input type="checkbox" id="ntCbDelay"> ⏳ Delayed Service (no delivery after 24h)
+          <input type="checkbox" id="ntCbDelay"> <svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg> Delayed Service (no delivery after 24h)
         </label>
       </div>
     </div>
@@ -2640,7 +2669,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <button onclick="closeTicketThread()" style="background:none;border:none;
               color:var(--muted);cursor:pointer;font-size:18px;line-height:1;
               padding:4px;border-radius:6px;" onmouseover="this.style.color='var(--white)'"
-              onmouseout="this.style.color='var(--muted)'">✕</button>
+              onmouseout="this.style.color='var(--muted)'"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     </div>
 
     <!-- Messages -->
@@ -2654,7 +2683,7 @@ tbody td{padding:13px 16px;font-size:14px;}
          background:rgba(122,143,173,.07);border-top:1px solid rgba(122,143,173,.2);
          font-size:12px;font-weight:700;color:var(--muted);text-align:center;
          flex-shrink:0;">
-      ✅ Marked as sorted — just type below if you need anything else
+      <svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Marked as sorted — just type below if you need anything else
     </div>
 
     <!-- Screenshot waiting to be sent (support_screenshots.js) -->
@@ -2662,7 +2691,7 @@ tbody td{padding:13px 16px;font-size:14px;}
     <!-- Reply input -->
     <div id="ttReplyRow" style="padding:10px 12px 14px;border-top:1px solid #1e2a40;background:#0c1322;
           display:flex;gap:8px;align-items:center;flex-shrink:0;">
-      <button type="button" class="tt-attach-btn" onclick="ttPickShot()" aria-label="Send a screenshot" title="Send a screenshot">📎</button>
+      <button type="button" class="tt-attach-btn" onclick="ttPickShot()" aria-label="Send a screenshot" title="Send a screenshot"><svg class=ev-i aria-hidden=true><use href=#ev-paperclip></use></svg></button>
       <textarea id="ttReplyInput" rows="1"
         placeholder="Reply here or send a screenshot"
         style="flex:1;background:#111a2c;border:1px solid #2a3a58;
@@ -2703,7 +2732,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <button onclick="cnCloseConversation()" style="background:none;border:none;
               color:var(--muted);cursor:pointer;font-size:18px;line-height:1;
               padding:4px;border-radius:6px;" onmouseover="this.style.color='var(--white)'"
-              onmouseout="this.style.color='var(--muted)'">✕</button>
+              onmouseout="this.style.color='var(--muted)'"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     </div>
     <div id="cnConvMessages" style="flex:1;overflow-y:auto;padding:16px 18px;
                                      display:flex;flex-direction:column;gap:10px;
@@ -2789,8 +2818,8 @@ tbody td{padding:13px 16px;font-size:14px;}
         <!-- EndaViral Wallet order credit: balance + history (order_wallet.js) -->
         <div id="walletCreditCard"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;" class="wallet-top-grid">
-          <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-label">Earnings Balance</div><div class="stat-val" id="wallet-balance">KES 0</div><div class="stat-sub">Referral / creator / agent earnings — separate from your Wallet above</div></div>
-          <div class="stat-card blue"><div class="stat-icon">📈</div><div class="stat-label">Total Deposited</div><div class="stat-val" id="wallet-deposited">KES 0</div><div class="stat-sub">All time via M-Pesa</div></div>
+          <div class="stat-card green"><div class="stat-icon"><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg></div><div class="stat-label">Earnings Balance</div><div class="stat-val" id="wallet-balance">KES 0</div><div class="stat-sub">Referral / creator / agent earnings — separate from your Wallet above</div></div>
+          <div class="stat-card blue"><div class="stat-icon"><svg class=ev-i aria-hidden=true><use href=#ev-chart-up></use></svg></div><div class="stat-label">Total Deposited</div><div class="stat-val" id="wallet-deposited">KES 0</div><div class="stat-sub">All time via M-Pesa</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;" class="wallet-main-grid">
           <div>
@@ -2811,7 +2840,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div class="big-amt"><span class="lbl">You're depositing</span><span class="val" id="depBigAmt">KES 500</span></div>
               <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="depPhone" placeholder="07XX XXX XXX"/></div></div>
               <div id="depProviderWarn" style="display:none;font-size:11px;font-weight:500;color:#ff9800;margin-bottom:8px;line-height:1.4;"></div>
-              <button class="btn-primary" id="depBtn" onclick="submitDeposit()">📱 SEND STK PUSH</button>
+              <button class="btn-primary" id="depBtn" onclick="submitDeposit()"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg> SEND STK PUSH</button>
               <div class="trust-row">
                 <div class="trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Secured by Safaricom</div>
                 <div class="trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Instant credit</div>
@@ -2819,7 +2848,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               </div>
             </div>
             <div class="deposit-status" id="depositStatus">
-              <div class="d-icon" id="depStatusIcon">📱</div>
+              <div class="d-icon" id="depStatusIcon"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg></div>
               <div class="d-title" id="depStatusTitle">WAITING FOR PAYMENT</div>
               <div class="d-desc" id="depStatusDesc">A prompt has been sent to your phone.<br>Enter your M-Pesa PIN to complete.</div>
               <div class="receipt-grid" id="depReceiptGrid">
@@ -2895,7 +2924,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         </div>
         <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
           <button id="evSubTab-browse" onclick="evSubTab('browse')" style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Upcoming Events</button>
-          <button id="evSubTab-mytickets" onclick="evSubTab('mytickets')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">🎟️ My Tickets</button>
+          <button id="evSubTab-mytickets" onclick="evSubTab('mytickets')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;"><svg class=ev-i aria-hidden=true><use href=#ev-ticket></use></svg> My Tickets</button>
         </div>
         <div id="evPane-browse">
           <div id="eventsGrid"><div class="loading-spinner"><div class="spinner"></div><span>Loading events…</span></div></div>
@@ -2912,7 +2941,7 @@ tbody td{padding:13px 16px;font-size:14px;}
              keeps class="admin-tab" + onclick="adminTab('key',this)" because
              other scripts find tabs by that signature (CCR restrictions, jumps). -->
         <button type="button" class="admin-switch" id="adminSwitch" onclick="adminNavOpen()" aria-haspopup="dialog" aria-controls="adminNav">
-          <span class="as-ic" id="adminSwitchIcon" aria-hidden="true">👥</span>
+          <span class="as-ic" id="adminSwitchIcon" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg></span>
           <span class="as-txt"><span class="as-grp" id="adminSwitchGroup">Customers</span><span class="as-lbl" id="adminSwitchLabel">Users</span></span>
           <span class="as-badge" id="adminSwitchBadge" hidden></span>
           <span class="as-cta">All sections <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
@@ -2922,56 +2951,56 @@ tbody td{padding:13px 16px;font-size:14px;}
           <nav class="admin-nav" id="adminNav" aria-label="Admin sections">
             <div class="an-head">
               <span>Admin sections</span>
-              <button type="button" class="an-close" onclick="adminNavClose()" aria-label="Close">✕</button>
+              <button type="button" class="an-close" onclick="adminNavClose()" aria-label="Close"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
             </div>
             <div class="an-group">
               <div class="an-title">Overview</div>
-              <button type="button" class="admin-tab" onclick="adminTab('stats',this)"><span class="at-ic" aria-hidden="true">📊</span><span class="at-lbl">Command Center</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('stats',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg></span><span class="at-lbl">Command Center</span></button>
             </div>
             <div class="an-group">
               <div class="an-title">Orders</div>
-              <button type="button" class="admin-tab" onclick="adminTab('allorders',this)"><span class="at-ic" aria-hidden="true">📦</span><span class="at-lbl">All Orders</span></button>
-              <button type="button" class="admin-tab" onclick="adminTab('create-order',this)"><span class="at-ic" aria-hidden="true">➕</span><span class="at-lbl">Create Order</span></button>
-              <button type="button" class="admin-tab" onclick="adminTab('link-queue',this)" id="lqTabBtn"><span class="at-ic" aria-hidden="true">⏳</span><span class="at-lbl">Queued Orders</span></button>
-              <button type="button" class="admin-tab" onclick="adminTab('free-orders',this)"><span class="at-ic" aria-hidden="true">🎁</span><span class="at-lbl">Free Orders</span></button>
-              <button type="button" class="admin-tab" onclick="adminTab('wallet-credit',this)"><span class="at-ic" aria-hidden="true">💳</span><span class="at-lbl">Wallet Credit</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('allorders',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-package></use></svg></span><span class="at-lbl">All Orders</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('create-order',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-plus></use></svg></span><span class="at-lbl">Create Order</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('link-queue',this)" id="lqTabBtn"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg></span><span class="at-lbl">Queued Orders</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('free-orders',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg></span><span class="at-lbl">Free Orders</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('wallet-credit',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg></span><span class="at-lbl">Wallet Credit</span></button>
             </div>
             <div class="an-group">
               <div class="an-title">Customers</div>
-              <button type="button" class="admin-tab" onclick="adminTab('support',this)"><span class="at-ic" aria-hidden="true">💬</span><span class="at-lbl">Support</span></button>
-              <button type="button" class="admin-tab active" onclick="adminTab('users',this)"><span class="at-ic" aria-hidden="true">👥</span><span class="at-lbl">Users</span></button>
-              <button type="button" class="admin-tab" onclick="adminTab('consultations',this)"><span class="at-ic" aria-hidden="true">💼</span><span class="at-lbl">Consultations</span></button>
-              <button type="button" class="admin-tab" onclick="adminTab('broadcasts',this)"><span class="at-ic" aria-hidden="true">📣</span><span class="at-lbl">Broadcasts</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('support',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg></span><span class="at-lbl">Support</span></button>
+              <button type="button" class="admin-tab active" onclick="adminTab('users',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg></span><span class="at-lbl">Users</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('consultations',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg></span><span class="at-lbl">Consultations</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('broadcasts',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-megaphone></use></svg></span><span class="at-lbl">Broadcasts</span></button>
             </div>
             <div class="an-group">
               <div class="an-title">Catalogue</div>
-              <button type="button" class="admin-tab" onclick="adminTab('services-mgmt',this)"><span class="at-ic" aria-hidden="true">🛒</span><span class="at-lbl">Services</span></button>
-              <button type="button" class="admin-tab" onclick="adminTab('providers',this)"><span class="at-ic" aria-hidden="true">⚡</span><span class="at-lbl">Providers</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('services-mgmt',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-cart></use></svg></span><span class="at-lbl">Services</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('providers',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-zap></use></svg></span><span class="at-lbl">Providers</span></button>
             </div>
             <div class="an-group">
               <div class="an-title">Programmes</div>
-              <button type="button" class="admin-tab" onclick="adminTab('affiliate-payouts',this)" id="affPayoutsTabBtn"><span class="at-ic" aria-hidden="true">💸</span><span class="at-lbl">Affiliate Payouts</span></button>
-              <button type="button" class="admin-tab" onclick="adminTab('academy',this)"><span class="at-ic" aria-hidden="true">🎓</span><span class="at-lbl">Academy</span></button>
-              <button type="button" class="admin-tab" onclick="adminTab('connect',this)"><span class="at-ic" aria-hidden="true">🤝</span><span class="at-lbl">Connect</span></button>
-              <button type="button" class="admin-tab" onclick="adminTab('creator-events',this)"><span class="at-ic" aria-hidden="true">🎤</span><span class="at-lbl">Creator Events</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('affiliate-payouts',this)" id="affPayoutsTabBtn"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg></span><span class="at-lbl">Affiliate Payouts</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('academy',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg></span><span class="at-lbl">Academy</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('connect',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg></span><span class="at-lbl">Connect</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('creator-events',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-mic></use></svg></span><span class="at-lbl">Creator Events</span></button>
             </div>
             <div class="an-group">
               <div class="an-title">Team &amp; Finance</div>
-              <button type="button" class="admin-tab" onclick="adminTab('ccr-agents',this)"><span class="at-ic" aria-hidden="true">🎧</span><span class="at-lbl">CCR Agents</span></button>
-              <button type="button" class="admin-tab" onclick="adminTab('payments-health',this)"><span class="at-ic" aria-hidden="true">🛡️</span><span class="at-lbl">Payments Health</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('ccr-agents',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-headphones></use></svg></span><span class="at-lbl">CCR Agents</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('payments-health',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-shield></use></svg></span><span class="at-lbl">Payments Health</span></button>
             </div>
           </nav>
           <div class="admin-main">
         <div class="admin-panel active" id="ap-users">
-          <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()">↻ Refresh</button></div>
+          <div class="sec-hd"><div><div class="sec-title">USER MANAGEMENT</div><div class="sec-sub">All registered users</div></div><button class="btn-secondary" onclick="loadAdminUsers()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button></div>
           <div class="tbl-wrap" id="adminUsersTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading users…</span></div></div>
         </div>
         <div class="admin-panel" id="ap-allorders">
-          <div class="sec-hd"><div><div class="sec-title">ALL ORDERS</div><div class="sec-sub">Every order across all users</div></div><button class="btn-secondary" onclick="loadAdminOrders()">↻ Refresh</button></div>
+          <div class="sec-hd"><div><div class="sec-title">ALL ORDERS</div><div class="sec-sub">Every order across all users</div></div><button class="btn-secondary" onclick="loadAdminOrders()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button></div>
           <div style="padding:0 0 14px 0;">
             <div class="adm-filters" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-              <input class="search-inp" id="adminOrderSearch" placeholder="🔍  Search by customer email…" style="max-width:300px;" oninput="loadAdminOrders()"/>
-              <input class="search-inp" id="adminOrderIdSearch" placeholder="🔍  Search by Order ID…" style="max-width:300px;" oninput="loadAdminOrders()"/>
+              <input class="search-inp" id="adminOrderSearch" placeholder="Search by customer email…" style="max-width:300px;" oninput="loadAdminOrders()"/>
+              <input class="search-inp" id="adminOrderIdSearch" placeholder="Search by Order ID…" style="max-width:300px;" oninput="loadAdminOrders()"/>
               <select id="adminOrderStatusFilter" onchange="loadAdminOrders()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;">
                 <option value="">All Status</option>
                 <option value="pending">Pending</option>
@@ -2984,8 +3013,8 @@ tbody td{padding:13px 16px;font-size:14px;}
               </select>
               <select id="adminOrderTypeFilter" onchange="loadAdminOrders()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;outline:none;">
                 <option value="">All Orders</option>
-                <option value="free">🎁 Free Orders only</option>
-                <option value="upsell">💡 From suggestions</option>
+                <option value="free">Free Orders only</option>
+                <option value="upsell">From suggestions</option>
               </select>
             </div>
           </div>
@@ -3019,11 +3048,41 @@ tbody td{padding:13px 16px;font-size:14px;}
                 <input type="number" id="maxRateKes" min="1" step="100" value="10000" style="width:80px;background:transparent;border:none;color:var(--blue);font-family:'Montserrat',sans-serif;font-size:16px;font-weight:700;outline:none;text-align:center;"/>
                 <span style="font-size:11px;color:var(--muted);">KES</span>
               </div>
-              <button class="btn-primary" style="padding:10px 20px;margin-top:0;width:auto;" onclick="syncServices()">⟳ Sync &amp; Apply</button>
+              <button class="btn-primary" style="padding:10px 20px;margin-top:0;width:auto;" onclick="syncServices()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Sync &amp; Apply</button>
+            </div>
+          </div>
+          <!-- Site-wide sale (admin.js → sale*; backend services/site_sale.py) -->
+          <div id="saleCard" style="margin:14px 0 4px;background:var(--navy);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div>
+                <div style="font-size:13px;font-weight:800;letter-spacing:.5px;"><svg class=ev-i aria-hidden=true><use href=#ev-sparkle></use></svg> SITE-WIDE SALE</div>
+                <div id="saleStatus" style="font-size:12px;color:var(--muted);margin-top:3px;">Loading…</div>
+              </div>
+              <button type="button" id="saleEndBtn" class="btn-secondary" style="display:none;padding:8px 14px;width:auto;margin:0;" onclick="saleEndNow()"><svg class=ev-i aria-hidden=true><use href=#ev-stop></use></svg> End sale now</button>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:var(--muted);">DISCOUNT %
+                <input type="number" id="salePct" min="1" max="50" step="1" value="10" oninput="saleRefreshPreview()" style="width:80px;background:var(--black);border:1px solid var(--border);border-radius:8px;color:var(--gold);font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;padding:8px 10px;"/>
+              </label>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:var(--muted);">STARTS (Nairobi time)
+                <input type="datetime-local" id="saleStart" onchange="saleRefreshPreview()" style="background:var(--black);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;padding:8px 10px;color-scheme:dark;"/>
+              </label>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:var(--muted);">ENDS (Nairobi time)
+                <input type="datetime-local" id="saleEnd" onchange="saleRefreshPreview()" style="background:var(--black);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;padding:8px 10px;color-scheme:dark;"/>
+              </label>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;">
+              <label for="saleTitle" style="font-size:11px;font-weight:700;color:var(--muted);">ANNOUNCEMENT TO ALL CUSTOMERS (you can edit it)</label>
+              <input type="text" id="saleTitle" maxlength="120" oninput="_saleEdited=true" style="background:var(--black);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;padding:9px 10px;"/>
+              <textarea id="saleBody" rows="3" maxlength="2000" oninput="_saleEdited=true" aria-label="Announcement message" style="background:var(--black);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:12.5px;padding:9px 10px;resize:vertical;"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;">
+              <button type="button" id="saleSaveBtn" class="btn-primary" style="padding:10px 18px;width:auto;margin:0;" onclick="saleSave()"><svg class=ev-i aria-hidden=true><use href=#ev-save></use></svg> Save &amp; announce</button>
+              <span style="font-size:11.5px;color:var(--muted);">Every price drops by this % for the period, never below your cost. Prices go back to normal on their own when it ends, and the announcement is removed from customers' chats.</span>
             </div>
           </div>
           <div style="margin:12px 0 16px;">
-            <input class="search-inp" id="adminSvcSearch" placeholder="🔍  Search services by name, ID, or category…" style="max-width:360px;" oninput="renderAdminServices()"/>
+            <input class="search-inp" id="adminSvcSearch" placeholder="Search services by name, ID, or category…" style="max-width:360px;" oninput="renderAdminServices()"/>
           </div>
           <div class="tbl-wrap" id="adminSvcTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
         </div>
@@ -3051,7 +3110,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               </div>
               <div id="acoStep2" style="display:none;">
                 <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">STEP 2 · Service</div>
-                <input class="search-inp" id="acoSvcSearch" placeholder="🔍 Search services…" oninput="filterAcoServices()" style="margin-bottom:10px;width:100%;"/>
+                <input class="search-inp" id="acoSvcSearch" placeholder="Search services…" oninput="filterAcoServices()" style="margin-bottom:10px;width:100%;"/>
                 <div id="acoSvcList" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.02);">
                   <div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>
                 </div>
@@ -3077,7 +3136,7 @@ tbody td{padding:13px 16px;font-size:14px;}
                       style="background:rgba(255,255,255,.05);border:none;flex:1;padding:11px 14px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:14px;outline:none;"/>
                   </div>
                 </div>
-                <button class="btn-primary" id="acoPlaceBtn" onclick="adminPlaceOrder()" style="width:100%;margin-top:4px;">📱 SEND STK PUSH TO CUSTOMER</button>
+                <button class="btn-primary" id="acoPlaceBtn" onclick="adminPlaceOrder()" style="width:100%;margin-top:4px;"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg> SEND STK PUSH TO CUSTOMER</button>
               </div>
             </div>
             <!-- ── Right: Status ── -->
@@ -3085,7 +3144,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;">ORDER STATUS</div>
               <div id="acoStatusPanel">
                 <div style="text-align:center;padding:40px 20px;color:var(--muted);">
-                  <div style="font-size:36px;margin-bottom:12px;">📋</div>
+                  <div style="font-size:36px;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg></div>
                   <div style="font-size:13px;">Fill in the form to create an order</div>
                 </div>
               </div>
@@ -3105,7 +3164,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div class="sec-title">SMM PROVIDERS</div>
               <div class="sec-sub">Switch providers instantly — no redeploy needed</div>
             </div>
-            <button class="btn-secondary" onclick="loadAdminProviders()">↻ Refresh</button>
+            <button class="btn-secondary" onclick="loadAdminProviders()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
           </div>
           <div id="providersGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:4px;">
             <div class="loading-spinner"><div class="spinner"></div><span>Loading providers…</span></div>
@@ -3141,7 +3200,7 @@ tbody td{padding:13px 16px;font-size:14px;}
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <input id="sbSearch" class="sb-in" placeholder="Search name, email, phone or message…" oninput="sbRender()" style="min-width:230px;"/>
-              <button class="btn-secondary" onclick="sbRefresh()">↻ Refresh</button>
+              <button class="btn-secondary" onclick="sbRefresh()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
             </div>
           </div>
 
@@ -3164,7 +3223,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div id="supportChatPane" style="display:flex;flex-direction:column;background:var(--black);">
                 <div style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:40px;color:var(--muted);">
                   <div>
-                    <div style="font-size:40px;margin-bottom:12px;">💬</div>
+                    <div style="font-size:40px;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg></div>
                     <div style="font-size:14px;font-weight:600;">Select a conversation</div>
                     <div style="font-size:12px;margin-top:6px;">Reply directly to customers from here</div>
                   </div>
@@ -3177,10 +3236,10 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-affiliate-payouts">
           <div class="sec-hd">
             <div>
-              <div class="sec-title" id="affAdminPanelTitle">💸 AFFILIATE PAYOUTS</div>
+              <div class="sec-title" id="affAdminPanelTitle"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg> AFFILIATE PAYOUTS</div>
               <div class="sec-sub" id="affAdminPanelSub">Record M-Pesa disbursements — balance updates automatically</div>
             </div>
-            <button class="btn-secondary" id="affAdminRefreshBtn" onclick="adminLoadAffiliatePayouts('pending')">↻ Refresh</button>
+            <button class="btn-secondary" id="affAdminRefreshBtn" onclick="adminLoadAffiliatePayouts('pending')"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
           </div>
 
           <!-- Sub-tabs: Payouts | Referrals -->
@@ -3188,17 +3247,17 @@ tbody td{padding:13px 16px;font-size:14px;}
             <div id="affSubTab-payouts"
               onclick="affAdminSubTab('payouts')"
               style="padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--green);color:var(--green);white-space:nowrap;margin-bottom:-1px;transition:all .2s;">
-              💸 Payout Queue
+              <svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg> Payout Queue
             </div>
             <div id="affSubTab-leaderboard"
               onclick="affAdminSubTab('leaderboard')"
               style="padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap;margin-bottom:-1px;transition:all .2s;">
-              🏆 Leaderboard
+              <svg class=ev-i aria-hidden=true><use href=#ev-trophy></use></svg> Leaderboard
             </div>
             <div id="affSubTab-referrals"
               onclick="affAdminSubTab('referrals')"
               style="padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap;margin-bottom:-1px;transition:all .2s;">
-              👥 Referrals
+              <svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg> Referrals
             </div>
           </div>
 
@@ -3221,10 +3280,10 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-academy">
           <div class="adm-hd" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
             <div>
-              <div style="font-size:16px;font-weight:900;color:var(--white);" id="acAdminPanelTitle">📊 ACADEMY OVERVIEW</div>
+              <div style="font-size:16px;font-weight:900;color:var(--white);" id="acAdminPanelTitle"><svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg> ACADEMY OVERVIEW</div>
               <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="acAdminPanelSub">Learner activity, drop-off, revenue &amp; top performers</div>
             </div>
-            <button class="btn-secondary" id="acAdminRefreshBtn" style="font-size:12px;padding:8px 16px;">↻ Refresh</button>
+            <button class="btn-secondary" id="acAdminRefreshBtn" style="font-size:12px;padding:8px 16px;"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
           </div>
           <div class="adm-subtabs" style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
             <button id="acSubTab-overview"    onclick="acAdminSubTab('overview')"    style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Overview</button>
@@ -3249,19 +3308,19 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-connect">
           <div class="adm-hd" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
             <div>
-              <div style="font-size:16px;font-weight:900;color:var(--white);" id="cnAdminPanelTitle">📊 CONNECT OVERVIEW</div>
+              <div style="font-size:16px;font-weight:900;color:var(--white);" id="cnAdminPanelTitle"><svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg> CONNECT OVERVIEW</div>
               <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="cnAdminPanelSub">Marketplace visibility, campaign lifecycle, revenue &amp; top performers</div>
             </div>
-            <button class="btn-secondary" id="cnAdminRefreshBtn" style="font-size:12px;padding:8px 16px;">↻ Refresh</button>
+            <button class="btn-secondary" id="cnAdminRefreshBtn" style="font-size:12px;padding:8px 16px;"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
           </div>
           <div class="adm-subtabs" style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
             <button id="cnSubTab-overview"    onclick="cnAdminSubTab('overview')"    style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Overview</button>
             <button id="cnSubTab-funnel"      onclick="cnAdminSubTab('funnel')"      style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Funnel</button>
             <button id="cnSubTab-revenue"     onclick="cnAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
             <button id="cnSubTab-leaderboard" onclick="cnAdminSubTab('leaderboard')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Leaderboard</button>
-            <button id="cnSubTab-payouts"     onclick="cnAdminSubTab('payouts')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">💸 Payouts</button>
+            <button id="cnSubTab-payouts"     onclick="cnAdminSubTab('payouts')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg> Payouts</button>
             <button id="cnSubTab-paymentissues" onclick="cnAdminSubTab('paymentissues')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">🆘 Payment Issues</button>
-            <button id="cnSubTab-moderation"  onclick="cnAdminSubTab('moderation')"  style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">🛡️ Moderation</button>
+            <button id="cnSubTab-moderation"  onclick="cnAdminSubTab('moderation')"  style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;"><svg class=ev-i aria-hidden=true><use href=#ev-shield></use></svg> Moderation</button>
           </div>
           <div id="cnAdminPane-overview"><div id="adminConnectOverview"></div></div>
           <div id="cnAdminPane-funnel" style="display:none;"><div id="adminConnectFunnel"></div></div>
@@ -3275,10 +3334,10 @@ tbody td{padding:13px 16px;font-size:14px;}
         <!-- ══ CCR AGENTS ══ -->
         <div class="admin-panel" id="ap-ccr-agents">
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
-            <div><div class="sec-title">🎧 CCR AGENTS</div><div class="sec-sub">Assign the customer-care role, set commission %, and pay out daily earnings</div></div>
+            <div><div class="sec-title"><svg class=ev-i aria-hidden=true><use href=#ev-headphones></use></svg> CCR AGENTS</div><div class="sec-sub">Assign the customer-care role, set commission %, and pay out daily earnings</div></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button class="btn-secondary" onclick="ccrOpenAssign()">+ Assign Role</button>
-              <button class="btn-secondary" onclick="loadCCRAgents();loadCCRCommissions();">↻ Refresh</button>
+              <button class="btn-secondary" onclick="loadCCRAgents();loadCCRCommissions();"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
             </div>
           </div>
 
@@ -3296,7 +3355,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;margin-top:28px;">
             <div><div class="sec-title" style="font-size:14px;">PAYOUT REQUESTS</div><div class="sec-sub">Agents can request their pending balance any time — review and approve or reject here</div></div>
-            <button class="btn-secondary" onclick="loadCCRPayoutRequests()">↻ Refresh</button>
+            <button class="btn-secondary" onclick="loadCCRPayoutRequests()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
           </div>
           <div class="tbl-wrap" id="ccrPayoutRequestsTable"><div class="loading-spinner"><div class="spinner"></div><span>Loading payout requests…</span></div></div>
         </div>
@@ -3304,18 +3363,18 @@ tbody td{padding:13px 16px;font-size:14px;}
         <!-- ══ CREATOR EVENTS (admin) ══ -->
         <div class="admin-panel" id="ap-creator-events">
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
-            <div><div class="sec-title">🎤 CREATOR EVENTS</div><div class="sec-sub">Create ticketed in-person training events, publish them, and track ticket sales</div></div>
+            <div><div class="sec-title"><svg class=ev-i aria-hidden=true><use href=#ev-mic></use></svg> CREATOR EVENTS</div><div class="sec-sub">Create ticketed in-person training events, publish them, and track ticket sales</div></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button class="btn-secondary" onclick="adminEventOpenCreate()">+ New Event</button>
-              <button class="btn-secondary" onclick="loadAdminEvents()">↻ Refresh</button>
+              <button class="btn-secondary" onclick="loadAdminEvents()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
             </div>
           </div>
           <div class="tbl-wrap" id="adminEventsList"><div class="loading-spinner"><div class="spinner"></div><span>Loading events…</span></div></div>
 
           <!-- ══ CITY REQUESTS — demand signal from the public empty-state form ══ -->
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;margin-top:32px;">
-            <div><div class="sec-title" style="font-size:16px;">📍 CITY REQUESTS</div><div class="sec-sub">Where creators want us to bring the next event, and what they want to learn</div></div>
-            <button class="btn-secondary" onclick="loadAdminCityRequests()">↻ Refresh</button>
+            <div><div class="sec-title" style="font-size:16px;"><svg class=ev-i aria-hidden=true><use href=#ev-pin></use></svg> CITY REQUESTS</div><div class="sec-sub">Where creators want us to bring the next event, and what they want to learn</div></div>
+            <button class="btn-secondary" onclick="loadAdminCityRequests()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
           </div>
           <div class="tbl-wrap" id="adminCityRequestsPanel"><div class="loading-spinner"><div class="spinner"></div><span>Loading city requests…</span></div></div>
         </div>
@@ -3340,7 +3399,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 
         <div class="admin-panel" id="ap-free-orders">
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
-            <div><div class="sec-title">🎁 FREE ORDERS</div><div class="sec-sub">Clients who completed 5 paid orders. Approve to push to the provider — no payment needed.</div></div>
+            <div><div class="sec-title"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> FREE ORDERS</div><div class="sec-sub">Clients who completed 5 paid orders. Approve to push to the provider — no payment needed.</div></div>
             <select id="freeOrdersFilter" onchange="loadAdminFreeOrders()" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;">
               <option value="pending">Pending</option><option value="approved">Approved</option><option value="all">All</option>
             </select>
@@ -3352,7 +3411,7 @@ tbody td{padding:13px 16px;font-size:14px;}
         <!-- ══ HIRE ENDAVIRAL: CONSULTATIONS (admin) ══ -->
         <div class="admin-panel" id="ap-consultations">
           <div class="sec-hd" style="flex-wrap:wrap;gap:12px;">
-            <div><div class="sec-title">💼 CONSULTATIONS</div><div class="sec-sub">Paid "Hire EndaViral" bookings across all four packages. Call these people, review their account, set up the session</div></div>
+            <div><div class="sec-title"><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg> CONSULTATIONS</div><div class="sec-sub">Paid "Hire EndaViral" bookings across all four packages. Call these people, review their account, set up the session</div></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <select id="consultStageFilter" onchange="loadAdminConsultations()" style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:13px;">
                 <option value="">All paid bookings</option>
@@ -3371,7 +3430,7 @@ tbody td{padding:13px 16px;font-size:14px;}
                 <option value="growth_plan">Old: Growth Plan · KES 1,000</option>
                 <option value="money_plan">Old: Money Plan · KES 1,500</option>
               </select>
-              <button class="btn-secondary" onclick="loadAdminConsultations()">↻ Refresh</button>
+              <button class="btn-secondary" onclick="loadAdminConsultations()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
             </div>
           </div>
           <div id="consultStatsRow" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;"></div>
@@ -3389,7 +3448,7 @@ tbody td{padding:13px 16px;font-size:14px;}
   <!-- ══════════════════ CONSULTATIONS: ADMIN SCHEDULE MODAL ══════════════════ -->
   <div class="modal-overlay" id="consultScheduleModal" onclick="if(event.target===this)adminConsultCloseSchedule()">
     <div class="modal" style="max-width:420px;">
-      <button class="modal-close" onclick="adminConsultCloseSchedule()">✕</button>
+      <button class="modal-close" onclick="adminConsultCloseSchedule()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
       <div class="modal-title" style="margin-bottom:4px;">Schedule Consultation</div>
       <div class="modal-sub" style="margin-bottom:18px;">Sets the Meet time and marks this lead as contacted</div>
       <div class="field"><label>Date &amp; Time</label><input type="datetime-local" id="consultScheduleAt"/></div>
@@ -3401,7 +3460,7 @@ tbody td{padding:13px 16px;font-size:14px;}
   <!-- ══════════════════ CREATOR EVENTS: ADMIN EDITOR MODAL ══════════════════ -->
   <div class="modal-overlay" id="adminEventEditorModal" style="display:none;" onclick="if(event.target===this)adminEventCloseEditor()">
     <div class="modal" style="max-width:640px;">
-      <button class="modal-close" onclick="adminEventCloseEditor()">✕</button>
+      <button class="modal-close" onclick="adminEventCloseEditor()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
       <div class="modal-title" id="adminEventEditorTitle" style="margin-bottom:4px;">New Creator Event</div>
       <div class="modal-sub" style="margin-bottom:18px;">Fill in the details — the event starts as a draft until you publish it</div>
 
@@ -3443,7 +3502,7 @@ tbody td{padding:13px 16px;font-size:14px;}
   <!-- ══════════════════ CREATOR EVENTS: ADMIN ATTENDEES MODAL ══════════════════ -->
   <div class="modal-overlay" id="adminEventAttendeesModal" style="display:none;" onclick="if(event.target===this)adminEventCloseAttendees()">
     <div class="modal" style="max-width:680px;">
-      <button class="modal-close" onclick="adminEventCloseAttendees()">✕</button>
+      <button class="modal-close" onclick="adminEventCloseAttendees()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
       <div class="modal-title" id="adminEventAttendeesTitle" style="margin-bottom:18px;">Attendees</div>
       <div id="adminEventAttendeesBody"></div>
     </div>
@@ -3453,7 +3512,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 <div id="ccrAssignModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:420px;margin:16px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <div style="font-size:18px;font-weight:800;">🎧 Assign CCR Role</div>
+      <div style="font-size:18px;font-weight:800;"><svg class=ev-i aria-hidden=true><use href=#ev-headphones></use></svg> Assign CCR Role</div>
       <button onclick="ccrCloseAssign()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;">&times;</button>
     </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Pick a user and set their commission rate. They'll start earning a share of total platform profit once you generate commissions for a day.</div>
@@ -3476,7 +3535,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 <div id="affAdminDisburseModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:440px;margin:16px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <div style="font-size:18px;font-weight:800;">💸 Record Disbursement</div>
+      <div style="font-size:18px;font-weight:800;"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg> Record Disbursement</div>
       <button onclick="affAdminCloseDisburse()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;">&times;</button>
     </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:22px;">After sending M-Pesa manually, enter the details below. The affiliate&#x27;s balance will reduce by the amount you enter.</div>
@@ -3522,7 +3581,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 <div id="affAdminRejectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:400px;margin:16px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div style="font-size:18px;font-weight:800;">✗ Reject Payout</div>
+      <div style="font-size:18px;font-weight:800;"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> Reject Payout</div>
       <button onclick="affAdminCloseReject()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;">&times;</button>
     </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">The affiliate&#x27;s balance will be fully restored. They will see your note.</div>
@@ -3543,7 +3602,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 <div id="affCommissionModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:420px;margin:16px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <div style="font-size:18px;font-weight:800;">✏️ Edit Commission Rate</div>
+      <div style="font-size:18px;font-weight:800;"><svg class=ev-i aria-hidden=true><use href=#ev-edit></use></svg> Edit Commission Rate</div>
       <button onclick="affCommissionClose()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;">&times;</button>
     </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Changes apply to <strong style="color:var(--white);">future orders only</strong> — existing commissions are not recalculated.</div>
@@ -3598,7 +3657,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 <div id="affProfileModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;width:100%;max-width:760px;margin:16px;max-height:88vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div style="font-size:18px;font-weight:800;">👤 Affiliate Profile</div>
+      <div style="font-size:18px;font-weight:800;"><svg class=ev-i aria-hidden=true><use href=#ev-user></use></svg> Affiliate Profile</div>
       <button onclick="affProfileClose()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;">&times;</button>
     </div>
     <div id="affProfileModalBody"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
@@ -3608,7 +3667,7 @@ tbody td{padding:13px 16px;font-size:14px;}
 <!-- ORDER MODAL -->
 <div class="modal-overlay" id="orderModal">
   <div class="modal" style="max-width:460px;">
-    <button class="modal-close" onclick="closeOrderModal()">✕</button>
+    <button class="modal-close" onclick="closeOrderModal()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     <div id="omStep1">
       <div class="modal-title" id="omTitle">PLACE YOUR ORDER</div>
       <div class="modal-sub" id="omSub">Fill in the details below</div>
@@ -3619,7 +3678,7 @@ tbody td{padding:13px 16px;font-size:14px;}
       <!-- Slow delivery: only for services that support it (svc.dripfeed) -->
       <div class="modal-field" id="omSpeed" style="display:none;">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;">
-          <input type="checkbox" id="omSlow" onchange="omSetSpeed(this.checked)" style="width:auto;margin:0;"/> 🐢 Slow delivery
+          <input type="checkbox" id="omSlow" onchange="omSetSpeed(this.checked)" style="width:auto;margin:0;"/> <svg class=ev-i aria-hidden=true><use href=#ev-timer></use></svg> Slow delivery
         </label>
       </div>
       <div id="omAddon"></div>
@@ -3629,26 +3688,26 @@ tbody td{padding:13px 16px;font-size:14px;}
       <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="omPhone" placeholder="07XX XXX XXX"/></div></div>
       <details class="order-tips" style="margin-bottom:10px;">
         <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--green);letter-spacing:.5px;list-style:none;display:flex;align-items:center;gap:6px;user-select:none;">
-          <span style="font-size:14px;">💡</span> HOW TO ORDER CORRECTLY <span style="margin-left:auto;font-size:10px;color:var(--muted);">Tap to expand</span>
+          <span style="font-size:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg></span> HOW TO ORDER CORRECTLY <span style="margin-left:auto;font-size:10px;color:var(--muted);">Tap to expand</span>
         </summary>
         <div style="margin-top:10px;padding:12px;background:var(--navy);border:1px solid var(--border);border-radius:8px;font-size:12px;line-height:1.8;color:var(--muted);">
-          <div style="margin-bottom:6px;">👉 Be Realistic. If you have 100 followers, don't buy 50K — it looks fake & will drop fast, putting your account at risk.</div>
-          <div style="margin-bottom:6px;">👉 Place smaller amounts and let one order finish before starting another.</div>
-          <div style="color:var(--green);font-weight:600;">✅ Following these basics for results to last longer and look natural.</div>
+          <div style="margin-bottom:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-arrow-right></use></svg> Be Realistic. If you have 100 followers, don't buy 50K — it looks fake & will drop fast, putting your account at risk.</div>
+          <div style="margin-bottom:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-arrow-right></use></svg> Place smaller amounts and let one order finish before starting another.</div>
+          <div style="color:var(--green);font-weight:600;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Following these basics for results to last longer and look natural.</div>
         </div>
       </details>
       <details class="order-tips" style="margin-bottom:16px;">
         <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--orange);letter-spacing:.5px;list-style:none;display:flex;align-items:center;gap:6px;user-select:none;">
-          <span style="font-size:14px;">⚠️</span> BEFORE YOU PAY — READ THIS <span style="margin-left:auto;font-size:10px;color:var(--muted);">Tap to expand</span>
+          <span style="font-size:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></span> BEFORE YOU PAY — READ THIS <span style="margin-left:auto;font-size:10px;color:var(--muted);">Tap to expand</span>
         </summary>
         <div style="margin-top:10px;padding:12px;background:var(--navy);border:1px solid var(--border);border-radius:8px;font-size:12px;line-height:1.8;color:var(--muted);">
-          <div style="margin-bottom:6px;">✅ Make sure your profile or post is <strong style="color:var(--white);">public</strong> — private accounts cannot receive orders.</div>
-          <div style="margin-bottom:6px;">✅ <strong style="color:var(--white);">Double-check your link</strong> — if the link is wrong, the order goes to the wrong account and there is NO REFUND.</div>
-          <div style="margin-bottom:6px;">✅ Do not delete the post or change your username while an order is running.</div>
-          <div style="margin-bottom:10px;">⚠️ Once payment is confirmed, the order starts and <strong style="color:var(--white);">cannot be CANCELLED.</strong> If it fails or is only partly delivered, we refund the missing part to your Wallet.</div>
+          <div style="margin-bottom:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Make sure your profile or post is <strong style="color:var(--white);">public</strong> — private accounts cannot receive orders.</div>
+          <div style="margin-bottom:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> <strong style="color:var(--white);">Double-check your link</strong> — if the link is wrong, the order goes to the wrong account and there is NO REFUND.</div>
+          <div style="margin-bottom:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Do not delete the post or change your username while an order is running.</div>
+          <div style="margin-bottom:10px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Once payment is confirmed, the order starts and <strong style="color:var(--white);">cannot be CANCELLED.</strong> If it fails or is only partly delivered, we refund the missing part to your Wallet.</div>
           <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
-            <div style="margin-bottom:6px;">⏳ <strong style="color:var(--white);">"Instant"</strong> means the order starts instantly — not that it finishes immediately.</div>
-            <div>📉 We have Cheap and Expensive Services. The prices vary based on the service quality and delivery time.</div>
+            <div style="margin-bottom:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg> <strong style="color:var(--white);">"Instant"</strong> means the order starts instantly — not that it finishes immediately.</div>
+            <div><svg class=ev-i aria-hidden=true><use href=#ev-trending-down></use></svg> We have Cheap and Expensive Services. The prices vary based on the service quality and delivery time.</div>
           </div>
         </div>
       </details>
@@ -3656,12 +3715,12 @@ tbody td{padding:13px 16px;font-size:14px;}
         <button class="btn-secondary" onclick="closeOrderModal()">Cancel</button>
         <div style="flex:1;">
           <div id="omProviderWarn" style="display:none;font-size:11px;font-weight:500;color:#ff9800;margin-bottom:8px;line-height:1.4;"></div>
-          <button class="btn-primary" id="placeOrderBtn" onclick="placeOrder()" style="margin-top:0;width:100%;">📱 PAY &amp; ORDER</button>
+          <button class="btn-primary" id="placeOrderBtn" onclick="placeOrder()" style="margin-top:0;width:100%;"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg> PAY &amp; ORDER</button>
         </div>
       </div>
     </div>
     <div id="omStep2" style="display:none;text-align:center;padding:10px 0;">
-      <div style="font-size:48px;margin-bottom:16px;">📱</div>
+      <div style="font-size:48px;margin-bottom:16px;"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg></div>
       <div class="modal-title">WAITING FOR PAYMENT</div>
       <div class="modal-sub" style="margin-bottom:20px;">A prompt has been sent to <strong id="omPayPhone"></strong><br>Enter your M-Pesa PIN to confirm.</div>
       <div style="background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:20px;text-align:left;">
@@ -3671,10 +3730,10 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div id="omPayWalletNote" style="display:none;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border);font-size:13px;"><span style="color:var(--muted);">From your wallet</span><strong id="omPayWalletAmt" style="color:var(--green);"></strong></div>
       </div>
       <div class="loading-spinner" style="margin-bottom:16px;"><div class="spinner"></div><span>Checking payment…</span></div>
-      <button class="btn-secondary" onclick="cancelOrderFlow()" style="width:100%;">✕ Cancel</button>
+      <button class="btn-secondary" onclick="cancelOrderFlow()" style="width:100%;"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> Cancel</button>
     </div>
     <div id="omStep3" style="display:none;text-align:center;padding:10px 0;">
-      <div id="omResultIcon" style="font-size:56px;margin-bottom:16px;">✅</div>
+      <div id="omResultIcon" style="font-size:56px;margin-bottom:16px;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg></div>
       <div class="modal-title" id="omResultTitle">ORDER PLACED!</div>
       <div class="modal-sub" id="omResultDesc" style="margin-bottom:24px;"></div>
       <div id="omUpsell"></div>
@@ -3707,8 +3766,8 @@ tbody td{padding:13px 16px;font-size:14px;}
     if (open && !body.innerHTML) {
       body.innerHTML = (typeof evOrderHowtoHTML === 'function' ? evOrderHowtoHTML() : '') +
         `<div class="nt-howto-actions">
-           <button class="btn-primary" style="flex:1;min-width:150px;margin-top:0;padding:11px;" onclick="closeNewTicketModal();navTo('services')">👆 Start an order</button>
-           <button class="btn-secondary" style="flex:1;min-width:150px;" onclick="closeNewTicketModal();acGoToCourse('basics')">📘 How EndaViral Works</button>
+           <button class="btn-primary" style="flex:1;min-width:150px;margin-top:0;padding:11px;" onclick="closeNewTicketModal();navTo('services')"><svg class=ev-i aria-hidden=true><use href=#ev-pointer></use></svg> Start an order</button>
+           <button class="btn-secondary" style="flex:1;min-width:150px;" onclick="closeNewTicketModal();acGoToCourse('basics')"><svg class=ev-i aria-hidden=true><use href=#ev-book></use></svg> How EndaViral Works</button>
          </div>`;
     }
     body.style.display = open ? '' : 'none';
@@ -3726,7 +3785,7 @@ tbody td{padding:13px 16px;font-size:14px;}
     </div>
     <div class="tnc-modal-foot">
       <button class="btn-tnc-close" onclick="closeTnc()">Close</button>
-      <button class="btn-tnc-accept" onclick="acceptTnc()">✓ I Accept These Terms</button>
+      <button class="btn-tnc-accept" onclick="acceptTnc()"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg> I Accept These Terms</button>
     </div>
   </div>
 </div>
@@ -3921,13 +3980,57 @@ function getLinkGuidance(svc) {
 // the wrong link isn't refunded, so the first Pay tap stops and explains; a second tap
 // goes ahead (the check never guesses, but the customer has the last word).
 let _linkWarnAck = '';
+// Wrong PLATFORM — refused (no "tap again"). Mirrors the backend's
+// link_platform_problem() in services/link_kind.py; keep the two in step.
+const _LP_LABEL = { instagram:'Instagram', tiktok:'TikTok', youtube:'YouTube', facebook:'Facebook',
+  twitter:'X (Twitter)', telegram:'Telegram', spotify:'Spotify', snapchat:'Snapchat', linkedin:'LinkedIn',
+  threads:'Threads', discord:'Discord', twitch:'Twitch', soundcloud:'SoundCloud', vimeo:'Vimeo' };
+const _LP_SVC_WORDS = [['instagram',['instagram']],['tiktok',['tiktok','tik tok']],['youtube',['youtube']],
+  ['facebook',['facebook']],['twitter',['twitter','tweet']],['telegram',['telegram']],['spotify',['spotify']],
+  ['snapchat',['snapchat']],['linkedin',['linkedin']],['threads',['threads']],['discord',['discord']],
+  ['twitch',['twitch']],['soundcloud',['soundcloud']],['vimeo',['vimeo']]];
+const _LP_HOSTS = [['instagram',['instagram.com','instagr.am']],['tiktok',['tiktok.com']],
+  ['youtube',['youtube.com','youtu.be']],['facebook',['facebook.com','fb.com','fb.watch']],
+  ['twitter',['x.com','twitter.com']],['telegram',['t.me','telegram.me','telegram.org']],
+  ['spotify',['spotify.com','spotify.link']],['snapchat',['snapchat.com']],['linkedin',['linkedin.com','lnkd.in']],
+  ['threads',['threads.net','threads.com']],['discord',['discord.com','discord.gg']],['twitch',['twitch.tv']],
+  ['soundcloud',['soundcloud.com','on.soundcloud.com']],['vimeo',['vimeo.com']]];
+const _LP_SKIP = /traffic|website|web\s*site|visitors?\b|\bseo\b|live\s*stream|livestream/i;
+function _lpServicePlatform(svc) {
+  const name = svc.name || svc.service_name || '', cat = svc.category || '';
+  if (_LP_SKIP.test(name + ' ' + cat)) return null;
+  for (const text of [cat.toLowerCase(), name.toLowerCase()])
+    for (const [key, words] of _LP_SVC_WORDS) if (words.some(w => text.includes(w))) return key;
+  return null;
+}
+function _lpLinkPlatform(link) {
+  let host = '';
+  try { host = new URL(link).hostname.toLowerCase(); } catch (e) { return null; }
+  host = host.replace(/^(www\.|m\.|mobile\.|web\.)/, '');
+  for (const [key, hosts] of _LP_HOSTS) if (hosts.some(h => host === h || host.endsWith('.' + h))) return key;
+  return null;
+}
+function linkPlatformProblem(svc, link) {
+  if (!svc || !link) return null;
+  const want = _lpServicePlatform(svc), got = _lpLinkPlatform(link);
+  if (!want || !got || want === got) return null;
+  if ([want, got].sort().join() === 'instagram,threads') return null;
+  return `This service is for ${_LP_LABEL[want]}, but you pasted a ${_LP_LABEL[got]} link. Paste your ${_LP_LABEL[want]} link instead.`;
+}
+
 function checkOrderLink() {
   const el = document.getElementById('omLink');
   const hint = document.getElementById('omLinkHint');
   if (!el || !hint || !currentSvc) return null;
+  const platProblem = el.value.trim() ? linkPlatformProblem(currentSvc, el.value.trim()) : null;
+  if (platProblem) {
+    hint.textContent = platProblem;
+    hint.style.color = '#ff5252';
+    return platProblem;
+  }
   const problem = el.value.trim() ? linkKindProblem(svcLinkKind(currentSvc), el.value.trim()) : null;
   if (problem) {
-    hint.textContent = '⚠️ ' + problem;
+    hint.textContent = problem;
     hint.style.color = '#ff9800';
   } else {
     hint.textContent = getLinkGuidance(currentSvc).hint;
@@ -3944,7 +4047,7 @@ function checkOrderLink() {
 // label per-platform without needing a separate SUBCATS key (which would
 // fragment the "All" count and search).
 const SUBCAT_LABEL_OVERRIDES = {
-  youtube: { members: '🔔 Subscribers' },
+  youtube: { members: 'Subscribers' },
 };
 
 function _subcatLabelFor(key, platformKey) {
@@ -3952,17 +4055,19 @@ function _subcatLabelFor(key, platformKey) {
   return override || SUBCATS[key].label;
 }
 
+const SUBCAT_ICON = { packages: 'package', followers: 'users', likes: 'heart', live: 'radio', views: 'eye',
+  comments: 'comment', shares: 'repeat', saves: 'bookmark', plays: 'play', members: 'user-plus' };
 const SUBCATS = {
-  packages:  { label: '💬 Packages',    keywords: ['package','subscription'] },
-  followers: { label: '👥 Followers',   keywords: ['follower','follow','followers'] },
-  likes:     { label: '❤️ Likes',       keywords: ['like','heart','react','upvote','likes'] },
-  live:  { label: '▶️ Live',    keywords: ['live','live views','live stream','live videos','live chat','live views'] },
-  views:     { label: '👁️ Views',       keywords: ['view','watch','impression','reach'] },
-  comments:  { label: '💬 Comments',    keywords: ['comment'] },
-  shares:    { label: '🔁 Shares',      keywords: ['share','repost','retweet','rt '] },
-  saves:     { label: '🔖 Saves',       keywords: ['save','bookmark'] },
-  plays:     { label: '▶️ Plays',       keywords: ['play','stream','listen'] },
-  members:   { label: '🏠 Members',     keywords: ['member','subscriber','subscribers','sub'] },
+  packages:  { label: 'Packages',    keywords: ['package','subscription'] },
+  followers: { label: 'Followers',   keywords: ['follower','follow','followers'] },
+  likes:     { label: 'Likes',       keywords: ['like','heart','react','upvote','likes'] },
+  live:  { label: 'Live',    keywords: ['live','live views','live stream','live videos','live chat','live views'] },
+  views:     { label: 'Views',       keywords: ['view','watch','impression','reach'] },
+  comments:  { label: 'Comments',    keywords: ['comment'] },
+  shares:    { label: 'Shares',      keywords: ['share','repost','retweet','rt '] },
+  saves:     { label: 'Saves',       keywords: ['save','bookmark'] },
+  plays:     { label: 'Plays',       keywords: ['play','stream','listen'] },
+  members:   { label: 'Members',     keywords: ['member','subscriber','subscribers','sub'] },
 
 };
 
@@ -4023,7 +4128,7 @@ function _checkProviderLimit(amountKes, btnId, warningElId, minKes) {
     btn.style.opacity = '0.5';
     btn.style.cursor  = 'not-allowed';
     if (warnEl) {
-      warnEl.textContent = `⚠️ Max Order Accepted is ${fmtKES(maxKes)} — Please reduce your amount.`;
+      warnEl.textContent = `Max Order Accepted is ${fmtKES(maxKes)} — Please reduce your amount.`;
       warnEl.style.display = 'block';
     }
     return false;
@@ -4141,8 +4246,11 @@ async function _apiRequest(path, opts = {}) {
   return data;
 }
 
+// Line icon from the sprite, for HTML built in JS: evIcon('refresh')
+function evIcon(name) { return `<svg class=ev-i aria-hidden=true><use href=#ev-${name}></use></svg>`; }
+
 function toast(msg, type = 'info') {
-  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const icons = { success: evIcon('check-circle'), error: evIcon('x-circle'), info: evIcon('info') };
   const t = document.createElement('div');
   t.className = `toast ${type}`;
   t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
@@ -4217,10 +4325,43 @@ function getSubcatKey(svc) {
   return 'other';
 }
 
+// Real platform logos from Simple Icons (CC0), bundled in /icons/platforms/ (see its README).
+// If one doesn't load (e.g. a brand removed from the set, like LinkedIn), the
+// coloured initials tile shows instead. Dark brands use a light version.
+const PLAT_LOGO = {
+  instagram: ['instagram', 'E4405F', 'IG'], tiktok: ['tiktok', 'ffffff', 'TT'], youtube: ['youtube', 'FF0000', 'YT'],
+  facebook: ['facebook', '1877F2', 'FB'], twitter: ['x', 'ffffff', 'X'], telegram: ['telegram', '26A5E4', 'TG'],
+  spotify: ['spotify', '1ED760', 'SP'], snapchat: ['snapchat', 'FFFC00', 'SC'], linkedin: ['linkedin', '0A66C2', 'in'],
+  threads: ['threads', 'ffffff', 'TH'], discord: ['discord', '5865F2', 'DC'], twitch: ['twitch', '9146FF', 'TW'],
+  kick: ['kick', '53FC18', 'K'], soundcloud: ['soundcloud', 'FF5500', 'SC'], vimeo: ['vimeo', '1AB7EA', 'V'],
+  quora: ['quora', 'B92B27', 'Q'], onlyfans: ['onlyfans', '00AFF0', 'OF'],
+};
+// Line icons for the non-brand tabs (same set as the rest of the app).
+const PLAT_LINE = {
+  all: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  livestream: '<circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19A10 10 0 0 1 5 5"/>',
+  website: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  other: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+};
+function platIconHTML(key) {
+  const logo = PLAT_LOGO[key];
+  if (logo) {
+    const [slug, hex, ini] = logo;
+    // Fallback tile, hidden until the logo fails to load.
+    const tile = `<span class="plat-ini${hex.toLowerCase() === 'ffffff' ? ' plat-light' : ''}" style="display:none;background:#${hex}26;color:#${hex};">${ini}</span>`;
+    // onerror: swap the broken image for the initials tile (kept hidden next to it).
+    const light = hex.toLowerCase() === 'ffffff' ? ' plat-light' : '';
+    return `<img class="plat-logo${light}" src="/icons/platforms/${slug}.svg" alt="" loading="lazy" onerror="if(!this.closest('.svc-plat'))this.nextElementSibling.style.display='inline-flex';this.remove()">`
+         + tile;
+  }
+  const line = PLAT_LINE[key] || PLAT_LINE.other;
+  return `<svg class="plat-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${line}</svg>`;
+}
+
 function platformTag(svc) {
   const key = getPlatformKey(svc);
   const def = getPlatformDef(key);
-  return `<span class="svc-plat ${def.cls}">${def.emoji} ${def.label}</span>`;
+  return `<span class="svc-plat ${def.cls}">${platIconHTML(def.key)} ${def.label}</span>`;
 }
 
 function toggleFaq(el) {
@@ -4230,12 +4371,12 @@ function toggleFaq(el) {
 
 // ── Hero live activity ticker (illustrative, rotates for atmosphere) ──
 const lpTickerFeed = [
-  '🚀 <b>Brenda</b> just boosted her TikTok in Nairobi',
-  '🎓 <b>James</b> completed the "AI for Creators" course',
-  '💼 <b>Amina</b> got hired for a brand campaign — KES 4,500',
-  '🚀 <b>Kevin</b> grew his Instagram following in Mombasa',
-  '💰 <b>Faith</b> just cashed out her referral earnings',
-  '🎓 <b>Otieno</b> unlocked a premium course with loyalty points',
+  evIcon('rocket') + ' <b>Brenda</b> just boosted her TikTok in Nairobi',
+  evIcon('graduation') + ' <b>James</b> completed the "AI for Creators" course',
+  evIcon('briefcase') + ' <b>Amina</b> got hired for a brand campaign — KES 4,500',
+  evIcon('rocket') + ' <b>Kevin</b> grew his Instagram following in Mombasa',
+  evIcon('coins') + ' <b>Faith</b> just cashed out her referral earnings',
+  evIcon('graduation') + ' <b>Otieno</b> unlocked a premium course with loyalty points',
 ];
 (function lpStartTicker(){
   const el = document.getElementById('lpTickerText');
@@ -4399,7 +4540,7 @@ async function loadDashboard() {
     if (typeof walletRefreshCard === 'function') walletRefreshCard();
   } catch(_) {
     if (typeof walletRefreshCard === 'function') walletRefreshCard();
-    document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders yet. Place your first order!</p></div>';
+    document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-inbox></use></svg></div><p>No orders yet. Place your first order!</p></div>';
   }
 }
 
@@ -4408,9 +4549,9 @@ function renderDashOrders(orders) {
   // order, so it becomes a standing "place your next order" shortcut
   // instead of disappearing after the first purchase.
   const title = document.getElementById('howToGuideTitle');
-  if (title) title.textContent = orders.length ? '🚀 PLACE YOUR NEXT ORDER' : '🚀 PLACE YOUR FIRST ORDER';
+  if (title) title.innerHTML = evIcon('rocket') + (orders.length ? ' PLACE YOUR NEXT ORDER' : ' PLACE YOUR FIRST ORDER');
   if (!orders.length) {
-    document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders yet. <a href="#" onclick="navTo(\'services\')" style="color:var(--green);">Place your first order →</a></p></div>';
+    document.getElementById('dashOrdersTable').innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-inbox></use></svg></div><p>No orders yet. <a href="#" onclick="navTo(\'services\')" style="color:var(--green);">Place your first order →</a></p></div>';
     return;
   }
   // Rows (desktop) and cards (phones) both open the order details sheet
@@ -4441,7 +4582,10 @@ async function loadServices(force = false) {
   // admin sync (which calls loadServices(true) itself — see syncServices()
   // in admin.js). So once loaded, this cache is good for the rest of the
   // session; nothing here should ever hit the DB again on its own.
+  const _saleEnd = allServices.find(s => s.sale_ends_at)?.sale_ends_at;
+  if (allServices.length > 0 && ((_saleEnd && Date.now() >= Date.parse(_saleEnd)) || Date.now() - _servicesLoadedAt > 30 * 60 * 1000)) force = true;
   if (!force && allServices.length > 0) {
+    renderSaleBanner();
     buildPlatformTabs();
     applyFilters();
     return;
@@ -4451,11 +4595,26 @@ async function loadServices(force = false) {
     allServices = (data.services || data.data || data || [])
       .filter(s => !/^tiktok auto\b/i.test(s.name || s.service_name || ''))
       .map(s => ({ ...s, _platKey: getPlatformKey(s), _subcatKey: getSubcatKey(s) }));
+    _servicesLoadedAt = Date.now();
+    renderSaleBanner();
     buildPlatformTabs();
     applyFilters();
   } catch(_) {
-    document.getElementById('servicesContainer').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Could not load services. Please try again.</p></div>';
+    document.getElementById('servicesContainer').innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>Could not load services. Please try again.</p></div>';
   }
+}
+
+let _servicesLoadedAt = 0;
+// Site-wide sale banner above the catalogue (prices already arrive discounted).
+function renderSaleBanner() {
+  const el = document.getElementById('saleBanner');
+  if (!el) return;
+  const s = allServices.find(x => x.sale_pct && x.sale_ends_at);
+  if (!s) { el.style.display = 'none'; return; }
+  const end = new Date(s.sale_ends_at);
+  const when = end.toLocaleString('en-KE', { timeZone: 'Africa/Nairobi', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  el.innerHTML = `${evIcon('sparkle')} ${s.sale_pct}% off every service until ${when}. Prices below already include the discount.`;
+  el.style.display = '';
 }
 
 function buildPlatformTabs() {
@@ -4472,7 +4631,7 @@ function buildPlatformTabs() {
     const div = document.createElement('div');
     div.className = 'platform-tile' + (p.key === 'all' ? ' active' : '');
     div.dataset.platform = p.key;
-    div.innerHTML = `<span class="pt-icon">${p.emoji}</span><span class="pt-label">${p.label}</span>`;
+    div.innerHTML = `<span class="pt-icon">${platIconHTML(p.key)}</span><span class="pt-label">${p.label}</span>`;
     div.onclick = () => selectPlatform(p.key);
     return div;
   }
@@ -4554,13 +4713,14 @@ function buildSubcatBar() {
   const allTile = document.createElement('div');
   allTile.className = 'subcat-tile active';
   allTile.dataset.subcat = 'all';
-  allTile.innerHTML = `<span class="st-icon">📋</span><span class="st-label">All</span><span class="st-count">${counts.all}</span>`;
+  allTile.innerHTML = `<span class="st-icon"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg></span><span class="st-label">All</span><span class="st-count">${counts.all}</span>`;
   allTile.onclick = () => selectSubcat('all');
   bar.appendChild(allTile);
 
   Object.entries(SUBCATS).forEach(([key, def]) => {
     if (!counts[key]) return;
-    const { icon, text } = splitLabel(_subcatLabelFor(key, activePlatform));
+    const { text } = splitLabel(_subcatLabelFor(key, activePlatform));
+    const icon = evIcon(SUBCAT_ICON[key] || 'layers');
     const tile = document.createElement('div');
     tile.className = 'subcat-tile';
     tile.dataset.subcat = key;
@@ -4573,7 +4733,7 @@ function buildSubcatBar() {
     const tile = document.createElement('div');
     tile.className = 'subcat-tile';
     tile.dataset.subcat = 'other';
-    tile.innerHTML = `<span class="st-icon">🔗</span><span class="st-label">Other</span><span class="st-count">${counts['other']}</span>`;
+    tile.innerHTML = `<span class="st-icon"><svg class=ev-i aria-hidden=true><use href=#ev-link></use></svg></span><span class="st-label">Other</span><span class="st-count">${counts['other']}</span>`;
     tile.onclick = () => selectSubcat('other');
     bar.appendChild(tile);
   }
@@ -4586,10 +4746,12 @@ function selectSubcat(key) {
 }
 
 // Feature filters — stay on while the customer changes platform / type.
-const svcChips = { refill: false, slow: false };
+const svcChips = { refill: false, slow: false, organic: false };
+const SVC_CHIP_IDS = { refill: 'chipRefill', slow: 'chipSlow', organic: 'chipOrganic' };
 function toggleSvcChip(k) {
   svcChips[k] = !svcChips[k];
-  document.getElementById(k === 'refill' ? 'chipRefill' : 'chipSlow')?.classList.toggle('on', svcChips[k]);
+  const chip = document.getElementById(SVC_CHIP_IDS[k]);
+  if (chip) { chip.classList.toggle('on', svcChips[k]); chip.setAttribute('aria-pressed', String(svcChips[k])); }
   applyFilters();
 }
 
@@ -4603,10 +4765,20 @@ function applyFilters() {
     slowChip.style.display = anySlow ? '' : 'none';
     if (!anySlow && svcChips.slow) { svcChips.slow = false; slowChip.classList.remove('on'); }
   }
+  // "Organic only" chip: shown only when the chosen platform has organic
+  // services (flags come from the backend, services/service_flags.py).
+  const orgChip = document.getElementById('chipOrganic');
+  if (orgChip) {
+    const pool = activePlatform !== 'all' ? allServices.filter(s => s._platKey === activePlatform) : allServices;
+    const anyOrganic = pool.some(svcIsOrganic);
+    orgChip.style.display = anyOrganic ? '' : 'none';
+    if (!anyOrganic && svcChips.organic) { svcChips.organic = false; orgChip.classList.remove('on'); orgChip.setAttribute('aria-pressed', 'false'); }
+  }
   if (activePlatform !== 'all') list = list.filter(s => s._platKey === activePlatform);
   if (activeSubcat !== 'all') list = list.filter(s => s._subcatKey === activeSubcat);
   if (svcChips.refill) list = list.filter(s => s.refill);
   if (svcChips.slow) list = list.filter(s => s.dripfeed);
+  if (svcChips.organic) list = list.filter(svcIsOrganic);
   if (q) list = list.filter(s => (s.name||'').toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q));
   list = [...list].sort((a, b) => {
     const ra = parseFloat(a.rate || a.price_per_1000 || a.price || 0);
@@ -4697,24 +4869,34 @@ function _recCardHTML(s) {
   const rate = parseFloat(s.rate || s.price_per_1000 || s.price || 0);
   const tier = svcTierFor(s);
   const tierHTML = tier && tier !== 'basic'
-    ? `<span class="svc-feature-badge rec-tier ${tier}">${tier === 'elite' ? '🔵 Elite' : '🟢 Medium'}</span>` : '';
+    ? `<span class="svc-feature-badge rec-tier ${tier}">${tier === 'elite' ? '<span class=ev-dot style=background:#3b82f6></span> Elite' : '<span class=ev-dot style=background:#22c55e></span> Medium'}</span>` : '';
   const svcJson = JSON.stringify(s).replace(/"/g, '&quot;');
   return `<div class="svc-card rec-card" data-svc="${svcJson}" onclick="recOpen(event,'card')">
-    <div class="rec-kicker">⭐ ENDAVIRAL RECOMMENDS${SUBCATS[s._subcatKey] ? ' · ' + _subcatLabelFor(s._subcatKey, s._platKey).replace(/^\S+\s/, '').toUpperCase() : ''}</div>
+    <div class="rec-kicker"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg> ENDAVIRAL RECOMMENDS${SUBCATS[s._subcatKey] ? ' · ' + _subcatLabelFor(s._subcatKey, s._platKey).replace(/^\S+\s/, '').toUpperCase() : ''}</div>
     <div class="svc-name">${tierDotHTML(tier)}${name}</div>
-    <div class="svc-feature-badges"><span class="svc-feature-badge refill">♻️ Refill</span>${tierHTML}</div>
+    <div class="svc-feature-badges"><span class="svc-feature-badge refill"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refill</span>${tierHTML}${svcFlagBadges(s)}${svcIsOrganic(s) ? SVC_ORGANIC_BADGE : ''}</div>
     <div class="rec-why">Backed by free refills for results that last.</div>
     <div class="svc-meta">
-      <div class="svc-price-block"><div class="svc-price">${fmtKES(rate)}</div><div class="svc-price-label">per 1,000</div></div>
+      <div class="svc-price-block">${s.rate_before_sale ? `<div class="svc-price-was"><span class="svc-old-price">${fmtKES(s.rate_before_sale)}</span></div>` : ''}<div class="svc-price">${fmtKES(rate)}</div><div class="svc-price-label">per 1,000</div></div>
       <button class="rec-btn" type="button">Order →</button>
     </div>
   </div>`;
 }
 
+function svcFlagBadges(s) {
+  // Labels the backend reads from MoreThanPanel's name/category — strict matching,
+  // e.g. "VIP Looking Accounts" / "Low Drop" are NOT flagged.
+  const f = new Set(s.flags || []);
+  return (f.has('vip') ? '<span class="svc-feature-badge vip" title="Delivered from accounts of real users"><svg class=ev-i aria-hidden=true><use href=#ev-crown></use></svg> VIP</span>' : '')
+       + (f.has('non_drop') ? '<span class="svc-feature-badge nondrop" title="Designed not to drop"><svg class=ev-i aria-hidden=true><use href=#ev-shield></use></svg> Non-drop</span>' : '')
+       + (f.has('high_retention') ? '<span class="svc-feature-badge hiret" title="Stays active longer; for views, people watch longer"><svg class=ev-i aria-hidden=true><use href=#ev-clock></use></svg> High retention</span>' : '');
+}
+function svcIsOrganic(s) { return (s.flags || []).includes('organic'); }
+const SVC_ORGANIC_BADGE = '<span class="svc-organic-badge" title="Engagement from real users"><svg class=ev-i aria-hidden=true><use href=#ev-leaf></use></svg> Organic</span>';
 function renderServices(list, recs = []) {
   const c = document.getElementById('servicesContainer');
   if (!list.length) {
-    c.innerHTML = '<div class="no-results-block"><div class="nr-emoji">🔍</div><p>No services found. Try a different filter or search term.</p></div>';
+    c.innerHTML = '<div class="no-results-block"><div class="nr-emoji"><svg class=ev-i aria-hidden=true><use href=#ev-search></use></svg></div><p>No services found. Try a different filter or search term.</p></div>';
     return;
   }
   const recIds = new Set(recs.map(r => String(r.service)));
@@ -4731,25 +4913,29 @@ function renderServices(list, recs = []) {
     const maxQ = s.max || s.max_quantity || 1000000;
     const subcatDef = SUBCATS[s._subcatKey];
     let rankBadge = '';
-    if (recIds.has(String(s.service))) rankBadge = '<span class="svc-rank-badge rec">⭐ Recommended</span>';
-    else if (idx === 0) rankBadge = '<span class="svc-rank-badge cheapest">💚 Cheapest</span>';
-    else if (rate === cheapestRate) rankBadge = '<span class="svc-rank-badge cheapest">💚 Best Price</span>';
-    else if (idx < 3) rankBadge = '<span class="svc-rank-badge popular">🔥 Popular</span>';
-    const subcatLabel = subcatDef ? `<div class="svc-subcat">${_subcatLabelFor(s._subcatKey, s._platKey)}</div>` : '';
-    const featureBadges = (s.refill || s.cancel || s.dripfeed) ? `<div class="svc-feature-badges">
-        ${s.refill ? '<span class="svc-feature-badge refill">♻️ Refill</span>' : ''}
-        ${s.dripfeed ? '<span class="svc-feature-badge slow">🐢 Slow delivery</span>' : ''}
-        ${s.cancel ? '<span class="svc-feature-badge cancel">✕ Cancellable</span>' : ''}
+    if (recIds.has(String(s.service))) rankBadge = '<span class="svc-rank-badge rec"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg> Recommended</span>';
+    else if (idx === 0) rankBadge = '<span class="svc-rank-badge cheapest"><svg class=ev-i aria-hidden=true><use href=#ev-tag></use></svg> Cheapest</span>';
+    else if (rate === cheapestRate) rankBadge = '<span class="svc-rank-badge cheapest"><svg class=ev-i aria-hidden=true><use href=#ev-tag></use></svg> Best Price</span>';
+    else if (idx < 3) rankBadge = '<span class="svc-rank-badge popular"><svg class=ev-i aria-hidden=true><use href=#ev-trending></use></svg> Popular</span>';
+    const subcatLabel = subcatDef ? `<div class="svc-subcat">${evIcon(SUBCAT_ICON[s._subcatKey] || 'layers')} ${_subcatLabelFor(s._subcatKey, s._platKey).replace(/^\S+\s/, '')}</div>` : '';
+    const flagBadges = svcFlagBadges(s);
+    const isOrganic = svcIsOrganic(s);
+    const featureBadges = (s.refill || s.cancel || s.dripfeed || flagBadges) ? `<div class="svc-feature-badges">
+        ${s.refill ? '<span class="svc-feature-badge refill"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refill</span>' : ''}
+        ${flagBadges}
+        ${s.dripfeed ? '<span class="svc-feature-badge slow"><svg class=ev-i aria-hidden=true><use href=#ev-timer></use></svg> Slow delivery</span>' : ''}
+        ${s.cancel ? '<span class="svc-feature-badge cancel"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> Cancellable</span>' : ''}
       </div>` : '';
     const svcJson = JSON.stringify(s).replace(/"/g, '&quot;');
     const _isRec = recIds.has(String(s.service));
-    return `<div class="svc-card" ${_isRec ? `data-svc="${svcJson}" onclick="recOpen(event,'list')"` : `onclick="openOrderModal(${svcJson})"`}>
-      <div class="svc-card-top">${platformTag(s)}${rankBadge}</div>
+    return `<div class="svc-card${isOrganic ? ' organic-card' : ''}" ${_isRec ? `data-svc="${svcJson}" onclick="recOpen(event,'list')"` : `onclick="openOrderModal(${svcJson})"`}>
+      <div class="svc-card-top">${platformTag(s)}${isOrganic ? SVC_ORGANIC_BADGE : rankBadge}</div>
       <div class="svc-name">${tierDotHTML(svcTierFor(s))}${name}</div>
       ${subcatLabel}
       ${featureBadges}
       <div class="svc-meta">
         <div class="svc-price-block">
+          ${s.rate_before_sale ? `<div class="svc-price-was"><span class="svc-old-price">${fmtKES(s.rate_before_sale)}</span>${s.sale_pct ? `<span class="svc-sale-tag">-${s.sale_pct}%</span>` : ''}</div>` : ''}
           <div class="svc-price">${fmtKES(rate)}</div>
           <div class="svc-price-label">per 1,000</div>
         </div>
@@ -4947,6 +5133,13 @@ async function placeOrder() {
   const phone = document.getElementById('omPhone').value.trim();
   if (!link) { toast('Please enter a link', 'error'); return; }
   const _linkProblem = checkOrderLink();
+  // Wrong platform can't be overridden — the order would go nowhere.
+  const _platProblem = linkPlatformProblem(currentSvc, link);
+  if (_platProblem) {
+    toast(_platProblem, 'error');
+    document.getElementById('omLink').focus();
+    return;
+  }
   if (_linkProblem && _linkWarnAck !== link) {
     _linkWarnAck = link;   // a second tap with the same link goes ahead
     toast(_linkProblem + ' Fix it, or tap Pay again if you\'re sure.', 'error');
@@ -5040,7 +5233,7 @@ async function placeOrder() {
     // Always auto-raise a ticket on any order placement failure
     _autoRaisePaymentTicket({ phone, link, qty, reason: (isGatewayErr ? 'STK push 502 — Nexus unreachable' : 'Order placement failed') + ' | HTTP ' + (e.status || '?') + ' | ' + msg });
   } finally {
-    btn.textContent = '📱 PAY & ORDER';
+    btn.innerHTML = evIcon('phone') + ' PAY &amp; ORDER';
     btn.classList.remove('loading');
     if (typeof walletPayBtnLabel === 'function') walletPayBtnLabel();
   }
@@ -5117,7 +5310,7 @@ function stopPaymentPoll() {
 function cancelOrderFlow() { stopPaymentPoll(); closeOrderModal(); toast('Order cancelled.', 'info'); }
 
 function showOrderResult(success, msg, title) {
-  document.getElementById('omResultIcon').textContent = success ? '✅' : '❌';
+  document.getElementById('omResultIcon').innerHTML = success ? evIcon('check-circle') : evIcon('x-circle');
   document.getElementById('omResultTitle').textContent = title || (success ? 'ORDER PLACED!' : 'PAYMENT FAILED');
   document.getElementById('omResultDesc').textContent = msg;
   // After payment: a follow-up that needs a DIFFERENT link (same-link ones
@@ -5149,7 +5342,7 @@ function showOrderResult(success, msg, title) {
   }
   if (!success) {
     raiseBtn.style.display = '';
-    raiseBtn.textContent = '🎫 Raise Issue to Admin';
+    raiseBtn.innerHTML = evIcon('ticket') + ' Raise Issue to Admin';
     raiseBtn.onclick = () => {
       closeOrderModal();
       navTo('tickets');
@@ -5171,7 +5364,7 @@ async function loadOrders(force = false) {
     allOrders = await Store.ensure('orders', () => api('/orders?limit=50').then(d => d.orders || d.data || d || []), { force });
     renderOrders();
   } catch(e) {
-    document.getElementById('ordersTable').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
+    document.getElementById('ordersTable').innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${e.message}</p></div>`;
   }
 }
 
@@ -5186,7 +5379,7 @@ function renderOrders() {
   let list = allOrders;
   if (orderFilter !== 'all') list = list.filter(o => (o.status||'').toLowerCase().includes(orderFilter));
   const el = document.getElementById('ordersTable');
-  if (!list.length) { el.classList.remove('od-has-cards'); el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No orders found.</p></div>'; return; }
+  if (!list.length) { el.classList.remove('od-has-cards'); el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-inbox></use></svg></div><p>No orders found.</p></div>'; return; }
   // Tap a row (desktop) or card (phones) → order details sheet (order_details.js)
   el.classList.add('od-has-cards');
   if (typeof orderRememberList === 'function') orderRememberList(list);
@@ -5215,7 +5408,7 @@ function renderOrders() {
            <button onclick="event.stopPropagation();navigator.clipboard.writeText('${mpesaRef}').then(()=>toast('M-Pesa ref copied!','success'))" title="Copy M-Pesa reference" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:2px 4px;border-radius:4px;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">⎘</button>`
         : '<span style="color:var(--muted);font-size:11px;">—</span>';
       const actions = [
-        canRefill ? `<button class="action-btn" onclick="event.stopPropagation();requestOrderRefill('${fullId}')" title="Request a refill for dropped counts">♻️ Refill</button>` : '',
+        canRefill ? `<button class="action-btn" onclick="event.stopPropagation();requestOrderRefill('${fullId}')" title="Request a refill for dropped counts"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refill</button>` : '',
       ].filter(Boolean).join(' ') || '<span style="color:var(--muted);font-size:11px;">—</span>';
       return `<tr class="od-tr" tabindex="0" title="View order details" onclick="openOrderDetail('${fullId}')" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();openOrderDetail('${fullId}')}">
         <td style="font-size:11px;white-space:nowrap;">
@@ -5264,13 +5457,13 @@ async function loadWalletPage() {
     const deposited = txs.filter(t => (t.type||'').toLowerCase() === 'deposit' || parseFloat(t.amount) > 0).reduce((s,t) => s + parseFloat(t.amount||0), 0);
     document.getElementById('wallet-deposited').textContent = fmtKES(Math.abs(deposited));
   } catch(_) {
-    document.getElementById('txHistoryWrap').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No transactions yet.</p></div>';
+    document.getElementById('txHistoryWrap').innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-inbox></use></svg></div><p>No transactions yet.</p></div>';
   }
 }
 
 function renderTxHistory(txs) {
   const el = document.getElementById('txHistoryWrap');
-  if (!txs.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No transactions yet.</p></div>'; return; }
+  if (!txs.length) { el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-inbox></use></svg></div><p>No transactions yet.</p></div>'; return; }
   el.innerHTML = `<div class="tx-list">${txs.map(t => {
     const isIn = (t.type === 'deposit' || parseFloat(t.amount) > 0);
     return `<div class="tx-item">
@@ -5317,7 +5510,7 @@ async function submitDeposit() {
     showDepositStatus(phone, amount);
     startDepPoll();
   } catch(e) { toast(e.message, 'error'); }
-  finally { btn.textContent = '📱 SEND STK PUSH'; btn.classList.remove('loading'); }
+  finally { btn.innerHTML = evIcon('phone') + ' SEND STK PUSH'; btn.classList.remove('loading'); }
 }
 
 function showDepositStatus(phone, amount) {
@@ -5361,20 +5554,20 @@ function startDepPoll() {
 }
 
 function setDepSuccess(receipt) {
-  document.getElementById('depStatusIcon').textContent = '✅';
+  document.getElementById('depStatusIcon').innerHTML = evIcon('check-circle');
   document.getElementById('depStatusTitle').textContent = 'PAYMENT RECEIVED!';
   document.getElementById('depStatusDesc').textContent = 'Your wallet has been credited. Start growing!';
   if (receipt) { document.getElementById('depReceiptVal').textContent = receipt; document.getElementById('depReceiptRow').style.display = 'flex'; }
   document.getElementById('depBackBtn').style.display = '';
 }
 function setDepFailed(desc) {
-  document.getElementById('depStatusIcon').textContent = '❌';
+  document.getElementById('depStatusIcon').innerHTML = evIcon('x-circle');
   document.getElementById('depStatusTitle').textContent = 'PAYMENT FAILED';
   document.getElementById('depStatusDesc').textContent = desc || 'Transaction cancelled or failed. Please try again.';
   document.getElementById('depBackBtn').style.display = '';
 }
 function setDepTimeout() {
-  document.getElementById('depStatusIcon').textContent = '⏱';
+  document.getElementById('depStatusIcon').innerHTML = evIcon('clock');
   document.getElementById('depStatusTitle').textContent = 'TAKING TOO LONG';
   document.getElementById('depStatusDesc').textContent = "We didn't receive confirmation. Check your M-Pesa messages or try again.";
   document.getElementById('depBackBtn').style.display = '';
@@ -5385,7 +5578,7 @@ function resetDeposit() {
   depCheckoutId = null;
   document.getElementById('depositForm').style.display = '';
   document.getElementById('depositStatus').classList.remove('show');
-  document.getElementById('depStatusIcon').textContent = '📱';
+  document.getElementById('depStatusIcon').innerHTML = evIcon('phone');
   document.getElementById('depStatusTitle').textContent = 'WAITING FOR PAYMENT';
   document.getElementById('depStatusDesc').innerHTML = 'A prompt has been sent to your phone.<br>Enter your M-Pesa PIN to complete.';
   document.getElementById('depReceiptRow').style.display = 'none';
@@ -5590,7 +5783,7 @@ body.ev-admin-view #ev-chat-widget{display:none!important;}
   <div id="ev-chat-window">
     <!-- Header -->
     <div class="ev-chat-hd">
-      <div class="ev-chat-hd-avatar">🦠</div>
+      <div class="ev-chat-hd-avatar"><svg class=ev-i aria-hidden=true><use href=#ev-virus></use></svg></div>
       <div class="ev-chat-hd-info">
         <div class="ev-chat-hd-name">EndaViral Support</div>
         <div class="ev-chat-hd-status"><span class="ev-chat-hd-dot"></span>We are Online · Replies in minutes</div>
@@ -5600,18 +5793,18 @@ body.ev-admin-view #ev-chat-widget{display:none!important;}
     <!-- Home view: shortcuts + ticket list -->
     <div id="ev-view-home">
       <div class="ev-shortcuts-wrap">
-        <div class="ev-shortcuts-label">⚡ Instant Answers</div>
+        <div class="ev-shortcuts-label"><svg class=ev-i aria-hidden=true><use href=#ev-zap></use></svg> Instant Answers</div>
         <div class="ev-shortcuts-grid" id="ev-shortcuts-grid"></div>
       </div>
 
       <div id="ev-login-prompt">
-        <span style="font-size:28px;">🔒</span>
+        <span style="font-size:28px;"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg></span>
         <div>Please sign in to message our team and see their replies.</div>
         <button onclick="evScrollToLogin()">Sign In</button>
       </div>
 
       <div class="ev-tickets-wrap">
-        <div class="ev-tickets-label">💬 Your support chat</div>
+        <div class="ev-tickets-label"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Your support chat</div>
         <div id="ev-tickets-list"></div>
       </div>
 
@@ -5626,18 +5819,18 @@ body.ev-admin-view #ev-chat-widget{display:none!important;}
           <div class="ev-nt-title">New message</div>
         </div>
         <div class="ev-nt-quick">
-          <div class="ev-nt-quick-label">⚡ Quick answers — no ticket needed</div>
-          <button class="ev-nt-quick-btn" onclick="evShowInstantAnswer(0)">🛒 How do I place an order?</button>
-          <button class="ev-nt-quick-btn" onclick="evShowInstantAnswer(1)">🔗 Which link do I paste?</button>
+          <div class="ev-nt-quick-label"><svg class=ev-i aria-hidden=true><use href=#ev-zap></use></svg> Quick answers — no ticket needed</div>
+          <button class="ev-nt-quick-btn" onclick="evShowInstantAnswer(0)"><svg class=ev-i aria-hidden=true><use href=#ev-cart></use></svg> How do I place an order?</button>
+          <button class="ev-nt-quick-btn" onclick="evShowInstantAnswer(1)"><svg class=ev-i aria-hidden=true><use href=#ev-link></use></svg> Which link do I paste?</button>
         </div>
         <div class="ev-nt-sub">Still need help? Select what applies, or just describe it below.</div>
 
         <div class="ev-nt-checkboxes">
           <label class="ev-nt-cb-row">
-            <input type="checkbox" id="ev-nt-cb-wrong"> 📦 Wrong Order (wrong link / quantity / service)
+            <input type="checkbox" id="ev-nt-cb-wrong"> <svg class=ev-i aria-hidden=true><use href=#ev-package></use></svg> Wrong Order (wrong link / quantity / service)
           </label>
           <label class="ev-nt-cb-row">
-            <input type="checkbox" id="ev-nt-cb-delay"> ⏳ Delayed Service (no delivery after 24h)
+            <input type="checkbox" id="ev-nt-cb-delay"> <svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg> Delayed Service (no delivery after 24h)
           </label>
         </div>
 
@@ -5646,7 +5839,7 @@ body.ev-admin-view #ev-chat-widget{display:none!important;}
         </div>
 
         <div class="ev-nt-phone-row">
-          <label class="ev-nt-phone-label" for="ev-nt-phone">📞 Phone number (Ukitaka Tukupigie)</label>
+          <label class="ev-nt-phone-label" for="ev-nt-phone"><svg class=ev-i aria-hidden=true><use href=#ev-phone-call></use></svg> Phone number (Ukitaka Tukupigie)</label>
           <input type="tel" class="ev-nt-phone-input" id="ev-nt-phone" placeholder="07XX XXX XXX">
           <div class="ev-nt-hint">Optional — if you want a callback. We'll reply here either way.</div>
         </div>
@@ -5736,7 +5929,7 @@ body.ev-admin-view #ev-chat-widget{display:none!important;}
 <!-- Idle auto-logout overlay -->
 <div class="idle-overlay" id="idleOverlay">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px 28px;max-width:360px;width:100%;text-align:center;">
-    <div style="font-size:36px;margin-bottom:12px;">⏰</div>
+    <div style="font-size:36px;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-alarm></use></svg></div>
     <h3 style="color:var(--white);font-size:17px;margin-bottom:8px;">Still there?</h3>
     <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">You'll be signed out in <span id="idleCountdown" style="color:var(--green);font-weight:800;"></span>s due to inactivity.</p>
     <div style="background:var(--border);border-radius:4px;height:4px;margin-bottom:20px;overflow:hidden;">
@@ -5787,7 +5980,7 @@ async function _maybeHideAffBanner() {
     const pending = data.pending_kes || 0;
     const earned  = data.total_earned_kes || 0;
     banner.innerHTML = `
-      <div class="promo-icon">💸</div>
+      <div class="promo-icon"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg></div>
       <div class="promo-body">
         <div class="promo-title">Earned ${fmtKES(earned)}</div>
         <div class="promo-desc">${fmtKES(pending)} available to withdraw</div>
@@ -5804,7 +5997,7 @@ async function _maybeHideAffBanner() {
 <!-- ══════════════════ CREATOR EVENTS: DETAIL MODAL ══════════════════ -->
 <div class="modal-overlay" id="eventDetailModal" onclick="if(event.target===this)eventCloseDetail()">
   <div class="modal" style="max-width:560px;">
-    <button class="modal-close" onclick="eventCloseDetail()">✕</button>
+    <button class="modal-close" onclick="eventCloseDetail()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     <div id="eventDetailBody"></div>
   </div>
 </div>
@@ -5812,7 +6005,7 @@ async function _maybeHideAffBanner() {
 <!-- ══════════════════ CREATOR EVENTS: BUY MODAL ══════════════════ -->
 <div class="modal-overlay" id="eventBuyModal" onclick="if(event.target===this)eventCloseBuy()">
   <div class="modal" style="max-width:420px;">
-    <button class="modal-close" onclick="eventCloseBuy()">✕</button>
+    <button class="modal-close" onclick="eventCloseBuy()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     <div class="modal-title" id="eventBuyTitle" style="margin-bottom:4px;">Book Event</div>
     <div class="modal-sub" style="margin-bottom:10px;">Pay via M-Pesa STK push — one ticket per person</div>
     <div style="font-size:26px;font-weight:800;color:var(--green);margin-bottom:18px;" id="eventBuyPrice">KES 0</div>
@@ -5826,25 +6019,25 @@ async function _maybeHideAffBanner() {
 <!-- ══════════════════ FREE BONUS ORDER MODAL ══════════════════ -->
 <div class="modal-overlay" id="freeOrderModal" onclick="if(event.target===this)freeOrderClose()">
   <div class="modal" style="max-width:440px;">
-    <button class="modal-close" onclick="freeOrderClose()">✕</button>
-    <div class="modal-title" style="margin-bottom:10px;">🎁 Free Order</div>
+    <button class="modal-close" onclick="freeOrderClose()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
+    <div class="modal-title" style="margin-bottom:10px;"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> Free Order</div>
     <div id="freeOrderBody"></div>
   </div>
 </div>
 
 <div class="modal-overlay" id="consultBookModal" onclick="if(event.target===this)consultCloseBooking()">
   <div class="modal hv-modal">
-    <button class="modal-close" onclick="consultCloseBooking()">✕</button>
+    <button class="modal-close" onclick="consultCloseBooking()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
 
     <!-- Step 1: pick a package -->
     <div id="consultStepTiers">
-      <div class="modal-title" style="margin-bottom:4px;">💼 Hire EndaViral</div>
+      <div class="modal-title" style="margin-bottom:4px;"><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg> Hire EndaViral</div>
       <div class="modal-sub" style="margin-bottom:12px;">An expert checks your page and tells you what to fix. Pick what fits you:</div>
       <div class="hv-tiers" id="consultTierList"></div>
       <div class="hv-trust">
-        <span>👤 A real person, not a bot</span>
-        <span>🔍 We check your page first</span>
-        <span>📲 Pay with M-Pesa</span>
+        <span><svg class=ev-i aria-hidden=true><use href=#ev-user></use></svg> A real person, not a bot</span>
+        <span><svg class=ev-i aria-hidden=true><use href=#ev-search></use></svg> We check your page first</span>
+        <span><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg> Pay with M-Pesa</span>
       </div>
     </div>
 
@@ -5884,23 +6077,23 @@ async function _maybeHideAffBanner() {
      pattern as academyCertModal below) ══════════════════ -->
 <div class="modal-overlay" id="eventTicketModal" onclick="if(event.target===this)eventCloseTicket()">
   <div class="modal" style="max-width:640px;">
-    <button class="modal-close" onclick="eventCloseTicket()">✕</button>
-    <div class="modal-title" style="margin-bottom:4px;">🎟️ Your Ticket</div>
+    <button class="modal-close" onclick="eventCloseTicket()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
+    <div class="modal-title" style="margin-bottom:4px;"><svg class=ev-i aria-hidden=true><use href=#ev-ticket></use></svg> Your Ticket</div>
     <div class="modal-sub" style="margin-bottom:18px;">Download it, share it, or show the QR straight from your phone at the door</div>
     <div style="width:100%;overflow:auto;border-radius:16px;border:1px solid var(--border);">
       <canvas id="evTicketCanvas" width="1200" height="800" style="width:100%;height:auto;display:block;"></canvas>
     </div>
     <div style="display:flex;gap:10px;margin-top:20px;">
       <button class="btn-secondary" style="flex:1;" onclick="eventCloseTicket()">Close</button>
-      <button class="btn-secondary" style="flex:1;" onclick="downloadTicket()">⬇ Download</button>
-      <button class="btn-primary" style="flex:2;background:var(--green);color:#000;" onclick="shareTicket()">📤 Share</button>
+      <button class="btn-secondary" style="flex:1;" onclick="downloadTicket()"><svg class=ev-i aria-hidden=true><use href=#ev-download></use></svg> Download</button>
+      <button class="btn-primary" style="flex:2;background:var(--green);color:#000;" onclick="shareTicket()"><svg class=ev-i aria-hidden=true><use href=#ev-upload></use></svg> Share</button>
     </div>
   </div>
 </div>
 
 <div class="modal-overlay" id="academyLessonModal">
   <div class="modal" style="max-width:560px;">
-    <button class="modal-close" onclick="closeAcademyLesson()">✕</button>
+    <button class="modal-close" onclick="closeAcademyLesson()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#9b6bff;margin-bottom:6px;" id="acLessonEyebrow">MODULE</div>
     <div class="modal-title" id="acLessonTitle" style="margin-bottom:4px;">Lesson title</div>
     <div class="modal-sub" style="margin-bottom:18px;" id="acLessonMeta">3 min read</div>
@@ -5914,8 +6107,8 @@ async function _maybeHideAffBanner() {
 <!-- ── Creator Academy: post-module feedback (stars + comment) ── -->
 <div class="modal-overlay" id="academyFeedbackModal">
   <div class="modal" style="max-width:480px;">
-    <button class="modal-close" onclick="closeAcademyFeedback()">✕</button>
-    <div class="modal-title" style="margin-bottom:4px;" id="acFeedbackTitle">🏅 Module complete!</div>
+    <button class="modal-close" onclick="closeAcademyFeedback()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
+    <div class="modal-title" style="margin-bottom:4px;" id="acFeedbackTitle"><svg class=ev-i aria-hidden=true><use href=#ev-medal></use></svg> Module complete!</div>
     <div class="modal-sub" style="margin-bottom:18px;" id="acFeedbackSub">How was it? Your feedback helps us improve the Academy.</div>
     <div style="display:flex;gap:8px;justify-content:center;margin-bottom:18px;" id="acFeedbackStars"></div>
     <textarea id="acFeedbackComment" maxlength="1000" rows="4" placeholder="Tell us what you liked, or what we could do better…" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-size:13.5px;font-family:'Montserrat',sans-serif;resize:vertical;"></textarea>
@@ -5928,7 +6121,7 @@ async function _maybeHideAffBanner() {
 <!-- ── Creator Academy: premium module unlock (M-Pesa STK) ── -->
 <div class="modal-overlay" id="academyPurchaseModal">
   <div class="modal" style="max-width:460px;">
-    <button class="modal-close" onclick="closeAcademyPurchase()">✕</button>
+    <button class="modal-close" onclick="closeAcademyPurchase()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
 
     <!-- Step 1: phone number (same layout as the order modal) -->
     <div id="acPurchaseForm">
@@ -5938,13 +6131,13 @@ async function _maybeHideAffBanner() {
       <div class="modal-field"><label>M-Pesa Phone Number</label><div class="phone-flag"><span class="flag">🇰🇪</span><input type="tel" id="acPurchasePhone" inputmode="tel" autocomplete="tel" placeholder="07XX XXX XXX"/></div></div>
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closeAcademyPurchase()">Cancel</button>
-        <button class="btn-primary" id="acPurchaseBtn" style="flex:1;margin-top:0;" onclick="submitAcademyPurchase()">📱 PAY &amp; UNLOCK</button>
+        <button class="btn-primary" id="acPurchaseBtn" style="flex:1;margin-top:0;" onclick="submitAcademyPurchase()"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg> PAY &amp; UNLOCK</button>
       </div>
     </div>
 
     <!-- Step 2: waiting for the M-Pesa PIN -->
     <div id="acPurchaseWait" style="display:none;text-align:center;padding:10px 0;">
-      <div style="font-size:48px;margin-bottom:16px;">📱</div>
+      <div style="font-size:48px;margin-bottom:16px;"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg></div>
       <div class="modal-title">WAITING FOR PAYMENT</div>
       <div class="modal-sub" style="margin-bottom:20px;">A prompt has been sent to <strong id="acPayPhone"></strong><br>Enter your M-Pesa PIN to confirm.</div>
       <div style="background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:20px;text-align:left;">
@@ -5952,12 +6145,12 @@ async function _maybeHideAffBanner() {
         <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:13px;"><span style="color:var(--muted);">Amount</span><strong id="acPayAmount" style="color:var(--green);"></strong></div>
       </div>
       <div class="loading-spinner" style="padding:8px 0 16px;"><div class="spinner"></div><span>Checking payment…</span></div>
-      <button class="btn-secondary" onclick="cancelAcademyPurchase()" style="width:100%;">✕ Cancel</button>
+      <button class="btn-secondary" onclick="cancelAcademyPurchase()" style="width:100%;"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> Cancel</button>
     </div>
 
     <!-- Step 3: result (success / failed / cancelled / still confirming) -->
     <div id="acPurchaseResult" style="display:none;text-align:center;padding:10px 0;">
-      <div id="acResultIcon" style="font-size:56px;margin-bottom:16px;">✅</div>
+      <div id="acResultIcon" style="font-size:56px;margin-bottom:16px;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg></div>
       <div class="modal-title" id="acResultTitle">COURSE UNLOCKED!</div>
       <div class="modal-sub" id="acResultDesc" style="margin-bottom:24px;"></div>
       <button class="btn-primary" id="acResultBtn" style="width:100%;margin-top:0;">Start Learning →</button>
@@ -5969,47 +6162,47 @@ async function _maybeHideAffBanner() {
 <!-- ── Creator Academy: certificate (module or graduation) ── -->
 <div class="modal-overlay" id="academyCertModal">
   <div class="modal" style="max-width:640px;">
-    <button class="modal-close" onclick="closeAcademyCertificate()">✕</button>
-    <div class="modal-title" style="margin-bottom:4px;">🎓 Your Certificate</div>
+    <button class="modal-close" onclick="closeAcademyCertificate()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
+    <div class="modal-title" style="margin-bottom:4px;"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg> Your Certificate</div>
     <div class="modal-sub" style="margin-bottom:18px;">Download it or share it straight to your socials</div>
     <div style="width:100%;overflow:auto;border-radius:12px;border:1px solid var(--border);">
       <canvas id="acCertCanvas" width="1200" height="800" style="width:100%;height:auto;display:block;"></canvas>
     </div>
     <div style="display:flex;gap:10px;margin-top:20px;">
       <button class="btn-secondary" style="flex:1;" onclick="closeAcademyCertificate()">Close</button>
-      <button class="btn-secondary" style="flex:1;" onclick="acDownloadCertificate()">⬇ Download</button>
-      <button class="btn-primary" style="flex:2;background:#ffd700;color:#000;" onclick="acShareCertificate()">📤 Share</button>
+      <button class="btn-secondary" style="flex:1;" onclick="acDownloadCertificate()"><svg class=ev-i aria-hidden=true><use href=#ev-download></use></svg> Download</button>
+      <button class="btn-primary" style="flex:2;background:#ffd700;color:#000;" onclick="acShareCertificate()"><svg class=ev-i aria-hidden=true><use href=#ev-upload></use></svg> Share</button>
     </div>
   </div>
 </div>
 
 <div class="modal-overlay" id="cnCampaignModal">
   <div class="modal" style="max-width:640px;">
-    <button class="modal-close" onclick="_cnCloseCampaign()">✕</button>
+    <button class="modal-close" onclick="_cnCloseCampaign()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     <div id="cnCampaignModalBody"></div>
   </div>
 </div>
 <div class="modal-overlay" id="cnBidsModal">
   <div class="modal" style="max-width:640px;">
-    <button class="modal-close" onclick="_cnCloseBidsModal()">✕</button>
+    <button class="modal-close" onclick="_cnCloseBidsModal()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     <div id="cnBidsModalBody"></div>
   </div>
 </div>
 <div class="modal-overlay" id="cnCreateModal">
   <div class="modal" style="max-width:560px;">
-    <button class="modal-close" onclick="_cnCloseCreate()">✕</button>
+    <button class="modal-close" onclick="_cnCloseCreate()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     <div id="cnCreateModalBody"></div>
   </div>
 </div>
 <div class="modal-overlay" id="cnInviteModal">
   <div class="modal" style="max-width:480px;">
-    <button class="modal-close" onclick="_cnCloseInviteModal()">✕</button>
+    <button class="modal-close" onclick="_cnCloseInviteModal()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     <div id="cnInviteModalBody"></div>
   </div>
 </div>
 <div class="modal-overlay" id="cnTosModal">
   <div class="modal" style="max-width:640px;">
-    <button class="modal-close" onclick="_cnCloseTos()">✕</button>
+    <button class="modal-close" onclick="_cnCloseTos()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     <div id="cnTosModalBody"></div>
   </div>
 </div>

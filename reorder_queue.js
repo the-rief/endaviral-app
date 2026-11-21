@@ -39,10 +39,10 @@ const RQ_REASON = {
 // A client moves Needs contact → Follow-up the moment they are messaged.
 const RQ_SUBS = [
   { id: 'needs',     status: 'pending',   icon: '📨', label: 'Needs contact', sub: 'Paid orders are now refunded to the customer\'s wallet automatically at midnight — what is left here could not be (usually nothing was paid for it, e.g. a failed free replacement). Ask for a fresh link, re-place on the original link, or 💳 refund a paid one to the wallet.' },
-  { id: 'followup',  status: 'contacted', icon: '⏳', label: 'Follow-up',     sub: 'Clients we messaged and are waiting on. When a client replies, they leave this list and appear in 📥 Inbox — open the chat there and press “🔁 Reorder for client”. If you answer them without reordering, they come back here. Quiet ones can be nudged, or re-placed on the original link once they have been silent long enough.' },
-  { id: 'refunded',  status: 'refunded',  icon: '💳', label: 'Refunded to wallet', sub: 'Paid orders whose money was put into the customer\'s EndaViral Wallet (automatically at midnight, or by staff). The customer was messaged and reorders any service themselves — nothing to do here. Full details: Admin → Wallet Credit.' },
-  { id: 'reordered', status: 'reordered', icon: '✅', label: 'Reordered',     sub: 'Replacement orders already placed.' },
-  { id: 'dismissed', status: 'dismissed', icon: '✕',  label: 'Dismissed',     sub: 'Marked as nothing to redo.' },
+  { id: 'followup',  status: 'contacted', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg>', label: 'Follow-up',     sub: 'Clients we messaged and are waiting on. When a client replies, they leave this list and appear in 📥 Inbox — open the chat there and press “🔁 Reorder for client”. If you answer them without reordering, they come back here. Quiet ones can be nudged, or re-placed on the original link once they have been silent long enough.' },
+  { id: 'refunded',  status: 'refunded',  icon: '<svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg>', label: 'Refunded to wallet', sub: 'Paid orders whose money was put into the customer\'s EndaViral Wallet (automatically at midnight, or by staff). The customer was messaged and reorders any service themselves — nothing to do here. Full details: Admin → Wallet Credit.' },
+  { id: 'reordered', status: 'reordered', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg>', label: 'Reordered',     sub: 'Replacement orders already placed.' },
+  { id: 'dismissed', status: 'dismissed', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg>',  label: 'Dismissed',     sub: 'Marked as nothing to redo.' },
 ];
 const _rqAge = (h) => h == null ? '' : (typeof sbAge === 'function' ? sbAge(h) : Math.round(h) + 'h');
 const _rqKes = (n, d) => 'KES ' + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: d == null ? 0 : d });
@@ -65,7 +65,7 @@ function rqRenderSubtabs() {
   el.innerHTML = RQ_SUBS.map(t => {
     const c = n[t.id] || 0;
     let badge = c ? `<span class="sb-badge ${t.id === 'needs' ? 'red' : t.id === 'followup' ? 'amber' : ''}">${c}</span>` : '';
-    if (t.id === 'followup' && _rqSum.in_inbox) badge += `<span class="sb-badge green" title="Clients who replied — waiting for us in the Inbox">📥 ${_rqSum.in_inbox} in Inbox</span>`;
+    if (t.id === 'followup' && _rqSum.in_inbox) badge += `<span class="sb-badge green" title="Clients who replied — waiting for us in the Inbox"><svg class=ev-i aria-hidden=true><use href=#ev-download></use></svg> ${_rqSum.in_inbox} in Inbox</span>`;
     return `<button class="sb-tab ${t.id === _rqSub ? 'on' : ''}" onclick="rqSetSub('${t.id}')">${t.icon} ${t.label} ${badge}</button>`;
   }).join('');
 }
@@ -82,15 +82,15 @@ function rqRenderBar() {
   const btn = 'style="width:auto;padding:9px 16px;"', warn = 'style="width:auto;padding:9px 16px;background:#ff7043;border-color:#ff7043;"';
   let html = `<div class="sb-hint">${esc(sub.sub)}</div>`;
   if (_rqSub === 'needs') {
-    html += `<button class="btn-secondary" onclick="rqFlagNow()" title="Flag new failed/partial/cancelled orders now instead of waiting for midnight">⚑ Flag now</button>
-      <button class="btn-primary" ${btn} onclick="rqMessageAll()">✉ Message all unsent</button>
-      <button class="btn-primary" ${warn} onclick="rqReorderAll()" title="Re-place every open order on its original link and tell each customer">🔁 Reorder ALL on original links</button>`;
+    html += `<button class="btn-secondary" onclick="rqFlagNow()" title="Flag new failed/partial/cancelled orders now instead of waiting for midnight"><svg class=ev-i aria-hidden=true><use href=#ev-flag></use></svg> Flag now</button>
+      <button class="btn-primary" ${btn} onclick="rqMessageAll()"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg> Message all unsent</button>
+      <button class="btn-primary" ${warn} onclick="rqReorderAll()" title="Re-place every open order on its original link and tell each customer"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Reorder ALL on original links</button>`;
   } else if (_rqSub === 'followup') {
     html += chip('all', 'All')
-      + (_rqSum.in_inbox ? `<button class="sb-chip" onclick="sbSetTab('inbox')" title="These clients replied — reorder from their chat in the Inbox" style="border-color:#3dd44a;color:#3dd44a;">📥 ${_rqSum.in_inbox} replied → Inbox</button>` : '')
-      + chip('waiting', `⏳ Waiting${_rqSum.waiting ? ' (' + _rqSum.waiting + ')' : ''}`) + chip('overdue', `⚠ Overdue${_rqSum.stale ? ' (' + _rqSum.stale + ')' : ''}`)
-      + `<button class="btn-primary" ${btn} onclick="rqNudgeStale()" title="Send a follow-up message to everyone who hasn't replied in 24h+">👋 Nudge overdue</button>
-         <button class="btn-primary" ${warn} onclick="rqReorderOverdue()" title="Give up waiting: re-place silent clients on their original link">🔁 Reorder silent ones…</button>`;
+      + (_rqSum.in_inbox ? `<button class="sb-chip" onclick="sbSetTab('inbox')" title="These clients replied — reorder from their chat in the Inbox" style="border-color:#3dd44a;color:#3dd44a;"><svg class=ev-i aria-hidden=true><use href=#ev-download></use></svg> ${_rqSum.in_inbox} replied → Inbox</button>` : '')
+      + chip('waiting', `Waiting${_rqSum.waiting ? ' (' + _rqSum.waiting + ')' : ''}`) + chip('overdue', `Overdue${_rqSum.stale ? ' (' + _rqSum.stale + ')' : ''}`)
+      + `<button class="btn-primary" ${btn} onclick="rqNudgeStale()" title="Send a follow-up message to everyone who hasn't replied in 24h+"><svg class=ev-i aria-hidden=true><use href=#ev-hand></use></svg> Nudge overdue</button>
+         <button class="btn-primary" ${warn} onclick="rqReorderOverdue()" title="Give up waiting: re-place silent clients on their original link"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Reorder silent ones…</button>`;
   }
   el.innerHTML = html;
 }
@@ -183,10 +183,10 @@ function rqRenderList() {
   const owed = all.reduce((a, t) => a + (t.owed_kes || 0), 0);
   const stat = (v, l) => `<div class="rq-stat"><b>${v}</b><span>${l}</span></div>`;
   let stats = stat(all.length, 'Orders') + (_rqSub === 'refunded'
-    ? stat(_rqKes(all.reduce((a, t) => a + ((t.wallet_refund || {}).amount || 0), 0), 2), '💳 Refunded to wallets')
+    ? stat(_rqKes(all.reduce((a, t) => a + ((t.wallet_refund || {}).amount || 0), 0), 2), 'Refunded to wallets')
     : stat(_rqKes(owed), 'Paid, still owed'));
-  if (_rqSub === 'followup') stats += stat(n(t => t.customer_replied), '💬 Replied') + stat(n(t => t.stale), '⚠ Overdue (24h+)');
-  else stats += stat(n(t => t.is_free), '🎁 Free orders') + stat(n(t => (t.link_check || {}).level !== 'ok'), '⚠ Link issues');
+  if (_rqSub === 'followup') stats += stat(n(t => t.customer_replied), 'Replied') + stat(n(t => t.stale), 'Overdue (24h+)');
+  else stats += stat(n(t => t.is_free), 'Free orders') + stat(n(t => (t.link_check || {}).level !== 'ok'), 'Link issues');
 
   const chip = (on, label, js) => `<button class="sb-chip ${on ? 'on' : ''}" onclick="${js}">${label}</button>`;
   const reasons = ['failed', 'partial', 'cancelled'].map(r => {
@@ -195,9 +195,9 @@ function rqRenderList() {
   }).join('');
   const filters = `<div class="rq-filters">
       ${reasons}
-      ${chip(_rqF.pay === 'paid', `💳 Paid ${n(t => !t.is_free)}`, `rqSetFilter('pay','paid')`)}
-      ${n(t => t.is_free) ? chip(_rqF.pay === 'free', `🎁 Free ${n(t => t.is_free)}`, `rqSetFilter('pay','free')`) : ''}
-      ${n(t => (t.link_check || {}).level !== 'ok') ? chip(_rqF.link, `⚠ Link issues ${n(t => (t.link_check || {}).level !== 'ok')}`, `rqSetFilter('link',true)`) : ''}
+      ${chip(_rqF.pay === 'paid', `Paid ${n(t => !t.is_free)}`, `rqSetFilter('pay','paid')`)}
+      ${n(t => t.is_free) ? chip(_rqF.pay === 'free', `Free ${n(t => t.is_free)}`, `rqSetFilter('pay','free')`) : ''}
+      ${n(t => (t.link_check || {}).level !== 'ok') ? chip(_rqF.link, `Link issues ${n(t => (t.link_check || {}).level !== 'ok')}`, `rqSetFilter('link',true)`) : ''}
       <span style="margin-left:auto;font-size:11px;color:var(--muted);">Sort</span>
       <select class="sb-sel" onchange="rqSetSort(this.value)">
         ${[['newest', 'Newest flagged'], ['value', 'Highest value'], ['customer', 'Customer A–Z'], ['service', 'Service A–Z']]
@@ -208,7 +208,7 @@ function rqRenderList() {
 
   let body;
   if (!view.length) {
-    body = `<div style="text-align:center;padding:46px 20px;color:var(--muted);"><div style="font-size:36px;margin-bottom:8px;">🎉</div>
+    body = `<div style="text-align:center;padding:46px 20px;color:var(--muted);"><div style="font-size:36px;margin-bottom:8px;"><svg class=ev-i aria-hidden=true><use href=#ev-sparkle></use></svg></div>
       <div style="font-size:14px;font-weight:600;color:var(--white);">${all.length ? 'Nothing matches these filters' : (_rqSub === 'followup' ? 'Nobody to follow up' : 'Nothing here')}</div>
       <div style="font-size:12px;margin-top:6px;">New failed, partial or cancelled orders are flagged every midnight.</div></div>`;
   } else {
@@ -241,17 +241,17 @@ function rqRow(t) {
 
   let status, sub2 = '';
   if (pending) { status = badge('NEEDS CONTACT', '#ff5252'); sub2 = 'flagged ' + esc(t.flagged_on); }
-  else if (contacted && t.customer_replied) { status = badge('💬 REPLIED', '#3dd44a'); sub2 = t.replied_at ? esc(new Date(t.replied_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })) : ''; }
-  else if (contacted && t.stale) { status = badge('⚠ NO REPLY', '#ff5252'); sub2 = _rqAge(t.waiting_hours) + ' silent'; }
-  else if (contacted) { status = badge('⏳ WAITING', '#ffb347'); sub2 = _rqAge(t.waiting_hours) + ' so far'; }
+  else if (contacted && t.customer_replied) { status = badge('REPLIED', '#3dd44a'); sub2 = t.replied_at ? esc(new Date(t.replied_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })) : ''; }
+  else if (contacted && t.stale) { status = badge('NO REPLY', '#ff5252'); sub2 = _rqAge(t.waiting_hours) + ' silent'; }
+  else if (contacted) { status = badge('WAITING', '#ffb347'); sub2 = _rqAge(t.waiting_hours) + ' so far'; }
   else if (t.status === 'reordered') { status = badge('REORDERED', '#3dd44a'); sub2 = t.reordered_at ? esc(new Date(t.reordered_at).toLocaleDateString()) : ''; }
-  else if (t.status === 'refunded') { status = badge('💳 REFUNDED', '#3dd44a'); sub2 = t.wallet_refund ? _rqKes(t.wallet_refund.amount, 2) + (t.wallet_refund.notified ? ' · messaged' : ' · NOT messaged') : ''; }
+  else if (t.status === 'refunded') { status = badge('REFUNDED', '#3dd44a'); sub2 = t.wallet_refund ? _rqKes(t.wallet_refund.amount, 2) + (t.wallet_refund.notified ? ' · messaged' : ' · NOT messaged') : ''; }
   else { status = badge('DISMISSED', '#9aa4b2'); }
 
   let primary = '';
-  if (pending) primary = `<button class="btn-primary" style="width:auto;padding:7px 12px;font-size:12px;" onclick="rqMessage('${t.id}')">✉ Message</button>`;
-  else if (contacted && t.customer_replied) primary = `<button class="btn-primary" style="width:auto;padding:7px 12px;font-size:12px;" onclick="rqReorder('${t.id}')">🔁 Reorder</button>`;
-  else if (contacted) primary = `<button class="btn-primary" style="width:auto;padding:7px 12px;font-size:12px;" onclick="rqMessage('${t.id}','followup')">👋 Nudge</button>`;
+  if (pending) primary = `<button class="btn-primary" style="width:auto;padding:7px 12px;font-size:12px;" onclick="rqMessage('${t.id}')"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg> Message</button>`;
+  else if (contacted && t.customer_replied) primary = `<button class="btn-primary" style="width:auto;padding:7px 12px;font-size:12px;" onclick="rqReorder('${t.id}')"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Reorder</button>`;
+  else if (contacted) primary = `<button class="btn-primary" style="width:auto;padding:7px 12px;font-size:12px;" onclick="rqMessage('${t.id}','followup')"><svg class=ev-i aria-hidden=true><use href=#ev-hand></use></svg> Nudge</button>`;
   const ib = (title, js, ico) => `<button class="btn-secondary rq-ib" title="${title}" onclick="${js}">${ico}</button>`;
   let actions = primary;
   if (pending || (contacted && !t.customer_replied)) actions += ib('Reorder for client (choose link / service)', `rqReorder('${t.id}')`, '🔁');
@@ -277,7 +277,7 @@ function rqRow(t) {
       <div class="rq-c2" style="color:${cc};" title="${esc(lc.reason)}">${ci} ${esc(lc.reason)}</div>
     </div>
     <div>
-      <div class="rq-c1">${t.is_free ? '🎁 Free' : _rqKes(t.owed_kes, 2)}</div>
+      <div class="rq-c1">${t.is_free ? 'Free' : _rqKes(t.owed_kes, 2)}</div>
       <div class="rq-c2">${t.is_free ? 'no payment' : (t.mpesa_receipt ? esc(t.mpesa_receipt) : 'paid')}</div>
     </div>
     <div><div>${status}</div><div class="rq-c2">${sub2}</div></div>
@@ -295,17 +295,17 @@ function rqDetail(t) {
   return `<div class="rq-detail">
     ${kv('Customer', esc(t.user.name || '—') + ' · ' + esc(t.user.email || ''))}
     ${kv('Phone', esc(t.phone || ''))}
-    ${kv('Amount paid', t.is_free ? '🎁 Free order' : _rqKes(t.charge, 2) + (t.reason === 'partial' ? ` (owed: ${_rqKes(t.owed_kes, 2)})` : ''))}
+    ${kv('Amount paid', t.is_free ? 'Free order' : _rqKes(t.charge, 2) + (t.reason === 'partial' ? ` (owed: ${_rqKes(t.owed_kes, 2)})` : ''))}
     ${kv('M-Pesa', t.mpesa_receipt ? esc(t.mpesa_receipt) : (t.paid_via_mpesa ? 'paid (receipt pending)' : 'no payment on order'))}
     ${kv('Provider order', esc(t.provider_order_id || ''))}
     ${kv('Order status', esc(t.order_status || ''))}
     ${kv('Flagged', esc(t.flagged_on))}
     ${kv('Contacted', contact)}
     ${t.link ? `<div style="grid-column:1/-1;">Link: <a href="${esc(t.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--green);word-break:break-all;">${esc(t.link)}</a></div>` : ''}
-    ${reply ? `<div style="grid-column:1/-1;border:1px solid rgba(61,212,74,.35);background:rgba(61,212,74,.07);border-radius:8px;padding:6px 10px;">💬 <b>Customer replied</b> ${reply}</div>` : ''}
-    ${t.wallet_refund ? `<div style="grid-column:1/-1;">💳 <b>${_rqKes(t.wallet_refund.amount, 2)}</b> refunded to the customer's wallet ${t.wallet_refund.at ? esc(new Date(t.wallet_refund.at).toLocaleString()) : ''}${t.wallet_refund.notified ? ' — customer messaged' : ' — <b style="color:#ff5252;">customer NOT messaged</b>'}</div>` : ''}
-    ${t.new_order_id ? `<div style="grid-column:1/-1;">🔁 New order #${esc(t.new_order_id.slice(0, 8))} (${Number(t.new_quantity || 0).toLocaleString()}) on ${esc(t.new_link || '')}</div>` : ''}
-    ${t.note ? `<div style="grid-column:1/-1;">📝 ${esc(t.note)}</div>` : ''}
+    ${reply ? `<div style="grid-column:1/-1;border:1px solid rgba(61,212,74,.35);background:rgba(61,212,74,.07);border-radius:8px;padding:6px 10px;"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> <b>Customer replied</b> ${reply}</div>` : ''}
+    ${t.wallet_refund ? `<div style="grid-column:1/-1;"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg> <b>${_rqKes(t.wallet_refund.amount, 2)}</b> refunded to the customer's wallet ${t.wallet_refund.at ? esc(new Date(t.wallet_refund.at).toLocaleString()) : ''}${t.wallet_refund.notified ? ' — customer messaged' : ' — <b style="color:#ff5252;">customer NOT messaged</b>'}</div>` : ''}
+    ${t.new_order_id ? `<div style="grid-column:1/-1;"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> New order #${esc(t.new_order_id.slice(0, 8))} (${Number(t.new_quantity || 0).toLocaleString()}) on ${esc(t.new_link || '')}</div>` : ''}
+    ${t.note ? `<div style="grid-column:1/-1;"><svg class=ev-i aria-hidden=true><use href=#ev-note></use></svg> ${esc(t.note)}</div>` : ''}
   </div>`;
 }
 
@@ -335,9 +335,9 @@ function rqRenderBulk() {
   el.innerHTML = `<div style="font-size:13px;font-weight:700;color:var(--white);">${sel.length} selected <span style="color:var(--muted);font-weight:500;">· ${_rqKes(value)} owed</span></div>
     <span id="rqBulkMsg" style="font-size:12px;color:var(--muted);"></span>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn-primary" ${b} onclick="rqBulk('message')">✉ Message</button>
-      <button class="btn-primary" style="width:auto;padding:8px 14px;background:#ff7043;border-color:#ff7043;" onclick="rqBulk('reorder')" title="Re-place on each order's original link">🔁 Reorder on original links</button>
-      <button class="btn-secondary" onclick="rqBulk('dismiss')">✕ Dismiss</button>
+      <button class="btn-primary" ${b} onclick="rqBulk('message')"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg> Message</button>
+      <button class="btn-primary" style="width:auto;padding:8px 14px;background:#ff7043;border-color:#ff7043;" onclick="rqBulk('reorder')" title="Re-place on each order's original link"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Reorder on original links</button>
+      <button class="btn-secondary" onclick="rqBulk('dismiss')"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> Dismiss</button>
       <button class="btn-secondary" onclick="rqClearSel()">Clear</button>
     </div>`;
 }
@@ -417,7 +417,7 @@ async function rqMessage(id, kind) {
   rqModal(followup ? 'Nudge client — still need their link' : 'Message client — ask for a fresh link',
     `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Sent in a support thread; they get it in their chat.${followup ? '' : ' They then move to the Follow-up tab.'}</div>
      <textarea id="rqMsgBody" rows="8" style="${_rqField}resize:vertical;">${esc(body)}</textarea>`,
-    followup ? '👋 Send nudge' : '✉ Send',
+    followup ? 'Send nudge' : 'Send',
     async () => {
       await api(`/reorders/${id}/message`, { method: 'POST', body: JSON.stringify({ body: document.getElementById('rqMsgBody').value, followup }) });
       toast(followup ? 'Nudge sent' : 'Message sent — moved to Follow-up', 'success'); rqLoad();
@@ -491,8 +491,8 @@ async function rqReorder(id) {
   const altRows = alts.map((a, i) => rsvcCardHtml(a, { name: 'rqAlt', owedQty: defaultQty, checked: i === 0 && svcUnavailable })).join('');
   const svcHtml =
     `<div id="rqSvcState" style="font-size:12px;margin-bottom:8px;">${svcUnavailable
-        ? `<span style="color:#ff5252;font-weight:700;">⚠ Original service unavailable</span> <span style="color:var(--muted);">— ${esc(o.service.reason)}</span>`
-        : `<span style="color:#3dd44a;font-weight:700;">✓ Original service available</span>`}</div>`
+        ? `<span style="color:#ff5252;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Original service unavailable</span> <span style="color:var(--muted);">— ${esc(o.service.reason)}</span>`
+        : `<span style="color:#3dd44a;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg> Original service available</span>`}</div>`
     + _rqOptCard('rqSvc', 'orig', !svcUnavailable, svcUnavailable,
         `<b style="color:var(--white);">Keep original service</b><br><span style="color:var(--muted);">${esc(o.service.name)}</span>`)
     + _rqOptCard('rqSvc', 'alt', svcUnavailable, false,
@@ -500,7 +500,7 @@ async function rqReorder(id) {
          ${alts.length ? '' : '<br><span style="color:#ffb347;">No close match fits the amount paid — use “Choose another service…”</span>'}`)
     + `<div id="rqAltWrap" style="display:${svcUnavailable ? 'block' : 'none'};margin-left:6px;">
          <div id="rqAltList" style="max-height:260px;overflow:auto;">${altRows}</div>
-         <button type="button" class="action-btn" id="rqAltBrowse" style="margin:2px 0 4px;">🔎 Too expensive? Choose another service…</button>
+         <button type="button" class="action-btn" id="rqAltBrowse" style="margin:2px 0 4px;"><svg class=ev-i aria-hidden=true><use href=#ev-search></use></svg> Too expensive? Choose another service…</button>
        </div>`;
 
   const el = rqModal('Reorder for client',
@@ -556,7 +556,7 @@ async function rqReorder(id) {
             const origR = el.querySelector('input[name="rqSvc"][value="orig"]');
             if (origR) { origR.disabled = true; const l = origR.closest('label'); if (l) { l.style.opacity = .55; l.style.cursor = 'not-allowed'; } }
             const st = el.querySelector('#rqSvcState');
-            if (st) st.innerHTML = '<span style="color:#ff5252;font-weight:700;">⚠ The provider no longer has the original service</span> <span style="color:var(--muted);">— pick a similar one below.</span>';
+            if (st) st.innerHTML = '<span style="color:#ff5252;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> The provider no longer has the original service</span> <span style="color:var(--muted);">— pick a similar one below.</span>';
           }
           useAlt();
           if (!alts.length) openBrowser();
@@ -632,7 +632,7 @@ async function rqReorder(id) {
 
 function rqRefundWallet(id) {
   const t = _rqTasks.find(x => x.id === id) || {};
-  rqModal('💳 Refund to the customer\'s wallet',
+  rqModal('Refund to the customer\'s wallet',
     `<div style="font-size:12.5px;color:var(--muted);line-height:1.7;">
        <b style="color:var(--white);">${_rqKes(t.owed_kes, 2)}</b> (what they paid for the undelivered part) goes into
        <b style="color:var(--white);">${esc((t.user || {}).name || 'the customer')}</b>'s EndaViral Wallet, and they get a message that the order
@@ -717,9 +717,9 @@ async function rqReorderAll() {
       rqModal('Bulk reorder finished',
         `<div style="font-size:13px;line-height:1.8;">
            ✅ <b>${placed.length - unmessaged.length}</b> reordered and customers messaged<br>
-           ${unmessaged.length ? `⚠️ <b>${unmessaged.length}</b> reordered but the message to the customer failed — message them from Support<br>` : ''}
-           ${failed.length ? `❌ <b>${failed.length}</b> failed (still open — retry later)<br>` : ''}
-           ${skipped.length ? `⏭ <b>${skipped.length}</b> skipped (no usable link)<br>` : ''}
+           ${unmessaged.length ? `<b>${unmessaged.length}</b> reordered but the message to the customer failed — message them from Support<br>` : ''}
+           ${failed.length ? `<b>${failed.length}</b> failed (still open — retry later)<br>` : ''}
+           ${skipped.length ? `<b>${skipped.length}</b> skipped (no usable link)<br>` : ''}
          </div>
          ${problems.length ? `<div style="margin-top:10px;max-height:220px;overflow:auto;font-size:11px;color:var(--muted);line-height:1.6;">
            ${problems.map(([k, x]) => `<div>• ${k} #${esc(x.order_id)} ${esc(x.service_name || '')} — ${esc(x.reason)}</div>`).join('')}

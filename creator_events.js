@@ -64,11 +64,11 @@ async function lpLoadEventsTeaser() {
         ? `<div class="lp-evt-cover" style="background-image:url('${esc(ev.cover_image_url)}');"></div>`
         : `<div class="lp-evt-cover lp-evt-cover-fallback"></div>`}
       <div class="lp-evt-brand"><img src="EndaViral_logo_transparent.png" alt="" onerror="this.style.display='none'"><span>EndaViral</span></div>
-      <div class="lp-evt-badge"><span>🎟️</span><b>Ticket</b><em>${fmtKES(ev.ticket_price_kes)}</em></div>
+      <div class="lp-evt-badge"><span><svg class=ev-i aria-hidden=true><use href=#ev-ticket></use></svg></span><b>Ticket</b><em>${fmtKES(ev.ticket_price_kes)}</em></div>
       <div class="lp-evt-eyebrow">CREATOR EVENT</div>
       <div class="lp-evt-title">${esc(ev.title)}</div>
-      <div class="lp-evt-info">📅 ${esc(ev.event_date)} · ⏰ ${esc(ev.start_time_label)}${ev.end_time_label ? ' – ' + esc(ev.end_time_label) : ''}<br>📍 ${esc(ev.venue)}, ${esc(ev.city)}</div>
-      ${highlights.length ? `<div class="lp-evt-chiprow">${highlights.map(h => `<span class="lp-evt-chip2">✓ ${esc(h)}</span>`).join('')}</div>` : ''}
+      <div class="lp-evt-info"><svg class=ev-i aria-hidden=true><use href=#ev-calendar></use></svg> ${esc(ev.event_date)} · ⏰ ${esc(ev.start_time_label)}${ev.end_time_label ? ' – ' + esc(ev.end_time_label) : ''}<br><svg class=ev-i aria-hidden=true><use href=#ev-pin></use></svg> ${esc(ev.venue)}, ${esc(ev.city)}</div>
+      ${highlights.length ? `<div class="lp-evt-chiprow">${highlights.map(h => `<span class="lp-evt-chip2"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg> ${esc(h)}</span>`).join('')}</div>` : ''}
       ${!ev.is_sold_out ? `
       <div class="lp-evt-urgency">
         <span>${ev.slots_remaining} slots left</span>
@@ -122,7 +122,7 @@ async function loadEvents() {
     renderEventsGrid();
     _evUpdateDashTeaser();
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -141,7 +141,7 @@ function renderEventsGrid() {
         <div style="position:absolute;inset:0;background:radial-gradient(circle at 30% 22%,rgba(61,212,74,.28),transparent 60%);"></div>
         <div style="position:absolute;top:14px;left:16px;font-size:11px;font-weight:900;color:rgba(255,255,255,.4);letter-spacing:.3px;">EndaViral</div>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-          <div style="width:56px;height:56px;border-radius:50%;border:1.5px solid rgba(61,212,74,.55);background:rgba(61,212,74,.1);display:flex;align-items:center;justify-content:center;font-size:24px;">🎤</div>
+          <div style="width:56px;height:56px;border-radius:50%;border:1.5px solid rgba(61,212,74,.55);background:rgba(61,212,74,.1);display:flex;align-items:center;justify-content:center;font-size:24px;"><svg class=ev-i aria-hidden=true><use href=#ev-mic></use></svg></div>
         </div>
       </div>`}
       <div style="padding:16px;display:flex;flex-direction:column;gap:8px;flex:1;">
@@ -152,7 +152,7 @@ function renderEventsGrid() {
           📍 ${esc(ev.venue)}, ${esc(ev.city)}
         </div>
         ${(ev.highlights || []).length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;">
-          ${ev.highlights.slice(0, 4).map(h => `<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(61,212,74,.10);color:var(--green);">✓ ${esc(h)}</span>`).join('')}
+          ${ev.highlights.slice(0, 4).map(h => `<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(61,212,74,.10);color:var(--green);"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg> ${esc(h)}</span>`).join('')}
         </div>` : ''}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:10px;">
           <div>
@@ -181,21 +181,21 @@ function renderEventsGrid() {
 function _evCityRequestHero() {
   return `
   <div style="max-width:640px;margin:10px auto 0;text-align:center;">
-    <div style="font-size:52px;line-height:1;margin-bottom:10px;">🎤✨</div>
+    <div style="font-size:52px;line-height:1;margin-bottom:10px;"><svg class=ev-i aria-hidden=true><use href=#ev-mic></use></svg><svg class=ev-i aria-hidden=true><use href=#ev-sparkle></use></svg></div>
     <div style="font-size:21px;font-weight:800;color:var(--white);margin-bottom:8px;">No events on the calendar — yet.</div>
     <div style="font-size:14px;color:var(--muted);margin-bottom:26px;line-height:1.6;">
       EndaViral Creator Events rotate from city to city, and <strong style="color:var(--green);">you</strong> get to decide where we go next.
       Tell us your city and what you'd love to learn, and we'll bring the training to you.
     </div>
     <div id="cityReqFormWrap" style="background:var(--navy);border:1px solid var(--border);border-radius:16px;padding:26px;text-align:left;">
-      <div style="font-size:12px;font-weight:800;color:var(--green);letter-spacing:.05em;margin-bottom:16px;">📍 REQUEST YOUR CITY</div>
+      <div style="font-size:12px;font-weight:800;color:var(--green);letter-spacing:.05em;margin-bottom:16px;"><svg class=ev-i aria-hidden=true><use href=#ev-pin></use></svg> REQUEST YOUR CITY</div>
       <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Which city should we bring the next Creator Event to?</label>
       <input id="cityReqCity" type="text" placeholder="e.g. Kisumu, Eldoret, Mombasa…" maxlength="100"
         style="width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;background:var(--card);border:1px solid var(--border);color:var(--white);font-size:14px;margin-bottom:16px;font-family:inherit;">
       <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">What would you love to learn there?</label>
       <textarea id="cityReqTopics" rows="3" placeholder="e.g. Growing on TikTok, M-Pesa payments for creators, landing brand deals…" maxlength="1000"
         style="width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;background:var(--card);border:1px solid var(--border);color:var(--white);font-size:14px;margin-bottom:18px;resize:vertical;font-family:inherit;"></textarea>
-      <button class="btn-primary" style="width:100%;" onclick="evSubmitCityRequest(this)">🚀 Submit My Request</button>
+      <button class="btn-primary" style="width:100%;" onclick="evSubmitCityRequest(this)"><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg> Submit My Request</button>
     </div>
   </div>`;
 }
@@ -204,7 +204,7 @@ function _evCityRequestBanner() {
   return `
   <div style="margin-top:22px;background:var(--navy);border:1px solid var(--border);border-radius:14px;padding:18px 20px;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-      <span style="font-size:22px;">📍</span>
+      <span style="font-size:22px;"><svg class=ev-i aria-hidden=true><use href=#ev-pin></use></svg></span>
       <div>
         <div style="font-size:14px;font-weight:800;color:var(--white);">Want us in your city next?</div>
         <div style="font-size:12px;color:var(--muted);">Tell us where to go and what to teach — top requests shape our next stop.</div>
@@ -235,7 +235,7 @@ async function evSubmitCityRequest(btn) {
     if (wrap) {
       wrap.innerHTML = `
         <div style="text-align:center;padding:6px 4px;width:100%;">
-          <div style="font-size:38px;margin-bottom:8px;">🎉</div>
+          <div style="font-size:38px;margin-bottom:8px;"><svg class=ev-i aria-hidden=true><use href=#ev-sparkle></use></svg></div>
           <div style="font-size:15px;font-weight:800;color:var(--white);margin-bottom:4px;">Request received!</div>
           <div style="font-size:13px;color:var(--muted);">${esc(res.message || `We've logged ${city} — thanks for the vote!`)}</div>
         </div>`;
@@ -277,7 +277,7 @@ function eventOpenDetail(eventId) {
     ${ev.cover_image_url ? `<img src="${esc(ev.cover_image_url)}" style="width:100%;border-radius:10px;margin-bottom:12px;">` : ''}
     <h3 style="margin:0 0 6px;">${esc(ev.title)}</h3>
     <p style="color:var(--muted);font-size:14px;">${esc(ev.description || '')}</p>
-    <div style="font-size:14px;margin:10px 0;">📅 ${esc(ev.event_date)} · ⏰ ${esc(ev.start_time_label)}${ev.end_time_label ? ' – ' + esc(ev.end_time_label) : ''}<br>📍 ${esc(ev.venue)}, ${esc(ev.city)}</div>
+    <div style="font-size:14px;margin:10px 0;"><svg class=ev-i aria-hidden=true><use href=#ev-calendar></use></svg> ${esc(ev.event_date)} · ⏰ ${esc(ev.start_time_label)}${ev.end_time_label ? ' – ' + esc(ev.end_time_label) : ''}<br><svg class=ev-i aria-hidden=true><use href=#ev-pin></use></svg> ${esc(ev.venue)}, ${esc(ev.city)}</div>
     ${(ev.speakers || []).length ? `
       <h4 style="margin:14px 0 6px;">Speakers</h4>
       <div style="display:flex;flex-direction:column;gap:8px;">
@@ -385,7 +385,7 @@ function _pollTicketPayment(eventId, checkoutId) {
       clearInterval(_eventsPollTimer); _eventsPollTimer = null;
       if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutId);
       _eventsPollCheckoutId = null;
-      statusEl.textContent = '✅ Payment confirmed — opening your ticket…';
+      statusEl.textContent = 'Payment confirmed — opening your ticket…';
       toast('Ticket booked!', 'success');
       eventCloseBuy();
       loadEvents();
@@ -441,7 +441,7 @@ async function loadMyTickets() {
   try {
     const tickets = await api('/events/my-tickets');
     if (!tickets.length) {
-      el.innerHTML = '<div class="empty-state"><div class="icon">🎟️</div><p>No tickets yet — book a Creator Event to get one.</p></div>';
+      el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-ticket></use></svg></div><p>No tickets yet — book a Creator Event to get one.</p></div>';
       return;
     }
     el.innerHTML = tickets.map(t => `
@@ -454,7 +454,7 @@ async function loadMyTickets() {
       </div>
     `).join('');
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -728,10 +728,10 @@ async function _evDrawTicket(canvas, t, logoImg) {
   // ── Date / time / venue ────────────────────────────────────────────
   ctx.font = '600 15px Montserrat, sans-serif';
   ctx.fillStyle = '#cfe6d6';
-  const metaLine = `📅 ${ev.event_date}   ⏰ ${ev.start_time_label}${ev.end_time_label ? ' – ' + ev.end_time_label : ''}`;
+  const metaLine = `${ev.event_date}   ⏰ ${ev.start_time_label}${ev.end_time_label ? ' – ' + ev.end_time_label : ''}`;
   ctx.fillText(metaLine, padX, cursorY);
   cursorY += 26;
-  ctx.fillText(`📍 ${ev.venue}, ${ev.city}`, padX, cursorY);
+  ctx.fillText(`${ev.venue}, ${ev.city}`, padX, cursorY);
   cursorY += 20;
 
   // ── Highlight chips ─────────────────────────────────────────────────
@@ -743,7 +743,7 @@ async function _evDrawTicket(canvas, t, logoImg) {
     const chipY0 = cursorY;
     const chipMaxX = mainW - 32;
     highlights.forEach(h => {
-      const label = `✓ ${h}`;
+      const label = `${h}`;
       const tw = ctx.measureText(label).width + 20;
       if (chipX + tw > chipMaxX) { chipX = padX; cursorY += 30; }
       _evRoundedRectPath(ctx, chipX, cursorY - 18, tw, 26, 13);
@@ -788,7 +788,7 @@ async function _evDrawTicket(canvas, t, logoImg) {
   ctx.textAlign = 'center';
   ctx.font = '800 14px Montserrat, sans-serif';
   ctx.fillStyle = darkGreen;
-  ctx.fillText('★ — ADMIT ONE — ★', stubCX, 46);
+  ctx.fillText('— ADMIT ONE — ★', stubCX, 46);
 
   const qrBoxSize = 168, qrBoxX = mainW + (stubW - qrBoxSize) / 2, qrBoxY = 62;
   _evRoundedRectPath(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 14);

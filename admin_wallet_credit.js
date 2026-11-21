@@ -24,8 +24,8 @@ let _awcFilter = { reason: '', used: '' };
 
 const AWC_VIEWS = [
   { id: 'refunds',   label: '↩️ Refunds',          hint: 'Every order refunded into a customer\'s wallet — by the midnight job, instantly (wallet order the panel rejected), or by staff. "Reordered" means the customer has since paid for a new order with their wallet.' },
-  { id: 'payments',  label: '🛒 Paid with wallet', hint: 'Orders customers paid for with wallet credit — fully, or wallet + M-Pesa. "Released" = the M-Pesa part failed, so the wallet part went back to the wallet.' },
-  { id: 'customers', label: '👥 Holding credit',  hint: 'Customers with credit still to spend, highest first. Open one to see their full wallet history.' },
+  { id: 'payments',  label: 'Paid with wallet', hint: 'Orders customers paid for with wallet credit — fully, or wallet + M-Pesa. "Released" = the M-Pesa part failed, so the wallet part went back to the wallet.' },
+  { id: 'customers', label: 'Holding credit',  hint: 'Customers with credit still to spend, highest first. Open one to see their full wallet history.' },
 ];
 const AWC_REASON = {
   failed:    ['FAILED', '#ff5252'],
@@ -93,17 +93,17 @@ function _awcRender(s) {
       <div><div class="sec-title">WALLET CREDIT</div>
       <div class="sec-sub">Paid orders that fail are refunded to the customer's EndaViral Wallet every midnight, and the customer is messaged to reorder — no manual reorders needed. Credit can be spent on any order but never withdrawn.</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;">
-        ${_awcIsAdmin() ? `<button class="btn-primary" style="width:auto;margin:0;white-space:nowrap;" onclick="awcBankDeposit()">🏦 Bank transfer received</button>` : ''}
+        ${_awcIsAdmin() ? `<button class="btn-primary" style="width:auto;margin:0;white-space:nowrap;" onclick="awcBankDeposit()"><svg class=ev-i aria-hidden=true><use href=#ev-bank></use></svg> Bank transfer received</button>` : ''}
         ${_awcIsAdmin() ? `<button class="btn-secondary" style="width:auto;white-space:nowrap;" onclick="awcAdjust()">± Adjust credit</button>` : ''}
-        <button class="btn-secondary" style="width:auto;white-space:nowrap;" onclick="window._awcSum=null;loadAdminWalletCredit()">↻ Refresh</button>
+        <button class="btn-secondary" style="width:auto;white-space:nowrap;" onclick="window._awcSum=null;loadAdminWalletCredit()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
       </div>
     </div>`;
 
   if (!st.refunds_enabled) {
-    html += `<div style="${_awcCard}border-color:#ffb347;color:#ffb347;font-weight:700;margin-bottom:12px;">⚠ Automatic wallet refunds are OFF (WALLET_REFUNDS_ENABLED=false) — failed paid orders go to Support → Reorders for staff instead.</div>`;
+    html += `<div style="${_awcCard}border-color:#ffb347;color:#ffb347;font-weight:700;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Automatic wallet refunds are OFF (WALLET_REFUNDS_ENABLED=false) — failed paid orders go to Support → Reorders for staff instead.</div>`;
   }
   if (s.refunds_not_messaged) {
-    html += `<div style="${_awcCard}border-color:#ff5252;color:#ff8a80;margin-bottom:12px;font-size:12.5px;">✉ <b>${s.refunds_not_messaged}</b> refunded customer(s) could not be messaged automatically — filter the list by “Not messaged” and message them from Support.</div>`;
+    html += `<div style="${_awcCard}border-color:#ff5252;color:#ff8a80;margin-bottom:12px;font-size:12.5px;"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg> <b>${s.refunds_not_messaged}</b> refunded customer(s) could not be messaged automatically — filter the list by “Not messaged” and message them from Support.</div>`;
   }
 
   html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px;">
@@ -145,7 +145,7 @@ function _awcList(data) {
 function _awcUserCell(u) {
   return `<div style="font-weight:600;font-size:12px;">${esc(u.name || u.email || '—')}</div>
     ${u.email && u.name !== u.email ? `<div style="font-size:11px;color:var(--muted);">${esc(u.email)}</div>` : ''}
-    ${u.phone ? `<div style="font-size:11px;color:var(--muted);white-space:nowrap;">📞 ${esc(u.phone)}</div>` : ''}`;
+    ${u.phone ? `<div style="font-size:11px;color:var(--muted);white-space:nowrap;"><svg class=ev-i aria-hidden=true><use href=#ev-phone-call></use></svg> ${esc(u.phone)}</div>` : ''}`;
 }
 function _awcOrderLink(id) {
   return `<a href="#" onclick="event.preventDefault();openOrderDetailModal('${esc(id)}')" style="color:var(--white);font-weight:700;">#${esc(String(id).slice(0, 8))}</a>`;
@@ -155,29 +155,29 @@ function _awcRefunds(items, total) {
   const chip = (k, v, label) => `<button class="sb-chip ${_awcFilter[k] === v ? 'on' : ''}" onclick="awcSetFilter('${k}','${v}')" style="background:var(--card);border:1px solid ${_awcFilter[k] === v ? 'var(--green)' : 'var(--border)'};border-radius:20px;padding:4px 11px;color:${_awcFilter[k] === v ? 'var(--green)' : 'var(--muted)'};font-size:11px;font-weight:700;cursor:pointer;">${label}</button>`;
   let html = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
       ${Object.entries(AWC_REASON).map(([k, [l]]) => chip('reason', k, l[0] + l.slice(1).toLowerCase())).join('')}
-      ${chip('used', 'yes', '✅ Reordered')}${chip('used', 'no', '⏳ Not reordered yet')}
+      ${chip('used', 'yes', 'Reordered')}${chip('used', 'no', 'Not reordered yet')}
       <span style="margin-left:auto;font-size:11px;color:var(--muted);">${items.length} shown${total > items.length ? ` of ${total}` : ''}</span>
     </div>`;
-  if (!items.length) return html + `<div class="empty-state"><div class="icon">💳</div><p>No refunds here yet. They appear after the midnight run.</p></div>`;
+  if (!items.length) return html + `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg></div><p>No refunds here yet. They appear after the midnight run.</p></div>`;
   html += `<div class="tbl-wrap" style="overflow-x:auto;"><table>
     <thead><tr><th>Order</th><th>Customer</th><th>Why</th><th>Refunded</th><th>Reordered?</th><th>Actions</th></tr></thead>
     <tbody>${items.map(r => {
       const [rl, rc] = AWC_REASON[r.reason] || [String(r.reason || '').toUpperCase(), '#9aa4b2'];
       const uid = esc(r.user.id || ''), email = esc(r.user.email || '');
-      const recovered = r.recovered_after_refund ? `<div style="margin-top:4px;">${_awcTag('⚠ ORDER NOW ' + esc(String(r.order_status_now).toUpperCase()), '#ffb347')}</div>` : '';
+      const recovered = r.recovered_after_refund ? `<div style="margin-top:4px;">${_awcTag('ORDER NOW ' + esc(String(r.order_status_now).toUpperCase()), '#ffb347')}</div>` : '';
       return `<tr>
         <td style="font-size:12px;">${_awcOrderLink(r.order_id)}
           <div style="font-size:11px;color:var(--muted);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.service_name || '')}">${esc(r.service_name || '—')}</div>
           <div style="font-size:11px;color:var(--muted);">${r.quantity ? Number(r.quantity).toLocaleString() + ' undelivered' : ''}</div></td>
         <td>${_awcUserCell(r.user)}<div style="font-size:11px;margin-top:2px;">wallet now <a href="#" onclick="event.preventDefault();awcOpenUser('${uid}')" style="color:var(--green);font-weight:700;">${fmtKES(r.balance_now)}</a></div></td>
         <td>${_awcTag(rl, rc)}${recovered}
-          <div style="font-size:10.5px;color:var(--muted);margin-top:4px;">${r.source === 'staff' ? '👤 by ' + esc(String(r.by || 'staff').split('@')[0]) : r.source === 'instant' ? '⚡ instantly' : '🌙 midnight'}</div></td>
+          <div style="font-size:10.5px;color:var(--muted);margin-top:4px;">${r.source === 'staff' ? 'by ' + esc(String(r.by || 'staff').split('@')[0]) : r.source === 'instant' ? 'instantly' : 'midnight'}</div></td>
         <td style="white-space:nowrap;"><b style="color:#3dd44a;font-size:14px;">${fmtKES(r.amount)}</b><div style="font-size:10.5px;color:var(--muted);">${esc(_awcDate(r.created_at))}</div>
-          <div style="margin-top:4px;">${r.notified ? _awcTag('✉ MESSAGED', '#3dd44a') : _awcTag('✕ NOT MESSAGED', '#ff5252')}</div></td>
-        <td>${(r.reorder_order_id || r.reordered) ? `${_awcTag('✅ REORDERED', '#3dd44a')}<div style="font-size:11px;margin-top:4px;">${_awcOrderLink(r.reorder_order_id || r.reordered.order_id)}</div>` : _awcTag('⏳ NOT YET', '#ffb347')}</td>
+          <div style="margin-top:4px;">${r.notified ? _awcTag('MESSAGED', '#3dd44a') : _awcTag('NOT MESSAGED', '#ff5252')}</div></td>
+        <td>${(r.reorder_order_id || r.reordered) ? `${_awcTag('REORDERED', '#3dd44a')}<div style="font-size:11px;margin-top:4px;">${_awcOrderLink(r.reorder_order_id || r.reordered.order_id)}</div>` : _awcTag('NOT YET', '#ffb347')}</td>
         <td style="white-space:nowrap;">
-          ${r.thread_id ? `<button class="action-btn" onclick="awcOpenChat('${esc(r.thread_id)}')" title="Open the customer's chat (the refund message is there)">💬 Chat</button>` : (uid ? `<button class="action-btn" onclick="adminMessageCustomer('${uid}','${email}')">💬 Message</button>` : '')}
-          <button class="action-btn" onclick="awcOpenUser('${uid}')" title="Wallet history">📒</button>
+          ${r.thread_id ? `<button class="action-btn" onclick="awcOpenChat('${esc(r.thread_id)}')" title="Open the customer's chat (the refund message is there)"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Chat</button>` : (uid ? `<button class="action-btn" onclick="adminMessageCustomer('${uid}','${email}')"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Message</button>` : '')}
+          <button class="action-btn" onclick="awcOpenUser('${uid}')" title="Wallet history"><svg class=ev-i aria-hidden=true><use href=#ev-book></use></svg></button>
         </td>
       </tr>`;
     }).join('')}</tbody></table></div>`;
@@ -185,7 +185,7 @@ function _awcRefunds(items, total) {
 }
 
 function _awcPayments(items, total) {
-  if (!items.length) return `<div class="empty-state"><div class="icon">🛒</div><p>No orders paid with wallet credit yet.</p></div>`;
+  if (!items.length) return `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-cart></use></svg></div><p>No orders paid with wallet credit yet.</p></div>`;
   return `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-align:right;">${items.length} shown${total > items.length ? ` of ${total}` : ''}</div>
     <div class="tbl-wrap" style="overflow-x:auto;"><table>
     <thead><tr><th>Order</th><th>Customer</th><th>Paid with</th><th>Wallet</th><th>M-Pesa</th><th>Order status</th><th>Date</th></tr></thead>
@@ -197,7 +197,7 @@ function _awcPayments(items, total) {
           <div style="font-size:11px;color:var(--muted);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(o.service_name || '')}">${esc(o.service_name || '—')}</div>
           <div style="font-size:11px;color:var(--muted);">${o.quantity ? Number(o.quantity).toLocaleString() : ''} · ${fmtKES(o.charge)}</div></td>
         <td>${_awcUserCell(p.user)}</td>
-        <td>${p.method === 'wallet' ? _awcTag('💳 WALLET', '#3dd44a') : _awcTag('💳 + 📱 WALLET + M-PESA', '#2196f3')}
+        <td>${p.method === 'wallet' ? _awcTag('WALLET', '#3dd44a') : _awcTag('+ 📱 WALLET + M-PESA', '#2196f3')}
           ${released ? `<div style="margin-top:4px;">${_awcTag('↩ RELEASED', '#9aa4b2')}</div>` : ''}</td>
         <td style="white-space:nowrap;font-weight:700;color:${released ? 'var(--muted)' : '#ff8a65'};${released ? 'text-decoration:line-through;' : ''}">${fmtKES(p.wallet_kes)}</td>
         <td style="white-space:nowrap;">${p.mpesa_kes ? fmtKES(p.mpesa_kes) : '—'}</td>
@@ -208,7 +208,7 @@ function _awcPayments(items, total) {
 }
 
 function _awcCustomers(items) {
-  if (!items.length) return `<div class="empty-state"><div class="icon">👥</div><p>No customer is holding wallet credit.</p></div>`;
+  if (!items.length) return `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg></div><p>No customer is holding wallet credit.</p></div>`;
   return `<div class="tbl-wrap" style="overflow-x:auto;"><table>
     <thead><tr><th>Customer</th><th>Phone</th><th>Balance</th><th>Last change</th><th>Actions</th></tr></thead>
     <tbody>${items.map(c => {
@@ -219,8 +219,8 @@ function _awcCustomers(items) {
         <td style="white-space:nowrap;"><b style="color:#3dd44a;font-size:15px;">${fmtKES(c.balance)}</b></td>
         <td style="font-size:11px;color:var(--muted);white-space:nowrap;">${esc(_awcDate(c.updated_at))}</td>
         <td style="white-space:nowrap;">
-          <button class="action-btn" onclick="awcOpenUser('${uid}')">📒 History</button>
-          ${uid ? `<button class="action-btn" onclick="adminMessageCustomer('${uid}','${email}')">💬 Message</button>` : ''}
+          <button class="action-btn" onclick="awcOpenUser('${uid}')"><svg class=ev-i aria-hidden=true><use href=#ev-book></use></svg> History</button>
+          ${uid ? `<button class="action-btn" onclick="adminMessageCustomer('${uid}','${email}')"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Message</button>` : ''}
           ${_awcIsAdmin() ? `<button class="action-btn" onclick="awcAdjust('${uid}','${esc(c.user.name || c.user.email || '')}')">±</button>` : ''}
         </td>
       </tr>`;
@@ -240,7 +240,7 @@ function _awcModal(title, body, actions) {
   m.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;width:100%;max-width:620px;max-height:88vh;display:flex;flex-direction:column;">
       <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);">
         <div style="font-weight:800;font-size:15px;flex:1;">${title}</div>
-        <button onclick="awcCloseModal()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;" aria-label="Close">✕</button>
+        <button onclick="awcCloseModal()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;" aria-label="Close"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
       </div>
       <div style="padding:14px 18px;overflow:auto;">${body}</div>
       ${actions ? `<div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">${actions}</div>` : ''}
@@ -266,11 +266,11 @@ async function awcOpenUser(userId) {
       </tr>`;
     }).join('');
     const name = d.user.name || d.user.email || 'Customer';
-    _awcModal(`💳 ${esc(name)} — ${fmtKES(d.balance)}`,
+    _awcModal(`${esc(name)} — ${fmtKES(d.balance)}`,
       `<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">${esc(d.user.email || '')}${d.user.phone ? ' · 📞 ' + esc(d.user.phone) : ''}</div>
        ${rows ? `<div class="tbl-wrap" style="overflow-x:auto;"><table><thead><tr><th>Date</th><th>Type</th><th>Detail</th><th>Amount</th><th>Balance</th></tr></thead><tbody>${rows}</tbody></table></div>`
               : '<div class="empty-state"><p>No wallet activity.</p></div>'}`,
-      `${_awcIsAdmin() ? `<button class="btn-secondary" style="width:auto;" data-uid="${esc(userId)}" data-name="${esc(name)}" onclick="awcBankDeposit({id:this.dataset.uid,name:this.dataset.name})">🏦 Bank transfer</button>` : ''}
+      `${_awcIsAdmin() ? `<button class="btn-secondary" style="width:auto;" data-uid="${esc(userId)}" data-name="${esc(name)}" onclick="awcBankDeposit({id:this.dataset.uid,name:this.dataset.name})"><svg class=ev-i aria-hidden=true><use href=#ev-bank></use></svg> Bank transfer</button>` : ''}
        ${_awcIsAdmin() ? `<button class="btn-secondary" style="width:auto;" data-uid="${esc(userId)}" data-name="${esc(name)}" onclick="awcAdjust(this.dataset.uid,this.dataset.name)">± Adjust credit</button>` : ''}
        <button class="btn-primary" style="width:auto;margin:0;" onclick="awcCloseModal()">Close</button>`);
   } catch (e) {
@@ -333,14 +333,14 @@ async function awcLoadOrderBox(orderId) {
     const lines = [];
     if (d.wallet_payment) {
       const p = d.wallet_payment;
-      lines.push(`💳 Paid ${fmtKES(p.wallet_kes)} from wallet${p.mpesa_kes ? ` + ${fmtKES(p.mpesa_kes)} M-Pesa` : ''}${p.status === 'released' ? ' — <b>released</b> (M-Pesa part failed, credit returned)' : ''}`);
+      lines.push(`Paid ${fmtKES(p.wallet_kes)} from wallet${p.mpesa_kes ? ` + ${fmtKES(p.mpesa_kes)} M-Pesa` : ''}${p.status === 'released' ? ' — <b>released</b> (M-Pesa part failed, credit returned)' : ''}`);
     }
     if (d.refund) {
       lines.push(`↩️ <b style="color:#3dd44a;">${fmtKES(d.refund.amount)} refunded to the customer's wallet</b> ${esc(_awcDate(d.refund.at))} (${esc(d.refund.reason)}${d.refund.source === 'staff' ? ', by staff' : ''})${d.refund.notified ? '' : ' — <span style="color:#ff5252;">customer NOT messaged</span>'}`);
     }
     let btn = '';
     if (d.can_refund) {
-      btn = `<button class="action-btn" onclick="awcRefundOrder('${esc(orderId)}', ${Number(d.refundable_kes)})" style="margin-top:8px;border-color:rgba(61,212,74,.55);color:#3dd44a;font-weight:700;">💳 Refund ${fmtKES(d.refundable_kes)} to wallet</button>
+      btn = `<button class="action-btn" onclick="awcRefundOrder('${esc(orderId)}', ${Number(d.refundable_kes)})" style="margin-top:8px;border-color:rgba(61,212,74,.55);color:#3dd44a;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg> Refund ${fmtKES(d.refundable_kes)} to wallet</button>
         <div style="font-size:10.5px;color:var(--muted);margin-top:4px;">The customer is messaged and reorders themselves. (The midnight job does this automatically.)</div>`;
     }
     if (!lines.length && !btn) { box.innerHTML = ''; return; }
@@ -380,7 +380,7 @@ function awcBankDeposit(user, afterFn) {
   _awcDepAfter = typeof afterFn === 'function' ? afterFn : null;
   const field = 'width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--white);font-size:15px;font-family:inherit;margin:6px 0 12px;box-sizing:border-box;';
   const lbl = 'font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.3px;';
-  _awcModal('🏦 Bank transfer received',
+  _awcModal('Bank transfer received',
     `<div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Only do this <b style="color:var(--white);">after you see the money in the bank account</b>. The customer can then pay for orders with it. It can't be withdrawn.</div>
      <label style="${lbl}">1. CUSTOMER</label>
      <div id="awcDepWho"></div>
@@ -473,7 +473,7 @@ async function awcBankDepositGo() {
     const r = await api('/admin/wallet-credit/bank-deposit', {
       method: 'POST', body: JSON.stringify({ user_id: _awcDepUser.id, amount, bank_reference, note }),
     });
-    toast(`✓ ${fmtKES(r.credited_kes)} added — ${r.customer.name || 'customer'}'s wallet is now ${fmtKES(r.balance)}`, 'success');
+    toast(`${fmtKES(r.credited_kes)} added — ${r.customer.name || 'customer'}'s wallet is now ${fmtKES(r.balance)}`, 'success');
     awcCloseModal();
     window._awcSum = null;
     if (document.getElementById('walletCreditRoot')?.offsetParent) loadAdminWalletCredit();

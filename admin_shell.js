@@ -68,7 +68,7 @@
       const n = badgeSrc?.textContent?.trim();
       const onQueue = tabKey(active) === 'link-queue';
       sBadge.hidden = !n || onQueue;
-      sBadge.textContent = n ? `⏳ ${n}` : '';
+      sBadge.textContent = n ? `${n}` : '';
       sBadge.title = n ? `${n} queued order(s) waiting` : '';
     }
   }

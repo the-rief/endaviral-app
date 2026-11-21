@@ -90,7 +90,7 @@ function _foHistoryBlock(s) {
 function _foActiveBlock(a) {
   const [label, color] = _FO_STATUS[a.order_status] || ['Delivering', '#ffc107'];
   return `<div style="padding:12px 14px;border-radius:12px;background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.3);margin-bottom:6px;">
-    <div style="font-size:12px;font-weight:700;color:${color};margin-bottom:4px;">🎁 FREE ORDER · ${label}</div>
+    <div style="font-size:12px;font-weight:700;color:${color};margin-bottom:4px;"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> FREE ORDER · ${label}</div>
     <div style="font-size:13.5px;font-weight:600;margin-bottom:4px;">${esc(a.service_name || '')}</div>
     <div style="font-size:12px;color:var(--muted);line-height:1.6;">Quantity: <b style="color:var(--white)">${(a.quantity || 0).toLocaleString()}</b><br>Track it in <b style="color:var(--white)">My Orders</b>. Keep your account public and active while it delivers.</div></div>`;
 }
@@ -108,9 +108,9 @@ async function freeOrderOpen() {
       + _foHistoryBlock(s);
   } else if (r.status === 'pending' || r.status === 'approving') {
     body.innerHTML = `
-      <div style="text-align:center;margin:6px 0 14px;"><div style="font-size:40px;">✅</div>
+      <div style="text-align:center;margin:6px 0 14px;"><div style="font-size:40px;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg></div>
         <p style="font-size:16px;font-weight:700;margin:6px 0 4px;">Free order received!</p>
-        <p style="font-size:13.5px;color:var(--muted);line-height:1.6;">Our team is reviewing it now. Once approved it starts automatically and shows up in your orders as <b style="color:var(--white)">🎁 Free</b>. No payment needed.</p></div>
+        <p style="font-size:13.5px;color:var(--muted);line-height:1.6;">Our team is reviewing it now. Once approved it starts automatically and shows up in your orders as <b style="color:var(--white)"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> Free</b>. No payment needed.</p></div>
       <div style="font-size:13px;color:var(--muted);line-height:1.8;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.04);">
         Service: <b style="color:var(--white)">${esc(r.service_name || '')}</b><br>
         Quantity: <b style="color:var(--white)">${(r.quantity || 0).toLocaleString()}</b><br>
@@ -132,7 +132,7 @@ let _foFlow = null;
 
 function _foHeader(r) {
   return `${r.reject_reason ? `<div style="background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.3);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:10px;">Last request was rejected: ${esc(r.reject_reason)}</div>` : ''}
-    <p style="font-size:14px;margin-bottom:12px;">🎁 You have a <b>free order</b> worth up to <b style="color:#3dd44a">${fmtKES(r.allowance_kes)}</b> (average of your last ${_foState.required} orders). No payment needed.</p>`;
+    <p style="font-size:14px;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> You have a <b>free order</b> worth up to <b style="color:#3dd44a">${fmtKES(r.allowance_kes)}</b> (average of your last ${_foState.required} orders). No payment needed.</p>`;
 }
 
 function _foGo(step) { _foFlow.svc = null; _foFlow.step = step; _foRender(); }
@@ -162,7 +162,7 @@ function _foRender() {
                 <div style="font-size:12px;color:var(--muted);">You get <b style="color:#3dd44a">${a.quantity.toLocaleString()}</b> free${a.match === 'same_type' ? ' · <span style="color:#3dd44a;">same kind</span>' : ''}</div>
               </div>`).join('')}</div>` : `
             <div style="font-size:12px;color:var(--muted);margin:2px 0 8px;">No longer available, and there's no similar service right now.</div>
-            <button class="btn-secondary" style="padding:8px 12px;font-size:12.5px;" onclick="_foAskSupport(${i})">💬 Ask support to choose one</button>`}
+            <button class="btn-secondary" style="padding:8px 12px;font-size:12.5px;" onclick="_foAskSupport(${i})"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Ask support to choose one</button>`}
         </div>`).join('') || '<p style="color:var(--muted)">No eligible services found. Please contact support.</p>'}</div>
       ${list.length && !usableCount ? '<p style="color:var(--muted);font-size:13px;margin-top:10px;">None of these services can be used right now. Ask support and we\'ll sort it out — your free order stays saved.</p>' : ''}`;
 
@@ -234,7 +234,7 @@ async function loadAdminFreeOrders() {
   loadFreeOrderStats();
   try {
     const rows = await api(`/free-order/staff/requests?status=${status}`);
-    if (!rows.length) { el.classList.remove('fo-has-cards'); el.innerHTML = '<div class="empty-state"><div class="icon">🎁</div><p>No free-order requests.</p></div>'; return; }
+    if (!rows.length) { el.classList.remove('fo-has-cards'); el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg></div><p>No free-order requests.</p></div>'; return; }
     el.classList.add('fo-has-cards');
     el.innerHTML = `<table><thead><tr><th>Client</th><th>Service</th><th>Link</th><th>Qty</th><th>Value</th><th>Status</th><th>Delivery</th><th>Actions</th></tr></thead><tbody>${rows.map(r => `
       <tr>
@@ -260,7 +260,7 @@ async function loadAdminFreeOrders() {
         <div class="fo-card-actions">${_foStaffActions(r)}</div>
       </div>`).join('')}</div>`;
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -276,7 +276,7 @@ function _foIsOwn(r) {
 }
 function _foStatusLabel(r) {
   if (r.status === 'approving') return _foIsStuck(r)
-    ? '<span style="color:#ff6b6b;font-weight:700;">⚠️ Needs checking</span>'
+    ? '<span style="color:#ff6b6b;font-weight:700;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Needs checking</span>'
     : '<span style="color:#ffc107;">Approving…</span>';
   return esc(r.status);
 }

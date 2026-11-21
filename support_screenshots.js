@@ -55,9 +55,9 @@
   window.evShotHtml = function (att) {
     if (!att || !att.id) return '';
     if (att.expired) {
-      return `<div class="ev-shot-gone">📷 Screenshot deleted after 7 days</div>`;
+      return `<div class="ev-shot-gone"><svg class=ev-i aria-hidden=true><use href=#ev-camera></use></svg> Screenshot deleted after 7 days</div>`;
     }
-    return `<div class="ev-shot" data-att="${esc(att.id)}"><span class="ev-shot-loading">📷 Loading screenshot…</span></div>`;
+    return `<div class="ev-shot" data-att="${esc(att.id)}"><span class="ev-shot-loading"><svg class=ev-i aria-hidden=true><use href=#ev-camera></use></svg> Loading screenshot…</span></div>`;
   };
 
   async function _hydrate(el) {
@@ -70,7 +70,7 @@
         const r = await fetch(`${API}/support/attachments/${encodeURIComponent(id)}`, {
           headers: token ? { Authorization: 'Bearer ' + token } : {},
         });
-        if (r.status === 410) { el.outerHTML = `<div class="ev-shot-gone">📷 Screenshot deleted after 7 days</div>`; return; }
+        if (r.status === 410) { el.outerHTML = `<div class="ev-shot-gone"><svg class=ev-i aria-hidden=true><use href=#ev-camera></use></svg> Screenshot deleted after 7 days</div>`; return; }
         if (!r.ok) throw new Error('load failed');
         url = URL.createObjectURL(await r.blob());
         _blobCache.set(id, url);
@@ -78,7 +78,7 @@
       el.innerHTML = `<img src="${url}" alt="Screenshot" loading="lazy">`;
       el.onclick = () => _openViewer(url);
     } catch (_) {
-      el.innerHTML = `<span class="ev-shot-loading">📷 Couldn't load screenshot — tap to retry</span>`;
+      el.innerHTML = `<span class="ev-shot-loading"><svg class=ev-i aria-hidden=true><use href=#ev-camera></use></svg> Couldn't load screenshot — tap to retry</span>`;
       el.onclick = () => { delete el.dataset.loaded; el.onclick = null; _hydrate(el); };
     }
   }
@@ -100,7 +100,7 @@
       v.onclick = () => { v.style.display = 'none'; };
       document.body.appendChild(v);
     }
-    v.innerHTML = `<img src="${url}" alt="Screenshot"><button aria-label="Close">✕</button>`;
+    v.innerHTML = `<img src="${url}" alt="Screenshot"><button aria-label="Close"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>`;
     v.style.display = 'flex';
   }
 
@@ -114,7 +114,7 @@
     box.style.display = 'flex';
     box.innerHTML = `<img src="${_pending}" alt="">
       <div style="flex:1;min-width:0;font-size:12px;color:#c3d3e0;line-height:1.4;">Screenshot ready to send<br><span style="color:#93a3ba;font-size:11px;">Add a message if you like, then tap send.</span></div>
-      <button type="button" onclick="ttClearShot()" aria-label="Remove screenshot">✕</button>`;
+      <button type="button" onclick="ttClearShot()" aria-label="Remove screenshot"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>`;
   }
 
   async function _accept(file) {

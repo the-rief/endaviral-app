@@ -112,7 +112,7 @@ function _upRowHTML(s, idx) {
   const qty = Number(s.quantity || 0).toLocaleString('en-KE');
   return `
     <div class="up-row" data-key="${esc(s.key)}">
-      <button class="up-x" title="Hide" aria-label="Hide suggestion" onclick="upsellDismiss(event,'${esc(s.key)}')">✕</button>
+      <button class="up-x" title="Hide" aria-label="Hide suggestion" onclick="upsellDismiss(event,'${esc(s.key)}')"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
       <div class="up-top">
         <span class="up-ic">${_UP_ICON[s.platform] || '🚀'}</span>
         <div class="up-main-txt">
@@ -291,7 +291,7 @@ function _upAfterCardHTML(s) {
   const price = fmtKES(s.price_kes);
   return `
   <div class="upa-card" role="region" aria-label="Recommended next step">
-    <div class="upa-kicker">⚡ ONE MORE STEP</div>
+    <div class="upa-kicker"><svg class=ev-i aria-hidden=true><use href=#ev-zap></use></svg> ONE MORE STEP</div>
     <div class="upa-head">
       <div class="upa-ic">${_UP_ICON[s.platform] || '🚀'}</div>
       <div class="upa-body">
@@ -299,7 +299,7 @@ function _upAfterCardHTML(s) {
         ${s.pitch ? `<div class="upa-meta">${esc(s.pitch)}</div>` : ''}
       </div>
     </div>
-    ${s.social_proof ? `<div class="upa-proof"><span>👥</span><span>${esc(s.social_proof)}</span></div>` : ''}
+    ${s.social_proof ? `<div class="upa-proof"><span><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg></span><span>${esc(s.social_proof)}</span></div>` : ''}
     <button class="upa-cta" onclick="upsellStart('after', 0)">Add ${qty} ${esc(typ)} · ${_upWasHTML(s)}${price}</button>
     <div class="upa-alt">
       ${_upSaveHTML(s)}

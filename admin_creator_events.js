@@ -31,7 +31,7 @@ async function loadAdminEvents() {
     _adminEventsCache = events || [];
     renderAdminEvents();
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -39,7 +39,7 @@ function renderAdminEvents() {
   const el = document.getElementById('adminEventsList');
   if (!el) return;
   if (!_adminEventsCache.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">🎤</div><p>No events yet — create one to get started.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-mic></use></svg></div><p>No events yet — create one to get started.</p></div>';
     return;
   }
   const statusBadge = (s) => {
@@ -140,7 +140,7 @@ function _renderEvSpeakers() {
   }
   el.innerHTML = _evSpeakers.map((s, i) => `
     <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;">
-      <button type="button" onclick="evRemoveSpeaker(${i})" title="Remove speaker" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>
+      <button type="button" onclick="evRemoveSpeaker(${i})" title="Remove speaker" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-right:20px;">
         <div class="field" style="margin:0;"><label style="font-size:11px;">Name *</label><input type="text" value="${esc(s.name)}" oninput="_evUpdateSpeaker(${i},'name',this.value)" placeholder="Jane Doe"/></div>
         <div class="field" style="margin:0;"><label style="font-size:11px;">Topic</label><input type="text" value="${esc(s.topic)}" oninput="_evUpdateSpeaker(${i},'topic',this.value)" placeholder="Growth on TikTok"/></div>
@@ -173,7 +173,7 @@ function _renderEvSponsors() {
   }
   el.innerHTML = _evSponsors.map((s, i) => `
     <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;">
-      <button type="button" onclick="evRemoveSponsor(${i})" title="Remove sponsor" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>
+      <button type="button" onclick="evRemoveSponsor(${i})" title="Remove sponsor" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-right:20px;">
         <div class="field" style="margin:0;"><label style="font-size:11px;">Name *</label><input type="text" value="${esc(s.name)}" oninput="_evUpdateSponsor(${i},'name',this.value)" placeholder="Safaricom"/></div>
         <div class="field" style="margin:0;"><label style="font-size:11px;">Logo URL</label><input type="text" value="${esc(s.logo_url)}" oninput="_evUpdateSponsor(${i},'logo_url',this.value)" placeholder="https://…"/></div>
@@ -318,7 +318,7 @@ async function adminEventOpenAttendees(eventId) {
       </table>`}
     `;
   } catch (e) {
-    body.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    body.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -343,7 +343,7 @@ async function loadAdminCityRequests() {
     const data = await api('/admin/events/city-requests');
     renderAdminCityRequests(data);
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -354,7 +354,7 @@ function renderAdminCityRequests(data) {
   const topCities = data.top_cities || [];
 
   if (!requests.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">📍</div><p>No city requests yet — they\'ll show up here once creators submit them from the Creator Events page.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-pin></use></svg></div><p>No city requests yet — they\'ll show up here once creators submit them from the Creator Events page.</p></div>';
     return;
   }
 
@@ -362,7 +362,7 @@ function renderAdminCityRequests(data) {
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;">
       ${topCities.map((c, i) => `
         <div style="background:var(--card,var(--navy));border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;">
-          ${i === 0 ? '<div style="position:absolute;top:-9px;right:10px;font-size:16px;">🏆</div>' : ''}
+          ${i === 0 ? '<div style="position:absolute;top:-9px;right:10px;font-size:16px;"><svg class=ev-i aria-hidden=true><use href=#ev-trophy></use></svg></div>' : ''}
           <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">#${i + 1}</div>
           <div style="font-size:16px;font-weight:800;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(c.city)}">${esc(c.city)}</div>
           <div style="font-size:20px;font-weight:800;color:var(--green);margin-top:4px;">${c.count} <span style="font-size:11px;color:var(--muted);font-weight:600;">vote${c.count === 1 ? '' : 's'}</span></div>
@@ -378,9 +378,9 @@ function renderAdminCityRequests(data) {
     </tr>`).join('');
 
   el.innerHTML = `
-    <div style="font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;">🏆 TOP REQUESTED CITIES</div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;"><svg class=ev-i aria-hidden=true><use href=#ev-trophy></use></svg> TOP REQUESTED CITIES</div>
     ${leaderboard}
-    <div style="font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--muted);margin:20px 0 10px;">📋 ALL REQUESTS (${requests.length})</div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--muted);margin:20px 0 10px;"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg> ALL REQUESTS (${requests.length})</div>
     <table>
       <thead><tr><th>City</th><th>Wants to learn</th><th>Requested by</th><th>Date</th></tr></thead>
       <tbody>${rows}</tbody>

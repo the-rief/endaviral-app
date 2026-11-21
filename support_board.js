@@ -21,11 +21,11 @@
  * ═══════════════════════════════════════════════════════════ */
 
 const SB_TABS = [
-  { id: 'inbox',     icon: '📥', label: 'Inbox',     sub: 'Customers waiting on a reply from us — longest wait first.' },
-  { id: 'followup',  icon: '⏳', label: 'Follow-up', sub: 'We messaged them and they haven\'t answered yet. Overdue (24h+) ones are flagged — nudge them or close them out.' },
-  { id: 'reorders',  icon: '🔁', label: 'Reorders',  sub: '' },
-  { id: 'automatic', icon: '⚙️', label: 'Automatic', sub: 'System-raised alerts and automatic notices. Nobody is waiting on these — if the customer replies, the thread moves to Inbox by itself.' },
-  { id: 'done',      icon: '✅', label: 'Done',      sub: 'Conversations marked done. They are never closed — the client\'s next message brings them back to the Inbox.' },
+  { id: 'inbox',     icon: '<svg class=ev-i aria-hidden=true><use href=#ev-download></use></svg>', label: 'Inbox',     sub: 'Customers waiting on a reply from us — longest wait first.' },
+  { id: 'followup',  icon: '<svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg>', label: 'Follow-up', sub: 'We messaged them and they haven\'t answered yet. Overdue (24h+) ones are flagged — nudge them or close them out.' },
+  { id: 'reorders',  icon: '<svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg>', label: 'Reorders',  sub: '' },
+  { id: 'automatic', icon: '<svg class=ev-i aria-hidden=true><use href=#ev-settings></use></svg>', label: 'Automatic', sub: 'System-raised alerts and automatic notices. Nobody is waiting on these — if the customer replies, the thread moves to Inbox by itself.' },
+  { id: 'done',      icon: '<svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg>', label: 'Done',      sub: 'Conversations marked done. They are never closed — the client\'s next message brings them back to the Inbox.' },
 ];
 
 const _sb = {
@@ -34,7 +34,7 @@ const _sb = {
 };
 try { const t = sessionStorage.getItem('sbTab'); if (SB_TABS.some(x => x.id === t)) _sb.tab = t; } catch (_) {}
 
-const SB_TYPE = { wrong_order: '📦 Wrong order', delay: '⏳ Delay', other: '💬 Other' };
+const SB_TYPE = { wrong_order: 'Wrong order', delay: 'Delay', other: 'Other' };
 const SB_STATUS = { open: ['#e53935', '🔴'], pending: ['#ff7043', '🟡'], resolved: ['#3dd44a', '✅'], closed: ['#3dd44a', '✅'] };
 const SB_STATUS_LABEL = { open: 'WAITING ON US', pending: 'WAITING ON CLIENT', resolved: 'DONE', closed: 'DONE' };
 
@@ -103,7 +103,7 @@ function sbRenderTabs() {
   const badge = (n, cls) => n > 0 ? `<span class="sb-badge ${cls}">${n}</span>` : '';
   const extra = {
     inbox: badge(c.inbox, 'red'),
-    followup: badge(c.followup, 'amber') + (c.stale ? `<span title="${c.stale} overdue (24h+)" style="font-size:11px;">⚠${c.stale}</span>` : ''),
+    followup: badge(c.followup, 'amber') + (c.stale ? `<span title="${c.stale} overdue (24h+)" style="font-size:11px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg>${c.stale}</span>` : ''),
     reorders: badge(c.reorders, c.replied ? 'green' : 'red'),
     automatic: badge(c.automatic, ''),
     done: '',
@@ -151,17 +151,17 @@ function sbRenderToolbar() {
   let html = `<div class="sb-hint">${esc(tab.sub)}</div>`;
 
   if (_sb.tab === 'inbox') {
-    html += sel('type', [['', 'All types'], ['wrong_order', '📦 Wrong order'], ['delay', '⏳ Delay'], ['other', '💬 Other']]);
-    html += sel('origin', [['', 'Any origin'], ['customer', '🧑 Customer-started'], ['agent', '👤 Agent-started'], ['automatic', '⚙️ From a system alert']]);
+    html += sel('type', [['', 'All types'], ['wrong_order', 'Wrong order'], ['delay', 'Delay'], ['other', 'Other']]);
+    html += sel('origin', [['', 'Any origin'], ['customer', 'Customer-started'], ['agent', 'Agent-started'], ['automatic', 'From a system alert']]);
   } else if (_sb.tab === 'followup') {
     const stale = d.counts?.stale_followups || 0;
-    html += chip(!f.overdue, 'All', `sbSetFilter('overdue', false)`) + chip(f.overdue, `⚠ Overdue ${stale ? '(' + stale + ')' : ''}`, `sbSetFilter('overdue', true)`);
+    html += chip(!f.overdue, 'All', `sbSetFilter('overdue', false)`) + chip(f.overdue, `Overdue ${stale ? '(' + stale + ')' : ''}`, `sbSetFilter('overdue', true)`);
     const agents = d.agents || [];
     html += sel('agent', [['', 'All agents'], ['mine', 'Mine'], ...agents.map(a => [a.id, `${a.name} (${a.count})`])]);
-    html += sel('type', [['', 'All types'], ['wrong_order', '📦 Wrong order'], ['delay', '⏳ Delay'], ['other', '💬 Other']]);
+    html += sel('type', [['', 'All types'], ['wrong_order', 'Wrong order'], ['delay', 'Delay'], ['other', 'Other']]);
   } else if (_sb.tab === 'automatic') {
     html += sel('closed', [['', 'Open only'], ['all', 'Include resolved']]);
-    html += `<button class="btn-secondary" onclick="sbResolveAllAutomatic()" title="Mark every automatic-only conversation shown here as done">✓ Mark all shown done</button>`;
+    html += `<button class="btn-secondary" onclick="sbResolveAllAutomatic()" title="Mark every automatic-only conversation shown here as done"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg> Mark all shown done</button>`;
   }
   el.innerHTML = html;
 }

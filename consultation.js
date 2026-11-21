@@ -87,10 +87,10 @@ const CONSULT_TIERS = [
 ];
 
 const CONSULT_GOALS = [
-  ['sales', '🛒 More customers'],
-  ['brand_deals', '🤝 Brand deals'],
-  ['grow_audience', '📈 More followers'],
-  ['engagement', '❤️ More likes & comments'],
+  ['sales', 'More customers'],
+  ['brand_deals', 'Brand deals'],
+  ['grow_audience', 'More followers'],
+  ['engagement', 'More likes & comments'],
 ];
 
 let _consultPollTimer = null;
@@ -143,7 +143,7 @@ function _tierCardsHTML(onclickFn) {
       <div class="hv-tier-who">For you if: ${t.who}</div>
       <div class="hv-tier-outcome">${t.outcome}</div>
       <ul class="hv-tier-list">${t.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
-      ${t.note ? `<div class="hv-tier-note">ℹ️ ${t.note}</div>` : ''}
+      ${t.note ? `<div class="hv-tier-note"><svg class=ev-i aria-hidden=true><use href=#ev-info></use></svg> ${t.note}</div>` : ''}
       ${t.value ? `<div class="hv-tier-value">${t.value}</div>` : ''}
       <span class="hv-tier-go">${t.cta || (t.monthly ? 'Start this month' : 'Choose ' + t.name)} →</span>
     </button>
@@ -237,7 +237,7 @@ async function consultConfirmBooking() {
       method: 'POST',
       body: JSON.stringify({ name, phone, email, business_name, notes, social_handle, goal: _consultGoal, tier: t.key }),
     });
-    statusEl.textContent = `📲 Check your phone and enter your M-Pesa PIN to pay ${_kes(res.amount_kes)}.`;
+    statusEl.textContent = `Check your phone and enter your M-Pesa PIN to pay ${_kes(res.amount_kes)}.`;
     _pollConsultPayment(res.checkout_request_id, { phone, social_handle });
   } catch (e) {
     statusEl.textContent = '';
@@ -248,7 +248,7 @@ async function consultConfirmBooking() {
 function _showConsultDone({ phone, social_handle }) {
   const t = _consultTier;
   document.getElementById('consultDoneBody').innerHTML = `
-    <div class="hv-done-tick">✓</div>
+    <div class="hv-done-tick"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></div>
     <div class="hv-done-title">You're booked: ${t.name}</div>
     <div class="hv-done-steps">
       <div><b>1</b><span>We're checking <strong>${String(social_handle).replace(/[<>&"]/g, '')}</strong> now.</span></div>

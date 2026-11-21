@@ -177,14 +177,14 @@ function _bwBuildShell() {
       <div class="bw-topbar">
         <div class="bw-topbar-left">
           <button class="bw-back" onclick="_bwClose()" aria-label="Back to campaign">←</button>
-          <div class="bw-topbar-icon">📥</div>
+          <div class="bw-topbar-icon"><svg class=ev-i aria-hidden=true><use href=#ev-download></use></svg></div>
           <div>
             <div class="bw-eyebrow">Creators' prices</div>
             <div class="bw-title" id="bwCampaignTitle">Bids</div>
           </div>
         </div>
         <div class="bw-topbar-right">
-          <button class="btn-secondary" id="bwInviteBtn" aria-label="Invite a creator">✉️ <span class="bw-invite-label">Invite a creator</span></button>
+          <button class="btn-secondary" id="bwInviteBtn" aria-label="Invite a creator"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg> <span class="bw-invite-label">Invite a creator</span></button>
         </div>
       </div>
       <div class="bw-body" id="bwBody" data-view="list">
@@ -197,7 +197,7 @@ function _bwBuildShell() {
         </div>
         <div class="bw-detail" id="bwDetailPane">
           <div class="bw-detail-empty" id="bwDetailEmpty">
-            <div class="bw-detail-empty-icon">💬</div>
+            <div class="bw-detail-empty-icon"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg></div>
             <div class="bw-detail-empty-title">Pick a creator</div>
             <div class="bw-detail-empty-sub">Tap a creator on the left to chat, agree the price, and pay.</div>
           </div>
@@ -286,7 +286,7 @@ function _bwRenderRail() {
   const segIcon = { pending: '🆕', accepted: '🤝', hired: '✅', closed: '🗂️' };
 
   rail.innerHTML = `
-    <button class="bw-rail-close" onclick="_bwSetView('list')" aria-label="Close filters">✕ Close</button>
+    <button class="bw-rail-close" onclick="_bwSetView('list')" aria-label="Close filters"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> Close</button>
     <div class="bw-rail-label">Show</div>
     ${BW_SEGMENTS.map(s => `
       <button class="bw-rail-item ${_bwSegment === s.key ? 'active' : ''}" onclick="_bwSwitchSegment('${s.key}')">
@@ -299,11 +299,11 @@ function _bwRenderRail() {
     <div class="bw-rail-label">Filter by</div>
     <label class="bw-rail-check">
       <input type="checkbox" ${_bwShortlistOnly ? 'checked' : ''} onchange="_bwToggleShortlistOnly()">
-      <span>★ Shortlisted only</span>
+      <span><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg> Shortlisted only</span>
     </label>
     <label class="bw-rail-check">
       <input type="checkbox" ${_bwVerifiedOnly ? 'checked' : ''} onchange="_bwSetVerifiedOnly(this.checked)">
-      <span>✔️ Verified creators only</span>
+      <span><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg> Verified creators only</span>
     </label>
     <div class="bw-rail-field">
       <label>Platform</label>
@@ -390,9 +390,9 @@ function _bwRenderToolbar() {
   el.innerHTML = `
     <div class="bw-segtabs">${BW_SEGMENTS.map(sg => `<button class="bw-segtab ${_bwSegment === sg.key ? 'active' : ''}" onclick="_bwSwitchSegment('${sg.key}')">${esc(sg.label)} <span>${nFor(sg.key)}</span></button>`).join('')}</div>`
   + `
-    <button class="bw-filter-btn" onclick="_bwToggleRail()" aria-label="Filters">⚙︎</button>
+    <button class="bw-filter-btn" onclick="_bwToggleRail()" aria-label="Filters"><svg class=ev-i aria-hidden=true><use href=#ev-settings></use></svg>︎</button>
     <div class="bw-search-wrap">
-      <span class="bw-search-icon">🔍</span>
+      <span class="bw-search-icon"><svg class=ev-i aria-hidden=true><use href=#ev-search></use></svg></span>
       <input type="text" class="bw-search" placeholder="Search name…" value="${esc(_bwQuery)}" oninput="_bwOnSearchInput(this.value)">
     </div>
     <select class="bw-sort" onchange="_bwSetSort(this.value)" aria-label="Sort">
@@ -491,16 +491,16 @@ function _bwRenderList() {
             <div class="bw-row-name">
               <button class="bw-star ${starred ? 'on' : ''}" onclick="_bwToggleShortlist('${a.id}', event)" title="Shortlist">${starred ? '★' : '☆'}</button>
               ${esc(a.creator_display_name || 'Creator')}
-              ${a.creator_is_verified ? '<span class="bw-verified" title="Verified">✔️</span>' : ''}
+              ${a.creator_is_verified ? '<span class="bw-verified" title="Verified"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></span>' : ''}
             </div>
             <div class="bw-row-amt">${fmtKES(a.fund_amount_kes)}</div>
           </div>
-          <div class="bw-row-sub"><span>⏱ Ready in ${a.delivery_days} day${a.delivery_days == 1 ? '' : 's'}</span>${followers ? `<span class="bw-row-dot">·</span><span>👥 ${followers.toLocaleString()}</span>` : ''}<span class="bw-row-dot">·</span>${_cnStatusPill(a.status)}</div>
+          <div class="bw-row-sub"><span><svg class=ev-i aria-hidden=true><use href=#ev-clock></use></svg> Ready in ${a.delivery_days} day${a.delivery_days == 1 ? '' : 's'}</span>${followers ? `<span class="bw-row-dot">·</span><span><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg> ${followers.toLocaleString()}</span>` : ''}<span class="bw-row-dot">·</span>${_cnStatusPill(a.status)}</div>
           ${a.proposal ? `<div class="bw-row-proposal">${esc(a.proposal)}</div>` : ''}
         </div>
         ${a.status === 'pending' ? `
         <div class="bw-row-actions">
-          <button class="cn-btn-sm cn-btn-accept" onclick="event.stopPropagation();_bwSingleAction('${a.id}','accept')">💬 Chat & agree price</button>
+          <button class="cn-btn-sm cn-btn-accept" onclick="event.stopPropagation();_bwSingleAction('${a.id}','accept')"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Chat & agree price</button>
           <button class="cn-btn-sm cn-btn-reject" onclick="event.stopPropagation();_bwSingleAction('${a.id}','reject')">No thanks</button>
         </div>` : (a.status === 'accepted' ? `<div class="bw-row-actions"><button class="cn-btn-sm cn-btn-accept" onclick="event.stopPropagation();_bwOpenRow('${a.id}')">Open chat →</button></div>` : '')}
       </div>
@@ -527,9 +527,9 @@ function _bwUpdateBulkbar() {
   if (_bwSegment !== 'pending' || _bwSelected.size === 0) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
   bar.innerHTML = `
-    <span class="bw-bulk-icon">☑️</span>
+    <span class="bw-bulk-icon"><svg class=ev-i aria-hidden=true><use href=#ev-square-check></use></svg></span>
     <span class="bw-bulk-count">${_bwSelected.size} selected</span>
-    <button class="cn-btn-sm cn-btn-accept" onclick="_bwBulkAction('accept')">💬 Chat with all</button>
+    <button class="cn-btn-sm cn-btn-accept" onclick="_bwBulkAction('accept')"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Chat with all</button>
     <button class="cn-btn-sm cn-btn-reject" onclick="_bwBulkAction('reject')">No thanks</button>
     <button class="bw-bulk-clear" onclick="_bwClearSelection()">Clear</button>
   `;
@@ -880,7 +880,7 @@ function _cnRenderBidChatActionCard() {
   if (app && app.status === 'accepted' && c.status === 'published') {
     html += `<div class="cn-deal-panel">`
       + _cnNegotiationBannerHtml({ fundAmount: app.fund_amount_kes, bidAmount: app.bid_amount_kes, agreedAmount: app.agreed_amount_kes });
-    html += `<div style="padding:10px 12px;"><button class="cn-pay-btn" style="margin-bottom:6px;" onclick="_cnOpenPaySheet('${c.id}','${app.id}')">💳 Pay ${fmtKES(app.fund_amount_kes)} & hire</button><div style="font-size:11.5px;color:var(--muted);text-align:center;line-height:1.4;">EndaViral holds the money. The creator is only paid after you approve the video.</div></div>`;
+    html += `<div style="padding:10px 12px;"><button class="cn-pay-btn" style="margin-bottom:6px;" onclick="_cnOpenPaySheet('${c.id}','${app.id}')"><svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg> Pay ${fmtKES(app.fund_amount_kes)} & hire</button><div style="font-size:11.5px;color:var(--muted);text-align:center;line-height:1.4;">EndaViral holds the money. The creator is only paid after you approve the video.</div></div>`;
     html += `</div>`;
   }
   el.innerHTML = html;
@@ -938,7 +938,7 @@ function _cnOpenPaySheet(campaignId, applicationId) {
         <div class="cn-paysheet-field" style="margin-top:10px;">
           <input type="number" min="200" step="1" inputmode="numeric" id="cnPayAmount" class="cn-paysheet-amt-input" placeholder="New price (KES)">
           <div class="cn-paysheet-amt-hint">We'll send this to ${esc(app.creator_display_name || 'the creator')} to agree first. You can pay once they agree.</div>
-          <button class="btn-secondary" id="cnPaySheetContinueBtn" style="width:100%;margin-top:8px;" onclick="_cnContinuePaySheet('${campaignId}','${applicationId}')">💬 Send new price</button>
+          <button class="btn-secondary" id="cnPaySheetContinueBtn" style="width:100%;margin-top:8px;" onclick="_cnContinuePaySheet('${campaignId}','${applicationId}')"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Send new price</button>
         </div>
       </details>
     </div>
@@ -958,7 +958,7 @@ function _cnPaySheetSyncButton(applicationId) {
   if (!app) return;
   const amount_kes = parseFloat(amountInput.value);
   const changed = !amount_kes || amount_kes <= 0 || Math.abs(amount_kes - Number(app.fund_amount_kes)) > 0.005;
-  btn.textContent = changed ? '💬 Propose This Price' : 'Continue';
+  btn.textContent = changed ? 'Propose This Price' : 'Continue';
 }
 
 // Cancelling the pay sheet (before Continue) just steps back to that bid's
@@ -1003,7 +1003,7 @@ async function _cnProposePriceFromPaySheet(campaignId, applicationId, amount_kes
     _cnOpenBidChat(campaignId, applicationId);
   } catch (e) {
     toast(e.message || 'Could not propose that price', 'error');
-    if (btn) { btn.disabled = false; btn.textContent = '💬 Send new price'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Send new price'; }
   }
 }
 
@@ -1035,10 +1035,10 @@ function _cnFundFormHtml(applicationId, fundAmount, phone) {
     <label for="cnFundPhone" style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin:4px 0 6px;">Pay from this M-Pesa number</label>
     <div id="cnFundForm" class="cn-fund-row" style="padding:0;background:none;border:none;">
       <input type="tel" inputmode="tel" id="cnFundPhone" class="cn-fund-phone" value="${esc(phone || '')}" placeholder="07XXXXXXXX">
-      <button class="cn-fund-btn" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}','${applicationId}')">📱 Pay ${fmtKES(total)}</button>
+      <button class="cn-fund-btn" id="cnFundBtn" onclick="_cnSubmitFund('${_cnCurrentCampaign.id}','${applicationId}')"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg> Pay ${fmtKES(total)}</button>
     </div>
     <div id="cnFundStatus" style="display:none;text-align:center;padding:16px 0 6px;">
-      <div style="font-size:30px;margin-bottom:6px;" id="cnFundIcon">📱</div>
+      <div style="font-size:30px;margin-bottom:6px;" id="cnFundIcon"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg></div>
       <div style="font-weight:800;color:var(--white);margin-bottom:4px;font-size:14px;" id="cnFundTitle">Check your phone</div>
       <div style="font-size:12.5px;color:var(--muted);" id="cnFundDesc">Enter your M-Pesa PIN to pay ${fmtKES(total)}. Keep this screen open.</div>
     </div>
@@ -1111,7 +1111,7 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
     if (data.status === 'success' || data.status === 'completed') {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
       if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
-      if (icon) icon.textContent = '✅';
+      if (icon) icon.textContent = '';
       if (title) title.textContent = 'Paid ✓ — creator can start';
       if (desc) {
         const feeNote = data.platform_processing_fee_kes
@@ -1129,7 +1129,7 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
         btn.onclick = () => _cnDownloadReceipt(campaignId, checkoutRequestId);
         statusEl.appendChild(btn);
       }
-      toast('🎉 Paid! The creator has been told to start.', 'success');
+      toast('Paid! The creator has been told to start.', 'success');
       Store.invalidate('connectCampaigns');
       Store.invalidate('connectWork');
         setTimeout(() => {
@@ -1146,7 +1146,7 @@ function _cnPollFunding(campaignId, applicationId, checkoutRequestId) {
     } else if (data.status === 'failed' || data.status === 'cancelled') {
       clearInterval(_cnFundPollTimer); _cnFundPollTimer = null;
       if (typeof PaymentEvents !== 'undefined') PaymentEvents.off(checkoutRequestId);
-      if (icon) icon.textContent = '❌';
+      if (icon) icon.textContent = '';
       if (title) title.textContent = data.status === 'cancelled' ? 'Payment cancelled' : 'Payment didn\'t go through';
       if (desc) desc.textContent = 'No money was taken. You can try again.';
       const retryForm = document.getElementById('cnFundForm');

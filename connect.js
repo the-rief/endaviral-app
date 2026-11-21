@@ -48,19 +48,19 @@
  * ★MODALS
  * <div class="modal-overlay" id="cnCampaignModal">
  *   <div class="modal" style="max-width:640px;">
- *     <button class="modal-close" onclick="_cnCloseCampaign()">✕</button>
+ *     <button class="modal-close" onclick="_cnCloseCampaign()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
  *     <div id="cnCampaignModalBody"></div>
  *   </div>
  * </div>
  * <div class="modal-overlay" id="cnCreateModal">
  *   <div class="modal" style="max-width:560px;">
- *     <button class="modal-close" onclick="_cnCloseCreate()">✕</button>
+ *     <button class="modal-close" onclick="_cnCloseCreate()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
  *     <div id="cnCreateModalBody"></div>
  *   </div>
  * </div>
  * <div class="modal-overlay" id="cnTosModal">
  *   <div class="modal" style="max-width:640px;">
- *     <button class="modal-close" onclick="_cnCloseTos()">✕</button>
+ *     <button class="modal-close" onclick="_cnCloseTos()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
  *     <div id="cnTosModalBody"></div>
  *   </div>
  * </div>
@@ -160,7 +160,7 @@ function _cnMultiSelectHtml(id, options, selected) {
         ${options.map(o => `
           <label class="cn-msdrop-opt">
             <input type="checkbox" value="${esc(o.key)}" ${_cnMultiState[id].includes(o.key) ? 'checked' : ''} onchange="_cnMsOptionChange('${id}', '${o.key}', this.checked)">
-            <span class="cn-msdrop-tick">✓</span>
+            <span class="cn-msdrop-tick"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></span>
             <span>${o.emoji ? o.emoji + ' ' : ''}${esc(o.label)}</span>
           </label>
         `).join('')}
@@ -847,11 +847,11 @@ function _cnInjectStyles() {
 // anything. Steps are a real sequence, so numbering them is meaningful here.
 function _cnHeroCopy(role) {
   return role === 'creator' ? {
-    eyebrow: '🎬 For Creators',
+    eyebrow: 'For Creators',
     title: 'Get paid to post for brands',
     sub: 'Every job here is already paid for — the money is held by EndaViral before you see it. Accept the price, show your accounts, post the video, get paid on M-Pesa.',
   } : {
-    eyebrow: '🏢 For Businesses',
+    eyebrow: 'For Businesses',
     title: 'Hire creators to promote your business',
     sub: 'Set the price, pay it once, and your job goes live. Creators accept and show you their accounts — hire in one tap. EndaViral only pays the creator after you approve the work.',
   };
@@ -945,14 +945,14 @@ function _cnRenderLanding(sec) {
   sec.dataset.cnRole = ''; // neutral — don't let either accent colour leak in here
   sec.innerHTML = `
     <div class="cn-landing-hero">
-      <div class="cn-landing-badge">🚀 EndaViral Marketplace</div>
+      <div class="cn-landing-badge"><svg class=ev-i aria-hidden=true><use href=#ev-rocket></use></svg> EndaViral Marketplace</div>
       <div class="cn-landing-title">Kenya's Creator Marketplace</div>
       <div class="cn-landing-sub"><strong style="color:var(--white);">Every job is paid for before it goes live.</strong><br>Businesses set a fixed price and pay it up front. Creators accept, show their accounts, and get paid after the work is approved.</div>
       <div class="cn-landing-badges">
-        <span class="cn-hero-badge">🔒 Secure Payments</span>
-        <span class="cn-hero-badge">📲 M-Pesa Payouts</span>
-        <span class="cn-hero-badge">⭐ Rated by Both Sides</span>
-        <span class="cn-hero-badge">🛡️ Trusted Marketplace</span>
+        <span class="cn-hero-badge"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg> Secure Payments</span>
+        <span class="cn-hero-badge"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg> M-Pesa Payouts</span>
+        <span class="cn-hero-badge"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg> Rated by Both Sides</span>
+        <span class="cn-hero-badge"><svg class=ev-i aria-hidden=true><use href=#ev-shield></use></svg> Trusted Marketplace</span>
       </div>
     </div>
 
@@ -960,7 +960,7 @@ function _cnRenderLanding(sec) {
 
     <div class="cn-choice-grid">
       <div class="cn-choice-card cn-choice-card--creator" onclick="_cnPickRole('creator')">
-        <div class="cn-choice-icon">🎬</div>
+        <div class="cn-choice-icon"><svg class=ev-i aria-hidden=true><use href=#ev-film></use></svg></div>
         <div class="cn-choice-eyebrow">For Creators</div>
         <div class="cn-choice-title">Earn from your content</div>
         <div class="cn-choice-sub">Get paid by Kenyan businesses to post videos about them.</div>
@@ -969,10 +969,10 @@ function _cnRenderLanding(sec) {
           <li>No haggling — accept the price you see</li>
           <li>Get paid on M-Pesa</li>
         </ul>
-        <button class="cn-choice-cta" onclick="event.stopPropagation();_cnPickRole('creator')">🎥 I want to earn</button>
+        <button class="cn-choice-cta" onclick="event.stopPropagation();_cnPickRole('creator')"><svg class=ev-i aria-hidden=true><use href=#ev-video></use></svg> I want to earn</button>
       </div>
       <div class="cn-choice-card cn-choice-card--business" onclick="_cnPickRole('business')">
-        <div class="cn-choice-icon">🏢</div>
+        <div class="cn-choice-icon"><svg class=ev-i aria-hidden=true><use href=#ev-building></use></svg></div>
         <div class="cn-choice-eyebrow">For Businesses</div>
         <div class="cn-choice-title">Hire creators that fit your brand</div>
         <div class="cn-choice-sub">Get creators to make videos about your business. The creator is only paid after you approve.</div>
@@ -981,27 +981,27 @@ function _cnRenderLanding(sec) {
           <li>Check each creator's accounts in one tap</li>
           <li>Unused money comes straight back to you</li>
         </ul>
-        <button class="cn-choice-cta" onclick="event.stopPropagation();_cnPickRole('business')">🏢 I want to hire</button>
+        <button class="cn-choice-cta" onclick="event.stopPropagation();_cnPickRole('business')"><svg class=ev-i aria-hidden=true><use href=#ev-building></use></svg> I want to hire</button>
       </div>
     </div>
 
     <div class="cn-trust-row">
-      <span class="cn-trust-item"><b>✔</b> Payments processed securely</span>
-      <span class="cn-trust-item"><b>✔</b> M-Pesa payouts</span>
-      <span class="cn-trust-item"><b>✔</b> Marketplace support</span>
-      <span class="cn-trust-item"><b>✔</b> Dispute resolution</span>
+      <span class="cn-trust-item"><b><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></b> Payments processed securely</span>
+      <span class="cn-trust-item"><b><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></b> M-Pesa payouts</span>
+      <span class="cn-trust-item"><b><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></b> Marketplace support</span>
+      <span class="cn-trust-item"><b><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></b> Dispute resolution</span>
     </div>
 
     <div class="cn-landing-foot" style="margin-bottom:24px;">You can do both later — one account works for both.</div>
 
     <div class="cn-landing-section-lbl">How It Works</div>
     <div class="cn-timeline">
-      <div class="cn-timeline-step" data-who="business"><div class="cn-timeline-dot">💰</div><div class="cn-timeline-label">Business posts & pays the price</div><div class="cn-timeline-who">Business</div></div>
-      <div class="cn-timeline-step" data-who="creator"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot">🙋</div><div class="cn-timeline-label">Creators accept & show accounts</div><div class="cn-timeline-who">Creator</div></div>
-      <div class="cn-timeline-step" data-who="business"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot">✅</div><div class="cn-timeline-label">Business hires one</div><div class="cn-timeline-who">Business</div></div>
-      <div class="cn-timeline-step" data-who="creator"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot">📦</div><div class="cn-timeline-label">Creator posts the video</div><div class="cn-timeline-who">Creator</div></div>
-      <div class="cn-timeline-step" data-who="business"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot">👍</div><div class="cn-timeline-label">Business approves it</div><div class="cn-timeline-who">Business</div></div>
-      <div class="cn-timeline-step" data-who="system"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot">📲</div><div class="cn-timeline-label">Creator gets the money</div><div class="cn-timeline-who">M-Pesa</div></div>
+      <div class="cn-timeline-step" data-who="business"><div class="cn-timeline-dot"><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg></div><div class="cn-timeline-label">Business posts & pays the price</div><div class="cn-timeline-who">Business</div></div>
+      <div class="cn-timeline-step" data-who="creator"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot"><svg class=ev-i aria-hidden=true><use href=#ev-hand></use></svg></div><div class="cn-timeline-label">Creators accept & show accounts</div><div class="cn-timeline-who">Creator</div></div>
+      <div class="cn-timeline-step" data-who="business"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg></div><div class="cn-timeline-label">Business hires one</div><div class="cn-timeline-who">Business</div></div>
+      <div class="cn-timeline-step" data-who="creator"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot"><svg class=ev-i aria-hidden=true><use href=#ev-package></use></svg></div><div class="cn-timeline-label">Creator posts the video</div><div class="cn-timeline-who">Creator</div></div>
+      <div class="cn-timeline-step" data-who="business"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot"><svg class=ev-i aria-hidden=true><use href=#ev-thumbs-up></use></svg></div><div class="cn-timeline-label">Business approves it</div><div class="cn-timeline-who">Business</div></div>
+      <div class="cn-timeline-step" data-who="system"><span class="cn-timeline-arrow">→</span><div class="cn-timeline-dot"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg></div><div class="cn-timeline-label">Creator gets the money</div><div class="cn-timeline-who">M-Pesa</div></div>
     </div>
   `;
   _cnLoadLandingStats();
@@ -1136,7 +1136,7 @@ function _cnRenderShell(sec) {
   // True while a single-role user is mid-flow adding their second role
   // (clicked "+ Also set up a Business profile" but hasn't joined it yet).
   const onboardingSecondRole = !showToggle && singleJoinedRole && _cnRole !== singleJoinedRole;
-  const roleLabel = (r) => r === 'creator' ? '🎬 Creator' : '🏢 Business';
+  const roleLabel = (r) => r === 'creator' ? 'Creator' : 'Business';
   const otherRole = _cnRole === 'creator' ? 'business' : 'creator';
   let identityRowHtml = '';
   if (!showToggle) {
@@ -1158,8 +1158,8 @@ function _cnRenderShell(sec) {
     </div>
     ${showToggle ? `
     <div class="cn-role-toggle">
-      <button class="cn-role-btn ${_cnRole === 'creator' ? 'active' : ''}" data-role="creator" onclick="_cnSetRole('creator')">🎬 I'm a Creator</button>
-      <button class="cn-role-btn ${_cnRole === 'business' ? 'active' : ''}" data-role="business" onclick="_cnSetRole('business')">🏢 I'm a Business</button>
+      <button class="cn-role-btn ${_cnRole === 'creator' ? 'active' : ''}" data-role="creator" onclick="_cnSetRole('creator')"><svg class=ev-i aria-hidden=true><use href=#ev-film></use></svg> I'm a Creator</button>
+      <button class="cn-role-btn ${_cnRole === 'business' ? 'active' : ''}" data-role="business" onclick="_cnSetRole('business')"><svg class=ev-i aria-hidden=true><use href=#ev-building></use></svg> I'm a Business</button>
     </div>` : identityRowHtml}
     <div class="cn-guide-head">
       <span class="cn-guide-title">How it works</span>
@@ -1184,10 +1184,10 @@ function _cnRenderTabs() {
   const wrap = document.getElementById('cnTabs');
   if (!wrap) return;
   const tabs = _cnRole === 'creator'
-    ? [['discover', '🔍 Find Jobs'], ['applications', '📨 My Offers'], ['invites', '✉️ Invites'], ['work', '🛠 My Jobs'], ['profile', '👤 My Profile']]
-    : [['campaigns', '📋 My Jobs'], ['create', '➕ Post a Job'], ['find', '🔎 Find Creators'], ['profile', '🏢 My Business']];
+    ? [['discover', 'Find Jobs'], ['applications', 'My Offers'], ['invites', 'Invites'], ['work', 'My Jobs'], ['profile', 'My Profile']]
+    : [['campaigns', 'My Jobs'], ['create', 'Post a Job'], ['find', 'Find Creators'], ['profile', 'My Business']];
   if (typeof currentUser !== 'undefined' && currentUser && currentUser.is_admin) {
-    tabs.push(['admin', '🛡 Admin']);
+    tabs.push(['admin', 'Admin']);
   }
   wrap.innerHTML = tabs.map(([id, label]) =>
     `<button class="cn-tab ${_cnTab === id ? 'active' : ''}" onclick="_cnSetTab('${id}')">${label}</button>`
@@ -1317,7 +1317,7 @@ function _cnRenderJoinScreen(target, role) {
   }[key] || '•');
   target.innerHTML = `
     <div class="cn-join-card">
-      <div class="cn-join-badge">${isCreator ? '🎬 Join as a Creator' : '🏢 Join as a Business'}</div>
+      <div class="cn-join-badge">${isCreator ? 'Join as a Creator' : 'Join as a Business'}</div>
       <div style="font-size:16px;font-weight:800;color:var(--white);margin-bottom:8px;">
         ${isCreator ? 'Join free and start earning' : 'Join free and post your first job'}
       </div>
@@ -1332,7 +1332,7 @@ function _cnRenderJoinScreen(target, role) {
         ${roleChecks.map(c => `
           <label class="cn-join-item">
             <input type="checkbox" class="cn-join-check-box cn-join-role-check" data-key="${c.key}" onchange="_cnUpdateJoinBtn(this)">
-            <span class="cn-join-tick">✓</span>
+            <span class="cn-join-tick"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></span>
             <span class="cn-join-icon-badge">${iconFor(c.key)}</span>
             <span class="cn-join-text">${esc(c.text)}</span>
           </label>
@@ -1341,7 +1341,7 @@ function _cnRenderJoinScreen(target, role) {
 
       <label class="cn-join-check" style="margin-top:6px;">
         <input type="checkbox" class="cn-join-check-box" id="cnJoinTos" onchange="_cnUpdateJoinBtn(this)">
-        <span class="cn-join-tick">✓</span>
+        <span class="cn-join-tick"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></span>
         <span>I agree to the <a href="#" onclick="return _cnOpenTos()">Marketplace Terms</a> and I am 18 years or older.</span>
       </label>
 
@@ -1432,12 +1432,12 @@ async function _cnRenderDiscover(target) {
   const data = await Store.ensure(key, () => api(`/connect/discover?sort=${_cnDiscoverSort}`), { ttl: CONNECT_CACHE_TTL });
   _cnCampaigns = data || [];
   if (!_cnCampaigns.length) {
-    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">🔍</span><div class="cn-empty-title">No open jobs right now</div>Every job here has its money held before it appears, so new ones arrive as businesses pay. Keep your profile strong — businesses can also invite you directly.<br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('profile')">Improve my profile</button></div>`;
+    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon"><svg class=ev-i aria-hidden=true><use href=#ev-search></use></svg></span><div class="cn-empty-title">No open jobs right now</div>Every job here has its money held before it appears, so new ones arrive as businesses pay. Keep your profile strong — businesses can also invite you directly.<br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('profile')">Improve my profile</button></div>`;
     return;
   }
   target.innerHTML = `
     <div class="cn-discover-bar">
-      <div class="cn-step-hint" style="margin:0;flex:1 1 260px;">🔒 <b>Every job below is already paid for.</b> Tap one, check what you'd take home, and accept.</div>
+      <div class="cn-step-hint" style="margin:0;flex:1 1 260px;"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg> <b>Every job below is already paid for.</b> Tap one, check what you'd take home, and accept.</div>
       <select aria-label="Sort jobs" onchange="_cnDiscoverSort=this.value;_cnLoadActiveTab()">
         <option value="newest" ${_cnDiscoverSort === 'newest' ? 'selected' : ''}>Newest</option>
         <option value="pay_high" ${_cnDiscoverSort === 'pay_high' ? 'selected' : ''}>Highest pay</option>
@@ -1470,7 +1470,7 @@ function _cnCardHtml(c) {
   }
   return `
   <div class="cn-card" data-campaign-id="${c.id}" onclick="_cnOpenCampaign('${c.id}')">
-    ${unread > 0 ? `<div style="margin-bottom:8px;"><span class="cn-unread-pill">💬 ${unread > 9 ? '9+' : unread} new</span></div>` : ''}
+    ${unread > 0 ? `<div style="margin-bottom:8px;"><span class="cn-unread-pill"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> ${unread > 9 ? '9+' : unread} new</span></div>` : ''}
     <div class="cn-card-top">
       <div class="cn-card-title">${plat.emoji} ${esc(c.title)}</div>
       <div class="cn-card-budget">${fmtKES(c.price_kes ?? c.budget_kes)}</div>
@@ -1478,7 +1478,7 @@ function _cnCardHtml(c) {
     ${isDiscover ? `<div class="cn-card-takehome">You take home <b>${fmtKES(c.creator_take_home_kes)}</b>${c.business_name ? ` · ${esc(c.business_name)}` : ''}</div>` : ''}
     <div class="cn-card-desc">${esc(c.description)}</div>
     <div class="cn-card-meta">
-      ${c.budget_secured && c.status === 'published' ? `<span class="cn-card-secured">🔒 Budget secured</span>` : ''}
+      ${c.budget_secured && c.status === 'published' ? `<span class="cn-card-secured"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg> Budget secured</span>` : ''}
       ${_cnPlatformTagsHtml(c.platform, 'cn-tag')}
       ${c.min_followers ? `<span class="cn-tag">${c.min_followers.toLocaleString()}+ followers</span>` : ''}
       ${_cnNicheTagsHtml(c.required_niche, 'cn-tag')}
@@ -1503,7 +1503,7 @@ function _cnAccountChipsHtml(accounts, asLinks) {
 async function _cnRenderMyApplications(target) {
   const apps = await Store.ensure('connectApplications', () => api('/connect/applications/mine'), { ttl: CONNECT_CACHE_TTL });
   if (!apps.length) {
-    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">🙋</span><div class="cn-empty-title">You haven't accepted a job yet</div>Find a job, check what you'd take home, and accept it with your account links. It will show here.<br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('discover')">Find jobs</button></div>`;
+    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon"><svg class=ev-i aria-hidden=true><use href=#ev-hand></use></svg></span><div class="cn-empty-title">You haven't accepted a job yet</div>Find a job, check what you'd take home, and accept it with your account links. It will show here.<br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('discover')">Find jobs</button></div>`;
     return;
   }
   target.innerHTML = apps.map(a => `
@@ -1514,7 +1514,7 @@ async function _cnRenderMyApplications(target) {
       </div>
       <div style="font-size:12px;color:var(--muted);">Accepted ${a.created_at ? new Date(a.created_at).toLocaleDateString() : ''} · ${a.proof_count || 0} screenshot${a.proof_count === 1 ? '' : 's'}</div>
       ${(a.accounts || []).length ? `<div class="cn-myapp-accts">${_cnAccountChipsHtml(a.accounts, false)}</div>` : ''}
-      ${a.proof_viewed_at && ['pending', 'accepted'].includes(a.status) ? `<div class="cn-seen">👀 The business looked at your accounts</div>` : ''}
+      ${a.proof_viewed_at && ['pending', 'accepted'].includes(a.status) ? `<div class="cn-seen"><svg class=ev-i aria-hidden=true><use href=#ev-eye></use></svg> The business looked at your accounts</div>` : ''}
     </div>
   `).join('');
 }
@@ -1524,7 +1524,7 @@ async function _cnRenderMyWork(target) {
   const campaigns = await Store.ensure('connectWork', () => api('/connect/campaigns/mine?role=creator'), { ttl: CONNECT_CACHE_TTL });
   const active = campaigns.filter(c => c.status !== 'draft');
   if (!active.length) {
-    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">🛠</span><div class="cn-empty-title">No jobs yet</div>When a business hires you, the job shows here — the money is already held, so you can start straight away.</div>`;
+    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon"><svg class=ev-i aria-hidden=true><use href=#ev-wrench></use></svg></span><div class="cn-empty-title">No jobs yet</div>When a business hires you, the job shows here — the money is already held, so you can start straight away.</div>`;
     return;
   }
   target.innerHTML = `<div class="cn-grid">${active.map(_cnCardHtml).join('')}</div>`;
@@ -1539,7 +1539,7 @@ async function _cnRenderMyCampaigns(target) {
   _cnBalance = balance;
   const balanceHtml = _cnBalanceStripHtml(balance);
   if (!campaigns.length) {
-    target.innerHTML = `${balanceHtml}<div class="cn-empty"><span class="cn-empty-icon">📋</span><div class="cn-empty-title">You haven't posted a job yet</div>Set a price per creator and pay it once — your job goes live and creators start accepting.<br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('create')">Post your first job</button></div>`;
+    target.innerHTML = `${balanceHtml}<div class="cn-empty"><span class="cn-empty-icon"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg></span><div class="cn-empty-title">You haven't posted a job yet</div>Set a price per creator and pay it once — your job goes live and creators start accepting.<br><button class="btn-secondary" style="margin-top:14px;" onclick="_cnSetTab('create')">Post your first job</button></div>`;
     return;
   }
   target.innerHTML = `${balanceHtml}<div class="cn-grid">${campaigns.map(_cnCardHtml).join('')}</div>`;
@@ -1562,7 +1562,7 @@ function _cnBalanceStripHtml(b) {
       <div>
         <div class="cn-balance-amt">${fmtKES(amt)}</div>
         <div class="cn-balance-sub">EndaViral balance — money back from closed or expired jobs. Use it on your next job with no fee.</div>
-        ${pending ? `<div class="cn-balance-sub" style="color:#64b5f6;">⏳ ${fmtKES(pending.amount_kes)} on its way to ${esc(pending.phone)}</div>` : ''}
+        ${pending ? `<div class="cn-balance-sub" style="color:#64b5f6;"><svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg> ${fmtKES(pending.amount_kes)} on its way to ${esc(pending.phone)}</div>` : ''}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         ${(b.entries || []).length ? `<button class="btn-secondary" onclick="_cnToggleBalanceHistory()">History</button>` : ''}
@@ -1630,11 +1630,11 @@ function _cnRenderCreateForm(target) {
   target.innerHTML = `
     <div class="cn-create-wrap">
     <div>
-    <div class="cn-safe-note">🔒 <span><b style="color:var(--white);">You pay the price once, when you post.</b> That's what makes creators trust your job. If you close it before hiring — or nobody is hired in 14 days — the money comes straight back to your EndaViral balance.</span></div>
+    <div class="cn-safe-note"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg> <span><b style="color:var(--white);">You pay the price once, when you post.</b> That's what makes creators trust your job. If you close it before hiring — or nobody is hired in 14 days — the money comes straight back to your EndaViral balance.</span></div>
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">📋</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-clipboard></use></svg></div>
         <div><div class="cn-form-card-title">What do you need?</div></div>
       </div>
       <div class="cn-field">
@@ -1653,7 +1653,7 @@ function _cnRenderCreateForm(target) {
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">💰</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg></div>
         <div><div class="cn-form-card-title">Price & videos</div><div class="cn-form-card-sub">One fixed price — creators accept it as it is</div></div>
       </div>
       <div class="cn-field">
@@ -1673,7 +1673,7 @@ function _cnRenderCreateForm(target) {
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">🎯</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-target></use></svg></div>
         <div><div class="cn-form-card-title">Who are you looking for? (optional)</div><div class="cn-form-card-sub">Shown next to each creator as a simple ✓ / ✗ — never blocks anyone</div></div>
       </div>
       <div class="cn-field">
@@ -1690,7 +1690,7 @@ function _cnRenderCreateForm(target) {
       </div>
     </div>
 
-    <div class="cn-tip">⚠️ Phone numbers and emails are hidden automatically. Keep chats and payments on EndaViral so your money stays protected.</div>
+    <div class="cn-tip"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Phone numbers and emails are hidden automatically. Keep chats and payments on EndaViral so your money stays protected.</div>
     <button class="btn-primary" id="cnNewSubmitBtn" onclick="_cnSubmitCreateCampaign()">Continue to payment</button>
     </div>
     <aside class="cn-preview" aria-label="Preview">
@@ -1784,11 +1784,11 @@ async function _cnRenderCreatorProfileForm(target) {
   _cnCpLinkValues = { ...(profile?.platform_links || {}) };
 
   target.innerHTML = `
-    ${profile?.joined_at ? `<div class="cn-hero-badge" style="display:inline-flex;margin-bottom:14px;">✅ Joined EndaViral Connect on ${new Date(profile.joined_at).toLocaleDateString()}</div>` : ''}
+    ${profile?.joined_at ? `<div class="cn-hero-badge" style="display:inline-flex;margin-bottom:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Joined EndaViral Connect on ${new Date(profile.joined_at).toLocaleDateString()}</div>` : ''}
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">🎬</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-film></use></svg></div>
         <div><div class="cn-form-card-title">About you</div><div class="cn-form-card-sub">Businesses see this when choosing a creator</div></div>
       </div>
       <div class="cn-field"><label>Your creator name</label><input type="text" id="cnCpName" maxlength="60" value="${esc(profile?.display_name || '')}" placeholder="e.g. Amina Creates"></div>
@@ -1799,7 +1799,7 @@ async function _cnRenderCreatorProfileForm(target) {
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">📱</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg></div>
         <div><div class="cn-form-card-title">Your accounts</div><div class="cn-form-card-sub">Required: a profile link for at least one platform</div></div>
       </div>
       <div class="cn-field">
@@ -1811,17 +1811,17 @@ async function _cnRenderCreatorProfileForm(target) {
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">🔒</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg></div>
         <div><div class="cn-form-card-title">Where we pay you</div><div class="cn-form-card-sub">Needed before you can send prices</div></div>
       </div>
-      <div class="cn-tip">🔒 Private: only EndaViral sees this. Businesses never see your number. Your earnings are sent here.</div>
+      <div class="cn-tip"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg> Private: only EndaViral sees this. Businesses never see your number. Your earnings are sent here.</div>
       <div class="cn-field"><label>Email</label><input type="email" id="cnCpEmail" value="${esc(profile?.email || '')}" placeholder="you@example.com"></div>
       <div class="cn-field"><label>M-Pesa phone number</label><input type="tel" inputmode="tel" id="cnCpPhone" value="${esc(profile?.phone || '')}" placeholder="07XXXXXXXX"></div>
     </div>
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">💰</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg></div>
         <div><div class="cn-form-card-title">Your usual prices (optional)</div><div class="cn-form-card-sub">Just a guide — you can agree a different price for each job</div></div>
       </div>
       <div class="cn-field"><label>Short Video</label><input type="number" id="cnCpPriceVideo" value="${profile?.prices_kes?.short_video || ''}" min="0"></div>
@@ -1834,23 +1834,23 @@ async function _cnRenderCreatorProfileForm(target) {
     ${profile ? `
     <div class="cn-form-card" style="margin-top:16px;">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">📊</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg></div>
         <div><div class="cn-form-card-title">Your Track Record</div></div>
       </div>
       <div class="cn-profile-stats">
-        ${profile.is_verified ? `<div class="cn-profile-stat"><div class="cn-profile-stat-val" style="color:#3dd44a;">✓</div><div class="cn-profile-stat-lbl">Verified</div></div>` : ''}
-        <div class="cn-profile-stat"><div class="cn-profile-stat-val">⭐ ${profile.rating_avg || 0}</div><div class="cn-profile-stat-lbl">${profile.rating_count || 0} ratings</div></div>
+        ${profile.is_verified ? `<div class="cn-profile-stat"><div class="cn-profile-stat-val" style="color:#3dd44a;"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></div><div class="cn-profile-stat-lbl">Verified</div></div>` : ''}
+        <div class="cn-profile-stat"><div class="cn-profile-stat-val"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg> ${profile.rating_avg || 0}</div><div class="cn-profile-stat-lbl">${profile.rating_count || 0} ratings</div></div>
         <div class="cn-profile-stat"><div class="cn-profile-stat-val">${profile.jobs_completed || 0}</div><div class="cn-profile-stat-lbl">Jobs done</div></div>
         <div class="cn-profile-stat"><div class="cn-profile-stat-val">${profile.success_rate_pct || 0}%</div><div class="cn-profile-stat-lbl">Success rate</div></div>
         ${profile.response_time_hours != null ? `<div class="cn-profile-stat"><div class="cn-profile-stat-val">~${profile.response_time_hours}h</div><div class="cn-profile-stat-lbl">Response time</div></div>` : ''}
-        ${profile.academy ? `<div class="cn-profile-stat"><div class="cn-profile-stat-val">🎓 ${profile.academy.modules_completed || 0}</div><div class="cn-profile-stat-lbl">Academy modules</div></div>` : ''}
+        ${profile.academy ? `<div class="cn-profile-stat"><div class="cn-profile-stat-val"><svg class=ev-i aria-hidden=true><use href=#ev-graduation></use></svg> ${profile.academy.modules_completed || 0}</div><div class="cn-profile-stat-lbl">Academy modules</div></div>` : ''}
       </div>
-      ${profile.is_suspended ? `<div class="cn-lost-banner" style="margin-top:12px;margin-bottom:0;">⛔ Suspended${profile.suspend_reason ? ': ' + esc(profile.suspend_reason) : ''}</div>` : ''}
+      ${profile.is_suspended ? `<div class="cn-lost-banner" style="margin-top:12px;margin-bottom:0;"><svg class=ev-i aria-hidden=true><use href=#ev-ban></use></svg> Suspended${profile.suspend_reason ? ': ' + esc(profile.suspend_reason) : ''}</div>` : ''}
     </div>
     ${profile.portfolio && profile.portfolio.length ? `
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">🏆</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-trophy></use></svg></div>
         <div><div class="cn-form-card-title">Portfolio — Past Campaigns</div></div>
       </div>
       ${profile.portfolio.map(pf => `
@@ -1879,7 +1879,7 @@ function _cnRenderFollowerInputs() {
   const selected = _cnMultiState['cnCpPlatforms'] || [];
 
   if (!selected.length) {
-    wrap.innerHTML = `<div class="cn-tip">👆 Pick at least one platform above, then paste your profile link. You need at least one to accept jobs.</div>`;
+    wrap.innerHTML = `<div class="cn-tip"><svg class=ev-i aria-hidden=true><use href=#ev-pointer></use></svg> Pick at least one platform above, then paste your profile link. You need at least one to accept jobs.</div>`;
     return;
   }
 
@@ -1910,7 +1910,7 @@ function _cnCpLinkHint(key) {
   const url = _cnAccUrlFor(a);
   el.innerHTML = !url ? '' : (_cnAccValid(a)
     ? `Opens <span class="cn-link-wrap">${esc(url)}</span>`
-    : `⚠️ That isn't a ${esc(_cnPlatformDef(key).label)} link`);
+    : `That isn't a ${esc(_cnPlatformDef(key).label)} link`);
 }
 
 // Turn "@amina" into the full link once they leave the box, so they see
@@ -1995,11 +1995,11 @@ async function _cnRenderBusinessProfileForm(target) {
   _cnBusinessProfile = profile;
 
   target.innerHTML = `
-    ${profile?.joined_at ? `<div class="cn-hero-badge" style="display:inline-flex;margin-bottom:14px;">✅ Joined EndaViral Connect on ${new Date(profile.joined_at).toLocaleDateString()}</div>` : ''}
+    ${profile?.joined_at ? `<div class="cn-hero-badge" style="display:inline-flex;margin-bottom:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Joined EndaViral Connect on ${new Date(profile.joined_at).toLocaleDateString()}</div>` : ''}
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">🏢</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-building></use></svg></div>
         <div><div class="cn-form-card-title">Your business</div><div class="cn-form-card-sub">Creators see this name on your jobs</div></div>
       </div>
       <div class="cn-field"><label>Business name</label><input type="text" id="cnBpName" value="${esc(profile?.company_name || '')}"></div>
@@ -2012,11 +2012,11 @@ async function _cnRenderBusinessProfileForm(target) {
     ${profile ? `
     <div class="cn-form-card" style="margin-top:16px;">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">📊</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg></div>
         <div><div class="cn-form-card-title">Your Track Record</div></div>
       </div>
       <div class="cn-profile-stats">
-        <div class="cn-profile-stat"><div class="cn-profile-stat-val">⭐ ${profile.rating_avg || 0}</div><div class="cn-profile-stat-lbl">${profile.rating_count || 0} ratings</div></div>
+        <div class="cn-profile-stat"><div class="cn-profile-stat-val"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg> ${profile.rating_avg || 0}</div><div class="cn-profile-stat-lbl">${profile.rating_count || 0} ratings</div></div>
         <div class="cn-profile-stat"><div class="cn-profile-stat-val">${profile.campaigns_posted || 0}</div><div class="cn-profile-stat-lbl">Posted</div></div>
         <div class="cn-profile-stat"><div class="cn-profile-stat-val">${profile.campaigns_completed || 0}</div><div class="cn-profile-stat-lbl">Completed</div></div>
       </div>
@@ -2092,7 +2092,7 @@ function _cnRenderCampaignModal() {
   let html = `
     <div style="font-size:11.5px;font-weight:800;color:#2196f3;margin-bottom:6px;">${plats.map(p => `${p.emoji} ${esc(p.label)}`).join(' + ')}</div>
     <div class="modal-title" style="margin-bottom:4px;">${esc(c.title)}</div>
-    <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">${_cnStatusPill(c.status)}${c.is_frozen ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#e5393520;color:#ff8a80;border:1px solid #e5393540;">🧊 Frozen by admin</span>` : ''}</div>
+    <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">${_cnStatusPill(c.status)}${c.is_frozen ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#e5393520;color:#ff8a80;border:1px solid #e5393540;"><svg class=ev-i aria-hidden=true><use href=#ev-snowflake></use></svg> Frozen by admin</span>` : ''}</div>
     ${c.is_frozen ? `<div style="font-size:12px;color:#ff8a80;background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;">This campaign is frozen${c.frozen_reason ? ': ' + esc(c.frozen_reason) : ''}. No actions can be taken until an admin unfreezes it.</div>` : ''}
   `;
 
@@ -2106,17 +2106,17 @@ function _cnRenderCampaignModal() {
       ${c.content_guidelines ? `<div style="font-size:12.5px;color:var(--muted);line-height:1.5;"><span style="font-weight:800;color:var(--white);">Video rules:</span> ${esc(c.content_guidelines)}</div>` : ''}
       <div class="cn-chip-row" style="white-space:normal;">
         <span class="cn-chip cn-chip-money">Pay ${fmtKES(c.price_kes ?? c.budget_kes)}</span>
-        <span class="cn-chip" style="white-space:normal;">📦 ${esc(c.deliverables)}${c.required_deliverable_count > 1 ? ` (${c.required_deliverable_count} videos)` : ''}</span>
-        ${c.min_followers ? `<span class="cn-chip">👥 ${c.min_followers.toLocaleString()}+ followers</span>` : ''}
+        <span class="cn-chip" style="white-space:normal;"><svg class=ev-i aria-hidden=true><use href=#ev-package></use></svg> ${esc(c.deliverables)}${c.required_deliverable_count > 1 ? ` (${c.required_deliverable_count} videos)` : ''}</span>
+        ${c.min_followers ? `<span class="cn-chip"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg> ${c.min_followers.toLocaleString()}+ followers</span>` : ''}
         ${_cnNicheTagsHtml(c.required_niche, 'cn-chip')}
-        ${c.business_name && !isBusinessOwner ? `<span class="cn-chip">🏢 ${esc(c.business_name)}</span>` : ''}
+        ${c.business_name && !isBusinessOwner ? `<span class="cn-chip"><svg class=ev-i aria-hidden=true><use href=#ev-building></use></svg> ${esc(c.business_name)}</span>` : ''}
       </div>
     </div>
   `;
 
   const _cnShowReceipts = isBusinessOwner && c.status !== 'draft';
   if (_cnShowReceipts) {
-    html += `<details style="margin-bottom:14px;"><summary style="font-size:12.5px;color:var(--muted);cursor:pointer;">🧾 Payments & receipts</summary><div id="cnReceiptsArea" style="margin-top:10px;"><div style="color:var(--muted);font-size:12px;">Loading…</div></div></details>`;
+    html += `<details style="margin-bottom:14px;"><summary style="font-size:12.5px;color:var(--muted);cursor:pointer;"><svg class=ev-i aria-hidden=true><use href=#ev-receipt></use></svg> Payments & receipts</summary><div id="cnReceiptsArea" style="margin-top:10px;"><div style="color:var(--muted);font-size:12px;">Loading…</div></div></details>`;
   }
 
   // Role/status-specific actions slot into the chat panel (see below) so
@@ -2136,11 +2136,11 @@ function _cnRenderCampaignModal() {
       </div>
       <button class="btn-primary" onclick="_cnOpenBidsInbox('${c.id}')">Review creators</button>
     </div>
-    <button class="btn-secondary" style="width:100%;margin-top:10px;" onclick="_cnOpenInviteModal(null,null,'${c.id}')">✉️ Invite a creator</button>`;
+    <button class="btn-secondary" style="width:100%;margin-top:10px;" onclick="_cnOpenInviteModal(null,null,'${c.id}')"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg> Invite a creator</button>`;
   }
 
   if (!isBusinessOwner && c.my_application_status === 'not_selected') {
-    actionHtml += `<div class="cn-lost-banner">😔 ${c.status === 'expired' || c.status === 'cancelled' ? 'This job closed without a hire.' : 'The business hired another creator.'} More jobs are waiting in Find Jobs.</div>`;
+    actionHtml += `<div class="cn-lost-banner"><svg class=ev-i aria-hidden=true><use href=#ev-frown></use></svg> ${c.status === 'expired' || c.status === 'cancelled' ? 'This job closed without a hire.' : 'The business hired another creator.'} More jobs are waiting in Find Jobs.</div>`;
   }
   if (!isBusinessOwner && c.my_application_status === 'rejected') {
     actionHtml += `<div class="cn-lost-banner">The business didn't pick you this time.</div>`;
@@ -2154,16 +2154,16 @@ function _cnRenderCampaignModal() {
     actionHtml += `<div class="cn-section-lbl">Waiting for the business ${_cnReviewCountdownHtml(c)}</div><div style="font-size:12.5px;color:var(--muted);line-height:1.5;">The business has ${CN_REVIEW_WINDOW_HOURS} hours to approve or ask for changes. If they don't reply, EndaViral will step in so you still get paid.</div>`;
   }
   if ((isBusinessOwner || isAssignedCreator) && ['funded', 'submitted', 'under_review'].includes(c.status)) {
-    actionHtml += `<button class="cn-danger-link" onclick="_cnOpenDisputeForm()">⚠️ Something wrong? Ask EndaViral to help</button><div id="cnDisputeForm"></div>`;
+    actionHtml += `<button class="cn-danger-link" onclick="_cnOpenDisputeForm()"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> Something wrong? Ask EndaViral to help</button><div id="cnDisputeForm"></div>`;
   }
   if (isAssignedCreator && c.status === 'completed') {
-    actionHtml += `<div class="cn-section-lbl">💰 Your money</div><div id="cnPayoutArea"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>`;
+    actionHtml += `<div class="cn-section-lbl"><svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg> Your money</div><div id="cnPayoutArea"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>`;
   }
   if ((isBusinessOwner || isAssignedCreator) && c.status === 'completed') {
     actionHtml += `<div id="cnReviewArea"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>`;
   }
   if (isBusinessOwner && ['completed', 'cancelled', 'expired'].includes(c.status)) {
-    html += `<button class="btn-secondary" style="margin-top:10px;width:100%;" onclick="_cnArchiveCampaign('${c.id}')">🗄 Move to archive</button>`;
+    html += `<button class="btn-secondary" style="margin-top:10px;width:100%;" onclick="_cnArchiveCampaign('${c.id}')"><svg class=ev-i aria-hidden=true><use href=#ev-database></use></svg> Move to archive</button>`;
   }
   } // end !c.is_frozen
 
@@ -2183,7 +2183,7 @@ function _cnRenderCampaignModal() {
     html += `<div class="cn-chat-card" style="padding:0;">
       <div class="cn-bidchat-head">
         <div>
-          <div class="cn-bidchat-title">💬 ${esc(other)}</div>
+          <div class="cn-bidchat-title"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> ${esc(other)}</div>
           <div class="cn-bidchat-sub">${sub}</div>
         </div>
       </div>
@@ -2220,7 +2220,7 @@ function _cnVaultHtml(c) {
     const due = Number(c.amount_due_kes || price), fee = Number(c.amount_due_fee_kes || 0);
     return `<div class="cn-vault is-open">
       <div class="cn-vault-top">
-        <div class="cn-vault-seal">🔓</div>
+        <div class="cn-vault-seal"><svg class=ev-i aria-hidden=true><use href=#ev-unlock></use></svg></div>
         <div><div class="cn-vault-amt">${fmtKES(due)}</div>
         <div class="cn-vault-cap">Not live yet. Pay the creator's price once and your job appears on Find Jobs with a 🔒 Budget secured badge.</div></div>
       </div>
@@ -2230,7 +2230,7 @@ function _cnVaultHtml(c) {
         <div class="tot"><span>You pay</span><b>${fmtKES(due + fee)}</b></div>
       </div>
       <div class="cn-vault-actions">
-        <button class="btn-primary" onclick="_cnOpenPaySheetV2('${c.id}','budget')">🔒 Pay & go live</button>
+        <button class="btn-primary" onclick="_cnOpenPaySheetV2('${c.id}','budget')"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg> Pay & go live</button>
         ${c.status === 'draft' ? `<button class="btn-secondary" onclick="_cnOpenPaySheetV2('${c.id}','price')">Change price</button>` : ''}
       </div>
       ${!c.is_frozen ? `<button class="cn-danger-link" onclick="_cnCancelCampaign('${c.id}', false)">Delete this draft</button>` : ''}
@@ -2241,7 +2241,7 @@ function _cnVaultHtml(c) {
     const pct = days == null ? 100 : Math.max(4, Math.min(100, (days / 14) * 100));
     return `<div class="cn-vault">
       <div class="cn-vault-top">
-        <div class="cn-vault-seal">🔒</div>
+        <div class="cn-vault-seal"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg></div>
         <div><div class="cn-vault-amt">${fmtKES(held)}</div>
         <div class="cn-vault-cap">Held by EndaViral. Hire a creator and it goes to work; the creator is only paid after you approve the video.</div></div>
       </div>
@@ -2251,7 +2251,7 @@ function _cnVaultHtml(c) {
         <span>Not hired by then? It all comes back to your balance.</span>
       </div>
       <div class="cn-vault-actions">
-        <button class="btn-secondary" onclick="_cnOpenPaySheetV2('${c.id}','topup')">📈 Raise the pay</button>
+        <button class="btn-secondary" onclick="_cnOpenPaySheetV2('${c.id}','topup')"><svg class=ev-i aria-hidden=true><use href=#ev-chart-up></use></svg> Raise the pay</button>
         <button class="btn-secondary" onclick="_cnCancelCampaign('${c.id}', true)">Close & refund to balance</button>
       </div>
     </div>`;
@@ -2259,7 +2259,7 @@ function _cnVaultHtml(c) {
   if (['funded', 'submitted', 'under_review', 'disputed'].includes(c.status)) {
     return `<div class="cn-vault">
       <div class="cn-vault-top">
-        <div class="cn-vault-seal">🔒</div>
+        <div class="cn-vault-seal"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg></div>
         <div><div class="cn-vault-amt">${fmtKES(held)}</div>
         <div class="cn-vault-cap">${c.status === 'disputed' ? 'Frozen while EndaViral reviews the dispute.' : `Working — ${esc(c.creator_display_name || 'your creator')} is on it. Released only when you approve.`}</div></div>
       </div>
@@ -2268,7 +2268,7 @@ function _cnVaultHtml(c) {
   if (['cancelled', 'expired'].includes(c.status) && Number(c.refunded_kes) > 0) {
     return `<div class="cn-vault is-done">
       <div class="cn-vault-top">
-        <div class="cn-vault-seal">↩️</div>
+        <div class="cn-vault-seal"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg></div>
         <div><div class="cn-vault-amt">${fmtKES(c.refunded_kes)}</div>
         <div class="cn-vault-cap">Returned to your EndaViral balance${c.status === 'expired' ? ' because nobody was hired in time' : ''}. Use it on your next job with no fee, or cash it out in My Jobs.</div></div>
       </div>
@@ -2280,7 +2280,7 @@ function _cnVaultHtml(c) {
 function _cnCreatorVaultHtml(c) {
   return `<div class="cn-vault">
     <div class="cn-vault-top">
-      <div class="cn-vault-seal">🔒</div>
+      <div class="cn-vault-seal"><svg class=ev-i aria-hidden=true><use href=#ev-lock></use></svg></div>
       <div><div class="cn-vault-amt">${fmtKES(c.creator_take_home_kes)}</div>
       <div class="cn-vault-cap">What you take home if you're hired and the business approves your work. The full ${fmtKES(c.price_kes)} is already held by EndaViral — no haggling, no chasing payment.</div></div>
     </div>
@@ -2302,7 +2302,7 @@ const CN_REVIEW_WINDOW_HOURS = 48;
 // ─── Accept (creator) — fixed price + account proof ───────────────────────
 function _cnAcceptCtaHtml(c) {
   return `
-    <div class="cn-step-hint">✅ <b>No bidding.</b> Accept the price and show the business your accounts — links plus a screenshot or two. Businesses hire the creators they can check.</div>
+    <div class="cn-step-hint"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> <b>No bidding.</b> Accept the price and show the business your accounts — links plus a screenshot or two. Businesses hire the creators they can check.</div>
     <button class="btn-primary" onclick="_cnOpenAcceptSheet()">Accept this job — ${fmtKES(c.price_kes)}</button>
   `;
 }
@@ -2342,7 +2342,7 @@ function _cnOpenAcceptSheet() {
     </div>
 
     <div class="cn-form-card">
-      <div class="cn-form-card-head"><div class="cn-form-card-icon">🔗</div>
+      <div class="cn-form-card-head"><div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-link></use></svg></div>
         <div><div class="cn-form-card-title">Your accounts</div><div class="cn-form-card-sub">Sent automatically from your profile — the business taps them to see the real accounts</div></div></div>
       <div class="cn-myapp-accts" style="margin:0 0 6px;">${_cnAccountChipsHtml(_cnProfileAccounts(), true)}</div>
       ${_cnProfileAccounts().some(a => (c.platform || '').includes(a.platform)) ? '' : `<div class="cn-acc-hint" style="color:#ffb020;margin-top:6px;">This job is for ${esc(_cnPlatformDefs(c.platform).map(p => p.label).join(' / '))} — add that account below if you have it.</div>`}
@@ -2352,7 +2352,7 @@ function _cnOpenAcceptSheet() {
     </div>
 
     <div class="cn-form-card">
-      <div class="cn-form-card-head"><div class="cn-form-card-icon">📸</div>
+      <div class="cn-form-card-head"><div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-camera></use></svg></div>
         <div><div class="cn-form-card-title">Screenshots</div><div class="cn-form-card-sub">Your profile page, and your insights if you can — they're the strongest proof</div></div></div>
       <div class="cn-shots" id="cnShots"></div>
       <input type="file" id="cnShotInput" accept="image/png,image/jpeg,image/webp" multiple style="display:none" onchange="_cnShotsPicked(this)">
@@ -2370,7 +2370,7 @@ function _cnOpenAcceptSheet() {
 
     <label class="cn-confirm-row" style="margin:12px 0;">
       <input type="checkbox" id="cnAcceptOwner" onchange="_cnSyncCheckRow(this)">
-      <span class="cn-join-tick">✓</span>
+      <span class="cn-join-tick"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></span>
       <span>These accounts are mine, and the screenshots are real.</span>
     </label>
     <button class="btn-primary" id="cnAcceptBtn" onclick="_cnSubmitAccept('${c.id}')">Accept & send to ${esc(c.business_name || 'the business')}</button>
@@ -2421,9 +2421,9 @@ function _cnRenderAccRows() {
         oninput="_cnAccept.accounts[${i}].url=this.value;_cnAccHint(${i});_cnUpdateStrength()" onblur="_cnRenderAccRows()">
       <input type="number" min="0" inputmode="numeric" placeholder="Followers" value="${esc(String(a.followers || ''))}" aria-label="Followers"
         oninput="_cnAccept.accounts[${i}].followers=this.value;_cnUpdateStrength()">
-      <button class="cn-acc-x" aria-label="Remove account" onclick="_cnAccRemove(${i})">✕</button>
+      <button class="cn-acc-x" aria-label="Remove account" onclick="_cnAccRemove(${i})"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
     </div>
-    <div class="cn-acc-hint" id="cnAccHint${i}">${url ? (bad ? `⚠️ That isn't a ${esc(_cnPlatformDef(a.platform).label)} link` : `Will open <span class="cn-link-wrap">${esc(url)}</span>`) : ''}</div>`;
+    <div class="cn-acc-hint" id="cnAccHint${i}">${url ? (bad ? `That isn't a ${esc(_cnPlatformDef(a.platform).label)} link` : `Will open <span class="cn-link-wrap">${esc(url)}</span>`) : ''}</div>`;
   }).join('');
   const add = document.getElementById('cnAccAdd');
   if (add) add.style.display = _cnAccept.accounts.length >= 4 ? 'none' : '';
@@ -2435,7 +2435,7 @@ function _cnAccHint(i) {
   const el = document.getElementById(`cnAccHint${i}`);
   if (!el) return;
   const url = _cnAccUrlFor(a);
-  el.innerHTML = url ? (_cnAccValid(a) ? `Will open <span class="cn-link-wrap">${esc(url)}</span>` : `⚠️ That isn't a ${esc(_cnPlatformDef(a.platform).label)} link`) : '';
+  el.innerHTML = url ? (_cnAccValid(a) ? `Will open <span class="cn-link-wrap">${esc(url)}</span>` : `That isn't a ${esc(_cnPlatformDef(a.platform).label)} link`) : '';
 }
 
 // Switching a row's platform swaps in the saved profile link for it.
@@ -2467,7 +2467,7 @@ function _cnRenderShots() {
   const tiles = _cnAccept.shots.map((s, i) => `
     <div class="cn-shot" style="cursor:default;border-style:solid;">
       <img src="${s.image_data}" alt="Screenshot ${i + 1}">
-      <button class="cn-shot-del" aria-label="Remove screenshot" onclick="_cnAccept.shots.splice(${i},1);_cnRenderShots()">✕</button>
+      <button class="cn-shot-del" aria-label="Remove screenshot" onclick="_cnAccept.shots.splice(${i},1);_cnRenderShots()"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
       <select class="cn-shot-kind" aria-label="What this screenshot shows" onchange="_cnAccept.shots[${i}].kind=this.value;_cnUpdateStrength()">
         ${CN_SHOT_KINDS.map(k => `<option value="${k.key}" ${s.kind === k.key ? 'selected' : ''}>${esc(k.label)}</option>`).join('')}
       </select>
@@ -2593,7 +2593,7 @@ function _cnMyApplicationSummaryHtml(c) {
       <div class="cn-app-top"><span style="font-weight:800;color:var(--white);font-size:13px;">You accepted at ${fmtKES(c.accepted_bid_kes)}</span>${_cnStatusPill(c.my_application_status)}</div>
       <div style="font-size:12px;color:var(--muted);">${c.my_application_proof_count || 0} screenshot${c.my_application_proof_count === 1 ? '' : 's'} sent${c.my_application_proposal ? ` · “${esc(c.my_application_proposal)}”` : ''}</div>
       <div class="cn-myapp-accts">${_cnAccountChipsHtml(c.my_application_accounts, true)}</div>
-      ${c.my_application_viewed_at && open ? `<div class="cn-seen">👀 The business looked at your accounts ${new Date(c.my_application_viewed_at).toLocaleDateString()}</div>` : (open ? `<div class="cn-seen" style="color:var(--muted);">Not opened by the business yet</div>` : '')}
+      ${c.my_application_viewed_at && open ? `<div class="cn-seen"><svg class=ev-i aria-hidden=true><use href=#ev-eye></use></svg> The business looked at your accounts ${new Date(c.my_application_viewed_at).toLocaleDateString()}</div>` : (open ? `<div class="cn-seen" style="color:var(--muted);">Not opened by the business yet</div>` : '')}
       ${open && c.status === 'published' ? `<button class="cn-danger-link" style="padding-bottom:0;" onclick="_cnWithdrawApplication('${c.id}')">Withdraw from this job</button>` : ''}
     </div>
   `;
@@ -2676,12 +2676,12 @@ function _cnDeliverableFormHtml() {
 
   return `
     <div class="cn-section-lbl">Send your work (${n} video${n === 1 ? '' : 's'})</div>
-    <div class="cn-step-hint">✅ The business has paid. <b>Post the video${n === 1 ? '' : 's'} on your account</b>, copy the link${n === 1 ? '' : 's'}, and paste ${n === 1 ? 'it' : 'them'} below.</div>
+    <div class="cn-step-hint"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> The business has paid. <b>Post the video${n === 1 ? '' : 's'} on your account</b>, copy the link${n === 1 ? '' : 's'}, and paste ${n === 1 ? 'it' : 'them'} below.</div>
     ${rows}
     <div class="cn-field"><label>Message to the business (optional)</label><textarea id="cnDelivNote" placeholder="Anything they should know"></textarea></div>
     <label class="cn-confirm-row" style="margin:10px 0;">
       <input type="checkbox" id="cnDelivConfirm" onchange="_cnSyncCheckRow(this)">
-      <span class="cn-join-tick">✓</span>
+      <span class="cn-join-tick"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></span>
       <span>Yes, the video${n === 1 ? ' is' : 's are'} posted and live at ${n === 1 ? 'this link' : 'these links'}.</span>
     </label>
     <button class="btn-primary" id="cnDelivBtn" onclick="_cnSubmitDeliverable('${_cnCurrentCampaign.id}')">Send to business</button>
@@ -2760,19 +2760,19 @@ async function _cnLoadDeliverableForReview(campaignId) {
     return;
   }
   el.innerHTML = `
-    <div class="cn-step-hint">👀 <b>Open each link</b> and check the video. If it's good, approve it so the creator gets paid. If not, tell them what to change.</div>
+    <div class="cn-step-hint"><svg class=ev-i aria-hidden=true><use href=#ev-eye></use></svg> <b>Open each link</b> and check the video. If it's good, approve it so the creator gets paid. If not, tell them what to change.</div>
     ${rows.map(d => `
       <div class="cn-deliv-row">
         <span class="k">Video ${d.sequence_no}${d.platform_posted_to ? ` · ${esc(_cnPlatformDef(d.platform_posted_to).label)}` : ''}</span>
         <a class="cn-link-wrap" href="${/^https?:\/\//i.test(d.content_url || '') ? esc(d.content_url) : '#'}" target="_blank" rel="noopener noreferrer" style="color:#2196f3;">${esc(d.content_url)}</a>
       </div>
       ${d.note ? `<div style="font-size:11.5px;color:var(--muted);margin:2px 0 8px;">${esc(d.note)}</div>` : ''}
-      ${d.has_screenshot ? `<button class="btn-secondary" style="padding:5px 10px;font-size:11px;margin:0 0 8px;" onclick="_cnViewDeliverableScreenshot('${campaignId}','${d.id}')">🖼️ View Screenshot</button>` : ''}
+      ${d.has_screenshot ? `<button class="btn-secondary" style="padding:5px 10px;font-size:11px;margin:0 0 8px;" onclick="_cnViewDeliverableScreenshot('${campaignId}','${d.id}')"><svg class=ev-i aria-hidden=true><use href=#ev-image></use></svg> View Screenshot</button>` : ''}
     `).join('')}
     <div style="font-size:12px;color:var(--muted);margin:10px 0;">The creator says ${rows.length === 1 ? 'this video is' : `all ${rows.length} videos are`} posted.</div>
-    <button class="btn-primary" style="width:100%;" onclick="_cnReviewDeliverable('${campaignId}','approve')">✅ Approve — pay the creator</button>
+    <button class="btn-primary" style="width:100%;" onclick="_cnReviewDeliverable('${campaignId}','approve')"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Approve — pay the creator</button>
     <div class="cn-field" style="margin-top:14px;"><label>Need changes? Tell the creator what to fix</label><textarea id="cnReviewNote" placeholder="e.g. Please mention our shop name at the start"></textarea></div>
-    <button class="btn-secondary" style="width:100%;" onclick="_cnReviewDeliverable('${campaignId}','reject')">✏️ Ask for changes</button>
+    <button class="btn-secondary" style="width:100%;" onclick="_cnReviewDeliverable('${campaignId}','reject')"><svg class=ev-i aria-hidden=true><use href=#ev-edit></use></svg> Ask for changes</button>
   `;
 }
 
@@ -2802,7 +2802,7 @@ async function _cnReviewDeliverable(campaignId, decision) {
       method: 'POST',
       body: JSON.stringify({ review_note }),
     });
-    toast(decision === 'approve' ? '🎉 Approved — the creator is being paid.' : 'Sent back to the creator to fix', 'success');
+    toast(decision === 'approve' ? 'Approved — the creator is being paid.' : 'Sent back to the creator to fix', 'success');
     Store.invalidate('connectCampaigns');
     Store.invalidate('connectWork');
     _cnOpenCampaign(campaignId);
@@ -2872,7 +2872,7 @@ async function _cnLoadReviewArea(c) {
   } catch (_) { /* couldn't load — fall through to showing the form */ }
 
   el.innerHTML = mine
-    ? `<div style="font-size:12px;color:var(--muted);">✅ Review submitted${mine.rating ? ` — you rated this ${'★'.repeat(mine.rating)}${'☆'.repeat(5 - mine.rating)}` : ''}.</div>`
+    ? `<div style="font-size:12px;color:var(--muted);"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Review submitted${mine.rating ? ` — you rated this ${'★'.repeat(mine.rating)}${'☆'.repeat(5 - mine.rating)}` : ''}.</div>`
     : _cnReviewFormHtml();
 }
 
@@ -2880,7 +2880,7 @@ function _cnReviewFormHtml() {
   return `
     <div class="cn-section-lbl">How did it go? Tap the stars</div>
     <div class="cn-stars" id="cnStars">
-      ${[1, 2, 3, 4, 5].map(n => `<span class="cn-star" data-n="${n}" onclick="_cnSetStars(${n})">★</span>`).join('')}
+      ${[1, 2, 3, 4, 5].map(n => `<span class="cn-star" data-n="${n}" onclick="_cnSetStars(${n})"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg></span>`).join('')}
     </div>
     <div class="cn-field"><label>Comment (optional)</label><textarea id="cnReviewComment" placeholder="How did it go?"></textarea></div>
     <button class="btn-primary" id="cnReviewSubmitBtn" onclick="_cnSubmitReview('${_cnCurrentCampaign.id}')">Send rating</button>
@@ -2905,7 +2905,7 @@ async function _cnSubmitReview(campaignId) {
       body: JSON.stringify({ rating: _cnReviewRating, comment }),
     });
     toast('Thanks for your review!', 'success');
-    document.getElementById('cnReviewArea').innerHTML = `<div style="font-size:12px;color:var(--muted);">✅ Review submitted.</div>`;
+    document.getElementById('cnReviewArea').innerHTML = `<div style="font-size:12px;color:var(--muted);"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Review submitted.</div>`;
   } catch (e) {
     toast(e.message || 'Could not submit review', 'error');
     btn.disabled = false; btn.textContent = 'Send rating';
@@ -2934,10 +2934,10 @@ async function _cnLoadPayoutArea(c) {
 
   if (existing && existing.status !== 'rejected') {
     const statusLabel = existing.status === 'paid'
-      ? `✅ Sent to your M-Pesa${existing.mpesa_receipt ? ` — code ${esc(existing.mpesa_receipt)}` : ''}`
-      : `⏳ We're sending it to ${esc(existing.phone || 'your M-Pesa')}. You'll see "Sent" here once it's done.`;
+      ? `Sent to your M-Pesa${existing.mpesa_receipt ? ` — code ${esc(existing.mpesa_receipt)}` : ''}`
+      : `We're sending it to ${esc(existing.phone || 'your M-Pesa')}. You'll see "Sent" here once it's done.`;
     const receiptBtn = existing.status === 'paid'
-      ? `<button class="btn-secondary" style="padding:6px 12px;font-size:11.5px;margin-top:8px;" onclick="_cnDownloadPayoutReceipt('${c.id}')">⬇️ Receipt</button>`
+      ? `<button class="btn-secondary" style="padding:6px 12px;font-size:11.5px;margin-top:8px;" onclick="_cnDownloadPayoutReceipt('${c.id}')"><svg class=ev-i aria-hidden=true><use href=#ev-download></use></svg> Receipt</button>`
       : '';
     el.innerHTML = `${breakdown}<div style="font-size:12.5px;color:var(--white);margin-top:10px;line-height:1.5;">${statusLabel}</div>${receiptBtn}`;
     return;
@@ -2971,10 +2971,10 @@ async function _cnLoadPayoutArea(c) {
   el.innerHTML = `
     ${breakdown}
     ${rejectedNote}
-    <div class="cn-step-hint" style="margin-top:10px;">🎉 The business approved your work! Check your M-Pesa number and tap the button.</div>
+    <div class="cn-step-hint" style="margin-top:10px;"><svg class=ev-i aria-hidden=true><use href=#ev-sparkle></use></svg> The business approved your work! Check your M-Pesa number and tap the button.</div>
     <div class="cn-field"><label>Send to this M-Pesa number</label><input type="tel" inputmode="tel" id="cnPayoutPhone" value="${esc(phone)}" placeholder="07XXXXXXXX"></div>
     ${rowsHtml}
-    <button class="btn-primary" id="cnPayoutBtn" onclick="_cnRequestPayout('${c.id}')">📲 Send my money${payout != null ? ` (${fmtKES(payout)})` : ''}</button>
+    <button class="btn-primary" id="cnPayoutBtn" onclick="_cnRequestPayout('${c.id}')"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg> Send my money${payout != null ? ` (${fmtKES(payout)})` : ''}</button>
   `;
 }
 
@@ -3003,7 +3003,7 @@ async function _cnRequestPayout(campaignId) {
     _cnOpenCampaign(campaignId);
   } catch (e) {
     toast(e.message || 'Could not request payout', 'error');
-    btn.disabled = false; btn.textContent = '📲 Send my money';
+    btn.disabled = false; btn.textContent = 'Send my money';
   }
 }
 
@@ -3053,7 +3053,7 @@ async function _cnLoadMessages(campaignId, threadCreatorId) {
       const b = m.action_payload || {};
       const plats = _cnPlatformDefs(b.platforms).map(p => `${p.emoji} ${esc(p.label)}`).join(', ');
       return dayDivider + `<div class="cn-brief">
-        <div class="cn-brief-h">📌 The brief — keep the chat about this</div>
+        <div class="cn-brief-h"><svg class=ev-i aria-hidden=true><use href=#ev-pin></use></svg> The brief — keep the chat about this</div>
         <dl>
           <dt>Videos</dt><dd>${esc(b.deliverables || '')}${b.count > 1 ? ` (${b.count})` : ''}</dd>
           ${plats ? `<dt>Post on</dt><dd>${plats}</dd>` : ''}
@@ -3173,7 +3173,7 @@ function _cnCloseCreate() {
 async function _cnRenderInvites(target) {
   const invites = await Store.ensure('connectInvites', () => api('/connect/invites/mine'), { ttl: CONNECT_CACHE_TTL });
   if (!invites.length) {
-    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon">✉️</span><div class="cn-empty-title">No invites yet</div>Businesses can invite you straight to a job. A good bio and correct follower numbers help them find you.</div>`;
+    target.innerHTML = `<div class="cn-empty"><span class="cn-empty-icon"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg></span><div class="cn-empty-title">No invites yet</div>Businesses can invite you straight to a job. A good bio and correct follower numbers help them find you.</div>`;
     return;
   }
   target.innerHTML = invites.map(i => {
@@ -3236,7 +3236,7 @@ let _cnCreatorFilters = { niche: '', platform: '', location: '', min_followers: 
 
 async function _cnRenderFindCreators(target) {
   target.innerHTML = `
-    <div class="cn-tip">🔎 Pick filters (optional), tap Search, then tap <b>Invite</b> on a creator you like.</div>
+    <div class="cn-tip"><svg class=ev-i aria-hidden=true><use href=#ev-search></use></svg> Pick filters (optional), tap Search, then tap <b>Invite</b> on a creator you like.</div>
     <div class="cn-fc-grid">
       <select id="cnFcNiche" class="cn-fc-input">
         <option value="">Any niche</option>
@@ -3257,7 +3257,7 @@ async function _cnRenderFindCreators(target) {
     <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);margin-bottom:12px;cursor:pointer;">
       <input type="checkbox" id="cnFcVerified" ${_cnCreatorFilters.verified_only ? 'checked' : ''}> Verified creators only
     </label>
-    <button class="btn-primary" style="margin-bottom:16px;" onclick="_cnSearchCreators()">🔎 Search</button>
+    <button class="btn-primary" style="margin-bottom:16px;" onclick="_cnSearchCreators()"><svg class=ev-i aria-hidden=true><use href=#ev-search></use></svg> Search</button>
     <div id="cnFcResults"><div class="cn-empty">Loading…</div></div>
   `;
   await _cnSearchCreators();
@@ -3302,8 +3302,8 @@ function _cnCreatorCardHtml(p) {
   return `
   <div class="cn-card" style="cursor:default;">
     <div class="cn-card-top">
-      <div class="cn-card-title">${esc(name)} ${p.is_verified ? '<span title="Verified" style="color:#2196f3;">✔️</span>' : ''}</div>
-      <div style="font-size:12px;color:var(--muted);">★ ${p.rating_avg || 0} (${p.rating_count || 0})</div>
+      <div class="cn-card-title">${esc(name)} ${p.is_verified ? '<span title="Verified" style="color:#2196f3;"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg></span>' : ''}</div>
+      <div style="font-size:12px;color:var(--muted);"><svg class=ev-i aria-hidden=true><use href=#ev-star></use></svg> ${p.rating_avg || 0} (${p.rating_count || 0})</div>
     </div>
     ${p.bio ? `<div class="cn-card-desc">${esc(p.bio)}</div>` : ''}
     <div class="cn-card-meta" style="margin-bottom:10px;">
@@ -3318,7 +3318,7 @@ function _cnCreatorCardHtml(p) {
       ${p.followers_count ? `<span class="cn-tag">${p.followers_count.toLocaleString()} followers</span>` : ''}
       ${p.jobs_completed != null ? `<span class="cn-tag">${p.jobs_completed} jobs done</span>` : ''}
     </div>
-    <button class="btn-secondary" style="width:100%;" data-uid="${esc(p.user_id)}" data-name="${esc(name)}" onclick="_cnOpenInviteModal(this.dataset.uid, this.dataset.name, null)">✉️ Invite to a job</button>
+    <button class="btn-secondary" style="width:100%;" data-uid="${esc(p.user_id)}" data-name="${esc(name)}" onclick="_cnOpenInviteModal(this.dataset.uid, this.dataset.name, null)"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg> Invite to a job</button>
   </div>`;
 }
 
@@ -3369,7 +3369,7 @@ async function _cnOpenInviteModal(creatorUserId, creatorLabel, campaignId) {
   }
 
   body.innerHTML = `
-    <div class="modal-title" style="margin-bottom:14px;">✉️ Invite ${creatorLabel ? esc(creatorLabel) : 'a Creator'}</div>
+    <div class="modal-title" style="margin-bottom:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg> Invite ${creatorLabel ? esc(creatorLabel) : 'a Creator'}</div>
     ${!campaignId ? `
     <div class="cn-field"><label>Which job?</label>
       <select id="cnInviteCampaignSelect">${campaignOptionsHtml}</select>
@@ -3419,7 +3419,7 @@ async function _cnRenderAdmin(target) {
   target.innerHTML = `
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">📊</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg></div>
         <div><div class="cn-form-card-title">Marketplace Stats</div></div>
       </div>
       <div id="cnAdminStats" class="cn-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));"><div class="cn-empty">Loading…</div></div>
@@ -3427,7 +3427,7 @@ async function _cnRenderAdmin(target) {
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">💸</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg></div>
         <div><div class="cn-form-card-title">Payout Requests</div></div>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:12px;">
@@ -3438,7 +3438,7 @@ async function _cnRenderAdmin(target) {
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">↩️</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg></div>
         <div><div class="cn-form-card-title">Business balance cash-outs</div><div class="cn-form-card-sub">Money returned from closed/expired jobs — send by M-Pesa, then mark paid</div></div>
       </div>
       <div id="cnAdminWithdrawals"><div class="cn-empty">Loading…</div></div>
@@ -3447,7 +3447,7 @@ async function _cnRenderAdmin(target) {
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">⏱️</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-clock></use></svg></div>
         <div><div class="cn-form-card-title">Business Not Responding</div><div class="cn-form-card-sub">48-hour review window</div></div>
       </div>
       <div id="cnAdminOverdue"><div class="cn-empty">Loading…</div></div>
@@ -3455,7 +3455,7 @@ async function _cnRenderAdmin(target) {
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">⚠️</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div>
         <div><div class="cn-form-card-title">Open Disputes</div></div>
       </div>
       <div id="cnAdminDisputes"><div class="cn-empty">Loading…</div></div>
@@ -3463,7 +3463,7 @@ async function _cnRenderAdmin(target) {
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">🧊</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-snowflake></use></svg></div>
         <div><div class="cn-form-card-title">Frozen Campaigns</div></div>
       </div>
       <div id="cnAdminFrozen"><div class="cn-empty">Loading…</div></div>
@@ -3472,13 +3472,13 @@ async function _cnRenderAdmin(target) {
           <input type="text" id="cnAdminFreezeId" placeholder="campaign id"></div>
         <div class="cn-field" style="flex:2;min-width:160px;margin-bottom:0;"><label>Reason</label>
           <input type="text" id="cnAdminFreezeReason" placeholder="reason (optional)"></div>
-        <button class="btn-secondary" onclick="_cnAdminFreeze()">🧊 Freeze</button>
+        <button class="btn-secondary" onclick="_cnAdminFreeze()"><svg class=ev-i aria-hidden=true><use href=#ev-snowflake></use></svg> Freeze</button>
       </div>
     </div>
 
     <div class="cn-form-card">
       <div class="cn-form-card-head">
-        <div class="cn-form-card-icon">🛡️</div>
+        <div class="cn-form-card-icon"><svg class=ev-i aria-hidden=true><use href=#ev-shield></use></svg></div>
         <div><div class="cn-form-card-title">Verify / Suspend a User</div></div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -3493,9 +3493,9 @@ async function _cnRenderAdmin(target) {
           <input type="text" id="cnAdminSuspendReason" placeholder="reason (optional)"></div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="cn-btn-sm cn-btn-accept" style="flex:none;padding:9px 14px;" onclick="_cnAdminVerify(true)">✔️ Verify Creator</button>
+        <button class="cn-btn-sm cn-btn-accept" style="flex:none;padding:9px 14px;" onclick="_cnAdminVerify(true)"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg> Verify Creator</button>
         <button class="btn-secondary" onclick="_cnAdminVerify(false)">Unverify Creator</button>
-        <button class="cn-btn-sm cn-btn-reject" style="flex:none;padding:9px 14px;" onclick="_cnAdminSuspend(true)">🚫 Suspend</button>
+        <button class="cn-btn-sm cn-btn-reject" style="flex:none;padding:9px 14px;" onclick="_cnAdminSuspend(true)"><svg class=ev-i aria-hidden=true><use href=#ev-ban></use></svg> Suspend</button>
         <button class="btn-secondary" onclick="_cnAdminSuspend(false)">Unsuspend</button>
       </div>
     </div>
@@ -3571,10 +3571,10 @@ async function _cnLoadAdminOverdue() {
           <option value="no_answer">No answer</option><option value="answered">Answered</option><option value="unreachable">Unreachable</option>
         </select>
         <input type="text" id="cnOutreachNote-${c.id}" placeholder="note (optional)" class="cn-input-compact" style="flex:1;min-width:120px;">
-        <button class="btn-secondary" style="padding:6px 10px;font-size:11.5px;" onclick="_cnAdminLogOutreach('${c.id}')">📞 Log Attempt</button>
+        <button class="btn-secondary" style="padding:6px 10px;font-size:11.5px;" onclick="_cnAdminLogOutreach('${c.id}')"><svg class=ev-i aria-hidden=true><use href=#ev-phone-call></use></svg> Log Attempt</button>
       </div>
       <button class="cn-btn-sm cn-btn-reject" style="width:100%;" ${c.admin_can_force_release ? '' : 'disabled'} onclick="_cnAdminForceRelease('${c.id}')">
-        ${c.admin_can_force_release ? '⏱️ Force-Release Payment to Creator' : 'Force-release unlocks after 48h'}
+        ${c.admin_can_force_release ? 'Force-Release Payment to Creator' : 'Force-release unlocks after 48h'}
       </button>
     </div>
   `).join('');
@@ -3627,14 +3627,14 @@ async function _cnLoadAdminPayouts(status) {
           ${_cnStatusPillGeneric(t.status)}
         </div>
         <div style="font-size:11.5px;color:var(--muted);">Campaign ${esc(t.campaign_id.slice(0, 8))}… · Creator ${esc(t.creator_user_id.slice(0, 8))}…</div>
-        <div style="font-size:12px;color:var(--white);margin:6px 0;">📱 ${esc(t.phone)} · <a href="${esc(t.content_url)}" target="_blank" rel="noopener" style="color:#2196f3;">View posted work</a></div>
+        <div style="font-size:12px;color:var(--white);margin:6px 0;"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg> ${esc(t.phone)} · <a href="${esc(t.content_url)}" target="_blank" rel="noopener" style="color:#2196f3;">View posted work</a></div>
         ${t.status !== 'pending' ? `
           <div style="font-size:11.5px;color:var(--muted);">${t.mpesa_receipt ? `M-Pesa ref: ${esc(t.mpesa_receipt)}` : ''}${t.admin_note ? ` — ${esc(t.admin_note)}` : ''}</div>
         ` : `
           <input type="text" id="cnPayoutReceipt-${t.id}" placeholder="M-Pesa receipt code (optional)" class="cn-input-compact" style="width:100%;margin:8px 0 6px;">
           <input type="text" id="cnPayoutNote-${t.id}" placeholder="Note (optional, e.g. reason for rejection)" class="cn-input-compact" style="width:100%;margin-bottom:8px;">
           <div class="cn-app-actions">
-            <button class="cn-btn-sm cn-btn-accept" onclick="_cnAdminResolvePayout('${t.id}', true)">✅ Mark Paid</button>
+            <button class="cn-btn-sm cn-btn-accept" onclick="_cnAdminResolvePayout('${t.id}', true)"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Mark Paid</button>
             <button class="cn-btn-sm cn-btn-reject" onclick="_cnAdminResolvePayout('${t.id}', false)">Reject</button>
           </div>
         `}
@@ -3705,9 +3705,9 @@ async function _cnLoadAdminDisputes() {
         <div style="font-size:12px;color:var(--white);margin-bottom:8px;">${esc(d.reason)}</div>
         ${d.deliverable_links && d.deliverable_links.length ? `
           <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px;">Submitted work:
-            ${d.deliverable_links.map(v => `<a href="${esc(v.content_url)}" target="_blank" rel="noopener" style="color:#2196f3;margin-right:8px;">🔗 ${esc(v.platform_posted_to || 'link')}${v.creator_confirmed_posted ? '' : ' ⚠️ not confirmed posted'}</a>`).join('')}
+            ${d.deliverable_links.map(v => `<a href="${esc(v.content_url)}" target="_blank" rel="noopener" style="color:#2196f3;margin-right:8px;"><svg class=ev-i aria-hidden=true><use href=#ev-link></use></svg> ${esc(v.platform_posted_to || 'link')}${v.creator_confirmed_posted ? '' : ' ⚠️ not confirmed posted'}</a>`).join('')}
           </div>` : ''}
-        ${d.evidence_url ? `<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Evidence: <a href="${esc(d.evidence_url)}" target="_blank" rel="noopener" style="color:#2196f3;">🔗 View evidence</a></div>` : ''}
+        ${d.evidence_url ? `<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Evidence: <a href="${esc(d.evidence_url)}" target="_blank" rel="noopener" style="color:#2196f3;"><svg class=ev-i aria-hidden=true><use href=#ev-link></use></svg> View evidence</a></div>` : ''}
         <input type="text" id="cnDisputeNote-${d.id}" placeholder="Resolution note (optional)" class="cn-input-compact" style="width:100%;margin-bottom:8px;">
         <div class="cn-app-actions">
           <button class="cn-btn-sm cn-btn-accept" onclick="_cnAdminResolveDispute('${d.id}','release_to_creator')">Release to Creator</button>

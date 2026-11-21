@@ -61,11 +61,11 @@
     if (by.length) {
       const r = by[by.length - 1];
       const id = _safeId(r.order_id);
-      return `<div class="od-replaced" style="margin-top:4px;font-size:${fs};font-weight:700;color:#ff8a65;">🔁 Re-placed for free → <a href="javascript:void(0)" onclick="event.stopPropagation();openOrderDetail('${id}')" style="color:#ffab91;">#${_e(id.slice(0, 8))}</a></div>`;
+      return `<div class="od-replaced" style="margin-top:4px;font-size:${fs};font-weight:700;color:#ff8a65;"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Re-placed for free → <a href="javascript:void(0)" onclick="event.stopPropagation();openOrderDetail('${id}')" style="color:#ffab91;">#${_e(id.slice(0, 8))}</a></div>`;
     }
     if (o && o.replacement_for) {
       const id = _safeId(o.replacement_for);
-      return `<div class="od-replaced" style="margin-top:4px;font-size:${fs};color:var(--muted);">🔁 Free replacement for <a href="javascript:void(0)" onclick="event.stopPropagation();openOrderDetail('${id}')" style="color:var(--muted);text-decoration:underline;">#${_e(id.slice(0, 8))}</a></div>`;
+      return `<div class="od-replaced" style="margin-top:4px;font-size:${fs};color:var(--muted);"><svg class=ev-i aria-hidden=true><use href=#ev-repeat></use></svg> Free replacement for <a href="javascript:void(0)" onclick="event.stopPropagation();openOrderDetail('${id}')" style="color:var(--muted);text-decoration:underline;">#${_e(id.slice(0, 8))}</a></div>`;
     }
     return '';
   };
@@ -191,7 +191,7 @@
     const arUntil = o.auto_refill_until ? new Date(o.auto_refill_until) : null;
     const arActive = arUntil && !isNaN(arUntil) && arUntil > new Date() && ['completed', 'partial'].includes(st);
     const autoRefillHTML = arActive
-      ? `<div class="od-autorefill">♻️ <span><b>Auto-refill is on.</b> Every 2 days we check this order and top up any drop for free, until ${_fmtDate(o.auto_refill_until, false)} ${new Date(o.auto_refill_until).getFullYear()}.</span></div>`
+      ? `<div class="od-autorefill"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> <span><b>Auto-refill is on.</b> Every 2 days we check this order and top up any drop for free, until ${_fmtDate(o.auto_refill_until, false)} ${new Date(o.auto_refill_until).getFullYear()}.</span></div>`
       : '';
 
     body.innerHTML = `
@@ -200,7 +200,7 @@
           <div class="od-eyebrow">ORDER DETAILS${refreshing ? ' <span class="od-live">· checking live status…</span>' : ''}</div>
           <div class="od-title" id="odTitle">${_dot(o)}${_e(name)}</div>
         </div>
-        <button type="button" class="od-close" onclick="closeOrderDetail()" aria-label="Close">✕</button>
+        <button type="button" class="od-close" onclick="closeOrderDetail()" aria-label="Close"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
       </div>
       <div class="od-status-row">${typeof orderStatusPill === 'function' ? orderStatusPill(o) : statusPill(o.status)}<span class="od-amount">${fmtKES(charge)}</span></div>
       <p class="od-status-text">${o.wallet_refund ? `Refunded ${fmtKES(o.wallet_refund.amount)} to your Wallet.` : (STATUS_TEXT[st] || '')}</p>
@@ -210,8 +210,8 @@
       ${autoRefillHTML}
       <dl class="od-rows">${rows.map(([k, v]) => `<div class="od-row"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
       <div class="od-actions">
-        ${canRefill ? `<button type="button" class="btn-secondary od-btn" onclick="_odRefill('${id}')">♻️ Request refill</button>` : ''}
-        <button type="button" class="btn-secondary od-btn" onclick="_odHelp('${id}')">💬 Get help with this order</button>
+        ${canRefill ? `<button type="button" class="btn-secondary od-btn" onclick="_odRefill('${id}')"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Request refill</button>` : ''}
+        <button type="button" class="btn-secondary od-btn" onclick="_odHelp('${id}')"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Get help with this order</button>
       </div>`;
   }
 

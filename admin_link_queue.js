@@ -19,9 +19,9 @@
 let _lqView = 'open';
 let _lqSum = {};
 const LQ_VIEWS = [
-  { id: 'open',     label: '⏳ Waiting',  hint: 'Paid and waiting for an earlier order on the same link. They start on their own — act only if one looks stuck.' },
-  { id: 'started',  label: '✅ Started',  hint: 'Queued orders that have since been sent to the panel.' },
-  { id: 'problems', label: '⚠ Problems', hint: 'Could not start, waited too long, or were taken out of the queue. These are FAILED orders — they appear in Support → Reorders after midnight.' },
+  { id: 'open',     label: 'Waiting',  hint: 'Paid and waiting for an earlier order on the same link. They start on their own — act only if one looks stuck.' },
+  { id: 'started',  label: 'Started',  hint: 'Queued orders that have since been sent to the panel.' },
+  { id: 'problems', label: 'Problems', hint: 'Could not start, waited too long, or were taken out of the queue. These are FAILED orders — they appear in Support → Reorders after midnight.' },
   { id: 'all',      label: 'All',        hint: 'Everything that has ever been queued (newest activity first).' },
 ];
 const LQ_STATUS = {
@@ -97,11 +97,11 @@ function _lqRender(sum, data) {
   let html = `<div class="sec-hd">
       <div><div class="sec-title">QUEUED ORDERS</div>
       <div class="sec-sub">Paid orders waiting for an earlier order on the same link to finish — they start automatically 5 min after it's seen to complete (panel checked every 30 min)</div></div>
-      <button class="btn-secondary" onclick="loadAdminLinkQueue()">↻ Refresh</button>
+      <button class="btn-secondary" onclick="loadAdminLinkQueue()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
     </div>`;
 
   if (data.worker && !data.worker.running) {
-    html += `<div style="${_lqCard}border-color:#ff5252;color:#ff5252;font-weight:700;margin-bottom:12px;">⚠ The queue worker is not running on the server — queued orders won't start until it restarts. Check the server logs.</div>`;
+    html += `<div style="${_lqCard}border-color:#ff5252;color:#ff5252;font-weight:700;margin-bottom:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> The queue worker is not running on the server — queued orders won't start until it restarts. Check the server logs.</div>`;
   }
 
   html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px;">
@@ -122,7 +122,7 @@ function _lqRender(sum, data) {
 
   const items = data.items || [];
   if (!items.length) {
-    return html + `<div class="empty-state"><div class="icon">✅</div><p>${_lqView === 'open' ? 'No orders are waiting.' : 'Nothing here.'}</p></div>`;
+    return html + `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg></div><p>${_lqView === 'open' ? 'No orders are waiting.' : 'Nothing here.'}</p></div>`;
   }
 
   html += `<div class="tbl-wrap" style="overflow-x:auto;"><table>
@@ -163,9 +163,9 @@ function _lqRow(it) {
 
   const uid = esc(it.user_id || ''), email = esc(it.user_email || '—');
   const actions = [
-    it.can_start_now ? `<button class="action-btn" onclick="lqStartNow('${esc(it.id)}')" title="Try the panel now instead of waiting. If the link is still busy it just goes back to waiting.">▶ Start now</button>` : '',
-    it.can_give_up ? `<button class="action-btn" onclick="lqGiveUp('${esc(it.id)}')" title="Take it out of the queue: order becomes FAILED with a ticket and goes to the Reorder Queue" style="color:#ff5252;">✕ Give up</button>` : '',
-    uid ? `<button class="action-btn" onclick="adminMessageCustomer('${uid}','${email}')" title="Open support thread with customer">💬 Message</button>` : '',
+    it.can_start_now ? `<button class="action-btn" onclick="lqStartNow('${esc(it.id)}')" title="Try the panel now instead of waiting. If the link is still busy it just goes back to waiting."><svg class=ev-i aria-hidden=true><use href=#ev-play></use></svg> Start now</button>` : '',
+    it.can_give_up ? `<button class="action-btn" onclick="lqGiveUp('${esc(it.id)}')" title="Take it out of the queue: order becomes FAILED with a ticket and goes to the Reorder Queue" style="color:#ff5252;"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> Give up</button>` : '',
+    uid ? `<button class="action-btn" onclick="adminMessageCustomer('${uid}','${email}')" title="Open support thread with customer"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Message</button>` : '',
   ].join('');
 
   const errTip = it.last_error ? ` title="Last panel reply: ${esc(it.last_error)}"` : '';
@@ -176,7 +176,7 @@ function _lqRow(it) {
       <div style="font-size:11px;color:var(--muted);">${it.quantity ? Number(it.quantity).toLocaleString() : '—'} · <span style="color:var(--green);">${fmtKES(it.charge)}</span></div>
       ${it.provider_order_id ? `<div style="font-size:10px;color:var(--muted);">panel #${esc(it.provider_order_id)}</div>` : ''}
     </td>
-    <td style="font-size:12px;"><div style="font-weight:600;">${email}</div>${it.user_name ? `<div style="font-size:11px;color:var(--muted);">${esc(it.user_name)}</div>` : ''}${it.phone ? `<div style="font-size:11px;color:var(--muted);">📞 ${esc(it.phone)}</div>` : ''}</td>
+    <td style="font-size:12px;"><div style="font-weight:600;">${email}</div>${it.user_name ? `<div style="font-size:11px;color:var(--muted);">${esc(it.user_name)}</div>` : ''}${it.phone ? `<div style="font-size:11px;color:var(--muted);"><svg class=ev-i aria-hidden=true><use href=#ev-phone-call></use></svg> ${esc(it.phone)}</div>` : ''}</td>
     <td style="max-width:180px;">${link}${pos}</td>
     <td>${waitingFor}</td>
     <td>${next}</td>

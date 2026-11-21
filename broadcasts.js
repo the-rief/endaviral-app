@@ -69,14 +69,14 @@ textarea.bca-in{min-height:150px;resize:vertical;line-height:1.5;}
   document.head.appendChild(s);
 })();
 
-const BCA_TOPIC = { announcement: '📣 Announcement', promo: '🎁 Special offer' };
+const BCA_TOPIC = { announcement: 'Announcement', promo: 'Special offer' };
 
 const BCA_TEMPLATES = [
-  { label: '🎁 Discount offer', kind: 'promo', title: '20% off all TikTok followers this weekend',
+  { label: 'Discount offer', kind: 'promo', title: '20% off all TikTok followers this weekend',
     body: 'This Friday to Sunday only, every TikTok followers package is **20% cheaper**.\n\nTop up your wallet and order before Sunday midnight to get the discount. Tap **New Order** to start.' },
   { label: '🆕 New service', kind: 'promo', title: 'New: YouTube watch hours',
     body: 'You can now order **YouTube watch hours** on EndaViral and get closer to monetisation faster.\n\nFind it under **New Order → YouTube**.' },
-  { label: '🛠️ Maintenance notice', kind: 'announcement', title: 'Short maintenance tonight',
+  { label: 'Maintenance notice', kind: 'announcement', title: 'Short maintenance tonight',
     body: 'EndaViral will be unavailable tonight from **11:00 PM to 11:30 PM** while we upgrade our systems.\n\nOrders already placed are not affected. Thank you for your patience.' },
 ];
 
@@ -102,8 +102,8 @@ function _bcaAgo(iso) {
 }
 function _bcaChip(kind) {
   return kind === 'promo'
-    ? '<span class="bca-chip promo">🎁 Special offer</span>'
-    : '<span class="bca-chip announcement">📣 Announcement</span>';
+    ? '<span class="bca-chip promo"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> Special offer</span>'
+    : '<span class="bca-chip announcement"><svg class=ev-i aria-hidden=true><use href=#ev-megaphone></use></svg> Announcement</span>';
 }
 
 function _bcaDraft() {
@@ -250,7 +250,7 @@ function _bcaRenderHistory() {
   const el = document.getElementById('bcaHistory');
   if (!el) return;
   if (!_bcaHistory.length) {
-    el.innerHTML = '<div class="empty-state" style="padding:30px;"><div class="icon">📣</div><p>Nothing sent yet.</p></div>';
+    el.innerHTML = '<div class="empty-state" style="padding:30px;"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-megaphone></use></svg></div><p>Nothing sent yet.</p></div>';
     return;
   }
   el.innerHTML = _bcaHistory.map(b => {
@@ -262,9 +262,9 @@ function _bcaRenderHistory() {
       <div class="bca-h-title">${_bcaEsc(b.title)}</div>
       <div class="bca-h-body">${_bcaEsc(String(b.body || '').replace(/\*\*/g, ''))}</div>
       <div class="bca-stats">
-        <span>💬 Posted in <b>${_bcaFmt(b.recipients)}</b> chats</span>
-        <span title="Had the app open when it was sent">⚡ <b>${_bcaFmt(b.live_delivered)}</b> saw it instantly</span>
-        ${!live && b.taken_down_at ? `<span>🗑️ Deleted ${_bcaAgo(b.taken_down_at)}</span>` : ''}
+        <span><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Posted in <b>${_bcaFmt(b.recipients)}</b> chats</span>
+        <span title="Had the app open when it was sent"><svg class=ev-i aria-hidden=true><use href=#ev-zap></use></svg> <b>${_bcaFmt(b.live_delivered)}</b> saw it instantly</span>
+        ${!live && b.taken_down_at ? `<span><svg class=ev-i aria-hidden=true><use href=#ev-trash></use></svg> Deleted ${_bcaAgo(b.taken_down_at)}</span>` : ''}
       </div>
       <div class="bca-h-act">
         ${live ? `<button type="button" class="action-btn danger" id="bcaTd_${id}" onclick="bcaTakeDown('${id}')">Delete from all chats</button>` : ''}
@@ -281,7 +281,7 @@ async function _bcaLoadHistory() {
     _bcaHistory = r.items || [];
     _bcaRenderHistory();
   } catch (e) {
-    if (el) el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${_bcaEsc(e.message)}</p></div>`;
+    if (el) el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${_bcaEsc(e.message)}</p></div>`;
   }
 }
 
@@ -299,8 +299,8 @@ function loadAdminBroadcasts() {
   if (!document.getElementById('bcaTitle')) {
     root.innerHTML = `
       <div class="sec-hd" style="flex-wrap:wrap;">
-        <div><div class="sec-title">📣 BROADCASTS</div><div class="sec-sub">Write once — it's posted into every user's chat as a message from EndaViral.</div></div>
-        <button class="btn-secondary" onclick="bcaRefresh()">↻ Refresh</button>
+        <div><div class="sec-title"><svg class=ev-i aria-hidden=true><use href=#ev-megaphone></use></svg> BROADCASTS</div><div class="sec-sub">Write once — it's posted into every user's chat as a message from EndaViral.</div></div>
+        <button class="btn-secondary" onclick="bcaRefresh()"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
       </div>
       <div class="bca-aud" id="bcaAudience"></div>
       <div class="bca-wrap">
@@ -310,8 +310,8 @@ function loadAdminBroadcasts() {
 
           <div class="bca-lbl">Type</div>
           <div class="bca-seg" id="bcaKind">
-            <button type="button" class="announcement" data-kind="announcement" onclick="bcaSetKind('announcement')">📣 Announcement<small>News, service notices, updates</small></button>
-            <button type="button" class="promo" data-kind="promo" onclick="bcaSetKind('promo')">🎁 Promotion<small>Offers, discounts, new services</small></button>
+            <button type="button" class="announcement" data-kind="announcement" onclick="bcaSetKind('announcement')"><svg class=ev-i aria-hidden=true><use href=#ev-megaphone></use></svg> Announcement<small>News, service notices, updates</small></button>
+            <button type="button" class="promo" data-kind="promo" onclick="bcaSetKind('promo')"><svg class=ev-i aria-hidden=true><use href=#ev-gift></use></svg> Promotion<small>Offers, discounts, new services</small></button>
           </div>
 
           <label class="bca-lbl" for="bcaTitle">Title <span class="n" id="bcaTitleN">0/120</span></label>
@@ -451,14 +451,14 @@ function _bcpCardHTML(b, opts = {}) {
   return `
     <div class="bcp-card ${kind}" role="dialog" aria-modal="true" aria-labelledby="bcpTitle">
       <div class="bcp-handle" aria-hidden="true"></div>
-      <button type="button" class="bcp-x" aria-label="Dismiss" title="Dismiss" ${on('bcpClose()')}>✕</button>
+      <button type="button" class="bcp-x" aria-label="Dismiss" title="Dismiss" ${on('bcpClose()')}><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
       <div class="bcp-from"><img src="EndaViral_logo_transparent.png" alt="">
-        <div><b>EndaViral</b><span class="bcp-chip">${kind === 'promo' ? '🎁 Special offer' : '📣 Announcement'}</span></div></div>
+        <div><b>EndaViral</b><span class="bcp-chip">${kind === 'promo' ? 'Special offer' : 'Announcement'}</span></div></div>
       <div class="bcp-title" ${opts.preview ? '' : 'id="bcpTitle"'}>${_bcaEsc(b.title)}</div>
       <div class="bcp-body clamp">${_bcpBody(b.body)}</div>
       <button type="button" class="bcp-readmore" hidden ${on('bcpReadMore(this)')}>Read more ▾</button>
       <div class="bcp-actions">
-        <button type="button" class="bcp-go" ${on('bcpOpenChat()')}>💬 Open chat</button>
+        <button type="button" class="bcp-go" ${on('bcpOpenChat()')}><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Open chat</button>
         <button type="button" class="bcp-ok" ${on('bcpClose()')}>Dismiss</button>
       </div>
       ${more}

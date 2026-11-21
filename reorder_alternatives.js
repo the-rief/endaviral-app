@@ -109,7 +109,7 @@ function rsvcOpenBrowser({ url, owedQty, clientRate, isFree, paid, title, onPick
       <div style="display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--card);opacity:${a.affordable ? 1 : .55};">
         <div style="min-width:0;flex:1;font-size:12px;line-height:1.6;">
           <b style="color:var(--white);">${esc(a.name)}</b> <span style="color:var(--muted);">#${esc(String(a.service))}</span><br>
-          ${a.affordable ? rsvcUnitsTag(a, owedQty) : `<span style="color:#ff8a80;">✕ ${esc(a.unaffordable_reason || 'Not affordable')}</span>`}<br>
+          ${a.affordable ? rsvcUnitsTag(a, owedQty) : `<span style="color:#ff8a80;"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg> ${esc(a.unaffordable_reason || 'Not affordable')}</span>`}<br>
           <span style="color:var(--muted);">KES ${Number(a.rate_kes).toLocaleString()}/1k</span> · ${rsvcPriceTag(a)}<br>
           <span style="color:var(--muted);">${esc(a.category || '')} · limits ${Number(a.min).toLocaleString()}–${Number(a.max).toLocaleString()}${a.refill ? ' · ♻ refill' : ''}${a.affordable ? ` · costs you ~KES ${Number(a.est_cost_kes).toLocaleString()}` : ''}</span>
         </div>
@@ -132,7 +132,7 @@ function rsvcOpenBrowser({ url, owedQty, clientRate, isFree, paid, title, onPick
       render();
     } catch (e) {
       if (my !== seq) return;
-      list.innerHTML = `<div style="color:#ff8a80;font-size:12.5px;padding:12px;">⚠️ ${esc(e.message || 'Could not load services')}</div>`;
+      list.innerHTML = `<div style="color:#ff8a80;font-size:12.5px;padding:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg> ${esc(e.message || 'Could not load services')}</div>`;
     }
   };
 

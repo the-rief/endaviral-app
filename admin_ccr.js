@@ -41,7 +41,7 @@ async function loadCCRAgents() {
     _ccrAgentsCache = agents || [];
     renderCCRAgents();
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -49,7 +49,7 @@ function renderCCRAgents() {
   const el = document.getElementById('ccrAgentsTable');
   if (!el) return;
   if (!_ccrAgentsCache.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">🎧</div><p>No CCR agents yet — assign the role to a user below.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-headphones></use></svg></div><p>No CCR agents yet — assign the role to a user below.</p></div>';
     return;
   }
   el.innerHTML = `<table>
@@ -190,7 +190,7 @@ async function loadCCRCommissions() {
     _ccrCommissionsCache = rows || [];
     renderCCRCommissions();
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -198,7 +198,7 @@ function renderCCRCommissions() {
   const el = document.getElementById('ccrCommissionsTable');
   if (!el) return;
   if (!_ccrCommissionsCache.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">🧾</div><p>No commissions generated yet.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-receipt></use></svg></div><p>No commissions generated yet.</p></div>';
     return;
   }
   el.innerHTML = `<table>
@@ -241,7 +241,7 @@ async function loadCCRPayoutRequests() {
     _ccrPayoutRequestsCache = rows || [];
     renderCCRPayoutRequests();
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></div><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -249,7 +249,7 @@ function renderCCRPayoutRequests() {
   const el = document.getElementById('ccrPayoutRequestsTable');
   if (!el) return;
   if (!_ccrPayoutRequestsCache.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">💸</div><p>No payout requests yet.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg></div><p>No payout requests yet.</p></div>';
     return;
   }
   const badge = (status) => {

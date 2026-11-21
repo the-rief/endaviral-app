@@ -77,25 +77,25 @@
  *       if (tab === 'connect') cnAdminSubTab('overview');
  *
  * ★TABBTN
- * <div class="admin-tab" onclick="adminTab('connect', this)">🤝 Connect</div>
+ * <div class="admin-tab" onclick="adminTab('connect', this)"><svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg> Connect</div>
  *
  * ★PANEL
  * <div class="admin-panel" id="ap-connect">
  *   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
  *     <div>
- *       <div style="font-size:16px;font-weight:900;color:var(--white);" id="cnAdminPanelTitle">📊 CONNECT OVERVIEW</div>
+ *       <div style="font-size:16px;font-weight:900;color:var(--white);" id="cnAdminPanelTitle"><svg class=ev-i aria-hidden=true><use href=#ev-chart></use></svg> CONNECT OVERVIEW</div>
  *       <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="cnAdminPanelSub">Marketplace visibility, campaign lifecycle, revenue &amp; top performers</div>
  *     </div>
- *     <button class="btn-secondary" id="cnAdminRefreshBtn" style="font-size:12px;padding:8px 16px;">↻ Refresh</button>
+ *     <button class="btn-secondary" id="cnAdminRefreshBtn" style="font-size:12px;padding:8px 16px;"><svg class=ev-i aria-hidden=true><use href=#ev-refresh></use></svg> Refresh</button>
  *   </div>
  *   <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
  *     <button id="cnSubTab-overview"    onclick="cnAdminSubTab('overview')"    style="background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Overview</button>
  *     <button id="cnSubTab-funnel"      onclick="cnAdminSubTab('funnel')"      style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Funnel</button>
  *     <button id="cnSubTab-revenue"     onclick="cnAdminSubTab('revenue')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Revenue</button>
  *     <button id="cnSubTab-leaderboard" onclick="cnAdminSubTab('leaderboard')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">Leaderboard</button>
- *     <button id="cnSubTab-payouts"     onclick="cnAdminSubTab('payouts')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">💸 Payouts</button>
+ *     <button id="cnSubTab-payouts"     onclick="cnAdminSubTab('payouts')"     style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg> Payouts</button>
  *     <button id="cnSubTab-paymentissues" onclick="cnAdminSubTab('paymentissues')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">🆘 Payment Issues</button>
- *     <button id="cnSubTab-moderation"  onclick="cnAdminSubTab('moderation')"  style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;">🛡️ Moderation</button>
+ *     <button id="cnSubTab-moderation"  onclick="cnAdminSubTab('moderation')"  style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;cursor:pointer;font-family:'Montserrat',sans-serif;"><svg class=ev-i aria-hidden=true><use href=#ev-shield></use></svg> Moderation</button>
  *   </div>
  *   <div id="cnAdminPane-overview"><div id="adminConnectOverview"></div></div>
  *   <div id="cnAdminPane-funnel" style="display:none;"><div id="adminConnectFunnel"></div></div>
@@ -114,7 +114,7 @@
  *         <div id="cnConvTitle" style="font-size:15px;font-weight:800;color:var(--white);"></div>
  *         <div id="cnConvMeta"  style="font-size:11px;color:var(--muted);margin-top:3px;"></div>
  *       </div>
- *       <button onclick="cnCloseConversation()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:4px;border-radius:6px;">✕</button>
+ *       <button onclick="cnCloseConversation()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:4px;border-radius:6px;"><svg class=ev-i aria-hidden=true><use href=#ev-x></use></svg></button>
  *     </div>
  *     <div id="cnConvMessages" style="flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;"></div>
  *   </div>
@@ -146,13 +146,13 @@ function cnAdminSubTab(tab) {
   const refreshBtn = document.getElementById('cnAdminRefreshBtn');
 
   const meta = {
-    overview:    { title: '📊 CONNECT OVERVIEW',    sub: 'Campaign counts, money in flight & marketplace visibility', fn: adminLoadConnectOverview },
-    funnel:      { title: '🔻 CONNECT FUNNEL',       sub: 'Where campaigns drop off, stage by stage',                  fn: adminLoadConnectFunnel },
-    revenue:     { title: '💰 CONNECT REVENUE',      sub: 'Escrow funding, commission earned & payout queue',          fn: adminLoadConnectRevenue },
-    leaderboard: { title: '🏆 CONNECT LEADERBOARD',  sub: 'Top creators & top businesses',                             fn: adminLoadConnectLeaderboard },
-    payouts:     { title: '💸 CREATOR PAYOUTS',      sub: 'Approve or reject M-Pesa payout tickets, view conversations', fn: () => adminLoadConnectPayouts('pending') },
+    overview:    { title: 'CONNECT OVERVIEW',    sub: 'Campaign counts, money in flight & marketplace visibility', fn: adminLoadConnectOverview },
+    funnel:      { title: 'CONNECT FUNNEL',       sub: 'Where campaigns drop off, stage by stage',                  fn: adminLoadConnectFunnel },
+    revenue:     { title: 'CONNECT REVENUE',      sub: 'Escrow funding, commission earned & payout queue',          fn: adminLoadConnectRevenue },
+    leaderboard: { title: 'CONNECT LEADERBOARD',  sub: 'Top creators & top businesses',                             fn: adminLoadConnectLeaderboard },
+    payouts:     { title: 'CREATOR PAYOUTS',      sub: 'Approve or reject M-Pesa payout tickets, view conversations', fn: () => adminLoadConnectPayouts('pending') },
     paymentissues: { title: '🆘 PAYMENT ISSUES',     sub: '"Payment not reflecting" reports — confirm manually or dismiss', fn: () => adminLoadConnectFundingIssues('open') },
-    moderation:  { title: '🛡️ CONNECT MODERATION',   sub: 'Overdue reviews, disputes, frozen campaigns & user status', fn: adminLoadConnectModeration },
+    moderation:  { title: 'CONNECT MODERATION',   sub: 'Overdue reviews, disputes, frozen campaigns & user status', fn: adminLoadConnectModeration },
   }[tab];
 
   if (titleEl) titleEl.textContent = meta.title;
@@ -170,7 +170,7 @@ async function _cnSafeFetch(path, label, warnings) {
 function _cnWarnBanner(warnings, retryFn) {
   const banner = document.createElement('div');
   banner.style.cssText = 'background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:#ff6b6b;display:flex;align-items:center;gap:10px;';
-  banner.innerHTML = `<span style="font-size:16px;">⚠️</span><span><strong>Could not reach backend:</strong> ${warnings.map(esc).join(' · ')}<br><span style="color:var(--muted);">Showing zeros. <button onclick="${retryFn}()" style="background:none;border:none;color:#ff9a3c;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;padding:0;">Retry</button></span></span>`;
+  banner.innerHTML = `<span style="font-size:16px;"><svg class=ev-i aria-hidden=true><use href=#ev-alert></use></svg></span><span><strong>Could not reach backend:</strong> ${warnings.map(esc).join(' · ')}<br><span style="color:var(--muted);">Showing zeros. <button onclick="${retryFn}()" style="background:none;border:none;color:#ff9a3c;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;padding:0;">Retry</button></span></span>`;
   return banner;
 }
 
@@ -231,10 +231,10 @@ async function adminLoadConnectOverview() {
   const vis = stats.visibility || {};
 
   const cards = [
-    { icon: '📣', label: 'Campaigns Total',   value: stats.total_campaigns || 0, sub: `${vis.visible_campaigns || 0} visible on /discover`, color: '#3dd44a' },
-    { icon: '💰', label: 'Gross Completed',   value: fmtKES(stats.gross_completed_kes || 0), sub: `≈${fmtKES(stats.platform_fee_kes_est || 0)} commission`, color: '#ffd700' },
-    { icon: '⚖️', label: 'Open Disputes',     value: stats.open_disputes || 0, sub: `${stats.frozen_campaigns || 0} frozen campaigns`, color: '#ff6b6b' },
-    { icon: '✉️', label: 'Pending Invites',   value: stats.pending_invites || 0, sub: 'awaiting creator response', color: '#9b6bff' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-megaphone></use></svg>', label: 'Campaigns Total',   value: stats.total_campaigns || 0, sub: `${vis.visible_campaigns || 0} visible on /discover`, color: '#3dd44a' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', label: 'Gross Completed',   value: fmtKES(stats.gross_completed_kes || 0), sub: `≈${fmtKES(stats.platform_fee_kes_est || 0)} commission`, color: '#ffd700' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-scale></use></svg>', label: 'Open Disputes',     value: stats.open_disputes || 0, sub: `${stats.frozen_campaigns || 0} frozen campaigns`, color: '#ff6b6b' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-mail></use></svg>', label: 'Pending Invites',   value: stats.pending_invites || 0, sub: 'awaiting creator response', color: '#9b6bff' },
   ];
 
   const el = document.createElement('div');
@@ -244,7 +244,7 @@ async function adminLoadConnectOverview() {
     </div>
 
     <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:28px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">🔎 Marketplace Visibility — What's Discoverable Right Now</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;"><svg class=ev-i aria-hidden=true><use href=#ev-search></use></svg> Marketplace Visibility — What's Discoverable Right Now</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;">
         ${_cnVisibilityCard('Published Campaigns', vis.visible_campaigns || 0, 'live on /discover', '#3dd44a')}
         ${_cnVisibilityCard('Visible Creators', vis.visible_creators || 0, `of ${vis.total_creator_profiles || 0} profiles (${vis.creator_visibility_pct || 0}%)`, '#4aa8ff')}
@@ -307,12 +307,12 @@ async function adminLoadConnectFunnel() {
   const first = stages[0]?.count || 1;
 
   const stageLabels = {
-    campaign_created: '📝 Campaign Created',
-    published_visible: '👀 Published (Visible)',
-    matched_with_creator: '🤝 Matched with Creator',
-    escrow_funded: '💳 Escrow Funded',
-    work_delivered: '📦 Work Delivered',
-    completed_paid_out: '✅ Completed & Paid Out',
+    campaign_created: 'Campaign Created',
+    published_visible: 'Published (Visible)',
+    matched_with_creator: 'Matched with Creator',
+    escrow_funded: 'Escrow Funded',
+    work_delivered: 'Work Delivered',
+    completed_paid_out: 'Completed & Paid Out',
   };
 
   const el = document.createElement('div');
@@ -370,12 +370,12 @@ async function adminLoadConnectRevenue() {
 
   const pq = data.payout_queue || {};
   const cards = [
-    { icon: '💰', label: 'Commission Earned',   value: fmtKES(data.total_commission_kes || 0), sub: 'from completed campaigns', color: '#3dd44a' },
-    { icon: '💳', label: 'Processing Fees',     value: fmtKES(data.total_processing_fee_kes || 0), sub: 'business-side, on funding', color: '#4ea8ff' },
-    { icon: '📈', label: 'Total Platform Revenue', value: fmtKES(data.total_platform_revenue_kes || 0), sub: 'commission + processing fees', color: '#ff6bcb' },
-    { icon: '🏦', label: 'Escrow Held',         value: fmtKES(data.escrow_held_kes || 0), sub: 'in active campaigns', color: '#9b6bff' },
-    { icon: '📤', label: 'Paid to Creators',    value: fmtKES(data.total_creator_paid_kes || 0), sub: 'lifetime, completed campaigns', color: '#ffd700' },
-    { icon: '⏳', label: 'Pending Payouts',     value: fmtKES(pq.pending_amount_kes || 0), sub: `${pq.pending_count || 0} ticket${pq.pending_count === 1 ? '' : 's'} waiting`, color: '#ff9a3c' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-coins></use></svg>', label: 'Commission Earned',   value: fmtKES(data.total_commission_kes || 0), sub: 'from completed campaigns', color: '#3dd44a' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-card></use></svg>', label: 'Processing Fees',     value: fmtKES(data.total_processing_fee_kes || 0), sub: 'business-side, on funding', color: '#4ea8ff' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-chart-up></use></svg>', label: 'Total Platform Revenue', value: fmtKES(data.total_platform_revenue_kes || 0), sub: 'commission + processing fees', color: '#ff6bcb' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-bank></use></svg>', label: 'Escrow Held',         value: fmtKES(data.escrow_held_kes || 0), sub: 'in active campaigns', color: '#9b6bff' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-upload></use></svg>', label: 'Paid to Creators',    value: fmtKES(data.total_creator_paid_kes || 0), sub: 'lifetime, completed campaigns', color: '#ffd700' },
+    { icon: '<svg class=ev-i aria-hidden=true><use href=#ev-hourglass></use></svg>', label: 'Pending Payouts',     value: fmtKES(pq.pending_amount_kes || 0), sub: `${pq.pending_count || 0} ticket${pq.pending_count === 1 ? '' : 's'} waiting`, color: '#ff9a3c' },
   ];
 
   const monthly = data.monthly || [];
@@ -404,7 +404,7 @@ async function adminLoadConnectRevenue() {
 
     <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;">
       <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Insights</div>
-      ${(data.insights || []).map(i => `<div style="font-size:13px;color:var(--white);padding:6px 0;border-bottom:1px solid var(--border);">💡 ${esc(i)}</div>`).join('')}
+      ${(data.insights || []).map(i => `<div style="font-size:13px;color:var(--white);padding:6px 0;border-bottom:1px solid var(--border);"><svg class=ev-i aria-hidden=true><use href=#ev-bulb></use></svg> ${esc(i)}</div>`).join('')}
     </div>
   `;
   container.appendChild(el);
@@ -441,13 +441,13 @@ async function adminLoadConnectLeaderboard() {
               <td><strong>${esc(c.display_name)}</strong></td>
               <td style="color:var(--green);font-weight:800;">${fmtKES(c.earned_kes)}</td>
               <td>${c.completed_campaigns}</td>
-              <td>${c.rating_avg > 0 ? `⭐ ${c.rating_avg}` : '—'}</td>
+              <td>${c.rating_avg > 0 ? `${c.rating_avg}` : '—'}</td>
               <td>${(c.followers_count || 0).toLocaleString()}</td>
               <td>${c.is_verified ? '✅' : '—'}</td>
             </tr>`).join('')}
           </tbody>
         </table></div>`
-      : `<div class="empty-state" style="margin-bottom:28px;"><div class="icon">🤝</div><p>No completed campaigns yet.</p></div>`}
+      : `<div class="empty-state" style="margin-bottom:28px;"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-handshake></use></svg></div><p>No completed campaigns yet.</p></div>`}
 
     <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">Top Businesses — by Campaigns Posted</div>
     ${businesses.length
@@ -460,11 +460,11 @@ async function adminLoadConnectLeaderboard() {
               <td>${b.campaigns_posted}</td>
               <td>${b.campaigns_completed}</td>
               <td style="color:var(--green);font-weight:800;">${fmtKES(b.total_budget_kes)}</td>
-              <td>${b.rating_avg > 0 ? `⭐ ${b.rating_avg}` : '—'}</td>
+              <td>${b.rating_avg > 0 ? `${b.rating_avg}` : '—'}</td>
             </tr>`).join('')}
           </tbody>
         </table></div>`
-      : `<div class="empty-state"><div class="icon">🏢</div><p>No businesses have posted campaigns yet.</p></div>`}
+      : `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-building></use></svg></div><p>No businesses have posted campaigns yet.</p></div>`}
   `;
   container.appendChild(el);
 }
@@ -502,7 +502,7 @@ async function adminLoadConnectPayouts(status) {
   `;
 
   if (!rows.length) {
-    el.innerHTML += `<div class="empty-state"><div class="icon">💸</div><p>No ${_cnPayoutFilter === 'all' ? '' : _cnPayoutFilter} payout requests.</p></div>`;
+    el.innerHTML += `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-banknote></use></svg></div><p>No ${_cnPayoutFilter === 'all' ? '' : _cnPayoutFilter} payout requests.</p></div>`;
     container.appendChild(el);
     return;
   }
@@ -519,7 +519,7 @@ async function adminLoadConnectPayouts(status) {
         <td>${esc(r.business_name)}</td>
         <td style="color:var(--green);font-weight:800;">${fmtKES(r.amount_kes)}</td>
         <td>${esc(r.phone)}</td>
-        <td><a href="${esc(r.content_url)}" target="_blank" rel="noopener" style="color:#4aa8ff;">🔗 View</a></td>
+        <td><a href="${esc(r.content_url)}" target="_blank" rel="noopener" style="color:#4aa8ff;"><svg class=ev-i aria-hidden=true><use href=#ev-link></use></svg> View</a></td>
         <td style="color:var(--muted);font-size:11px;">${r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</td>
         <td><span style="color:${_CN_PAYOUT_STATUS_COLORS[r.status] || 'var(--muted)'};font-weight:800;text-transform:capitalize;">${esc(r.status)}</span>
           ${r.mpesa_receipt ? `<br><span style="font-size:10px;color:var(--muted);">${esc(r.mpesa_receipt)}</span>` : ''}
@@ -527,10 +527,10 @@ async function adminLoadConnectPayouts(status) {
         </td>
         <td style="white-space:nowrap;">
           ${r.status === 'pending' ? `
-            <button class="action-btn" onclick="cnMarkPayoutPaid('${r.id}')" title="Confirm M-Pesa sent">✅ Mark Paid</button>
-            <button class="action-btn" onclick="cnRejectPayout('${r.id}')" title="e.g. bad phone number">❌ Reject</button>
+            <button class="action-btn" onclick="cnMarkPayoutPaid('${r.id}')" title="Confirm M-Pesa sent"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Mark Paid</button>
+            <button class="action-btn" onclick="cnRejectPayout('${r.id}')" title="e.g. bad phone number"><svg class=ev-i aria-hidden=true><use href=#ev-x-circle></use></svg> Reject</button>
           ` : ''}
-          <button class="action-btn" onclick="cnViewConversation('${r.campaign_id}','${r.creator_user_id}','${esc(r.creator_name)}','${esc(r.campaign_title)}')" title="View the business ↔ creator conversation">💬 Conversation</button>
+          <button class="action-btn" onclick="cnViewConversation('${r.campaign_id}','${r.creator_user_id}','${esc(r.creator_name)}','${esc(r.campaign_title)}')" title="View the business ↔ creator conversation"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> Conversation</button>
         </td>
       </tr>`).join('')}
     </tbody>
@@ -631,8 +631,8 @@ async function adminLoadConnectFundingIssues(status) {
         </td>
         <td style="white-space:nowrap;">
           ${r.status === 'open' ? `
-            <button class="action-btn" onclick="cnConfirmFundingIssue('${r.id}')" title="Verify against Nexus/M-Pesa first, then fund the campaign">✅ Confirm & Fund</button>
-            <button class="action-btn" onclick="cnDismissFundingIssue('${r.id}')" title="No matching payment found">❌ Dismiss</button>
+            <button class="action-btn" onclick="cnConfirmFundingIssue('${r.id}')" title="Verify against Nexus/M-Pesa first, then fund the campaign"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Confirm & Fund</button>
+            <button class="action-btn" onclick="cnDismissFundingIssue('${r.id}')" title="No matching payment found"><svg class=ev-i aria-hidden=true><use href=#ev-x-circle></use></svg> Dismiss</button>
           ` : ''}
         </td>
       </tr>`).join('')}
@@ -690,7 +690,7 @@ async function cnViewConversation(campaignId, creatorUserId, creatorName, campai
   const msgsEl  = document.getElementById('cnConvMessages');
   if (!modal || !msgsEl) { if (typeof toast === 'function') toast('Conversation viewer not available on this page', 'error'); return; }
 
-  if (titleEl) titleEl.textContent = `💬 ${creatorName}`;
+  if (titleEl) titleEl.textContent = `${creatorName}`;
   if (metaEl)  metaEl.textContent  = campaignTitle || '';
   msgsEl.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading conversation…</span></div>`;
   modal.style.display = 'flex';
@@ -722,13 +722,13 @@ async function cnRefreshConversation() {
     const isCreator = m.sender_user_id === _cnConvCreatorId;
     const when = m.created_at ? new Date(m.created_at).toLocaleString() : '';
     return `<div style="align-self:${isCreator ? 'flex-start' : 'flex-end'};max-width:80%;">
-      <div style="font-size:10px;color:var(--muted);margin-bottom:3px;${isCreator ? '' : 'text-align:right;'}">${isCreator ? '🎨 Creator' : '🏢 Business'} · ${esc(when)}</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:3px;${isCreator ? '' : 'text-align:right;'}">${isCreator ? 'Creator' : 'Business'} · ${esc(when)}</div>
       <div style="background:${isCreator ? 'var(--navy)' : 'rgba(61,212,74,.12)'};border-radius:12px;padding:10px 14px;font-size:13px;color:var(--white);line-height:1.4;">
         ${esc(m.body || '')}
-        ${m.attachment_url ? `<br><a href="${esc(m.attachment_url)}" target="_blank" rel="noopener" style="color:#4aa8ff;font-size:12px;">📎 Attachment</a>` : ''}
+        ${m.attachment_url ? `<br><a href="${esc(m.attachment_url)}" target="_blank" rel="noopener" style="color:#4aa8ff;font-size:12px;"><svg class=ev-i aria-hidden=true><use href=#ev-paperclip></use></svg> Attachment</a>` : ''}
       </div>
       <div style="${isCreator ? '' : 'text-align:right;'}margin-top:3px;">
-        <button onclick="cnHideMessage('${m.id}')" style="background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;padding:0;">🚫 Hide</button>
+        <button onclick="cnHideMessage('${m.id}')" style="background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;padding:0;"><svg class=ev-i aria-hidden=true><use href=#ev-ban></use></svg> Hide</button>
       </div>
     </div>`;
   }).join('');
@@ -775,23 +775,23 @@ async function adminLoadConnectModeration() {
   const container = document.getElementById('adminConnectModeration');
   if (!container) return;
   container.innerHTML = `
-    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:4px 0 10px;">⏱️ Business Not Responding (48h Review Window)</div>
+    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:4px 0 10px;"><svg class=ev-i aria-hidden=true><use href=#ev-clock></use></svg> Business Not Responding (48h Review Window)</div>
     <div id="cnaOverdue"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
 
-    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:22px 0 10px;">⚖️ Open Disputes</div>
+    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:22px 0 10px;"><svg class=ev-i aria-hidden=true><use href=#ev-scale></use></svg> Open Disputes</div>
     <div id="cnaDisputes"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
 
-    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:22px 0 10px;">🧊 Frozen Campaigns</div>
+    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:22px 0 10px;"><svg class=ev-i aria-hidden=true><use href=#ev-snowflake></use></svg> Frozen Campaigns</div>
     <div id="cnaFrozen"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
     <div style="display:flex;gap:8px;align-items:flex-end;margin-top:12px;flex-wrap:wrap;">
       <div style="flex:2;min-width:160px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Campaign ID to freeze</label>
         <input type="text" id="cnaFreezeId" placeholder="campaign id" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
       <div style="flex:2;min-width:160px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Reason</label>
         <input type="text" id="cnaFreezeReason" placeholder="reason (optional)" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
-      <button class="btn-secondary" onclick="_cnaFreeze()">🧊 Freeze</button>
+      <button class="btn-secondary" onclick="_cnaFreeze()"><svg class=ev-i aria-hidden=true><use href=#ev-snowflake></use></svg> Freeze</button>
     </div>
 
-    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:22px 0 10px;">✅ Verify / 🚫 Suspend a User</div>
+    <div class="cn-section-lbl" style="font-size:13px;font-weight:800;color:var(--white);margin:22px 0 10px;"><svg class=ev-i aria-hidden=true><use href=#ev-check-circle></use></svg> Verify / 🚫 Suspend a User</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
       <div style="flex:2;min-width:160px;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">User ID</label>
         <input type="text" id="cnaUserId" placeholder="user id" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
@@ -804,9 +804,9 @@ async function adminLoadConnectModeration() {
         <input type="text" id="cnaSuspendReason" placeholder="reason (optional)" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--white);font-size:12.5px;"></div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px;">
-      <button class="action-btn" onclick="_cnaVerify(true)">✔️ Verify Creator</button>
+      <button class="action-btn" onclick="_cnaVerify(true)"><svg class=ev-i aria-hidden=true><use href=#ev-check></use></svg> Verify Creator</button>
       <button class="btn-secondary" onclick="_cnaVerify(false)">Unverify Creator</button>
-      <button class="action-btn" style="color:#ff6b6b;" onclick="_cnaSuspend(true)">🚫 Suspend</button>
+      <button class="action-btn" style="color:#ff6b6b;" onclick="_cnaSuspend(true)"><svg class=ev-i aria-hidden=true><use href=#ev-ban></use></svg> Suspend</button>
       <button class="btn-secondary" onclick="_cnaSuspend(false)">Unsuspend</button>
     </div>
   `;
@@ -820,7 +820,7 @@ async function _cnaLoadOverdue() {
   const warnings = [];
   const campaigns = await _cnSafeFetch('/connect/admin/campaigns/awaiting-review', 'Awaiting review', warnings) || [];
   if (warnings.length) { el.innerHTML = ''; el.appendChild(_cnWarnBanner(warnings, 'adminLoadConnectModeration')); return; }
-  if (!campaigns.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🎉</div><p>Nothing awaiting review right now.</p></div>`; return; }
+  if (!campaigns.length) { el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-sparkle></use></svg></div><p>Nothing awaiting review right now.</p></div>`; return; }
 
   el.innerHTML = campaigns.map(c => `
     <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
@@ -839,10 +839,10 @@ async function _cnaLoadOverdue() {
           <option value="no_answer">No answer</option><option value="answered">Answered</option><option value="unreachable">Unreachable</option>
         </select>
         <input type="text" id="cnaOutreachNote-${c.id}" placeholder="note (optional)" style="flex:1;min-width:120px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:7px 9px;color:var(--white);font-size:11.5px;">
-        <button class="btn-secondary" style="padding:7px 12px;font-size:11.5px;" onclick="_cnaLogOutreach('${c.id}')">📞 Log Attempt</button>
+        <button class="btn-secondary" style="padding:7px 12px;font-size:11.5px;" onclick="_cnaLogOutreach('${c.id}')"><svg class=ev-i aria-hidden=true><use href=#ev-phone-call></use></svg> Log Attempt</button>
       </div>
       <button class="action-btn" style="width:100%;text-align:center;${c.admin_can_force_release ? 'color:#ff6b6b;' : 'opacity:.5;cursor:not-allowed;'}" ${c.admin_can_force_release ? '' : 'disabled'} onclick="_cnaForceRelease('${c.id}')">
-        ${c.admin_can_force_release ? '⏱️ Force-Release Payment to Creator' : 'Force-release unlocks after 48h'}
+        ${c.admin_can_force_release ? 'Force-Release Payment to Creator' : 'Force-release unlocks after 48h'}
       </button>
     </div>
   `).join('');
@@ -880,7 +880,7 @@ async function _cnaLoadDisputes() {
   const warnings = [];
   const disputes = await _cnSafeFetch('/connect/admin/disputes?status=open', 'Disputes', warnings) || [];
   if (warnings.length) { el.innerHTML = ''; el.appendChild(_cnWarnBanner(warnings, 'adminLoadConnectModeration')); return; }
-  if (!disputes.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🎉</div><p>No open disputes.</p></div>`; return; }
+  if (!disputes.length) { el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-sparkle></use></svg></div><p>No open disputes.</p></div>`; return; }
 
   el.innerHTML = disputes.map(d => `
     <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
@@ -891,14 +891,14 @@ async function _cnaLoadDisputes() {
       <div style="font-size:12.5px;color:var(--white);margin-bottom:8px;">${esc(d.reason)}</div>
       ${d.deliverable_links && d.deliverable_links.length ? `
         <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px;">Submitted work:
-          ${d.deliverable_links.map(v => `<a href="${esc(v.content_url)}" target="_blank" rel="noopener" style="color:#4aa8ff;margin-right:8px;">🔗 ${esc(v.platform_posted_to || 'link')}${v.creator_confirmed_posted ? '' : ' ⚠️ not confirmed posted'}</a>`).join('')}
+          ${d.deliverable_links.map(v => `<a href="${esc(v.content_url)}" target="_blank" rel="noopener" style="color:#4aa8ff;margin-right:8px;"><svg class=ev-i aria-hidden=true><use href=#ev-link></use></svg> ${esc(v.platform_posted_to || 'link')}${v.creator_confirmed_posted ? '' : ' ⚠️ not confirmed posted'}</a>`).join('')}
         </div>` : ''}
-      ${d.evidence_url ? `<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Evidence: <a href="${esc(d.evidence_url)}" target="_blank" rel="noopener" style="color:#4aa8ff;">🔗 View evidence</a></div>` : ''}
+      ${d.evidence_url ? `<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Evidence: <a href="${esc(d.evidence_url)}" target="_blank" rel="noopener" style="color:#4aa8ff;"><svg class=ev-i aria-hidden=true><use href=#ev-link></use></svg> View evidence</a></div>` : ''}
       <input type="text" id="cnaDisputeNote-${d.id}" placeholder="Resolution note (optional)" style="width:100%;margin-bottom:8px;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--white);font-size:11.5px;">
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="action-btn" onclick="_cnaResolveDispute('${d.id}','release_to_creator')">Release to Creator</button>
         <button class="action-btn" style="color:#ff6b6b;" onclick="_cnaResolveDispute('${d.id}','refund_to_business')">Refund Business</button>
-        <button class="action-btn" onclick="_cnaViewDisputeConversation('${d.campaign_id}')">💬 View Conversation</button>
+        <button class="action-btn" onclick="_cnaViewDisputeConversation('${d.campaign_id}')"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg> View Conversation</button>
       </div>
     </div>
   `).join('');
@@ -937,7 +937,7 @@ async function _cnaLoadFrozen() {
   const warnings = [];
   const campaigns = await _cnSafeFetch('/connect/admin/campaigns?frozen_only=true', 'Frozen campaigns', warnings) || [];
   if (warnings.length) { el.innerHTML = ''; el.appendChild(_cnWarnBanner(warnings, 'adminLoadConnectModeration')); return; }
-  if (!campaigns.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🧊</div><p>No frozen campaigns.</p></div>`; return; }
+  if (!campaigns.length) { el.innerHTML = `<div class="empty-state"><div class="icon"><svg class=ev-i aria-hidden=true><use href=#ev-snowflake></use></svg></div><p>No frozen campaigns.</p></div>`; return; }
 
   el.innerHTML = campaigns.map(c => `
     <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">

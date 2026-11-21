@@ -70,7 +70,7 @@ async function _cnLoadReceipts(campaignId) {
         <div style="font-size:12.5px;font-weight:700;color:var(--white);">${fmtKES(r.total_charge_kes)} paid</div>
         <div style="font-size:11px;color:var(--muted);">${r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}${r.mpesa_receipt ? ' · ' + esc(r.mpesa_receipt) : ''}</div>
       </div>
-      <button class="btn-secondary" style="padding:6px 12px;font-size:11.5px;" onclick="_cnDownloadReceipt('${campaignId}','${r.checkout_request_id}')">⬇️ Receipt</button>
+      <button class="btn-secondary" style="padding:6px 12px;font-size:11.5px;" onclick="_cnDownloadReceipt('${campaignId}','${r.checkout_request_id}')"><svg class=ev-i aria-hidden=true><use href=#ev-download></use></svg> Receipt</button>
     </div>
   `).join('');
 }
