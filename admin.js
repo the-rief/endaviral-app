@@ -37,6 +37,7 @@ function adminTab(tab, el) {
   if (tab === 'free-orders') { if (typeof loadAdminFreeOrders === 'function') loadAdminFreeOrders(); }
   if (tab === 'wallet-credit') { if (typeof loadAdminWalletCredit === 'function') loadAdminWalletCredit(); }
   if (tab === 'consultations') { if (typeof loadAdminConsultations === 'function') loadAdminConsultations(); }
+  if (tab === 'app-installs') { if (typeof loadAdminAppInstalls === 'function') loadAdminAppInstalls(); }
   if (tab === 'broadcasts') { if (typeof loadAdminBroadcasts === 'function') loadAdminBroadcasts(); }
 }
 

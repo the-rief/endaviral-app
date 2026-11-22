@@ -232,8 +232,27 @@
   });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && isStaff() && navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); });
 
+  /* ───────────── installed app: say hello once a day, so admins can count installs ───────────── */
+  // Sends a random device id and the kind of device only. Signed in? The token links the device to the user.
+  function checkIn() {
+    if (!standalone() || typeof API === "undefined") return;
+    try {
+      const ls = localStorage, tok = ls.getItem("ev_token");
+      const stamp = new Date().toISOString().slice(0, 10) + (tok ? ":in" : "");
+      if (ls.getItem("ev_app_seen") === stamp) return;
+      let dev = ls.getItem("ev_device");
+      if (!dev) { dev = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join(""); ls.setItem("ev_device", dev); }
+      const platform = /iphone|ipod/i.test(ua) ? "iphone" : /ipad/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? "ipad"
+        : /android/i.test(ua) ? "android" : /windows/i.test(ua) ? "windows" : /macintosh/i.test(ua) ? "mac" : "other";
+      fetch(API + "/app/seen", { method: "POST", keepalive: true,
+        headers: Object.assign({ "Content-Type": "application/json" }, tok ? { Authorization: "Bearer " + tok } : {}),
+        body: JSON.stringify({ device: dev, platform }) })
+        .then((r) => { if (r.ok) ls.setItem("ev_app_seen", stamp); }).catch(() => {});
+    } catch (_) {}
+  }
+
   /* ───────────── run after sign-in / sign-out ───────────── */
-  function after() { syncBanner(); syncSide(); syncBell(); goFromUrl(); }
+  function after() { syncBanner(); syncSide(); syncBell(); goFromUrl(); setTimeout(checkIn, 3000); }
   if (typeof initApp === "function") { const o = initApp; window.initApp = function () { const r = o.apply(this, arguments); try { after(); } catch (_) {} return r; }; }
   if (typeof doLogout === "function") { const o = doLogout; window.doLogout = function () { const r = o.apply(this, arguments); try { document.getElementById("evBell")?.remove(); close(); } catch (_) {} return r; }; }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", after); else after();

@@ -3022,6 +3022,7 @@ tbody td{padding:13px 16px;font-size:14px;}
               <div class="an-title">Customers</div>
               <button type="button" class="admin-tab" onclick="adminTab('support',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-message></use></svg></span><span class="at-lbl">Support</span></button>
               <button type="button" class="admin-tab active" onclick="adminTab('users',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-users></use></svg></span><span class="at-lbl">Users</span></button>
+              <button type="button" class="admin-tab" onclick="adminTab('app-installs',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-phone></use></svg></span><span class="at-lbl">App Installs</span></button>
               <button type="button" class="admin-tab" onclick="adminTab('consultations',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-briefcase></use></svg></span><span class="at-lbl">Consultations</span></button>
               <button type="button" class="admin-tab" onclick="adminTab('broadcasts',this)"><span class="at-ic" aria-hidden="true"><svg class=ev-i aria-hidden=true><use href=#ev-megaphone></use></svg></span><span class="at-lbl">Broadcasts</span></button>
             </div>
@@ -3436,6 +3437,10 @@ tbody td{padding:13px 16px;font-size:14px;}
         <div class="admin-panel" id="ap-payments-health">
           <div id="paymentsHealthRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
         </div><!-- /ap-payments-health -->
+        <!-- Who has EndaViral on their home screen (admin_app_installs.js) -->
+        <div class="admin-panel" id="ap-app-installs">
+          <div id="appInstallsRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
+        </div><!-- /ap-app-installs -->
         <!-- Message every user at once, delivered into their support chat (broadcasts.js) -->
         <div class="admin-panel" id="ap-broadcasts">
           <div id="broadcastsRoot"><div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div></div>
@@ -5788,6 +5793,7 @@ function resetDeposit() {
 <script src="ccr_agent.js"></script>
 <script src="admin_academy_stats.js"></script>
 <script src="admin_connect_stats.js"></script>
+<script src="admin_app_installs.js"></script>
 <script src="account.js"></script>
 <!-- Must load before auth.js: auth.js boots the app, which renders Recent Orders using orderCardsHTML(). -->
 <script src="order_details.js"></script>
