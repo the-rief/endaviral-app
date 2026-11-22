@@ -23,7 +23,7 @@
 
   /* ───────────── install card on the dashboard ───────────── */
   window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; syncBanner(); });
-  window.addEventListener("appinstalled", () => { deferred = null; syncBanner(); say("EndaViral is on your home screen", "success"); });
+  window.addEventListener("appinstalled", () => { deferred = null; syncBanner(); syncSide(); say("EndaViral is on your home screen", "success"); });
 
   function later() { try { return Date.now() < (+localStorage.getItem(LATER) || 0); } catch (_) { return false; } }
   function canOffer() { return !standalone() && (deferred || IOS) && !later(); }
@@ -54,8 +54,32 @@
   }
 
   async function install() {
-    if (deferred) { deferred.prompt(); const r = await deferred.userChoice.catch(() => null); deferred = null; if (r && r.outcome === "accepted") syncBanner(); return; }
+    if (typeof closeSidebar === "function") closeSidebar();
+    if (deferred) { deferred.prompt(); const r = await deferred.userChoice.catch(() => null); deferred = null; if (r && r.outcome === "accepted") { syncBanner(); syncSide(); } return; }
     if (IOS) return iosSheet();
+    otherSheet();
+  }
+  // Android / computer when the browser hasn't offered its own install button yet
+  function otherSheet() {
+    const and = /Android/.test(ua);
+    sheet(`<div class="ev-sh-grab"></div>
+      <div class="ev-sh-head"><img src="/apple-touch-icon.png?v=2" alt=""><div><b>Install the EndaViral app</b><span>Free. No Play Store needed.</span></div></div>
+      <ol class="ev-steps">
+        <li><i>1</i><span>Tap the browser menu <b>${and ? "⋮" : "⋮ or ⊕"}</b> ${and ? "at the top right" : "next to the address bar"}</span></li>
+        <li><i>2</i><span>Tap <b>${and ? "Install app" : "Install EndaViral"}</b> or <b>Add to Home screen</b></span></li>
+        <li><i>3</i><span>Tap <b>Install</b>. Done.</span></li></ol>
+      <button type="button" class="ev-btn-g" data-close>Got it</button>`);
+  }
+
+  /* Always reachable: "Get the app" next to Log out in the side menu, even after the dashboard strip is closed. */
+  function syncSide() {
+    const foot = document.querySelector("#sidebar .sb-user") || document.querySelector(".sb-user");
+    let row = document.getElementById("evSideApp");
+    if (standalone() || !foot) { row?.remove(); return; }
+    if (row) return;
+    foot.insertAdjacentHTML("beforebegin", `<button type="button" class="ev-side-app" id="evSideApp">
+      <img src="/favicon-192.png?v=2" alt=""><span><b>Get the app</b><small>Install EndaViral on this ${/iPhone|Android/.test(ua) ? "phone" : "device"}</small></span>${icon("download")}</button>`);
+    document.getElementById("evSideApp").onclick = install;
   }
 
   function sheet(html) {
@@ -209,7 +233,7 @@
   document.addEventListener("visibilitychange", () => { if (!document.hidden && isStaff() && navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); });
 
   /* ───────────── run after sign-in / sign-out ───────────── */
-  function after() { syncBanner(); syncBell(); goFromUrl(); }
+  function after() { syncBanner(); syncSide(); syncBell(); goFromUrl(); }
   if (typeof initApp === "function") { const o = initApp; window.initApp = function () { const r = o.apply(this, arguments); try { after(); } catch (_) {} return r; }; }
   if (typeof doLogout === "function") { const o = doLogout; window.doLogout = function () { const r = o.apply(this, arguments); try { document.getElementById("evBell")?.remove(); close(); } catch (_) {} return r; }; }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", after); else after();
