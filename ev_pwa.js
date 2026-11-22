@@ -135,7 +135,9 @@
     const box = sheet(`<div class="ev-sh-grab"></div><div class="ev-np-h"><b>Notifications</b><button type="button" class="ev-np-x" data-close aria-label="Close">${icon("x")}</button></div><div id="evNp"><p class="ev-np-load">Loading…</p></div>`);
     const body = box.querySelector("#evNp");
     const draw = async () => {
-      let i; try { i = await info(); } catch (err) { body.innerHTML = `<p class="ev-np-err">${esc(err.message)}</p>`; return; }
+      let i; try { i = await info(); } catch (err) {
+        const nf = /not found/i.test(err.message || "");
+        body.innerHTML = `<p class="ev-np-err">${nf ? "Notifications aren't switched on at the server yet. Deploy the new backend on Render, wait for it to finish, then try again." : esc(err.message)}</p>`; return; }
       const sub = await PUSH.current().catch(() => null);
       const mine = sub && i.devices.find((x) => x.endpoint === sub.endpoint);
       const perm = PUSH.ok() ? Notification.permission : "unsupported";
