@@ -4438,7 +4438,11 @@ function _updateDashTicketBanner() {
   // seen at that message count), it stops showing here even though the
   // ticket itself is still 'pending' server-side until they type a reply.
   const pendingTickets = _allTickets.filter(_hasUnseenReply);
-  if (!pendingTickets.length) {
+  // × hides the banner until something new arrives (a new message changes the signature)
+  const sig = _dashBannerSig(pendingTickets);
+  let dismissed = null; try { dismissed = localStorage.getItem('ev_dash_msg_x'); } catch (_) {}
+  el.dataset.sig = sig;
+  if (!pendingTickets.length || (sig && sig === dismissed)) {
     el.style.display = 'none';
     _dashBannerTicketId = null;
     return;
@@ -4464,6 +4468,17 @@ function _updateDashTicketBanner() {
     if (desc) desc.textContent = 'Tap to view';
   }
   el.style.display = 'flex';
+}
+
+function _dashBannerSig(list) {
+  return list.map(t => { const m = t.last_message || t.first_message || {};
+    return t.id + ':' + (m.id || m.created_at || t.message_count || t.updated_at || ''); }).sort().join('|');
+}
+function _dismissDashTicketBanner() {
+  const el = document.getElementById('dashTicketBanner');
+  if (!el) return;
+  try { localStorage.setItem('ev_dash_msg_x', el.dataset.sig || ''); } catch (_) {}
+  el.style.display = 'none';
 }
 
 // Bound to the banner's onclick in index.html instead of a bare

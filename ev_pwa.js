@@ -28,20 +28,29 @@
   function later() { try { return Date.now() < (+localStorage.getItem(LATER) || 0); } catch (_) { return false; } }
   function canOffer() { return !standalone() && (deferred || IOS) && !later(); }
 
+  // Where the offer sits. "strip": one slim line at the top of the dashboard (default);
+  // "pill": "Get app" button in the top bar next to the wallet; "icon": icon-only button in the top bar.
+  const PLACE = () => window.EV_APP_PLACE || "strip";
   function syncBanner() {
-    const stats = document.querySelector("#sec-dashboard .dash-stats-row");
-    let b = document.getElementById("evAppBanner");
-    if (!canOffer() || !stats) { if (b) b.remove(); return; }
-    if (b) return;
-    stats.insertAdjacentHTML("afterend", `
-      <div class="ev-appb" id="evAppBanner" role="region" aria-label="Get the EndaViral app">
-        <div class="ev-appb-ic"><img src="/favicon-192.png?v=2" alt=""></div>
-        <div class="ev-appb-tx"><b>Get the EndaViral app</b><span>Open your orders, wallet and Academy in one tap. No Play Store needed.</span></div>
-        <button type="button" class="ev-appb-go" id="evAppGo">${icon("download")}<span>Install</span></button>
-        <button type="button" class="ev-appb-x" id="evAppX" aria-label="Not now">${icon("x")}</button>
-      </div>`);
-    document.getElementById("evAppGo").onclick = install;
-    document.getElementById("evAppX").onclick = () => { try { localStorage.setItem(LATER, String(Date.now() + 14 * 864e5)); } catch (_) {} syncBanner(); };
+    const place = PLACE(), on = canOffer();
+    const bar = document.querySelector(".topbar-right"), dash = document.getElementById("sec-dashboard");
+    const old = document.getElementById("evAppGo");
+    if (!on) { document.getElementById("evAppTop")?.remove(); document.getElementById("evAppBanner")?.remove(); return; }
+    if (old) return;
+    if ((place === "pill" || place === "icon") && bar) {
+      bar.insertAdjacentHTML("afterbegin", place === "pill"
+        ? `<button type="button" class="ev-getapp" id="evAppTop"><span id="evAppGo" class="ev-getapp-in">${icon("download")}<span>Get app</span></span></button>`
+        : `<button type="button" class="ev-getapp ev-getapp-ic" id="evAppTop" aria-label="Get the EndaViral app" title="Get the EndaViral app"><span id="evAppGo" class="ev-getapp-in">${icon("download")}</span><i></i></button>`);
+      document.getElementById("evAppTop").onclick = install;
+    } else if (place === "strip" && dash) {
+      dash.insertAdjacentHTML("afterbegin", `
+        <div class="ev-strip" id="evAppBanner"><img src="/favicon-192.png?v=2" alt="">
+          <span><b>EndaViral app</b> · one tap from your home screen</span>
+          <button type="button" class="ev-strip-go" id="evAppGo">Install</button>
+          <button type="button" class="ev-strip-x" id="evAppX" aria-label="Not now">${icon("x")}</button></div>`);
+      document.getElementById("evAppGo").onclick = install;
+      document.getElementById("evAppX").onclick = () => { try { localStorage.setItem(LATER, String(Date.now() + 14 * 864e5)); } catch (_) {} syncBanner(); };
+    }
   }
 
   async function install() {
@@ -67,7 +76,10 @@
         <li><i>1</i><span>Tap ${share} <b>Share</b> in Safari's toolbar</span></li>
         <li><i>2</i><span>Scroll and tap ${plus} <b>Add to Home Screen</b></span></li>
         <li><i>3</i><span>Tap <b>Add</b>. Done.</span></li></ol>`
-      : `<p class="ev-sh-note">Open <b>endaviral.co.ke</b> in <b>Safari</b>, then tap ${share} Share → <b>Add to Home Screen</b>.</p>`}
+      : `<ol class="ev-steps">
+        <li><i>1</i><span>Tap ${share} <b>Share</b> ${/CriOS/.test(ua) ? "at the top, next to the address" : "in your browser's menu"}</span></li>
+        <li><i>2</i><span>Tap ${plus} <b>Add to Home Screen</b> (scroll down if needed)</span></li>
+        <li><i>3</i><span>Tap <b>Add</b>. Done.</span></li></ol>`}
       <button type="button" class="ev-btn-g" data-close>Got it</button>`);
   }
 
@@ -201,7 +213,7 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", after); else after();
   // the dashboard's stat row can be re-rendered: put the card back if needed
   const dash = document.getElementById("sec-dashboard");
-  if (dash) new MutationObserver(() => { if (canOffer() && !document.getElementById("evAppBanner")) syncBanner(); }).observe(dash, { childList: true });
+  if (dash) new MutationObserver(() => { if (canOffer() && !document.getElementById("evAppGo")) syncBanner(); }).observe(dash, { childList: true });
 
   window.EVApp = { install, syncBanner, syncBell, panel };
 })();
